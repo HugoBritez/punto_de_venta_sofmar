@@ -162,8 +162,6 @@ export default function PresupuestoModal({ isOpen, onClose, presupuestoID }: Pre
         axios.get(`${api_url}presupuestos/detalles?cod=${presupuestoID}`)
       ])
 
-      console.log(ventaResponse.data.body);
-      console.log(detalleResponse.data.body);
 
   
       const [presupuestoData] = ventaResponse.data.body
@@ -171,6 +169,8 @@ export default function PresupuestoModal({ isOpen, onClose, presupuestoID }: Pre
 
       setPresupuesto(presupuestoData)
       setDetallePresupuesto(detalles)
+
+      console.log(presupuestoData)
   
       await Promise.all([
         fetchClienteInfo(presupuestoData.pre_cliente),
@@ -274,16 +274,25 @@ export default function PresupuestoModal({ isOpen, onClose, presupuestoID }: Pre
 
 
   const total = detallePresupuesto.reduce((sum, detalle) => {
-    return sum + (detalle.cantidad * detalle.precio - detalle.descuento);
+    if (!detalle || isNaN(detalle.cantidad) || isNaN(detalle.precio) || isNaN(detalle.descuento)) {
+      return sum;
+    }
+    const cantidad = Number(detalle.cantidad) || 0;
+    const precio = Number(detalle.precio) || 0;
+    return sum + (cantidad * precio );
   }, 0);
-
-
-  const totalDescuentos = detallePresupuesto.reduce((sum, detalle)=>{
-    return sum + detalle.descuento;
-  }, 0)
-
+  
+  const totalDescuentos = detallePresupuesto.reduce((sum, detalle) => {
+    if (!detalle || isNaN(detalle.descuento)) {
+      return sum;
+    }
+    const descuento = Number(detalle.descuento* detalle.cantidad) || 0;
+    return sum + descuento;
+  }, 0);
   
   const totalFinal = total - totalDescuentos;
+
+
 
 
   return (
@@ -334,7 +343,7 @@ export default function PresupuestoModal({ isOpen, onClose, presupuestoID }: Pre
                   <ReceiptHeader>Descripción</ReceiptHeader>
                   <ReceiptHeader className="right">Cant</ReceiptHeader>
                   <ReceiptHeader className="right">Precio U.</ReceiptHeader>
-                  <ReceiptHeader className="right">Desc.</ReceiptHeader>
+                  <ReceiptHeader className="right">Desc. U.</ReceiptHeader>
                   <ReceiptHeader className="right">Valor</ReceiptHeader>
                 </ReceiptRow>
               </thead>
@@ -346,7 +355,7 @@ export default function PresupuestoModal({ isOpen, onClose, presupuestoID }: Pre
                     <ReceiptCell className="right">{safeString(detalle.cantidad)}</ReceiptCell>
                     <ReceiptCell className="right">{formatCurrency(detalle.precio)}</ReceiptCell>
                     <ReceiptCell className="right">{formatCurrency(detalle.descuento)}</ReceiptCell>
-                    <ReceiptCell className="right">{formatCurrency(detalle.cantidad * detalle.precio - detalle.descuento)}</ReceiptCell>
+                    <ReceiptCell className="right">{formatCurrency(detalle.cantidad *( detalle.precio - detalle.descuento))}</ReceiptCell>
                   </ReceiptRow>
                 ))}
               </tbody>
@@ -360,7 +369,7 @@ export default function PresupuestoModal({ isOpen, onClose, presupuestoID }: Pre
                 </ReceiptRow>
                 <ReceiptRow>
                   <ReceiptCell>Condicion de pago.: {presupuesto.pre_condicion}</ReceiptCell>
-                  <ReceiptCell className="right">Descuento: {formatCurrency(totalDescuentos)}</ReceiptCell>
+                  <ReceiptCell className="right">Descuento Total: {formatCurrency(totalDescuentos)}</ReceiptCell>
                 </ReceiptRow>
                 <ReceiptRow>
                   <ReceiptCell>Validez.:{presupuesto.pre_validez}</ReceiptCell>

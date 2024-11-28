@@ -16,6 +16,7 @@ interface Articulo {
   ar_pvg: number
   ar_pvcredito: number
   ar_pvmostrador: number
+  ar_precio_4: number
   ar_codbarra: string
   ar_iva: number
   al_cantidad: number
@@ -30,6 +31,8 @@ interface Articulo {
   sc_descripcion: string
   fecha_ultima_cpmra: string
   um_descripcion: number
+  ub_descripcion: string
+  ar_bloque: number
 }
 
 interface Deposito {
@@ -98,7 +101,6 @@ const GestionInventario: React.FC = () => {
         setAllArticulos(response.data.body)
         setArticulos(response.data.body)
         console.log(response.data.body)
-
       } catch (error) {
         console.error('Error al buscar artículos iniciales:', error)
         toast({
@@ -149,7 +151,7 @@ const GestionInventario: React.FC = () => {
       })
       setArticulos([])
     }
-  }, 300)
+  }, 1500)
 
   useEffect(() => {
     return () => {
@@ -167,6 +169,9 @@ const GestionInventario: React.FC = () => {
 
   const handleBusqueda = (e: React.ChangeEvent<HTMLInputElement>) => {
     const busqueda = e.target.value
+    setArticulos([])
+    setAllArticulos([])
+    debouncedFetchArticulos(busqueda)
     setArticuloBusqueda(busqueda)
     filterArticulos(busqueda)
   }
@@ -199,7 +204,7 @@ const GestionInventario: React.FC = () => {
   <VStack spacing={4} align="stretch">
     <Flex bgGradient="linear(to-r, blue.500, blue.600)" color="white" p={isMobile ? 4 : 6} alignItems="center" rounded="lg">
       <Archive size={32} className='mr-2' />
-      <Heading size={isMobile ? 'sm' : 'md'}>Inventario</Heading>
+      <Heading size={isMobile ? 'sm' : 'md'}>Consulta de articulos</Heading>
     </Flex>
     <Flex flexDirection={isMobile ? 'column' : 'row'} gap={4}>
       <Box width="100%">
@@ -234,46 +239,54 @@ const GestionInventario: React.FC = () => {
   </Box>
     </Flex>
     <Box overflowX="auto" maxHeight={'750px'}>
-      <Table variant="striped">
-        <Thead bg={'blue.100'}>
-          <Tr>
-            <Th width="10%">Cod. Barra</Th>
-            <Th width="5%">Código</Th>
-            <Th width="15%">Descripción</Th>
-            <Th width="15%" textAlign="right">Costo Fob.</Th>
-            <Th width="15%" textAlign="right">Subtotal Compra</Th>
-            <Th width="15%" textAlign="right">Subtotal Venta</Th>
-            <Th width="10%">Proveedor</Th>
-            <Th width="10%">Stock</Th>
-            <Th width="10%">Deposito</Th>
-            <Th width="10%">Lote</Th>
-            <Th width="10%">Presentacion</Th>
-            <Th width="10%">Marca</Th>
-            <Th width="10%">Categoria</Th>
-            <Th width="15%">Vencimiento</Th>
-          </Tr>
-        </Thead>
-        <Tbody>
-          {articulos.map((articulo) => (
-            <Tr key={articulo.ar_codbarra}>
-              <Td width="10%">{articulo.ar_codbarra}</Td>
-              <Td width="5%">{articulo.ar_codigo}</Td>
-              <Td width="15%">{articulo.ar_descripcion}</Td>
-              <Td width="15%" textAlign="right">{formatCurrency(articulo.ar_pcg)}</Td>
-              <Td width="15%" textAlign="right">{formatCurrency(articulo.ar_pcg)}</Td>
-              <Td width="15%" textAlign="right">{formatCurrency(articulo.ar_pvg)}</Td>
-              <Td width="10%">{articulo.pro_razon}</Td>
-              <Td width="10%">{articulo.al_cantidad}</Td>
-              <Td width="10%">{articulo.dep_descripcion}</Td>
-              <Td width="10%">{articulo.al_codigo}</Td>
-              <Td width="10%">{articulo.um_descripcion}</Td>
-              <Td width="10%">{articulo.ma_descripcion}</Td>
-              <Td width="10%">{articulo.sc_descripcion}</Td>
-              <Td width="15%">{articulo.al_vencimiento.substring(0, 10)}</Td>
-            </Tr>
-          ))}
-        </Tbody>
-      </Table>
+    <Table variant="striped">
+  <Thead bg={'blue.100'}>
+    <Tr>
+      <Th>Cod. Barra</Th>
+      <Th>Código</Th>
+      <Th>Descripción</Th>
+      <Th>Stock</Th>
+      <Th textAlign="right">Pr. Venta Contado</Th>
+      <Th textAlign="right">Pr. Venta Crédito</Th>
+      <Th textAlign="right">Pr. Venta Mostrador</Th>
+      <Th textAlign="right">Precio Venta 4</Th>
+      <Th>Proveedor</Th>
+      <Th>Deposito</Th>
+      <Th>Lote</Th>
+      <Th>Bloque</Th>
+      <Th>Ubicacion</Th>
+      <Th>Presentacion</Th>
+      <Th>Marca</Th>
+      <Th>Categoria</Th>
+      <Th>Vencimiento</Th>
+      <Th textAlign="right">Costo Fob.</Th>
+    </Tr>
+  </Thead>
+  <Tbody>
+    {articulos.map((articulo) => (
+      <Tr key={articulo.al_codigo}>
+        <Td>{articulo.ar_codbarra}</Td>
+        <Td>{articulo.ar_codigo}</Td>
+        <Td>{articulo.ar_descripcion}</Td>
+        <Td>{articulo.al_cantidad}</Td>
+        <Td textAlign="right">{formatCurrency(articulo.ar_pvg)}</Td>
+        <Td textAlign="right">{formatCurrency(articulo.ar_pvcredito)}</Td>
+        <Td textAlign="right">{formatCurrency(articulo.ar_pvmostrador)}</Td>
+        <Td textAlign="right">{formatCurrency(articulo.ar_precio_4)}</Td>
+        <Td>{articulo.pro_razon}</Td>
+        <Td>{articulo.dep_descripcion}</Td>
+        <Td>{articulo.al_codigo}</Td>
+        <Td>{articulo.ar_bloque}</Td>
+        <Td>{articulo.ub_descripcion}</Td>
+        <Td>{articulo.um_descripcion}</Td>
+        <Td>{articulo.ma_descripcion}</Td>
+        <Td>{articulo.sc_descripcion}</Td>
+        <Td>{articulo.al_vencimiento.substring(0, 10)}</Td>
+        <Td textAlign="right">{formatCurrency(articulo.ar_pcg)}</Td>
+      </Tr>
+    ))}
+  </Tbody>
+</Table>
     </Box>
   </VStack>
 </Box>

@@ -58,6 +58,7 @@ interface DetallePresupuesto {
   art_codigo: number
   codbarra: string
   descripcion: string
+  descripcion_editada: string
   cantidad: number
   precio: number
   descuento: number
@@ -66,6 +67,15 @@ interface DetallePresupuesto {
   diez: number
   lote: string
   vence: string
+  ar_editar_desc: number
+}
+
+interface Cliente {
+  cli_codigo: number;
+  cli_interno: number;
+  cli_razon: string;
+  cli_ruc: string;
+  cli_limitecredito: number;
 }
 
 const periodos = [
@@ -80,9 +90,10 @@ interface ConsultaPresupuestosProps {
   onSelectPresupuesto?: (presupuesto: Presupuesto, detalles: DetallePresupuesto[]) => void
   onClose?: () => void
   isModal?: boolean
+  clienteSeleccionado?: Cliente | null
 }
 
-export default function ConsultaPresupuestos({ onSelectPresupuesto, onClose, isModal= false }: ConsultaPresupuestosProps) {
+export default function ConsultaPresupuestos({ onSelectPresupuesto, onClose, isModal= false, clienteSeleccionado }: ConsultaPresupuestosProps) {
   const [presupuestos, setPresupuestos] = useState<Presupuesto[]>([])
   const [fechaDesde, setFechaDesde] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [fechaHasta, setFechaHasta] = useState(format(new Date(), 'yyyy-MM-dd'))
@@ -105,19 +116,19 @@ export default function ConsultaPresupuestos({ onSelectPresupuesto, onClose, isM
   }, [fechaDesde, fechaHasta])
 
   const fetchPresupuestos = async () => {
-    setIsLoading(true)
+    setIsLoading(true);
     try {
       const response = await axios.post(`${api_url}presupuestos/consultas`, {
         fecha_desde: fechaDesde,
         fecha_hasta: fechaHasta,
         sucursal: '',
-        cliente: clienteFiltro,
+        cliente: clienteSeleccionado ? clienteSeleccionado.cli_codigo : clienteFiltro, // Usar clienteSeleccionado si está disponible
         vendedor: vendedorFiltro,
         articulo: '',
         moneda: '',
         factura: facturaFiltro
-      })
-      setPresupuestos(response.data.body)
+      });
+      setPresupuestos(response.data.body);
       console.log(response.data.body)
     } catch (error) {
       toast({
@@ -126,11 +137,11 @@ export default function ConsultaPresupuestos({ onSelectPresupuesto, onClose, isM
         status: "error",
         duration: 3000,
         isClosable: true,
-      })
+      });
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const fetchDetallePresupuesto = async (codigo: number) => {
     setIsLoading(true)
@@ -138,6 +149,7 @@ export default function ConsultaPresupuestos({ onSelectPresupuesto, onClose, isM
       const response = await axios.get(`${api_url}presupuestos/detalles?cod=${codigo}`)
       setDetallePresupuesto(response.data.body)
       setPresupuestoID(codigo)
+      console.log(response.data.body)
     } catch (error) {
       toast({
         title: "Error al cargar el detalle del presupuesto",
@@ -184,6 +196,14 @@ export default function ConsultaPresupuestos({ onSelectPresupuesto, onClose, isM
       return numericValue.toLocaleString('es-ES', { minimumFractionDigits: 0 });
     }
     return value;
+  }
+
+  const formatCantidad = (cantidad: string | number) => {
+    const numericValue = Number(cantidad);
+    if (!isNaN(numericValue)) {
+      return Math.floor(numericValue).toString(); // Removes decimals
+    }
+    return cantidad;
   }
 
   const filteredPresupuesto = presupuestos.filter(presupuesto => 
@@ -358,8 +378,8 @@ export default function ConsultaPresupuestos({ onSelectPresupuesto, onClose, isM
                               {detallePresupuesto.map((detalle) => (
                                 <Tr key={detalle.det_codigo}>
                                   <Td>{detalle.art_codigo}</Td>
-                                  <Td>{detalle.descripcion}</Td>
-                                  <Td>{detalle.cantidad}</Td>
+                                  <Td>{detalle.descripcion_editada === ''? detalle.descripcion : detalle.descripcion_editada}</Td>
+                                  <Td>{formatCantidad(detalle.cantidad)}</Td>
                                   <Td textAlign="right">{formatNumber(detalle.precio)}</Td>
                                   <Td  textAlign="right">{formatNumber(detalle.descuento)}</Td>
                                   <Td textAlign={'right'}>{formatNumber(detalle.exentas)}</Td>
@@ -367,7 +387,7 @@ export default function ConsultaPresupuestos({ onSelectPresupuesto, onClose, isM
                                   <Td textAlign={'right'}>{formatNumber(detalle.diez)}</Td>
                                   <Td textAlign={'right'}>{detalle.lote}</Td>
                                   <Td textAlign={'right'}>{detalle.vence}</Td>
-                                  <Td textAlign="right">{formatNumber(detalle.precio * detalle.cantidad - detalle.descuento)}</Td>
+                                  <Td textAlign="right">{formatNumber((detalle.precio - detalle.descuento) * detalle.cantidad )}</Td>
                                 </Tr>
                               ))}
                             </Tbody>

@@ -33,3 +33,4 @@ async function Auditar(entidad: number, accion: number, idReferencia: number | n
 
 
 
+
