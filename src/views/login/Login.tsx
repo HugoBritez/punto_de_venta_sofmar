@@ -18,10 +18,12 @@ import {
 import { LockIcon, AtSignIcon } from '@chakra-ui/icons';
 import { api_url } from '@/utils';
 import Auditar from '@/services/AuditoriaHook';
+// import { traerConfiguraciones } from '@/services/ConfiguracionesHook';
 
 const Login: React.FC = () => {
   const [usuario, setUsuario] = useState('');
   const [password, setPassword] = useState('');
+  // const [, setPermisos] = useState([]);
   const { login } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
@@ -34,12 +36,14 @@ const Login: React.FC = () => {
         pass: password,
       });
 
-      console.log('Login response:', response.data.body);
+      // const permisosData = await traerConfiguraciones();
+      // setPermisos(permisosData);
+
       login(response.data.body);
+      localStorage.setItem('permiso_graficos', response.data.body.usuario[0].op_graficos);
       navigate('/dashboard');
-      
-      console.log('Calling Auditar with params:', 10, 4, userID, 0, 'Inicio de Sesión desde la web');
       Auditar(10, 4, userID, 0, 'Inicio de Sesión desde la web');
+      // traerConfiguraciones()
     } catch (error) {
       console.error('Login error:', error);
       toast({

@@ -138,8 +138,6 @@ export default function PresupuestoModalEstilizado({ isOpen, onClose, presupuest
         axios.get(`${api_url}presupuestos/detalles?cod=${presupuestoID}`)
       ]);
 
-      console.log(ventaResponse.data.body);
-      console.log(detalleResponse.data.body);
 
       const [presupuestoData] = ventaResponse.data.body;
       const detalles = detalleResponse.data.body;
@@ -264,13 +262,22 @@ export default function PresupuestoModalEstilizado({ isOpen, onClose, presupuest
   }
 
   const total = detallePresupuesto.reduce((sum, detalle) => {
-    return sum + (detalle.cantidad * detalle.precio - detalle.descuento);
+    if (!detalle || isNaN(detalle.cantidad) || isNaN(detalle.precio) || isNaN(detalle.descuento)) {
+      return sum;
+    }
+    const cantidad = Number(detalle.cantidad) || 0;
+    const precio = Number(detalle.precio) || 0;
+    return sum + (cantidad * precio );
   }, 0);
-
+  
   const totalDescuentos = detallePresupuesto.reduce((sum, detalle) => {
-    return sum + detalle.descuento;
+    if (!detalle || isNaN(detalle.descuento * detalle.cantidad)) {
+      return sum;
+    }
+    const descuento = Number(detalle.descuento) || 0;
+    return sum + descuento;
   }, 0);
-
+  
   const totalFinal = total - totalDescuentos;
 
   return (
@@ -314,7 +321,7 @@ export default function PresupuestoModalEstilizado({ isOpen, onClose, presupuest
                   <Th>Descripción</Th>
                   <Th isNumeric>Cant</Th>
                   <Th isNumeric>Precio U.</Th>
-                  <Th isNumeric>Desc.</Th>
+                  <Th isNumeric>Desc.U.</Th>
                   <Th isNumeric>Valor</Th>
                 </Tr>
               </Thead>
@@ -342,7 +349,7 @@ export default function PresupuestoModalEstilizado({ isOpen, onClose, presupuest
               </VStack>
               <VStack align="end" spacing={1}>
                 <Text><strong>Total s/Desc.:</strong> {formatCurrency(total)}</Text>
-                <Text><strong>Descuento:</strong> {formatCurrency(totalDescuentos)}</Text>
+                <Text><strong>Descuento Total:</strong> {formatCurrency(totalDescuentos)}</Text>
                 <Text fontSize="xl" fontWeight="bold"><strong>Total:</strong> {formatCurrency(totalFinal)}</Text>
               </VStack>
             </HStack>

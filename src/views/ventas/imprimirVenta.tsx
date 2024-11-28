@@ -104,7 +104,7 @@ interface Cliente {
 interface Sucursal {
   id: number
   descripcion: string
-  ciudad: string
+  ciu_descripcion: string
   tel: string
   nombre_emp: string
 }
@@ -183,15 +183,17 @@ export default function VentaModal({ isOpen, onClose, ventaId }: VentaModalProps
   
   const fetchSucursalInfo = async () => {
     try {
-      const response = await axios.get(`${api_url}sucursales/listar`)
+      const response = await axios.get(`${api_url}sucursales/todos`)
       const sucursalData = Array.isArray(response.data.body) && response.data.body.length > 0
         ? response.data.body[0]
         : null
       setSucursalInfo(sucursalData)
+      console.log(response.data.body)
     } catch (error) {
       console.error("Error fetching sucursal info", error)
     }
   }
+
 
   const fetchDepositoInfo = async () => {
     try {
@@ -218,13 +220,12 @@ export default function VentaModal({ isOpen, onClose, ventaId }: VentaModalProps
   }
 
   const formatDate = (date: string) => {
-    return new Date(date).toLocaleString('es-PY', {
+    return new Date(date.split(' : ')[0] + 'T00:00:00').toLocaleString('es-PY', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
-    })
+    });
   }
-
   const formatCurrency = (amount: number): string => {
     return new Intl.NumberFormat('es-PY', {
       style: 'currency',
@@ -273,7 +274,7 @@ export default function VentaModal({ isOpen, onClose, ventaId }: VentaModalProps
             <Box textAlign="center" mb={2}>
               <Text fontWeight="bold">{safeString(sucursalInfo.nombre_emp)}</Text>
               <Text>Filial: {safeString(sucursalInfo.descripcion)}</Text>
-              <Text>Ciudad: Ciudad del Este</Text>
+              <Text  textAlign={'center'}>Ciudad: {sucursalInfo.ciu_descripcion}</Text>
               <Text>Telef.: {safeString(sucursalInfo.tel)}</Text>
             </Box>
             <ReceiptDivider />
@@ -287,7 +288,7 @@ export default function VentaModal({ isOpen, onClose, ventaId }: VentaModalProps
                   <ReceiptCell>Fecha..: {`${formatDate(venta.fecha)} : ${venta.ve_hora}`}</ReceiptCell>
                   <ReceiptCell className="right">Sucursal.: {safeString(sucursalInfo.descripcion)}</ReceiptCell>
                 </ReceiptRow>
-                <ReceiptRow>
+                <ReceiptRow>                                    
                   <ReceiptCell>Moneda.: {venta.ve_moneda === 1 ? 'GUARANI' : 'USD'}</ReceiptCell>
                   <ReceiptCell className="right">Depósito.: {safeString(depositoInfo?.dep_descripcion)}</ReceiptCell>
                 </ReceiptRow>
@@ -301,7 +302,7 @@ export default function VentaModal({ isOpen, onClose, ventaId }: VentaModalProps
                 </ReceiptRow>
                 <ReceiptRow>
                   <ReceiptCell>Teléfono.: {safeString(clienteInfo.cli_tel)}</ReceiptCell>
-                  <ReceiptCell className="right">Ciudad..: Ciudad del Este</ReceiptCell>
+                  <ReceiptCell className="right">Ciudad..: {sucursalInfo.ciu_descripcion}</ReceiptCell>
                 </ReceiptRow>
               </tbody>
             </ReceiptTable>
