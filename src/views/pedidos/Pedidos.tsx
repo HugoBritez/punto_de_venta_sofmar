@@ -1170,10 +1170,11 @@ export default function Pedidos() {
   return (
     <div>
       <ChakraProvider>
+      <Box bg={"gray.100"} h={"100vh"} w={"100%"} p={2}>
         <Box
-          maxW="100%"
-          mx="auto"
-          p={isMobile ? 2 : 6}
+          w="100%"
+          h={"100%"}
+          p={isMobile ? 2 : 4}
           bg="white"
           shadow="xl"
           rounded="lg"
@@ -1513,12 +1514,13 @@ export default function Pedidos() {
                     </Box>
                   )}
                 </Box>
+                <Flex gap={4}>
                 <Input
                   type="number"
                   placeholder="Cantidad"
                   value={cantidad}
                   onChange={(e) => setCantidad(parseInt(e.target.value))}
-                  width={isMobile ? "full" : "60px"}
+                  width={"60px"}
                   min={1}
                   ref={cantidadRef}
                   onKeyDown={(e) => {
@@ -1535,7 +1537,7 @@ export default function Pedidos() {
                 >
                   En stock
                 </Checkbox>
-                <Select w={'60px'}  defaultValue={'0'} color={'black'} variant={'filled'} onChange={(e)=>{
+                <Select w={'80px'}  defaultValue={'0'} color={'black'} variant={'filled'} onChange={(e)=>{
                   setBonificacion(parseInt(e.target.value))
                 }}>
                   <option value={'0'}>V</option>
@@ -1544,10 +1546,11 @@ export default function Pedidos() {
                 <Button
                   colorScheme="green"
                   onClick={agregarItem}
-                  flexShrink={0}
+                  flexGrow={1}
                 >
                   +
                 </Button>
+                </Flex>
               </Flex>
               <Box
                 overflowX={"auto"}
@@ -1819,6 +1822,7 @@ export default function Pedidos() {
             </Flex>
           </Flex>
         </Box>
+      </Box>
         <VentaModal
           isOpen={isModalOpen}
           onClose={handleCloseModal}

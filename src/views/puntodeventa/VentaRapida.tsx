@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { FileText, Minus, PanelRight, ShoppingBasket } from "lucide-react";
+import { Minus, ShoppingBag } from "lucide-react";
 import {
   Box,
   Button,
@@ -35,8 +35,6 @@ import {
   NumberIncrementStepper,
   NumberDecrementStepper,
   NumberInput,
-  useDisclosure,
-  IconButton,
 } from "@chakra-ui/react";
 import axios from "axios";
 import { useAuth } from "@/services/AuthContext";
@@ -44,21 +42,7 @@ import { api_url } from "@/utils";
 import { debounce } from "lodash";
 import VentaModal from "../ventas/imprimirVenta";
 import Auditar from "@/services/AuditoriaHook";
-import ConsultaPresupuestos from "../presupuestos/ConsultaPresupuesto";
-import {
-  MetodosPago,
-  Cuota,
-  Pedidos,
-  DetallePedidos,
-  Factura,
-  Venta,
-  DetalleVenta,
-  OperacionData,
-} from "@/types/shared_interfaces";
-import ConsultaPedidos from "../pedidos/ConsultaPedidos";
-// import usePermisos from "@/hooks/usePermisos";
-import DrawerContextual from "../../modules/drawerContextual";
-import ResumenVentas from "../ventas/ResumenVentas";
+import { MetodosPago, Factura } from "@/types/shared_interfaces";
 
 interface Sucursal {
   id: number;
@@ -68,12 +52,6 @@ interface Sucursal {
 interface Deposito {
   dep_codigo: number;
   dep_descripcion: string;
-}
-
-interface Vendedor {
-  id: number;
-  op_nombre: string;
-  op_codigo: string;
 }
 
 interface Cliente {
@@ -96,44 +74,6 @@ interface Articulo {
   ar_iva: number;
   al_cantidad: number;
   al_vencimiento: string;
-  ar_editar_desc: number;
-}
-
-interface Presupuesto {
-  codigo: number;
-  codcliente: number;
-  cliente: string;
-  moneda: string;
-  fecha: string;
-  codsucursal: number;
-  sucursal: string;
-  vendedor: string;
-  operador: string;
-  total: number;
-  descuento: number;
-  saldo: number;
-  condicion: string;
-  vencimiento: string;
-  factura: string;
-  obs: string;
-  estado: number;
-  estado_desc: string;
-}
-
-interface DetallePresupuesto {
-  det_codigo: number;
-  art_codigo: number;
-  codbarra: string;
-  descripcion: string;
-  cantidad: number;
-  precio: number;
-  descuento: number;
-  exentas: number;
-  cinco: number;
-  diez: number;
-  lote: string;
-  vence: string;
-  iva: number;
   ar_editar_desc: number;
 }
 
@@ -183,11 +123,10 @@ const loadItemsFromLocalStorage = (): any[] => {
   return savedItems ? JSON.parse(savedItems) : [];
 };
 
-export default function PuntoDeVenta() {
+export default function VentaRapida() {
   // const { tienePermisos, loading } = usePermisos(107);
-  const [sucursales, setSucursales] = useState<Sucursal[]>([]);
+  const [, setSucursales] = useState<Sucursal[]>([]);
   const [depositos, setDepositos] = useState<Deposito[]>([]);
-  const [vendedores, setVendedores] = useState<Vendedor[]>([]);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [articulos, setArticulos] = useState<Articulo[]>([]);
   const [metodosPago, setMetodosPago] = useState<MetodosPago[]>([]);
@@ -196,18 +135,18 @@ export default function PuntoDeVenta() {
   const [depositoSeleccionado, setDepositoSeleccionado] =
     useState<Deposito | null>(null);
   const [depositoId, setDepositoId] = useState<string>("");
-  const [fecha, setFecha] = useState(new Date().toISOString().split("T")[0]);
-  const [moneda, setMoneda] = useState("PYG");
-  const [vendedor, setVendedor] = useState("");
-  const [operador, setOperador] = useState<string>("");
+  const [fecha] = useState(new Date().toISOString().split("T")[0]);
+  const [moneda] = useState("PYG");
+  const [operador] = useState<string>("");
   const [clienteSeleccionado, setClienteSeleccionado] = useState<
     (typeof clientes)[0] | null
   >(null);
   const [articuloBusqueda, setArticuloBusqueda] = useState("");
-  const [clienteBusqueda, setClienteBusqueda] = useState("");
+  const [clienteBusqueda, setClienteBusqueda] = useState("CLIENTE CASUAL");
   const [cantidad, setCantidad] = useState(1);
   const [items, setItems] = useState<
     {
+      al_codigo: number;
       id: number;
       ar_codigo?: number;
       nombre: string;
@@ -237,25 +176,19 @@ export default function PuntoDeVenta() {
     "porcentaje"
   );
   const [descuentoValor, setDescuentoValor] = useState(0);
-  const [buscarVendedor, setBuscarVendedor] = useState("");
-  const [recomedacionesVendedores, setRecomendacionesVendedores] = useState<
-    typeof vendedores
-  >([]);
   const [newSaleID, setNewSaleID] = useState<number | null>(null);
   const [, setError] = useState<string | null>(null);
   const [numeroFactura, setNumeroFactura] = useState("");
-  const [, setNumeroTimbrado] = useState("");
-  const [creditoUtilizado, setCreditoUtilizado] = useState(0);
+  const [numeroTimbrado, setNumeroTimbrado] = useState("");
+  const [numeroEstablecimiento, setNumeroEstablecimiento] = useState("");
+  const [numeroEmision, setNumeroEmision] = useState("");
   const [entregaInicial, setEntregaInicial] = useState(0);
   const [cuotas, setCuotas] = useState(1);
-  const [fechaVencimiento, setFechaVencimiento] = useState(fecha);
   const [metodoPago, setMetodoPago] = useState(0);
   const [montoRecibido, setMontoRecibido] = useState(0);
-  const [buscarSoloConStock] = useState(false);
-  const [cuotasList, setCuotasList] = useState<Cuota[]>([]);
+  const [buscarSoloConStock, setBuscarSoloConStock] = useState(true);
   const toast = useToast();
   const { auth } = useAuth();
-  const vendedorRef = useRef<HTMLInputElement>(null);
   const clienteRef = useRef<HTMLInputElement>(null);
   const articuloRef = useRef<HTMLInputElement>(null);
   const cantidadRef = useRef<HTMLInputElement>(null);
@@ -265,51 +198,25 @@ export default function PuntoDeVenta() {
   const [, setClienteInfo] = useState<any>(null);
   const [, setSucursalInfo] = useState<any>(null);
   const [, setVendedorInfo] = useState<any>(null);
-  const [isPresupuestoModalOpen, setIsPresupuestoModalOpen] = useState(false);
-  const [isPedidoModalOpen, setIsPedidoModalOpen] = useState(false);
-  const [pedidoSeleccionado, setPedidoSeleccionado] = useState<Pedidos | null>(
-    null
-  );
-  const [presupuestoSeleccionado, setPresupuestoSeleccionado] =
-    useState<Presupuesto | null>(null);
-  const [presupuestoOriginalItems, setPresupuestoOriginalItems] = useState<
-    DetallePresupuesto[]
-  >([]);
-
-  const [pedidoOriginalItems, setPedidoOriginalItems] = useState<
-    DetallePedidos[]
-  >([]);
-
-  const [ventaSeleccionada, setVentaSeleccionada] = useState<Venta | null>(
-    null
-  );
+  const cobrarEnBalcon = localStorage.getItem("cobrarEnBalcon");
 
   const [isFinalizarVentaModalOpen, setIsFinalizarVentaModalOpen] =
     useState(false);
 
   const operadorActual = localStorage.getItem("user_id");
-
   // Funciones y Effects para traer los datos//
 
+  const cobrarEnBalconParsed = JSON.parse(cobrarEnBalcon || "{}");
   const [, setDetalleVentas] = useState<DetalleVentas[]>([]);
   const [itemsEditados, setItemsEditados] = useState<ItemEditado[]>([]);
   const [listaPrecios, setListaPrecios] = useState<any[0]>([]);
   const [listaPrecio, setListaPrecio] = useState("");
   const [acuerdoCliente, setAcuerdoCliente] = useState(1);
-  const [consultaExterna, setConsultaExterna] = useState(0);
-  const [bonificacion] = useState(0);
-  const {
-    isOpen: isVentaOpen,
-    onOpen: onVentaOpen,
-    onClose: onVentaClose,
-  } = useDisclosure();
-  const { isOpen, onOpen, onClose } = useDisclosure();
-  const [cajaAbierta, setCajaAbierta] = useState(false);
-  const [cajaId, setCajaId] = useState<number>(0);
-  const [, setSaldoActual] = useState(0);
+  const [bonificacion, setBonificacion] = useState(0);
   const [facturaData, setFacturaData] = useState<Factura[]>([]);
-  const [selectedIndex, setSelectedIndex] = useState(-1);
   const [ultimaVentaId, setUltimaVentaId] = useState<number>(0);
+  const [vendedor] = useState(operadorActual);
+  const [clienteCasual, setClienteCasual] = useState<Cliente | null>(null);
 
   async function traerUltimaVentaId() {
     try {
@@ -335,6 +242,10 @@ export default function PuntoDeVenta() {
       );
       console.log(response.data.body);
       setFacturaData(response.data.body);
+      setNumeroFactura(response.data.body[0].d_nro_secuencia + 1);
+      setNumeroEstablecimiento(response.data.body[0].d_establecimiento);
+      setNumeroEmision(response.data.body[0].d_p_emision);
+      setNumeroTimbrado(response.data.body[0].d_nrotimbrado);
     } catch (error) {
       toast({
         title: "Error",
@@ -346,53 +257,61 @@ export default function PuntoDeVenta() {
     }
   }
 
-  async function actualizarUltimaFactura(codigo: number, numero: number) {
+//   async function actualizarUltimaFactura(codigo: number, numero: number) {
+//     try {
+//       await axios.post(
+//         `${api_url}definicion-ventas/sec?secuencia=${codigo}&codigo=${numero}`
+//       );
+//     } catch (err) {
+//       toast({
+//         title: "Error",
+//         description:
+//           "Hubo un problema al actualizar la secuencia de la factura.",
+//         status: "error",
+//         duration: 5000,
+//         isClosable: true,
+//       });
+//     }
+//   }
+
+  useEffect(() => {
+    if (isFinalizarVentaModalOpen) {
+      obtenerTimbrado();
+      traerUltimaVentaId();
+    }
+  }, [isFinalizarVentaModalOpen]);
+
+  const fetchClientes = async () => {
+    if (!auth) {
+      setError("No estás autentificado");
+      return;
+    }
     try {
-      await axios.post(
-        `${api_url}definicion-ventas/sec?secuencia=${codigo}&codigo=${numero}`
-      );
+      const response = await axios.get(`${api_url}clientes`);
+      setClientes(response.data.body);
+      setClienteCasual(response.data.body[0]);
+      setClienteSeleccionado(response.data.body[0]); // Selecciona el primer cliente
+      console.log(response.data.body[0]);
     } catch (err) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Error desconocido");
+      }
       toast({
         title: "Error",
-        description:
-          "Hubo un problema al actualizar la secuencia de la factura.",
+        description: "Hubo un problema al traer los clientes.",
         status: "error",
         duration: 5000,
         isClosable: true,
       });
     }
-  }
+  };
 
-  async function verificarCajaAbierta() {
-    try {
-      const response = await axios.get(
-        `${api_url}caja/verificar/${operadorActual}`
-      );
-      console.log(response.data);
-      if (
-        response.data.body.length > 0 &&
-        response.data.body[0].ca_fecha_cierre === null
-      ) {
-        setCajaAbierta(true);
-        setCajaId(response.data.body[0].ca_codigo);
-        setSaldoActual(response.data.body[0].ca_saldoini);
-      } else {
-        setCajaAbierta(false);
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description:
-          "Ocurrió un error al intentar verificar si hay una caja abierta",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-  }
 
   useEffect(() => {
     // traerListaPrecios
+
     const fetchListasPrecios = async () => {
       try {
         const response = await axios.get(`${api_url}listasprecios/`);
@@ -469,55 +388,7 @@ export default function PuntoDeVenta() {
 
     // traerclientes
 
-    const fetchClientes = async () => {
-      if (!auth) {
-        setError("No estás autentificado");
-        return;
-      }
-      try {
-        const response = await axios.get(`${api_url}clientes`);
-        setClientes(response.data.body);
-        setClienteSeleccionado(response.data.body[0]);
-        setClienteBusqueda(response.data.body[0].cli_razon);
-      } catch (err) {
-        if (err instanceof Error) {
-          setError(err.message);
-        } else {
-          setError("Error desconocido");
-        }
-        toast({
-          title: "Error",
-          description: "Hubo un problema al traer los artículos.",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
-      }
-    };
-
-    const fetchVendedores = async () => {
-      if (!auth) {
-        setError("No estás autentificado");
-        return;
-      }
-      try {
-        const response = await axios.get(`${api_url}usuarios`);
-        setVendedores(response.data.body);
-      } catch (err) {
-        if (err instanceof Error) {
-          setError(err.message);
-        } else {
-          setError("Error desconocido");
-        }
-        toast({
-          title: "Error",
-          description: "Hubo un problema al traer los artículos.",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
-      }
-    };
+    
 
     const fetchMetodoPago = async () => {
       if (!auth) {
@@ -536,31 +407,25 @@ export default function PuntoDeVenta() {
         } else {
           setError("Error desconocido");
         }
-        toast({
-          title: "Error",
-          description: "Hubo un problema al traer los metodos de pago.",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
+        // toast({
+        //   title: "Error",
+        //   description: "Hubo un problema al traer los metodos de pago.",
+        //   status: "error",
+        //   duration: 5000,
+        //   isClosable: true,
+        // });
       }
     };
-
-    verificarCajaAbierta();
     fetchListasPrecios();
     fetchSucursales();
     fetchDepositos();
-    fetchClientes();
-    fetchVendedores();
     fetchMetodoPago();
   }, [auth, toast]);
 
   useEffect(() => {
-    if (isFinalizarVentaModalOpen) {
-      obtenerTimbrado();
-      traerUltimaVentaId();
-    }
-  }, [isFinalizarVentaModalOpen]);
+    fetchClientes();
+    console.log(clienteCasual);
+  }, []);
 
   const formatCurrency = (amount: number) => {
     const currencySymbol: { [key: string]: string } = {
@@ -579,40 +444,40 @@ export default function PuntoDeVenta() {
       .replace(moneda, currencySymbol[moneda]);
   };
 
-  // Hacer que articulo sea opcional
-  const agregarItem = (articulo?: Articulo) => {
-    // Usar el artículo proporcionado o selectedItem
-    const item = articulo || selectedItem;
-
-    if (item) {
+  const agregarItem = () => {
+    if (selectedItem) {
       let precioSeleccionado;
       switch (listaPrecio) {
         case "2": // Crédito
-          precioSeleccionado = item.ar_pvcredito;
+          precioSeleccionado = selectedItem.ar_pvcredito;
           break;
         case "3": // Mostrador
-          precioSeleccionado = item.ar_pvmostrador;
+          precioSeleccionado = selectedItem.ar_pvmostrador;
           break;
         case "1": // Contado
         default:
-          precioSeleccionado = item.ar_pvg;
+          precioSeleccionado = selectedItem.ar_pvg;
           break;
       }
       const precioEnMonedaActual = precioSeleccionado * tasasDeCambio[moneda];
-      const impuestos = calcularImpuesto(item.ar_pvg, item.ar_iva);
+      const impuestos = calcularImpuesto(
+        selectedItem.ar_pvg,
+        selectedItem.ar_iva
+      );
       const nuevoItem = {
-        id: item.ar_codigo,
-        nombre: item.ar_descripcion,
+        al_codigo: selectedItem.al_codigo,
+        id: selectedItem.ar_codigo,
+        nombre: selectedItem.ar_descripcion,
         precioOriginal: precioSeleccionado,
         precioUnitario: precioEnMonedaActual,
         cantidad: cantidad,
-        impuesto: item.ar_iva,
+        impuesto: selectedItem.ar_iva,
         impuesto5: impuestos.impuesto5,
         impuesto10: impuestos.impuesto10,
         exentas: impuestos.exentas,
         subtotal: precioEnMonedaActual * cantidad,
         descuentoIndividual: 0,
-        ar_editar_desc: item.ar_editar_desc,
+        ar_editar_desc: selectedItem.ar_editar_desc,
       };
       const newItems = [...items, nuevoItem];
       setItems(newItems);
@@ -620,7 +485,6 @@ export default function PuntoDeVenta() {
       setArticuloBusqueda("");
       setCantidad(1);
       setSelectedItem(null);
-      setRecomendaciones([]);
     } else {
       toast({
         title: "Artículo no seleccionado",
@@ -795,38 +659,7 @@ export default function PuntoDeVenta() {
   const handleBusqueda = (e: React.ChangeEvent<HTMLInputElement>) => {
     const busqueda = e.target.value;
     setArticuloBusqueda(busqueda);
-    buscarArticuloPorCodigo(busqueda);
-    // debouncedFetchArticulos(busqueda);
-  };
-
-  const buscarArticuloPorCodigo = async (codigo: string) => {
-    if (codigo.length === 0) {
-      setRecomendaciones([]);
-      return;
-    }
-
-    try {
-      const response = await axios.get(`${api_url}articulos/`, {
-        params: {
-          buscar: codigo,
-          id_deposito: parseInt(depositoId),
-          stock: buscarSoloConStock ? true : false,
-        },
-      });
-
-      setRecomendaciones(response.data.body);
-      setArticulos(response.data.body);
-    } catch (error) {
-      console.error("Error al buscar artículos:", error);
-      toast({
-        title: "Error",
-        description: "Hubo un problema al buscar los artículos.",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-      setRecomendaciones([]);
-    }
+    debouncedFetchArticulos(busqueda);
   };
 
   const debouncedFetchArticulos = debounce(async (busqueda: string) => {
@@ -842,6 +675,9 @@ export default function PuntoDeVenta() {
         return;
       }
       try {
+
+        setRecomendaciones([]);
+        setArticulos([]);
         const response = await axios.get(`${api_url}articulos/`, {
           params: {
             buscar: busqueda,
@@ -851,7 +687,6 @@ export default function PuntoDeVenta() {
         });
         setRecomendaciones(response.data.body);
         setArticulos(response.data.body);
-        console.log(response.data.body);
       } catch (error) {
         console.error("Error al buscar artículos:", error);
         toast({
@@ -886,6 +721,15 @@ export default function PuntoDeVenta() {
     setDepositoSeleccionado(deposito);
   };
 
+  const handleStockCheckboxChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setBuscarSoloConStock(e.target.checked);
+    if (articuloBusqueda.length > 0) {
+      debouncedFetchArticulos(articuloBusqueda);
+    }
+  };
+
   const handleBusquedaCliente = (e: React.ChangeEvent<HTMLInputElement>) => {
     const busquedaCliente = e.target.value;
     setClienteBusqueda(busquedaCliente);
@@ -903,37 +747,6 @@ export default function PuntoDeVenta() {
       setRecomendacionesClientes(filteredRecomendacionesClientes);
     } else {
       setRecomendacionesClientes([]);
-    }
-  };
-
-  const handleBusquedaVendedor = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const busquedaVendedor = e.target.value;
-    setBuscarVendedor(busquedaVendedor);
-
-    if (busquedaVendedor.length > 0) {
-      const filteredVendedores = vendedores
-        .filter(
-          (vendedor) =>
-            vendedor.op_nombre
-              .toLowerCase()
-              .includes(busquedaVendedor.toLowerCase()) ||
-            vendedor.op_codigo.toString().includes(busquedaVendedor)
-        )
-        .slice(0, 5);
-
-      setRecomendacionesVendedores(filteredVendedores);
-
-      if (filteredVendedores.length > 0) {
-        setVendedor(filteredVendedores[0].op_nombre);
-        setOperador(filteredVendedores[0].op_codigo);
-      } else {
-        setVendedor("");
-        setOperador("");
-      }
-    } else {
-      setRecomendacionesVendedores([]);
-      setVendedor("");
-      setOperador("");
     }
   };
 
@@ -983,10 +796,13 @@ export default function PuntoDeVenta() {
       ve_deposito: parseInt(deposito),
       ve_moneda: moneda === "PYG" ? 1 : 0,
       ve_fecha: fecha,
-      ve_factura: Number(facturaData[0]?.d_nro_secuencia) + 1,
-      ve_timbrado: Number(facturaData[0]?.d_nrotimbrado),
+      ve_factura:
+        notaFiscal === 1
+          ? 0
+          : `${numeroEstablecimiento}-${numeroEmision}-${numeroFactura}`,
+      ve_timbrado: notaFiscal === 1 ? 0 : numeroTimbrado,
       ve_credito: condicionVenta,
-      ve_saldo: 0,
+      ve_saldo: Number(cobrarEnBalcon) === 1 ? 0 : calcularTotal(),
       ve_sucursal: parseInt(sucursal),
       ve_total: calcularTotal(),
       ve_vencimiento: selectedItem?.al_vencimiento.substring(0, 10)
@@ -997,7 +813,7 @@ export default function PuntoDeVenta() {
           ? items.reduce((acc, item) => acc + item.subtotal, 0) *
             (descuentoValor / 100)
           : descuentoValor,
-      ve_vendedor: operadorActual,
+      ve_vendedor: Number(operadorActual),
       ve_hora: horaLocal,
     },
     detalle_ventas: items.map((item) => {
@@ -1051,7 +867,7 @@ export default function PuntoDeVenta() {
 
   const localVentaData = {
     venta: {
-      ve_cliente: clienteSeleccionado?.cli_codigo,
+      ve_cliente: clienteSeleccionado?.cli_codigo ?? 1,
       ve_operador: operador ? parseInt(operador) : 1,
       ve_deposito: depositoSeleccionado?.dep_descripcion,
       ve_moneda: moneda === "PYG" ? 1 : 0,
@@ -1120,85 +936,18 @@ export default function PuntoDeVenta() {
       };
     }),
   };
-  const insertarOperacion = async (operacionData:OperacionData) => {
-    // Validación del ventaId
-    if (!operacionData.ventaId) {
-      toast({
-        title: "Error",
-        description:
-          "No se puede insertar la operación sin un ID de venta válido",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
-
-    try {
-      const response = await axios.post(
-        `${api_url}caja/insertar-operacion`,
-        operacionData,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      console.log(response.data);
-    } catch (error) {
-      console.error("Error al insertar operación:", error);
-      toast({
-        title: "Error",
-        description: "Hubo un problema al insertar la operación.",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-  };
 
   const finalizarVenta = async () => {
-    if (ventaSeleccionada) {
-      await cobrarVenta();
-      toast({
-        title: "Venta cobrada",
-        description: `La venta #${ventaSeleccionada.codigo} ha sido cobrada exitosamente`,
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-      setVentaSeleccionada(null);
-      // Limpiar estado
-      setItems([]);
-      saveItemsToLocalStorage([]);
-      setClienteBusqueda("");
-      setDescuentoValor(0);
-      setCondicionVenta(0);
-      setNotaFiscal(0);
-      setNumeroFactura("");
-      return;
-    }
-    if (!cajaAbierta) {
-      toast({
-        title: "Error",
-        description: "Por favor, inicie caja antes de realizar una venta",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
-    if (!clienteSeleccionado) {
-      toast({
-        title: "Error",
-        description: "Por favor, seleccione un cliente",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
+     if (!clienteSeleccionado) {
+       toast({
+         title: "Error",
+         description: "Por favor, seleccione un cliente",
+         status: "error",
+         duration: 3000,
+         isClosable: true,
+       });
+       return;
+     }
 
     if (!sucursal) {
       toast({
@@ -1215,6 +964,17 @@ export default function PuntoDeVenta() {
       toast({
         title: "Error",
         description: "Por favor, seleccione un depósito",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (!vendedor) {
+      toast({
+        title: "Error",
+        description: "Por favor, seleccione un vendedor",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -1263,48 +1023,19 @@ export default function PuntoDeVenta() {
 
         if (newSaleID !== null) {
           await traerDetalleVentaId(newSaleID);
-
-          const operacionData = {
-            ventaId: newSaleID ,
-            caja: cajaId,
-            cuenta: 1,
-            fecha: fecha,
-            observacion: "Venta",
-            recibo: 0,
-            documento: ventaData.venta.ve_factura,
-            operador: operadorActual,
-            redondeo: 0,
-            monto: calcularTotal(),
-            mora: 0,
-            punitorio: 0,
-            descuento: ventaData.venta.ve_descuento,
-            estado: 1,
-            cod_retencion: 0,
-            metodo: metodoPago,
-          };
-
-          insertarOperacion(operacionData);
         }
+
         setVentaFinalizada(localVentaData.venta);
         setDetalleVentaFinalizada(localVentaData.detalle_ventas);
-        setClienteInfo(clienteSeleccionado);
-
-        setSucursalInfo(sucursales.find((s) => s.id.toString() === sucursal));
-        setVendedorInfo(vendedores.find((v) => v.op_codigo === operador));
-        setIsModalOpen(true);
         setItems([]);
         saveItemsToLocalStorage([]);
-        setClienteBusqueda("");
         setDescuentoValor(0);
         setCondicionVenta(0);
         setNotaFiscal(0);
-        setNumeroFactura("");
-        setMontoRecibido(0);
-        actualizarUltimaFactura(
-          Number(facturaData[0].d_nro_secuencia) + 1,
-          facturaData[0].d_codigo
-        );
-        handleOpenFinalizarVentaModal();
+        // actualizarUltimaFactura(
+        //   Number(facturaData[0].d_nro_secuencia) + 1,
+        //   facturaData[0].d_codigo
+        // );
         Auditar(
           5,
           8,
@@ -1312,32 +1043,6 @@ export default function PuntoDeVenta() {
           operadorActual ? parseInt(operadorActual) : 0,
           `Venta ID ${newSaleID} realizada por ${operador} en la sucursal ${sucursal} por un total de ${calcularTotal()}`
         );
-
-        if (presupuestoSeleccionado) {
-          const itemsEliminados = presupuestoOriginalItems.filter(
-            (itemOriginal) =>
-              !items.some((item) => item.id === itemOriginal.art_codigo)
-          );
-
-          if (itemsEliminados.length > 0) {
-            await actualizarPresupuestoParcial(itemsEliminados);
-          } else {
-            await confirmarPresupuesto();
-          }
-        }
-
-        if (pedidoSeleccionado) {
-          const itemsEliminados = pedidoOriginalItems.filter(
-            (itemOriginal) =>
-              !items.some((item) => item.id === itemOriginal.art_codigo)
-          );
-
-          if (itemsEliminados.length > 0) {
-            await actualizarPedidoParcial(itemsEliminados);
-          } else {
-            await confirmarPedido();
-          }
-        }
         toast({
           title: "Venta finalizada",
           description: "La venta se ha guardado correctamente",
@@ -1366,7 +1071,7 @@ export default function PuntoDeVenta() {
   const cancelarVenta = async () => {
     setItems([]);
     saveItemsToLocalStorage([]);
-    setClienteSeleccionado(null);
+    setClienteBusqueda("");
     setDescuentoValor(0);
     setCondicionVenta(0);
     setNotaFiscal(0);
@@ -1377,6 +1082,11 @@ export default function PuntoDeVenta() {
     if (credit < 0) return "red.500";
     if (credit === 0) return "gray.500";
     return "green.500";
+  };
+
+  const actualizarMoneda = (n: number) => {
+    const precioEnMonedaActual = n * tasasDeCambio[moneda];
+    return precioEnMonedaActual;
   };
 
   const selectFirstRecommendation = (
@@ -1415,41 +1125,21 @@ export default function PuntoDeVenta() {
     }
   };
 
-  const handleArrowUp = (e: React.KeyboardEvent<HTMLElement>) => {
-    if (e.key === "ArrowUp" && recomendaciones.length > 0) {
-      e.preventDefault();
-      setSelectedIndex((prev) =>
-        prev <= 0 ? recomendaciones.length - 1 : prev - 1
-      );
-    }
-  };
-
-  const handleArrowDown = (e: React.KeyboardEvent<HTMLElement>) => {
-    if (e.key === "ArrowDown" && recomendaciones.length > 0) {
-      e.preventDefault();
-      setSelectedIndex((prev) =>
-        prev >= recomendaciones.length - 1 ? 0 : prev + 1
-      );
-    }
-  };
-
-  const selectFirstVendedor = () => {
-    if (!recomedacionesVendedores || recomedacionesVendedores.length === 0)
-      return false;
-    const firstVendedor = recomedacionesVendedores[0];
-    setVendedor(firstVendedor.op_nombre);
-    setOperador(firstVendedor.op_codigo);
-    setBuscarVendedor(firstVendedor.op_codigo);
-    setRecomendacionesVendedores([]);
-    return true;
-  };
-
   const selectFirstCliente = () => {
     return selectFirstRecommendation(
       recomendacionesClientes,
       setClienteSeleccionado,
       () => setRecomendacionesClientes([]),
       setClienteBusqueda
+    );
+  };
+
+  const selectFirstArticulo = () => {
+    return selectFirstRecommendation(
+      recomendaciones,
+      setSelectedItem,
+      () => setRecomendaciones([]),
+      setArticuloBusqueda
     );
   };
 
@@ -1462,25 +1152,7 @@ export default function PuntoDeVenta() {
     setVendedorInfo(null);
   };
 
-  const handleOpenPresupuestoModal = () => {
-    setIsPresupuestoModalOpen(true);
-  };
 
-  const handleClosePresupuestoModal = () => {
-    setIsPresupuestoModalOpen(false);
-  };
-
-  const handleOpenPedidoModal = () => {
-    setIsPedidoModalOpen(true);
-  };
-
-  const handleClosePedidoModal = () => {
-    setIsPedidoModalOpen(false);
-  };
-
-  const handleOpenFinalizarVentaModal = () => {
-    setIsFinalizarVentaModalOpen(true);
-  };
 
   const handleCloseFinalizarVentaModal = () => {
     setIsFinalizarVentaModalOpen(false);
@@ -1490,342 +1162,10 @@ export default function PuntoDeVenta() {
   const borrarDatosVentaModal = () => {
     setEntregaInicial(0);
     setCuotas(1);
-    setFechaVencimiento(fecha);
+    setMetodoPago(0);
     setMontoRecibido(0);
     setNumeroTimbrado("");
     setNumeroFactura("");
-  };
-
-  const confirmarPresupuesto = async () => {
-    try {
-      const codigo = presupuestoSeleccionado?.codigo;
-
-      await axios.post(`${api_url}presupuestos/confirmarPresupuesto`, {
-        id: codigo,
-      });
-    } catch (error) {
-      console.error("Error al confirmar el presupuesto:", error);
-    }
-  };
-
-  const confirmarPedido = async () => {
-    try {
-      const codigo = pedidoSeleccionado?.codigo;
-      await axios.post(`${api_url}pedidos/confirmarPedido`, {
-        id: codigo,
-      });
-    } catch (error) {
-      console.error("Error al confirmar el pedido:", error);
-    }
-  };
-
-  const cobrarVenta = async () => {
-    try {
-      const codigo = ventaSeleccionada?.codigo;
-      await axios.post(`${api_url}venta/cobrar-venta`, {
-        ventaId: codigo,
-      });
-    } catch (error) {
-      console.error("Error al cobrar la venta:", error);
-    }
-  };
-
-  const handleSelectVentaBalcon = async (venta: Venta) => {
-    try {
-      const response = await axios.get(
-        `${api_url}venta/detalles/?cod=${venta.codigo}`
-      );
-      const detalles: DetalleVenta[] = response.data.body;
-
-      setVentaSeleccionada(venta);
-      setClienteSeleccionado(
-        clientes.find((c) => c.cli_codigo === venta.codcliente) || null
-      );
-      setClienteBusqueda(venta.cliente);
-      setSucursal(venta.codsucursal.toString());
-      setDeposito(venta.codsucursal.toString());
-      setMoneda(venta.moneda === "GUARANI" ? "PYG" : "USD");
-
-      // Convertir el nombre del vendedor a su op_codigo
-
-      const vendedor = vendedores.find((v) => v.op_nombre === venta.vendedor);
-      const vendedorId = vendedor ? vendedor.op_codigo : null;
-      setVendedor(vendedorId ?? "");
-
-      setOperador(venta.operador);
-
-      const newItems: Item[] = detalles.map((detalle) => ({
-        id: detalle.art_codigo,
-        nombre: detalle.descripcion,
-        precioOriginal: detalle.precio,
-        precioUnitario: detalle.precio,
-        cantidad: detalle.cantidad,
-        impuesto: detalle.iva,
-        impuesto5: detalle.cinco / detalle.cantidad,
-        impuesto10: detalle.diez / detalle.cantidad,
-        exentas: detalle.exentas / detalle.cantidad,
-        subtotal: detalle.precio * detalle.cantidad,
-        descuentoIndividual: (detalle.descuento / detalle.precio) * 100,
-        ar_editar_desc: detalle.ar_editar_desc,
-      }));
-
-      setItems(newItems);
-
-      saveItemsToLocalStorage(newItems);
-
-      setDescuentoTipo(venta.descuento > 0 ? "valor" : "porcentaje");
-
-      setDescuentoValor(venta.descuento);
-
-      onVentaClose();
-
-      toast({
-        title: "Venta cargada",
-        description: `La venta #${venta.codigo} ha sido cargada exitosamente.`,
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-    } catch (error) {
-      toast({
-        title: "Error al cargar los detalles de la venta",
-        description: "Por favor, intenta de nuevo más tarde",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-  };
-
-  const handleSelectPedido = async (pedido: Pedidos) => {
-    try {
-      const response = await axios.get(
-        `${api_url}pedidos/detalles/?cod=${pedido.codigo}`
-      );
-      const detalles: DetallePedidos[] = response.data.body;
-
-      setPedidoSeleccionado(pedido);
-      setPedidoOriginalItems(detalles);
-
-      setClienteSeleccionado(
-        clientes.find((c) => c.cli_codigo === pedido.codcliente) || null
-      );
-      setClienteBusqueda(pedido.cliente);
-      setSucursal(pedido.codsucursal.toString());
-      setDeposito(pedido.codsucursal.toString());
-      setMoneda(pedido.moneda === "GUARANI" ? "PYG" : "USD");
-
-      // Convertir el nombre del vendedor a su op_codigo
-
-      const vendedor = vendedores.find((v) => v.op_nombre === pedido.vendedor);
-      const vendedorId = vendedor ? vendedor.op_codigo : null;
-      setVendedor(vendedorId ?? "");
-
-      setOperador(pedido.operador);
-
-      const newItems: Item[] = detalles.map((detalle) => ({
-        id: detalle.art_codigo,
-        nombre: detalle.descripcion,
-        precioOriginal: detalle.precio,
-        precioUnitario: detalle.precio,
-        cantidad: detalle.cantidad,
-        impuesto: detalle.iva,
-        impuesto5: detalle.cinco / detalle.cantidad,
-        impuesto10: detalle.diez / detalle.cantidad,
-        exentas: detalle.exentas / detalle.cantidad,
-        subtotal: detalle.precio * detalle.cantidad,
-        descuentoIndividual: (detalle.descuento / detalle.precio) * 100,
-        ar_editar_desc: detalle.ar_editar_desc,
-      }));
-
-      setItems(newItems);
-
-      saveItemsToLocalStorage(newItems);
-
-      setDescuentoTipo(pedido.descuento > 0 ? "valor" : "porcentaje");
-
-      setDescuentoValor(pedido.descuento);
-
-      handleClosePedidoModal();
-
-      toast({
-        title: "Pedido cargado",
-        description: `El pedido #${pedido.codigo} ha sido cargado exitosamente.`,
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-    } catch (error) {
-      toast({
-        title: "Error al cargar los detalles del pedido",
-        description: "Por favor, intenta de nuevo más tarde",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-  };
-
-  const handleSelectPresupuesto = async (presupuesto: Presupuesto) => {
-    try {
-      const response = await axios.get(
-        `${api_url}presupuestos/detalles/?cod=${presupuesto.codigo}`
-      );
-      const detalles: DetallePresupuesto[] = response.data.body;
-
-      setPresupuestoSeleccionado(presupuesto);
-      setPresupuestoOriginalItems(detalles);
-
-      setClienteSeleccionado(
-        clientes.find((c) => c.cli_codigo === presupuesto.codcliente) || null
-      );
-      setClienteBusqueda(presupuesto.cliente);
-      setSucursal(presupuesto.codsucursal.toString());
-      setDeposito(presupuesto.codsucursal.toString());
-      setMoneda(presupuesto.moneda === "GUARANI" ? "PYG" : "USD");
-
-      // Convertir el nombre del vendedor a su op_codigo
-      const vendedor = vendedores.find(
-        (v) => v.op_nombre === presupuesto.vendedor
-      );
-      const vendedorId = vendedor ? vendedor.op_codigo : null;
-      setVendedor(vendedorId ?? "");
-
-      setOperador(presupuesto.operador);
-
-      const newItems: Item[] = detalles.map((detalle) => ({
-        id: detalle.art_codigo,
-        nombre: detalle.descripcion,
-        precioOriginal: detalle.precio,
-        precioUnitario: detalle.precio,
-        cantidad: detalle.cantidad,
-        impuesto: detalle.iva,
-        impuesto5: detalle.cinco / detalle.cantidad,
-        impuesto10: detalle.diez / detalle.cantidad,
-        exentas: detalle.exentas / detalle.cantidad,
-        subtotal: detalle.precio * detalle.cantidad,
-        descuentoIndividual: (detalle.descuento / detalle.precio) * 100,
-        ar_editar_desc: detalle.ar_editar_desc,
-      }));
-
-      setItems(newItems);
-
-      saveItemsToLocalStorage(newItems);
-
-      setDescuentoTipo(presupuesto.descuento > 0 ? "valor" : "porcentaje");
-      setDescuentoValor(presupuesto.descuento);
-      handleClosePresupuestoModal();
-
-      toast({
-        title: "Presupuesto cargado",
-        description: `El presupuesto #${presupuesto.codigo} ha sido cargado exitosamente.`,
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-    } catch (error) {
-      toast({
-        title: "Error al cargar los detalles del presupuesto",
-        description: "Por favor, intenta de nuevo más tarde",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-  };
-
-  const actualizarPedidoParcial = async (itemsEliminados: any[]) => {
-    if (!pedidoSeleccionado) {
-      toast({
-        title: "Error",
-        description: "No hay un pedido seleccionado para actualizar",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
-    try {
-      const response = await axios.post(`${api_url}pedidos/actualizarParcial`, {
-        codigo: pedidoSeleccionado.codigo,
-        items: itemsEliminados.map((item) => ({
-          art_codigo: item.art_codigo,
-          cantidad: item.cantidad,
-        })),
-      });
-      if (response.data.success) {
-        toast({
-          title: "Pedido actualizado",
-          description: "El pedido ha sido actualizado con los items restantes",
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-        });
-      } else {
-        throw new Error(
-          response.data.message || "Error al actualizar el pedido"
-        );
-      }
-    } catch (error) {
-      console.error("Error al actualizar el pedido parcialmente:", error);
-      toast({
-        title: "Error",
-        description: "Hubo un problema al actualizar el pedido",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-  };
-
-  const actualizarPresupuestoParcial = async (itemsEliminados: any[]) => {
-    if (!presupuestoSeleccionado) {
-      toast({
-        title: "Error",
-        description: "No hay un presupuesto seleccionado para actualizar",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
-
-    try {
-      const response = await axios.post(
-        `${api_url}presupuestos/actualizarParcial`,
-        {
-          codigo: presupuestoSeleccionado.codigo,
-          items: itemsEliminados.map((item) => ({
-            art_codigo: item.art_codigo,
-            cantidad: item.cantidad,
-          })),
-        }
-      );
-
-      if (response.data.success) {
-        toast({
-          title: "Presupuesto actualizado",
-          description:
-            "El presupuesto ha sido actualizado con los items restantes",
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-        });
-      } else {
-        throw new Error(
-          response.data.message || "Error al actualizar el presupuesto"
-        );
-      }
-    } catch (error) {
-      console.error("Error al actualizar el presupuesto parcialmente:", error);
-      toast({
-        title: "Error",
-        description: "Hubo un problema al actualizar el presupuesto",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
   };
 
   const vuelto = (monto: number) => {
@@ -1848,38 +1188,13 @@ export default function PuntoDeVenta() {
     }
   };
 
-  useEffect(() => {
-    if (cuotas > 0 && calcularTotal() > entregaInicial && fechaVencimiento) {
-      const saldoRestante = calcularTotal() - entregaInicial;
-      const montoCuota = saldoRestante / cuotas;
-
-      const nuevaCuotasList: Cuota[] = Array.from(
-        { length: cuotas },
-        (_, index) => {
-          const fechaCuota = new Date(fechaVencimiento);
-          fechaCuota.setMonth(fechaCuota.getMonth() + index);
-
-          return {
-            fecha: fechaCuota.toLocaleDateString("es-ES"),
-            valor: parseFloat(montoCuota.toFixed(2)),
-            saldo: parseFloat((saldoRestante - montoCuota * index).toFixed(2)),
-          };
-        }
-      );
-
-      setCuotasList(nuevaCuotasList);
-    } else {
-      setCuotasList([]);
-    }
-  }, [entregaInicial, cuotas, calcularTotal(), fechaVencimiento]);
-
   async function traerDetalleVentaId(ventaId: number) {
     try {
       const response = await axios.get(
         `${api_url}venta/getDetalleId/${ventaId}`
       );
       const detalleVentas = response.data.body;
-      console.log("TraerDetalleID", detalleVentas);
+      console.log("TraerDetalleID", detalleVentas); // Depuración
 
       for (const itemEditado of itemsEditados) {
         console.log("Item editado:", itemEditado);
@@ -1931,17 +1246,16 @@ export default function PuntoDeVenta() {
   return (
     <div>
       <ChakraProvider>
-        <Box bg={"gray.100"} h={"100vh"} w={"100%"} p={2} >
+        <Box bg={"gray.100"} h={"100vh"} w={"100%"} p={2}>
           <Box
             w="100%"
             h={"100%"}
             p={isMobile ? 2 : 4}
             bg="white"
-            shadow="md"
+            shadow="xl"
             rounded="lg"
             fontSize={"smaller"}
             mb={16}
-            
           >
             <Flex
               bgGradient="linear(to-r, blue.500, blue.600)"
@@ -1950,71 +1264,21 @@ export default function PuntoDeVenta() {
               alignItems="center"
               rounded="lg"
             >
-              <ShoppingBasket size={24} className="mr-2" />
-              <Heading size={isMobile ? "sm" : "md"}>Punto de venta</Heading>
-              {isMobile ? (
-                <Flex ml="auto" gap={4}>
-                  <IconButton
-                    icon={<PanelRight />}
-                    onClick={onOpen}
-                    aria-label={""}
-                    bg={"none"}
-                    color={"white"}
-                  />
-                </Flex>
-              ) : (
-                <Flex ml="auto" gap={4}>
-                  <Select
-                    bg={"white"}
-                    color={"black"}
-                    value={consultaExterna}
-                    onChange={(e) => {
-                      setConsultaExterna(Number(e.target.value));
-                    }}
-                  >
-                    <option value={2}>Venta Balcon</option>
-                    <option value={1}>Presupuestos</option>
-                    <option value={0}>Pedidos</option>
-                  </Select>
-                  <Button
-                    leftIcon={<FileText />}
-                    onClick={() => {
-                      if (consultaExterna === 0) {
-                        handleOpenPedidoModal();
-                      } else if (consultaExterna === 1) {
-                        handleOpenPresupuestoModal();
-                      } else if (consultaExterna === 2) {
-                        onVentaOpen();
-                      }
-                    }}
-                    w={"200px"}
-                  >
-                    Consultar
-                  </Button>
-                  <IconButton
-                    icon={<PanelRight />}
-                    onClick={onOpen}
-                    aria-label={""}
-                    bg={"none"}
-                    color={"white"}
-                  />
-                </Flex>
-              )}
+              <ShoppingBag size={24} className="mr-2" />
+              <Heading size={isMobile ? "sm" : "md"}>Venta Rápida</Heading>
             </Flex>
-            <Flex flexDirection={isMobile ? "column" : "row"} w={'100%'}>
-              <Box p={isMobile ? 2 : 4}  w={isMobile? '100%' : '70%'}>
+            <Flex flexDirection={isMobile ? "column" : "row"} w={"100%"}>
+              <Box p={isMobile ? 2 : 4} w={isMobile ? "100%" : "70%"}>
                 <Grid
                   templateColumns={
-                    isMobile ? "repeat(1, 1fr)" : "repeat(3, 1fr)"
+                    isMobile ? "repeat(1, 1fr)" : "repeat(2, 1fr)"
                   }
                   gap={3}
                   mb={4}
-                   
                 >
-                  <Box>
+                  {/* <Box>
                     <FormLabel>Sucursal</FormLabel>
                     <Select
-                      isDisabled={true}
                       placeholder="Seleccionar sucursal"
                       value={sucursal}
                       onChange={(e) => setSucursal(e.target.value)}
@@ -2028,33 +1292,83 @@ export default function PuntoDeVenta() {
                         </option>
                       ))}
                     </Select>
-                  </Box>
-                  <Box>
-                    <FormLabel>Depósito</FormLabel>
-                    <Select
-                      isDisabled={true}
-                      placeholder="Seleccionar depósito"
-                      value={depositoId}
-                      onChange={handleDepositoChange}
-                    >
-                      {depositos.map((deposito) => (
-                        <option
-                          key={deposito.dep_codigo}
-                          value={deposito.dep_codigo.toString()}
-                        >
-                          {deposito.dep_descripcion}
-                        </option>
-                      ))}
-                    </Select>
-                  </Box>
-                  <Box position={"relative"}>
-                    <FormLabel>Cajero</FormLabel>
+                  </Box> */}
+                  <Flex gap={4}>
+                    <Box>
+                      <FormLabel>Depósito</FormLabel>
+                      <Select
+                        placeholder="Seleccionar depósito"
+                        value={depositoId}
+                        onChange={handleDepositoChange}
+                      >
+                        {depositos.map((deposito) => (
+                          <option
+                            key={deposito.dep_codigo}
+                            value={deposito.dep_codigo.toString()}
+                          >
+                            {deposito.dep_descripcion}
+                          </option>
+                        ))}
+                      </Select>
+                    </Box>
+                    {/* <Box>
+                    <FormLabel>Fecha</FormLabel>
                     <Input
-                      isDisabled={true}
+                      type="date"
+                      value={fecha}
+                      onChange={(e) => setFecha(e.target.value)}
+                    />
+                  </Box> */}
+                    {/* <Box flexGrow={1}>
+                      <FormLabel>Moneda</FormLabel>
+                      <Select
+                        placeholder="Seleccionar moneda"
+                        value={moneda}
+                        onChange={(e) => setMoneda(e.target.value)}
+                      >
+                        <option value="USD">USD</option>
+                        <option value="PYG">PYG</option>
+                      </Select>
+                    </Box> */}
+                    <Box flexGrow={1}>
+                      <FormLabel>Lista de Precios</FormLabel>
+                      <Select
+                        placeholder="Seleccionar..."
+                        value={listaPrecio}
+                        onChange={(e) => setListaPrecio(e.target.value)}
+                      >
+                        {listaPrecios.map(
+                          (listaPrecio: {
+                            lp_codigo: React.Key | null | undefined;
+                            lp_descripcion:
+                              | string
+                              | number
+                              | boolean
+                              | React.ReactElement<
+                                  any,
+                                  string | React.JSXElementConstructor<any>
+                                >
+                              | Iterable<React.ReactNode>
+                              | React.ReactPortal
+                              | null
+                              | undefined;
+                          }) => (
+                            <option
+                              key={listaPrecio.lp_codigo}
+                              value={listaPrecio.lp_codigo?.toString()}
+                            >
+                              {listaPrecio.lp_descripcion}
+                            </option>
+                          )
+                        )}
+                      </Select>
+                    </Box>
+                  </Flex>
+                  {/* <Box position={"relative"}>
+                    <FormLabel>Vendedor</FormLabel>
+                    <Input
                       id="vendedor-search"
-                      placeholder={
-                        localStorage.getItem("userName") || "Cajero actual"
-                      }
+                      placeholder="Buscar vendedor por código"
                       value={buscarVendedor}
                       onChange={handleBusquedaVendedor}
                       onFocus={() => {
@@ -2119,69 +1433,17 @@ export default function PuntoDeVenta() {
                         ))}
                       </Box>
                     )}
-                  </Box>
-
-                  <Flex gap={4}>
-                    <Box flexGrow={1}>
-                      <FormLabel>Moneda</FormLabel>
-                      <Select
-                        placeholder="Seleccionar moneda"
-                        value={moneda}
-                        onChange={(e) => setMoneda(e.target.value)}
-                      >
-                        <option value="USD">USD</option>
-                        <option value="PYG">PYG</option>
-                      </Select>
-                    </Box>
-                    <Box flexGrow={1}>
-                      <FormLabel>Lista de Precios</FormLabel>
-                      <Select
-                        placeholder="Seleccionar..."
-                        value={listaPrecio}
-                        onChange={(e) => setListaPrecio(e.target.value)}
-                      >
-                        {listaPrecios.map(
-                          (listaPrecio: {
-                            lp_codigo: React.Key | null | undefined;
-                            lp_descripcion:
-                              | string
-                              | number
-                              | boolean
-                              | React.ReactElement<
-                                  any,
-                                  string | React.JSXElementConstructor<any>
-                                >
-                              | Iterable<React.ReactNode>
-                              | React.ReactPortal
-                              | null
-                              | undefined;
-                          }) => (
-                            <option
-                              key={listaPrecio.lp_codigo}
-                              value={listaPrecio.lp_codigo?.toString()}
-                            >
-                              {listaPrecio.lp_descripcion}
-                            </option>
-                          )
-                        )}
-                      </Select>
-                    </Box>
-                  </Flex>
-                  <Box>
-                    <FormLabel>Fecha</FormLabel>
-                    <Input
-                      type="date"
-                      value={fecha}
-                      onChange={(e) => setFecha(e.target.value)}
-                    />
-                  </Box>
-
+                  </Box> */}
                   <Box position="relative">
                     <FormLabel htmlFor="cliente-search">Cliente</FormLabel>
                     <Input
                       id="cliente-search"
                       placeholder="Buscar cliente por nombre o RUC"
-                      value={clienteBusqueda}
+                      value={
+                        clienteSeleccionado
+                          ? clienteSeleccionado.cli_razon
+                          : clienteBusqueda
+                      }
                       onChange={handleBusquedaCliente}
                       aria-autocomplete="list"
                       aria-controls="cliente-recommendations"
@@ -2259,37 +1521,32 @@ export default function PuntoDeVenta() {
                       </Box>
                     )}
                   </Box>
-                  {isMobile ? (
-                    <Flex gap={4}>
-                      <Select
-                        bg={"white"}
-                        color={"black"}
-                        value={consultaExterna}
-                        onChange={(e) => {
-                          setConsultaExterna(Number(e.target.value));
-                        }}
-                      >
-                        <option value={2}>Venta Balcon</option>
-                        <option value={1}>Presupuestos</option>
-                        <option value={0}>Pedidos</option>
-                      </Select>
-                      <Button
-                        leftIcon={<FileText />}
-                        onClick={() => {
-                          if (consultaExterna === 0) {
-                            handleOpenPedidoModal();
-                          } else if (consultaExterna === 1) {
-                            handleOpenPresupuestoModal();
-                          } else if (consultaExterna === 2) {
-                            onVentaOpen();
-                          }
-                        }}
-                        w={"200px"}
-                      >
-                        Consultar
-                      </Button>
-                    </Flex>
-                  ) : null}
+                  {/* {isMobile?
+                  (<Flex gap={4} >
+                    <Select
+                  bg={"white"}
+                  color={"black"}
+                  value={consultaExterna}
+                  onChange={(e) => {
+                    setConsultaExterna(Number(e.target.value));
+                  }}
+                >
+                  <option value={0}>Pedidos</option>
+                  <option value={1}>Presupuesto</option>
+                </Select>
+                <Button
+                  leftIcon={<FileText />}
+                  onClick={
+                    consultaExterna === 0
+                      ? handleOpenPedidoModal
+                      : handleOpenPresupuestoModal
+                  }
+                  w={"200px"}
+                >
+                  Consultar
+                </Button>
+                  </Flex>
+                  ) : null} */}
                 </Grid>
                 <Flex
                   gap={4}
@@ -2302,65 +1559,9 @@ export default function PuntoDeVenta() {
                       value={articuloBusqueda}
                       onChange={handleBusqueda}
                       ref={articuloRef}
-                      onKeyDown={async (e) => {
-                        handleArrowUp(e);
-                        handleArrowDown(e);
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-
-                          // Si es selección manual con flechas
-                          if (selectedIndex >= 0) {
-                            const articulo = recomendaciones[selectedIndex];
-                            agregarItem(articulo);
-                            articuloRef.current?.focus();
-                            setRecomendaciones([]);
-                            return;
-                          }
-
-                          // Si es scanner
-                          const codigo = articuloBusqueda.trim();
-                          if (codigo) {
-                            try {
-                              const response = await axios.get(
-                                `${api_url}articulos/`,
-                                {
-                                  params: {
-                                    buscar: codigo,
-                                    id_deposito: parseInt(depositoId),
-                                    stock: buscarSoloConStock ? true : false,
-                                  },
-                                }
-                              );
-
-                              const articulos = response.data.body;
-                              const articuloExacto = articulos.find(
-                                (art: Articulo) => art.ar_codbarra === codigo
-                              );
-
-                              if (articuloExacto) {
-                                agregarItem(articuloExacto);
-                                setArticuloBusqueda("");
-                                setRecomendaciones([]);
-                              } else {
-                                toast({
-                                  title: "No encontrado",
-                                  description: "Artículo no encontrado.",
-                                  status: "warning",
-                                  duration: 2000,
-                                });
-                              }
-                            } catch (error) {
-                              console.error("Error al buscar artículo:", error);
-                              toast({
-                                title: "Error",
-                                description: "Error al buscar artículo.",
-                                status: "error",
-                                duration: 2000,
-                              });
-                            }
-                          }
-                        }
-                      }}
+                      onKeyDown={(e) =>
+                        handleEnterKey(e, cantidadRef, selectFirstArticulo)
+                      }
                     />
                     {recomendaciones.length > 0 && (
                       <Box
@@ -2376,11 +1577,10 @@ export default function PuntoDeVenta() {
                         maxHeight={"600px"}
                         overflowY={"auto"}
                       >
-                        {recomendaciones.map((articulo, index) => (
+                        {recomendaciones.map((articulo) => (
                           <Box
                             key={articulo.al_codigo}
                             p={2}
-                            bg={index === selectedIndex ? "gray.100" : "white"}
                             _hover={{ bg: "gray.100" }}
                             onClick={() => {
                               setArticuloBusqueda(articulo.ar_descripcion);
@@ -2439,62 +1639,69 @@ export default function PuntoDeVenta() {
                     )}
                   </Box>
                   <Flex gap={4}>
-                  <Input
-                    type="number"
-                    placeholder="Cantidad"
-                    value={cantidad}
-                    onChange={(e) => setCantidad(parseInt(e.target.value))}
-                    width={"60px"}
-                    min={1}
-                    ref={cantidadRef}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        agregarItem();
-                        articuloRef.current?.focus();
-                      }
-                    }}
-                  />
-                  <Button
-                    colorScheme="green"
-                    onClick={() => agregarItem()}
-                    flexGrow={1}
-                  >
-                    +
-                  </Button>
+                    <Input
+                      type="number"
+                      placeholder="Cantidad"
+                      value={cantidad}
+                      onChange={(e) => setCantidad(parseInt(e.target.value))}
+                      width={"60px"}
+                      min={1}
+                      ref={cantidadRef}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          agregarItem();
+                          articuloRef.current?.focus();
+                        }
+                      }}
+                    />
+                    <Checkbox
+                      isChecked={buscarSoloConStock}
+                      onChange={handleStockCheckboxChange}
+                    >
+                      En stock
+                    </Checkbox>
+                    <Select
+                      w={"80px"}
+                      defaultValue={"0"}
+                      color={"black"}
+                      variant={"filled"}
+                      onChange={(e) => {
+                        setBonificacion(parseInt(e.target.value));
+                      }}
+                    >
+                      <option value={"0"}>V</option>
+                      <option value={"1"}>B</option>
+                    </Select>
+                    <Button
+                      colorScheme="green"
+                      onClick={agregarItem}
+                      flexGrow={1}
+                    >
+                      +
+                    </Button>
                   </Flex>
                 </Flex>
-                <Box
-                  overflowX={"auto"}
-                  height={"300px"}
-                  width={"100%"}
-                  
-                >
+                <Box overflowX={"auto"} height={"20%"} width={"100%"}>
                   <Table variant="striped" size={"sm"}>
                     <Thead position="sticky" top={0} bg="white" zIndex={0}>
                       <Tr>
-                        <Th width="100px">Código</Th>
-                        <Th width="20%">Nombre</Th>
-                        <Th width="150px" isNumeric>
-                          Precio Unitario
-                        </Th>
-                        <Th width="100px" isNumeric>
-                          Cantidad
-                        </Th>
-                        <Th width="120px" isNumeric>
-                          Descuento (%)
-                        </Th>
-                        <Th width="120px" isNumeric>
-                          Subtotal
-                        </Th>
-                        <Th width="50px"></Th>
+                        <Th>Código</Th>
+                        <Th>Nombre</Th>
+                        <Th isNumeric>Precio Unitario</Th>
+                        <Th isNumeric>Cantidad</Th>
+                        <Th isNumeric>Descuento (%)</Th>
+                        <Th isNumeric>Exentas</Th>
+                        <Th isNumeric>5%</Th>
+                        <Th isNumeric>10%</Th>
+                        <Th isNumeric>Subtotal</Th>
                       </Tr>
                     </Thead>
                     <Tbody>
                       {items.map((item, index) => (
                         <Tr key={index}>
-                          <Td width="100px">{item.id}</Td>
-                          <Td width="20%">
+                          <Td>{item.id}</Td>
+                          <Td>
                             {item.ar_editar_desc === 0 ? (
                               item.nombre
                             ) : (
@@ -2502,93 +1709,107 @@ export default function PuntoDeVenta() {
                                 value={item.nombre}
                                 type="text"
                                 bg={"white"}
-                                onChange={(e) =>
+                                onChange={(e) => {
                                   actualizarDescripcionArticulo(
                                     index,
                                     e.target.value
-                                  )
-                                }
-                              />
+                                  );
+                                }}
+                              ></Input>
                             )}
                           </Td>
-                          <Td width="150px">
-                            <Flex justify="flex-end">
-                              <NumberInput
-                                value={item.precioUnitario}
-                                bg={"white"}
-                                min={0}
-                                step={1000}
-                                w="140px"
-                                precision={2}
-                                onChange={(valueString) =>
-                                  actualizarPrecioUnitario(
-                                    index,
-                                    parseFloat(valueString)
-                                  )
-                                }
-                              >
-                                <NumberInputField />
-                                <NumberInputStepper>
-                                  <NumberIncrementStepper />
-                                  <NumberDecrementStepper />
-                                </NumberInputStepper>
-                              </NumberInput>
-                            </Flex>
+                          <Td isNumeric>
+                            <NumberInput
+                              value={item.precioUnitario}
+                              bg={"white"}
+                              min={0}
+                              step={1000}
+                              w={32}
+                              precision={2}
+                              onChange={(valueString) =>
+                                actualizarPrecioUnitario(
+                                  index,
+                                  parseFloat(valueString)
+                                )
+                              }
+                            >
+                              <NumberInputField />
+                              <NumberInputStepper>
+                                <NumberIncrementStepper />
+                                <NumberDecrementStepper />
+                              </NumberInputStepper>
+                            </NumberInput>
                           </Td>
-                          <Td width="100px">
-                            <Flex justify="flex-end">
-                              <NumberInput
-                                value={item.cantidad}
-                                bg={"white"}
-                                min={1}
-                                max={1000}
-                                w="90px"
-                                onChange={(valueString) =>
-                                  actualizarCantidadItem(
-                                    index,
-                                    parseInt(valueString)
-                                  )
-                                }
-                              >
-                                <NumberInputField />
-                                <NumberInputStepper>
-                                  <NumberIncrementStepper />
-                                  <NumberDecrementStepper />
-                                </NumberInputStepper>
-                              </NumberInput>
-                            </Flex>
+                          <Td isNumeric>
+                            <NumberInput
+                              value={item.cantidad}
+                              bg={"white"}
+                              min={1}
+                              max={1000}
+                              w={20}
+                              onChange={(valueString) =>
+                                actualizarCantidadItem(
+                                  index,
+                                  parseInt(valueString)
+                                )
+                              }
+                            >
+                              <NumberInputField />
+                              <NumberInputStepper>
+                                <NumberIncrementStepper />
+                                <NumberDecrementStepper />
+                              </NumberInputStepper>
+                            </NumberInput>
                           </Td>
-                          <Td width="120px">
-                            <Flex justify="flex-end">
-                              <NumberInput
-                                isDisabled={true}
-                                value={item.descuentoIndividual}
-                                bg={"white"}
-                                min={0}
-                                max={100}
-                                w="90px"
-                                onChange={(valueString) =>
-                                  actualizarDescuentoIndividual(
-                                    index,
-                                    parseFloat(valueString)
-                                  )
-                                }
-                              >
-                                <NumberInputField />
-                                <NumberInputStepper>
-                                  <NumberIncrementStepper />
-                                  <NumberDecrementStepper />
-                                </NumberInputStepper>
-                              </NumberInput>
-                            </Flex>
+                          <Td isNumeric>
+                            <NumberInput
+                              value={item.descuentoIndividual}
+                              bg={"white"}
+                              min={0}
+                              max={100}
+                              w={20}
+                              onChange={(valueString) =>
+                                actualizarDescuentoIndividual(
+                                  index,
+                                  parseFloat(valueString)
+                                )
+                              }
+                            >
+                              <NumberInputField />
+                              <NumberInputStepper>
+                                <NumberIncrementStepper />
+                                <NumberDecrementStepper />
+                              </NumberInputStepper>
+                            </NumberInput>
                           </Td>
-                          <Td width="120px" isNumeric>
+                          <Td isNumeric>
+                            {formatCurrency(
+                              actualizarMoneda(item.exentas) *
+                                item.cantidad *
+                                (1 - item.descuentoIndividual / 100)
+                            )}
+                          </Td>
+                          <Td isNumeric>
+                            {formatCurrency(
+                              actualizarMoneda(item.impuesto5) *
+                                item.cantidad *
+                                (1 - item.descuentoIndividual / 100)
+                            )}
+                          </Td>
+                          <Td isNumeric>
+                            {formatCurrency(
+                              actualizarMoneda(item.impuesto10) *
+                                item.cantidad *
+                                (1 - item.descuentoIndividual / 100)
+                            )}
+                          </Td>
+                          <Td isNumeric>
                             {formatCurrency(
                               item.subtotal *
                                 (1 - item.descuentoIndividual / 100)
                             )}
                           </Td>
-                          <Td width="50px">
+                          <Td>
                             <Button
                               size="xs"
                               colorScheme="red"
@@ -2609,36 +1830,12 @@ export default function PuntoDeVenta() {
                 rounded="lg"
                 flexDirection={"column"}
                 gap={4}
-                flexGrow={1}
               >
                 <Flex
-                  position="relative"
                   flexDirection={isMobile ? "column" : "row"}
                   px={4}
                   gap={4}
-                  border={"1px solid #E2E8F0"}
-                  h={"120px"}
-                  borderRadius={"md"}
-                  alignItems={"center"}
-                  justifyContent={"center"}
-                >
-                  <Box
-                    position="absolute"
-                    top="-10px"
-                    left="20px"
-                    bg="white"
-                    px={2}
-                    fontSize="sm"
-                    fontWeight="bold"
-                    color="gray.600"
-                  >
-                    Caja recaudacion
-                  </Box>
-                  <Heading>
-                    {newSaleID ? `Venta #${newSaleID + 1}` : "Nueva Venta"}
-                  </Heading>
-                </Flex>
-
+                ></Flex>
                 <Flex
                   gap={2}
                   flexDirection={isMobile ? "row" : "column"}
@@ -2703,7 +1900,7 @@ export default function PuntoDeVenta() {
                     Total Impuestos: {formatCurrency(calcularTotalImpuestos())}
                   </Text>
                 </Box>
-                <Box textAlign={"right"} mt={isMobile ? 2 : 0}>
+                <Box textAlign={"left"} mt={isMobile ? 2 : 0}>
                   <Text fontSize="lg" fontWeight="bold">
                     Subtotal:{" "}
                     {formatCurrency(
@@ -2732,7 +1929,9 @@ export default function PuntoDeVenta() {
                       colorScheme="blue"
                       mt={4}
                       width={isMobile ? "full" : "auto"}
-                      onClick={handleOpenFinalizarVentaModal}
+                      onClick={() => {
+                        finalizarVenta();
+                      }}
                     >
                       Finalizar Venta
                     </Button>
@@ -2747,47 +1946,9 @@ export default function PuntoDeVenta() {
             ventaId={newSaleID}
           />
           <Modal
-            isOpen={isPresupuestoModalOpen}
-            onClose={handleClosePresupuestoModal}
-            size="full"
-          >
-            <ModalOverlay />
-            <ModalContent>
-              <ModalHeader>Consulta de Presupuestos</ModalHeader>
-              <ModalCloseButton />
-              <ModalBody>
-                <ConsultaPresupuestos
-                  onSelectPresupuesto={handleSelectPresupuesto}
-                  onClose={handleClosePresupuestoModal}
-                  isModal={true}
-                  clienteSeleccionado={clienteSeleccionado}
-                />
-              </ModalBody>
-            </ModalContent>
-          </Modal>
-          <Modal
-            isOpen={isPedidoModalOpen}
-            onClose={handleClosePedidoModal}
-            size="full"
-          >
-            <ModalOverlay />
-            <ModalContent>
-              <ModalHeader>Consulta de Pedidos</ModalHeader>
-              <ModalCloseButton />
-              <ModalBody>
-                <ConsultaPedidos
-                  onSelectPedido={handleSelectPedido}
-                  onClose={handleClosePedidoModal}
-                  isModal={true}
-                  clienteSeleccionado={clienteSeleccionado}
-                />
-              </ModalBody>
-            </ModalContent>
-          </Modal>
-          <Modal
             isOpen={isFinalizarVentaModalOpen}
             onClose={handleCloseFinalizarVentaModal}
-            size={isMobile ? "sm" : "5xl"}
+            size={isMobile ? "xl" : "5xl"}
             isCentered={true}
           >
             <ModalOverlay />
@@ -2801,7 +1962,7 @@ export default function PuntoDeVenta() {
                   gap={4}
                 >
                   <GridItem
-                    w={isMobile ? "21rem" : "100%"}
+                    w={"100%"}
                     h={isMobile ? "auto" : "20"}
                     bg="blue.500"
                     borderRadius={"md"}
@@ -2850,216 +2011,35 @@ export default function PuntoDeVenta() {
                         {clienteSeleccionado?.cli_razon}
                       </Text>
                     </Box>
-                  </GridItem>
-                  <GridItem
-                    w={isMobile ? "21rem" : "100%"}
-                    h={isMobile ? "60" : "80"}
-                    bg="gray.50"
-                    borderRadius={"md"}
-                    display={"flex"}
-                    flexDir={"column"}
-                    p={2}
-                    px={8}
-                    rowGap={4}
-                    overflowY={isMobile ? "auto" : "hidden"}
-                  >
-                    <Flex
-                      gap={isMobile ? 4 : 12}
-                      flexDirection={isMobile ? "column" : "row"}
-                    >
-                      <Box>
-                        <Text fontWeight={"semibold"} mb={2}>
-                          Condición de Venta
-                        </Text>
-                        <Flex flexDir={isMobile ? "row" : "column"} gap={2}>
-                          <Button
-                            variant={condicionVenta === 0 ? "solid" : "outline"}
-                            bg={
-                              condicionVenta === 0 ? "green.500" : "transparent"
-                            }
-                            color={condicionVenta === 0 ? "white" : "green.500"}
-                            borderColor="green.500"
-                            _hover={{
-                              bg:
-                                condicionVenta === 0 ? "green.600" : "green.50",
-                            }}
-                            onClick={() => setCondicionVenta(0)}
-                            width={isMobile ? "full" : "120px"}
-                          >
-                            Contado
-                          </Button>
-                          <Button
-                            variant={condicionVenta === 1 ? "solid" : "outline"}
-                            bg={
-                              condicionVenta === 1 ? "green.500" : "transparent"
-                            }
-                            color={condicionVenta === 1 ? "white" : "green.500"}
-                            borderColor="green.500"
-                            _hover={{
-                              bg:
-                                condicionVenta === 1 ? "green.600" : "green.50",
-                            }}
-                            onClick={() => setCondicionVenta(1)}
-                            width={isMobile ? "full" : "120px"}
-                            isDisabled={
-                              !clienteSeleccionado ||
-                              clienteSeleccionado.cli_limitecredito <= 0
-                            }
-                          >
-                            Crédito
-                          </Button>
-                        </Flex>
-                      </Box>
-                      <Box>
-                        <Box
-                          textAlign={"center"}
-                          mb={2}
-                          display={"flex"}
-                          flexDir={"column"}
-                          justifyContent={"space-between"}
-                          alignItems={isMobile ? "flex-start" : "center"}
-                        >
-                          <FormLabel>Entrega Inicial</FormLabel>
-                          <Input
-                            isDisabled={condicionVenta === 0}
-                            type="number"
-                            placeholder="Gs."
-                            value={entregaInicial}
-                            onChange={(e) =>
-                              setEntregaInicial(Number(e.target.value))
-                            }
-                            width={isMobile ? "full" : "240px"}
-                            bg={"white"}
-                          />
-                        </Box>
-                        <Box display={"flex"} alignItems={"center"}>
-                          <FormLabel>Cdad. de cuotas:</FormLabel>
-                          <Input
-                            isDisabled={condicionVenta === 0}
-                            type="number"
-                            placeholder="Numero de cuotas"
-                            value={cuotas}
-                            onChange={(e) => setCuotas(Number(e.target.value))}
-                            width={isMobile ? "40px" : "60px"}
-                            bg={"white"}
-                          />
-                        </Box>
-                        <Box>
-                          <FormLabel>Fecha de Vencimiento</FormLabel>
-                          <Input
-                            isDisabled={condicionVenta === 0}
-                            type="date"
-                            value={fechaVencimiento}
-                            onChange={(e) =>
-                              setFechaVencimiento(e.target.value)
-                            }
-                            width={isMobile ? "full" : "240px"}
-                            bg={"white"}
-                          />
-                        </Box>
-                      </Box>
-                      <Box
-                        height={isMobile ? "auto" : "150px"}
-                        overflow={"auto"}
-                        w={isMobile ? "100%" : "90%"}
-                      >
-                        <Table
-                          variant={"striped"}
-                          colorScheme="blue"
-                          size={isMobile ? "sm" : "md"}
-                        >
-                          <Thead>
-                            <Tr>
-                              <Th>Fecha</Th>
-                              <Th>Valor</Th>
-                              <Th>Saldo</Th>
-                            </Tr>
-                          </Thead>
-                          <Tbody>
-                            {cuotasList.map((cuota, index) => (
-                              <Tr key={index}>
-                                <Td>{cuota.fecha}</Td>
-                                <Td>{formatCurrency(cuota.valor)}</Td>
-                                <Td>{formatCurrency(cuota.saldo)}</Td>
-                              </Tr>
-                            ))}
-                          </Tbody>
-                        </Table>
-                      </Box>
-                    </Flex>
                     <Box
                       display={"flex"}
                       flexDirection={isMobile ? "column" : "row"}
-                      justifyContent={"space-between"}
-                      alignItems={"center"}
-                      bg={"white"}
+                      justifyContent={"center"}
                       p={2}
                       borderRadius={"md"}
-                      gap={isMobile ? 2 : 6}
                     >
-                      <Box
-                        display={"flex"}
-                        flexDirection={isMobile ? "row" : "column"}
-                        gap={2}
-                        width={isMobile ? "full" : "auto"}
+                      <Text
+                        color={"white"}
+                        fontSize={isMobile ? "small" : "large"}
                       >
-                        <Text>
-                          <strong>Límite de crédito:</strong>{" "}
-                        </Text>
-                        <Text
-                          color={getCreditColor(
-                            clienteSeleccionado?.cli_limitecredito || 0
-                          )}
-                        >
-                          {formatCurrency(
-                            clienteSeleccionado?.cli_limitecredito || 0
-                          )}
-                        </Text>
-                      </Box>
-                      <Box
-                        display={"flex"}
-                        flexDirection={isMobile ? "row" : "column"}
-                        gap={2}
-                        width={isMobile ? "full" : "auto"}
+                        <strong>Vendedor:</strong>
+                      </Text>
+                      <Text
+                        color={"white"}
+                        fontSize={isMobile ? "small" : "large"}
                       >
-                        <FormLabel>Utilizado:</FormLabel>
-                        <Input
-                          isDisabled={condicionVenta === 0}
-                          type="number"
-                          placeholder="Gs."
-                          value={creditoUtilizado}
-                          onChange={(e) =>
-                            setCreditoUtilizado(Number(e.target.value))
-                          }
-                          width={isMobile ? "full" : "240px"}
-                          bg={"white"}
-                        />
-                      </Box>
-                      <Box
-                        display={"flex"}
-                        flexDirection={isMobile ? "row" : "column"}
-                        gap={2}
-                        width={isMobile ? "full" : "auto"}
-                      >
-                        <Text>
-                          <strong>Saldo restante:</strong>{" "}
-                        </Text>
-                        <Text>
-                          {formatCurrency(
-                            (clienteSeleccionado?.cli_limitecredito ?? 0) -
-                              creditoUtilizado
-                          )}
-                        </Text>
-                      </Box>
+                        {vendedor}
+                      </Text>
                     </Box>
                   </GridItem>
+
                   <GridItem
-                    w={isMobile ? "21rem" : "100%"}
-                    h="40"
+                    w={"100%"}
+                    h="80"
                     bg="gray.50"
                     borderRadius={"md"}
                     p={2}
-                    px={8}
+                    px={2}
                     display={"flex"}
                     justifyContent={"space-between"}
                     alignContent={"center"}
@@ -3068,6 +2048,7 @@ export default function PuntoDeVenta() {
                       flexDir={isMobile ? "column" : "row"}
                       overflowY={isMobile ? "auto" : "hidden"}
                       gap={isMobile ? 0 : 8}
+                      w={"100%"}
                     >
                       <Box>
                         <Text fontWeight="semibold" mb={2}>
@@ -3210,7 +2191,13 @@ export default function PuntoDeVenta() {
 
                   <GridItem
                     w="100%"
-                    h={isMobile ? "auto" : "40"}
+                    h={
+                      cobrarEnBalconParsed.valor === "0"
+                        ? "0"
+                        : isMobile
+                        ? "auto"
+                        : "40"
+                    }
                     bg="blue.600"
                     borderRadius={"md"}
                     p={2}
@@ -3218,7 +2205,9 @@ export default function PuntoDeVenta() {
                   >
                     <Flex
                       gap={isMobile ? 2 : 4}
-                      display={"flex"}
+                      display={
+                        cobrarEnBalconParsed.valor === "0" ? "none" : "flex"
+                      }
                       justifyContent={"space-between"}
                       flexDir={isMobile ? "column" : "row"}
                     >
@@ -3313,33 +2302,6 @@ export default function PuntoDeVenta() {
               </ModalBody>
             </ModalContent>
           </Modal>
-          <Modal
-            isOpen={isVentaOpen}
-            onClose={onVentaClose}
-            size="full"
-            isCentered={true}
-          >
-            <ModalOverlay />
-            <ModalContent>
-              <ModalCloseButton />
-              <ModalBody>
-                <ResumenVentas
-                  clienteSeleccionado={clienteSeleccionado}
-                  onCloseVenta={onVentaClose}
-                  isModal={true}
-                  onSelectVenta={handleSelectVentaBalcon}
-                />
-              </ModalBody>
-            </ModalContent>
-          </Modal>
-          <DrawerContextual
-            verificarCajaAbierta={verificarCajaAbierta}
-            isOpen={isOpen}
-            onClose={onClose}
-            onOpen={onOpen}
-            sucursal={Number(sucursal)}
-            deposito={Number(depositoId)}
-          />
         </Box>
       </ChakraProvider>
     </div>

@@ -29,10 +29,10 @@ import { api_url } from "@/utils";
 import { SearchIcon } from "@chakra-ui/icons";
 import { Handshake, Printer, ShoppingCart } from "lucide-react";
 import PedidoModal from "./imprimirPedido";
-import MenuContextual from "../modules/MenuContextual";
+import MenuContextual from "../../modules/MenuContextual";
 import { useSwitch } from "@/services/SwitchContext";
 import PedidoModalEstilizado from "./imprimirPedidoEstilizado";
-import AutorizacionModal from "../modules/AutorizacionModal";
+import AutorizacionModal from "../../modules/AutorizacionModal";
 
 interface Pedidos {
   codigo: number;
@@ -293,8 +293,8 @@ export default function ConsultaPedidos({
   };
 
   return (
-    <Box maxW="full" m={2} p={5}>
-      <VStack spacing={4} align="stretch">
+    <Box bg={"gray.100"} h={"100vh"} w={"100%"} p={2}>
+      <VStack spacing={4} align="stretch" bg={'white'} p={2} borderRadius={'md'} boxShadow={'sm'} h={'100%'}>
         <Flex
           bgGradient="linear(to-r, blue.500, blue.600)"
           color="white"

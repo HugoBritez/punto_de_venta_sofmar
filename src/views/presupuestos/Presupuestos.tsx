@@ -38,7 +38,7 @@ import { useAuth } from "@/services/AuthContext";
 import { api_url } from "@/utils";
 import { debounce } from "lodash";
 import ResumenVentas from "../ventas/ResumenVentas";
-import MenuContextual from "../modules/MenuContextual";
+import MenuContextual from "../../modules/MenuContextual";
 import PresupuestoModal from "./imprimirPresupuesto";
 import PresupuestoModalEstilizado from "./imprimirPresupuestoEstilizado";
 import { useSwitch } from "@/services/SwitchContext";
@@ -954,10 +954,11 @@ export default function Presupuestos() {
   return (
     <div>
       <ChakraProvider>
+      <Box bg={"gray.100"} h={"100vh"} w={"100%"} p={2}>
         <Box
-          maxW="100%"
-          mx="auto"
-          p={isMobile ? 2 : 6}
+          w="100%"
+          h={"100%"}
+          p={isMobile ? 2 : 4}
           bg="white"
           shadow="xl"
           rounded="lg"
@@ -1286,12 +1287,13 @@ export default function Presupuestos() {
                     </Box>
                   )}
                 </Box>
+                <Flex gap={4}>
                 <Input
                   type="number"
                   placeholder="Cantidad"
                   value={cantidad}
                   onChange={(e) => setCantidad(parseInt(e.target.value))}
-                  width={isMobile ? "full" : "60px"}
+                  width={"60px"}
                   min={1}
                   ref={cantidadRef}
                   onKeyDown={(e) => {
@@ -1311,10 +1313,11 @@ export default function Presupuestos() {
                 <Button
                   colorScheme="green"
                   onClick={agregarItem}
-                  flexShrink={0}
+                  flexGrow={1}
                 >
                   +
                 </Button>
+                </Flex>
               </Flex>
               <Box
                 overflowX={"auto"}
@@ -1615,6 +1618,7 @@ export default function Presupuestos() {
               </Box>
             </Flex>
           </Flex>
+        </Box>
         </Box>
         {isSwitchOn ? (
           <PresupuestoModalEstilizado

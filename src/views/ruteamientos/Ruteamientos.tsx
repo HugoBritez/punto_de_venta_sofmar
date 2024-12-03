@@ -34,7 +34,7 @@ import {
   Tbody,
 } from "@chakra-ui/react";
 import { Filter, FilterX, Pencil, Printer, Truck } from "lucide-react";
-import HeaderComponent from "../modules/Header";
+import HeaderComponent from "../../modules/Header";
 import { useEffect, useState } from "react";
 import {
   addDays,
@@ -366,8 +366,8 @@ const Ruteamientos = () => {
   };
 
   return (
-    <Box maxW={"100vw"} p={2}>
-      <VStack spacing={4} align={"stretch"}>
+    <Box bg={"gray.100"} h={"100vh"} w={"100%"} p={2}>
+      <VStack spacing={4} align="stretch" bg={'white'} p={2} borderRadius={'md'} boxShadow={'sm'} h={'100%'}>
         <HeaderComponent Icono={Truck} titulo="Consulta de ruteamientos" />
 
         {isMobile && (

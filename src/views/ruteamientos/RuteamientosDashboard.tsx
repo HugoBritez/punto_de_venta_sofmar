@@ -330,12 +330,13 @@ const RuteamientosDashboard = () => {
 
 
   return (
-    <Box p={4} h={"100vh"} bg={"gray.50"}>
-      <Box bg={"white"} borderRadius={"lg"} boxShadow={"md"} px={2}>
+    <Box p={2} h={"100%"} bg={"gray.100"}>
+      <Box bg={"white"} borderRadius={"lg"} boxShadow={"md"} p={2}>
         <Flex
           bgGradient="linear(to-r, blue.500, blue.600)"
           color="white"
           p={4}
+
           alignItems="center"
           rounded="lg"
           justifyContent={"space-between"}
@@ -344,7 +345,6 @@ const RuteamientosDashboard = () => {
             <ChartNoAxesCombined size={32} className="mr-2" />
             <Heading size={"md"}>Resumen de Ruteamientos</Heading>
           </Flex>
-
           <Flex alignItems={"center"}>
           <Box position={"relative"}>
                   <Input

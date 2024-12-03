@@ -200,8 +200,8 @@ const GestionInventario: React.FC = () => {
   }
 
   return (
-    <Box maxW='full' p={5}>
-  <VStack spacing={4} align="stretch">
+    <Box bg={"gray.100"} h={"100vh"} w={"100%"} p={2}>
+  <VStack spacing={4} align="stretch" bg={'white'} p={2} borderRadius={'md'} boxShadow={'sm'} h={'100%'}>
     <Flex bgGradient="linear(to-r, blue.500, blue.600)" color="white" p={isMobile ? 4 : 6} alignItems="center" rounded="lg">
       <Archive size={32} className='mr-2' />
       <Heading size={isMobile ? 'sm' : 'md'}>Consulta de articulos</Heading>

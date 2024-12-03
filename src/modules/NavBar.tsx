@@ -27,6 +27,8 @@ import {
   ArchiveRestore,
   Package,
   Ellipsis,
+  Receipt,
+  SmartphoneNfc,
 } from "lucide-react";
 import { useAuth } from "@/services/AuthContext";
 import { db, fechaRelease, userName, version } from "@/utils";
@@ -51,14 +53,22 @@ const Sidebar = () => {
   const navigate = useNavigate();
   const { isOpen, onOpen, onClose } = useDisclosure();
 
+
   const NAV_ITEMS: NavItem[] = [
     { name: "Dashboard", icon: ChartSpline, path: "/dashboard", enabled: true },
+    { name: "Cobros", icon: Receipt, path: "/cobros", enabled: true },
     {
       name: "Modulo Ventas",
       icon: DollarSign,
       path: "/ventas-y-egresos",
       enabled: true,
       subItems: [
+        {
+          name: "Venta Rápida",
+          icon: SmartphoneNfc,
+          path: "/venta-rapida",
+          enabled: true,
+        },
         {
           name: "Punto de Venta",
           icon: ShoppingBasket,
@@ -158,6 +168,7 @@ const Sidebar = () => {
       setExpandedItem(null);
     }
   };
+
 
 
   const handleLogout = () => {
@@ -348,22 +359,46 @@ const Sidebar = () => {
   }
 
   return (
+    <>
     <Box
-      as="nav"
-      pos="fixed"
-      left={0}
-      top={0}
-      h="100vh"
-      w={isExpanded ? "200px" : "60px"}
-      bg="white"
-      color="blue.500"
-      transition="all 0.3s"
-      zIndex={1000}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-      overflowY="auto"
-      boxShadow="2px 0 10px rgba(0, 0, 0, 0.1)"
-    >
+    pos="fixed"
+    inset={0}
+    bg="blackAlpha.500"
+    transition="all 0.3s"
+    opacity={isExpanded ? 1 : 0}
+    visibility={isExpanded ? "visible" : "hidden"}
+    onClick={handleMouseLeave}
+    zIndex={999}
+  />
+    <Box
+    as="nav"
+    pos="fixed"
+    left={2} 
+    top={2} 
+    h="calc(100vh - 16px)" 
+    w={isExpanded ? "200px" : "60px"}
+    bg="white"
+    color="blue.500"
+    transition="all 0.3s"
+    zIndex={1000}
+    onMouseEnter={handleMouseEnter}
+    onMouseLeave={handleMouseLeave}
+    overflowY="auto"
+    borderRadius="md" 
+    boxShadow="lg" 
+    sx={{
+      '&::-webkit-scrollbar': {
+        width: '4px',
+      },
+      '&::-webkit-scrollbar-track': {
+        background: 'transparent',
+      },
+      '&::-webkit-scrollbar-thumb': {
+        background: '#CBD5E0',
+        borderRadius: '20px',
+      },
+    }}
+  >
       <Flex direction="column" h="100%" align="stretch">
         {isExpanded && (
           <Flex
@@ -411,6 +446,7 @@ const Sidebar = () => {
         )}
       </Flex>
     </Box>
+    </>
   );
 };
 

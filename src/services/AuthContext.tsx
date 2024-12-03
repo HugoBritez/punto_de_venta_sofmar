@@ -59,6 +59,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     loadAuthState();
   }, []);
 
+  useEffect(() => {
+    if (auth?.tokenExpiration) {
+      const checkExpiration = setInterval(() => {
+        const now = new Date().getTime();
+        if (now > auth.tokenExpiration) {
+          logout();
+        }
+      }, 1000);
+      
+      return () => clearInterval(checkExpiration);
+    }
+  }, [auth?.tokenExpiration]);
   const login = (data: LoginData) => {
     const expirationTime = new Date().getTime() + (30 * 60 * 1000);
 
@@ -85,7 +97,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.setItem('permisos_autorizar_pedido', authData.permisosAutorizarPedido.toString());
 
     localStorage.setItem('permiso_ver_utilidad', authData.permisoVerUtilidad.toString());
-
+    localStorage.setItem('token_expiration', expirationTime.toString()); 
     localStorage.setItem('rol', authData.rol?  authData.rol.toString() : '7');
     
     setAuth(authData);
@@ -101,6 +113,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     localStorage.removeItem('permisos_autorizar_pedido');
     localStorage.removeItem('permiso_ver_utilidad');
     setAuth(null);
+    localStorage.removeItem('token_expiration'); 
     delete axios.defaults.headers.common['Authorization'];
   };
 

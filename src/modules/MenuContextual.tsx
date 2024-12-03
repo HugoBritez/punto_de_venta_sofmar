@@ -1,7 +1,7 @@
 import React, { useRef } from 'react';
 import { Flex, IconButton, Menu, MenuButton, MenuItem, MenuList, Switch, useToast } from '@chakra-ui/react';
 import { EllipsisVertical, ImageUp } from 'lucide-react';
-import { useSwitch } from '../../services/SwitchContext';
+import { useSwitch } from '../services/SwitchContext';
 import { api_url } from '@/utils';
 
 const MenuContextual = () => {

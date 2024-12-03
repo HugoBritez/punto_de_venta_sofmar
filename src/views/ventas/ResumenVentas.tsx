@@ -34,7 +34,7 @@ import {
 import { format, subDays, startOfWeek, startOfMonth } from "date-fns";
 import { api_url } from "@/utils";
 import { SearchIcon } from "@chakra-ui/icons";
-import { Dot, HandCoins, Printer } from "lucide-react";
+import { Dot, HandCoins, Printer, ShoppingBag } from "lucide-react";
 import VentaModal from "./imprimirVenta";
 import { useAuth } from "@/services/AuthContext";
 import Auditar from "@/services/AuditoriaHook";
@@ -95,10 +95,16 @@ const periodos = [
 
 interface ConsultaDeVentasProps {
   clienteSeleccionado?: Cliente | null;
+  onSelectVenta?: (venta: Venta, detalleVenta: DetalleVenta[]) => void;
+  onCloseVenta?: () => void;
+  isModal?: boolean;
 }
 
 export default function ResumenVentas({
   clienteSeleccionado,
+  onSelectVenta,
+  onCloseVenta,
+  isModal = false,
 }: ConsultaDeVentasProps) {
   const [ventas, setVentas] = useState<Venta[]>([]);
   const [fechaDesde, setFechaDesde] = useState(
@@ -223,7 +229,7 @@ export default function ResumenVentas({
   const formatCantidad = (cantidad: string | number) => {
     const numericValue = Number(cantidad);
     if (!isNaN(numericValue)) {
-      return Math.floor(numericValue).toString(); 
+      return Math.floor(numericValue).toString();
     }
     return cantidad;
   };
@@ -284,10 +290,10 @@ export default function ResumenVentas({
         Number(auth?.userId),
         `Venta Nro. ${ventaSeleccionada} anulada por ${auth?.userName}`
       );
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error al anular la venta",
-        description: "Por favor, intenta de nuevo más tarde",
+        description: error.response?.data?.body || "Intentelo de nuevo mas tarde",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -295,9 +301,19 @@ export default function ResumenVentas({
     }
   };
 
+
+  const handleSelectVenta = (venta: Venta) =>{
+    if (onSelectVenta) {
+      onSelectVenta(venta, detalleVenta);
+    }
+    if (onCloseVenta) {
+      onCloseVenta
+    }
+  }
+
   return (
-    <Box maxW="full" m={2} p={5}>
-      <VStack spacing={4} align="stretch">
+    <Box bg={"gray.100"} h={"100vh"} w={"100%"} p={2}>
+      <VStack spacing={4} align="stretch" bg={'white'} p={2} borderRadius={'md'} boxShadow={'sm'} h={'100%'}> 
         <Flex
           bgGradient="linear(to-r, blue.500, blue.600)"
           color="white"
@@ -389,13 +405,13 @@ export default function ResumenVentas({
                 <Th textAlign="right">Total</Th>
                 <Th>Estado</Th>
                 <Th></Th>
+                <Th></Th>
               </Tr>
             </Thead>
             <Tbody>
               {filteredVentas.map((venta) => (
                 <React.Fragment key={venta.codigo}>
-                  <Tr
-                  >
+                  <Tr>
                     <Td>{venta.codigo}</Td>
                     <Td>
                       {new Date(
@@ -413,9 +429,17 @@ export default function ResumenVentas({
                     <Td textAlign="right">{formatCurrency(venta.total)}</Td>
                     <Td>
                       <Box>
-                      <Tooltip label={venta.estado_desc} aria-label="A tooltip">
-                        <Box><Dot strokeWidth={8}  color={venta.estado === 0? 'red' : 'green'}/></Box>
-                      </Tooltip>
+                        <Tooltip
+                          label={venta.estado_desc}
+                          aria-label="A tooltip"
+                        >
+                          <Box>
+                            <Dot
+                              strokeWidth={8}
+                              color={venta.estado === 0 ? "red" : "green"}
+                            />
+                          </Box>
+                        </Tooltip>
                       </Box>
                     </Td>
                     <Td>
@@ -430,6 +454,19 @@ export default function ResumenVentas({
                       >
                         {ventaSeleccionada === venta.codigo ? "-" : "+"}
                       </Button>
+                    </Td>
+                    <Td>
+                      { isModal && (
+                        <Button
+                          size={'sm'}
+                          onClick={() => handleSelectVenta(venta)}
+                          colorScheme={'blue'}
+                          leftIcon={<ShoppingBag />}
+                          isDisabled={venta.estado_desc.toLowerCase() === "anulado" ? true : false}
+                          >
+                            Seleccionar venta balcón
+                          </Button>
+                      )}
                     </Td>
                   </Tr>
                   <Tr style={{ padding: 0, margin: 0, height: "0px" }}>
@@ -524,20 +561,26 @@ export default function ResumenVentas({
           <ModalBody></ModalBody>
 
           <ModalFooter>
-            <Button colorScheme="red" mr={3} onClick={() => {
-              anularVenta(1)
-              handleCLoseAdvertenciaModal()
-              }}>
+            <Button
+              colorScheme="red"
+              mr={3}
+              onClick={() => {
+              anularVenta(1);
+              handleCLoseAdvertenciaModal();
+              }}
+              isDisabled={!!ventaSeleccionada && ventas.find(v => v.codigo === ventaSeleccionada)?.factura === ""}
+            >
               Anular factura completa
             </Button>
             <Button
               variant="ghost"
               colorScheme="red"
               onClick={() => {
-                handleCLoseAdvertenciaModal()
-                anularVenta(0)}}
+                handleCLoseAdvertenciaModal();
+                anularVenta(0);
+              }}
             >
-              Anular solo venta
+              Anular  venta
             </Button>
           </ModalFooter>
         </ModalContent>

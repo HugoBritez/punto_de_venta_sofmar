@@ -351,7 +351,7 @@ const TomaDeInventario = () => {
   };
 
   return (
-    <Flex padding={2} h={"100vh"} bg={"gray.50"}>
+    <Flex padding={2} h={"100vh"} bg={"gray.100"}>
       <Flex
         gap={2}
         padding={2}

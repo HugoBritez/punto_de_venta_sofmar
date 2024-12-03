@@ -7,7 +7,7 @@ import {
   Button,
   useToast,
 } from "@chakra-ui/react";
-import HeaderComponent from "../modules/Header";
+import HeaderComponent from "../../modules/Header";
 import {  Route, RouteOff, Truck } from "lucide-react";
 import { Grid } from "@chakra-ui/react";
 import { Agenda, Cliente } from "@/types/shared_interfaces";
@@ -138,8 +138,8 @@ const Rutas = () => {
 
   return (
     <>
-      <Box maxW={"100vw"} p={4} position="relative" minH="100vh">
-        <VStack align={"stretch"}>
+      <Box bg={"gray.100"} h={"100vh"} w={"100%"} p={2}>
+      <VStack spacing={4} align="stretch" bg={'white'} p={2} borderRadius={'md'} boxShadow={'sm'} h={'100%'}> 
           <HeaderComponent titulo={"Rutas"} Icono={Truck} />
           {inicioRuta? <Text fontSize="md" fontWeight="bold" color="red.500" align={'center'}>Ruta en curso</Text>: 
           (

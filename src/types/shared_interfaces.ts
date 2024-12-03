@@ -174,6 +174,8 @@ export interface Nota {
     diez: number
     lote: string
     vencimiento: string
+    ar_editar_desc: number
+    iva: number
   }
 
 
@@ -204,4 +206,22 @@ export interface Nota {
     ar_pcg: number;
     ma_descripcion: string;
     al_registro: string;
+  }
+
+  export interface OperacionData {
+    ventaId: number;
+    caja: number;
+    cuenta: number;
+    fecha: string;
+    observacion: string;
+    recibo: number;
+    documento: number;
+    operador: string | null;
+    redondeo: number;
+    monto: number;
+    mora: number;
+    punitorio: number;
+    descuento: number;
+    estado: number;
+    cod_retencion: number;
   }

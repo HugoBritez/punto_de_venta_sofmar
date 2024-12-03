@@ -29,7 +29,7 @@ import { SearchIcon } from '@chakra-ui/icons'
 import { FilePen, Printer, ShoppingCart } from 'lucide-react'
 import PresupuestoModal from './imprimirPresupuesto'
 import PresupuestoModalEstilizado from './imprimirPresupuestoEstilizado'
-import MenuContextual from '../modules/MenuContextual'
+import MenuContextual from '../../modules/MenuContextual'
 import { useSwitch } from '@/services/SwitchContext'
 
 interface Presupuesto {
@@ -242,8 +242,8 @@ export default function ConsultaPresupuestos({ onSelectPresupuesto, onClose, isM
   }
 
   return (
-    <Box maxW="full" m={2} p={5}>
-      <VStack spacing={4} align="stretch">
+    <Box bg={"gray.100"} h={"100vh"} w={"100%"} p={2}>
+      <VStack spacing={4} align="stretch" bg={'white'} p={2} borderRadius={'md'} boxShadow={'sm'} h={'100%'}>
         <Flex bgGradient="linear(to-r, blue.500, blue.600)" color="white" p={isMobile ? 4 : 6} alignItems="center" rounded="lg">
           <FilePen size={32} className='mr-2' />
           <Heading size={isMobile ? 'sm' : 'md'}>Consulta de Presupuestos</Heading>

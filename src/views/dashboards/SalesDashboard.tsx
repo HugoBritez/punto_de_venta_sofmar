@@ -192,8 +192,8 @@ export default function VentasChart() {
   if (!verGrafico) {
     return isMobile ? (
       <Box
-        h="95vh"
-        w="99vw"
+        h="100%"
+        w="100%"
         display="flex"
         justifyContent="center"
         alignItems="center"
@@ -224,14 +224,14 @@ export default function VentasChart() {
       h="100%"
       w="100%"
       display="flex"
-      justifyContent="start"
-      p={isMobile ? 2 : 6}
+      justifyContent={isMobile? "center" : "flex-start"}
+      alignItems={isMobile? "center" : "flex-start"}
+      p={isMobile ? 0 : 2}
     >
       <Box
-        maxW={isMobile ? "100%" : "80vw"}
+        h={'100%'}
         bg="white"
-        my={4}
-        p={isMobile ? 3 : 6}
+        p={isMobile ? 2 : 4}
         shadow="xl"
         rounded="lg"
         border="1px"

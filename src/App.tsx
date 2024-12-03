@@ -16,7 +16,7 @@ import {
 import Login from "./views/login/Login";
 
 import { AuthProvider, useAuth } from "./services/AuthContext";
-import Sidebar from "./views/modules/NavBar";
+import Sidebar from "./modules/NavBar";
 import ResumenVentas from "./views/ventas/ResumenVentas";
 import GestionInventario from "./views/inventario/gestionInventario";
 import VentasDashboard from "./views/dashboards/SalesDashboard";
@@ -32,6 +32,8 @@ import NoExiste from "./views/404";
 import VentaBalcon from "./views/puntodeventa/venta-balcon";
 import PuntoDeVenta from "./views/puntodeventa/punto-de-venta";
 import TomaDeInventario from "./views/inventario/toma-de-inventario";
+import CobrosDiarios from "./views/cobros/CobrosDiarios";
+import VentaRapida from "./views/puntodeventa/VentaRapida";
 
 const ProtectedLayout: React.FC = () => {
   const { auth, isLoading } = useAuth();
@@ -50,10 +52,10 @@ const ProtectedLayout: React.FC = () => {
   }
 
   return (
-    <Box>
+    <Box bg={isLargerThan768 ? "gray.100" : "white"}>
       <Sidebar />
       <Box
-        ml={isLargerThan768 ? ["60px", "60px", "60px"] : 0}
+        ml={isLargerThan768 ? ["80px", "80px", "70px"] : 0}
         mb={0}
         p={0}
         transition="all 0.3s"
@@ -73,11 +75,16 @@ function App() {
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route element={<ProtectedLayout />}>
+                <Route path="/cobros" element={<CobrosDiarios />} />
                 <Route path="/venta-balcon" element={<VentaBalcon />} />
                 <Route path="/punto-de-venta" element={<PuntoDeVenta />} />
+                <Route path="/venta-rapida" element={<VentaRapida />} />
                 <Route path="/consulta-de-ventas" element={<ResumenVentas />} />
                 <Route path="/inventario" element={<GestionInventario />} />
-                <Route path="/toma-de-inventario" element={<TomaDeInventario />} />
+                <Route
+                  path="/toma-de-inventario"
+                  element={<TomaDeInventario />}
+                />
                 <Route path="/dashboard" element={<VentasDashboard />} />
                 <Route path="/presupuestos" element={<Presupuestos />} />
                 <Route
