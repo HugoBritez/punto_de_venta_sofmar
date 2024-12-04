@@ -56,7 +56,22 @@ const Sidebar = () => {
 
   const NAV_ITEMS: NavItem[] = [
     { name: "Dashboard", icon: ChartSpline, path: "/dashboard", enabled: true },
-    { name: "Cobros", icon: Receipt, path: "/cobros", enabled: true },
+    { name: "Módulo Financiero", icon: Receipt, path: "/cobros", enabled: true, 
+      subItems: [
+        {
+          name: "Op. Caja Diaria",
+          icon: SmartphoneNfc,
+          path: "/cobros",
+          enabled: true,
+        },
+        {
+          name: "Op. caja",
+          icon: HandCoins,
+          path: "/consulta-de-cobros",
+          enabled: true,
+        },
+      ]
+    },
     {
       name: "Modulo Ventas",
       icon: DollarSign,

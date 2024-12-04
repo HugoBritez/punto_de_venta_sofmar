@@ -291,6 +291,9 @@ export default function VentaBalcon() {
   const [bonificacion, setBonificacion] = useState(0);
   const [facturaData, setFacturaData] = useState<Factura[]>([]);
   const [ultimaVentaId, setUltimaVentaId] = useState<number>(0);
+  const [cotizacionDolar, setCotizacionDolar] = useState<number>(7770);
+  const [cotizacionReal, setCotizacionReal] = useState<number>(1200);
+  const [cotizacionPeso, setCotizacionPeso] = useState<number>(5);
 
   async function traerUltimaVentaId() {
     try {
@@ -347,6 +350,18 @@ export default function VentaBalcon() {
       });
     }
   }
+
+  const fetchCotizaciones = async () => {
+    try {
+      const response = await axios.get(`${api_url}cotizaciones/`);
+      console.log("Cotizaciones", response.data.body);
+      setCotizacionDolar(response.data.body[0].usd_venta);
+      setCotizacionPeso(response.data.body[0].ars_venta);
+      setCotizacionReal(response.data.body[0].brl_venta);
+    } catch (err) {
+      console.log(err);
+    }
+  };
 
   useEffect(() => {
     if (isFinalizarVentaModalOpen) {
@@ -508,6 +523,8 @@ export default function VentaBalcon() {
         // });
       }
     };
+    fetchCotizaciones();
+    traerUltimaVentaId();
     fetchListasPrecios();
     fetchSucursales();
     fetchDepositos();
@@ -1774,6 +1791,22 @@ export default function VentaBalcon() {
     return `${nuevoDia.toString().padStart(2, "0")}/${mes}/${anio}`;
   };
 
+  const formatNumber = (amount: number) => {
+    return new Intl.NumberFormat("es-PY", {
+      style: "decimal",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })
+      .format(amount)
+      .replace(/\s/g, "");
+  };
+
+  const totalDolares = (parseFloat((calcularTotal() / cotizacionDolar).toFixed(2)));
+
+  const totalPesos = parseFloat((calcularTotal() / cotizacionPeso).toFixed(2));
+  
+  const totalReales = parseFloat((calcularTotal() / cotizacionReal).toFixed(2));
+
   return (
     <div>
       <ChakraProvider>
@@ -1787,6 +1820,7 @@ export default function VentaBalcon() {
             rounded="lg"
             fontSize={"smaller"}
             mb={16}
+            overflowY={"auto"}
           >
             <Flex
               bgGradient="linear(to-r, blue.500, blue.600)"
@@ -1797,313 +1831,410 @@ export default function VentaBalcon() {
             >
               <ShoppingCart size={24} className="mr-2" />
               <Heading size={isMobile ? "sm" : "md"}>Venta Balcon</Heading>
-              {isMobile? 
-              null : 
-              (
+              {isMobile ? null : (
                 <Flex ml="auto" gap={4}>
-                <Select
-                  bg={"white"}
-                  color={"black"}
-                  value={consultaExterna}
-                  onChange={(e) => {
-                    setConsultaExterna(Number(e.target.value));
-                  }}
-                >
-                  <option value={0}>Pedidos</option>
-                  <option value={1}>Presupuesto</option>
-                </Select>
-                <Button
-                  leftIcon={<FileText />}
-                  onClick={
-                    consultaExterna === 0
-                      ? handleOpenPedidoModal
-                      : handleOpenPresupuestoModal
-                  }
-                  w={"200px"}
-                >
-                  Consultar
-                </Button>
-              </Flex>
-              )  
-            }
+                  <Select
+                    bg={"white"}
+                    color={"black"}
+                    value={consultaExterna}
+                    onChange={(e) => {
+                      setConsultaExterna(Number(e.target.value));
+                    }}
+                  >
+                    <option value={0}>Pedidos</option>
+                    <option value={1}>Presupuesto</option>
+                  </Select>
+                  <Button
+                    leftIcon={<FileText />}
+                    onClick={
+                      consultaExterna === 0
+                        ? handleOpenPedidoModal
+                        : handleOpenPresupuestoModal
+                    }
+                    w={"200px"}
+                  >
+                    Consultar
+                  </Button>
+                </Flex>
+              )}
             </Flex>
-            <Flex flexDirection={isMobile ? "column" : "row"} w={'100%'}>
-              <Box p={isMobile ? 2 : 4} w={isMobile? '100%' : '70%'}>
-                <Grid
-                  templateColumns={
-                    isMobile ? "repeat(1, 1fr)" : "repeat(3, 1fr)"
-                  }
-                  gap={3}
-                  mb={4}
+            <Flex flexDirection={"column"} w={"100%"}>
+              <Box p={isMobile ? 2 : 4} w={"100%"}>
+                <Flex
+                  alignItems={isMobile ? undefined : "center"}
+                  gap={4}
+                  flexDir={isMobile ? "column" : "row"}
+                  w={"100%"}
                 >
-                  <Box>
-                    <FormLabel>Sucursal</FormLabel>
-                    <Select
-                      placeholder="Seleccionar sucursal"
-                      value={sucursal}
-                      onChange={(e) => setSucursal(e.target.value)}
-                    >
-                      {sucursales.map((sucursal) => (
-                        <option
-                          key={sucursal.id}
-                          value={sucursal.id.toString()}
-                        >
-                          {sucursal.descripcion}
-                        </option>
-                      ))}
-                    </Select>
-                  </Box>
-                  <Box>
-                    <FormLabel>Depósito</FormLabel>
-                    <Select
-                      placeholder="Seleccionar depósito"
-                      value={depositoId}
-                      onChange={handleDepositoChange}
-                    >
-                      {depositos.map((deposito) => (
-                        <option
-                          key={deposito.dep_codigo}
-                          value={deposito.dep_codigo.toString()}
-                        >
-                          {deposito.dep_descripcion}
-                        </option>
-                      ))}
-                    </Select>
-                  </Box>
-                  <Box>
-                    <FormLabel>Fecha</FormLabel>
-                    <Input
-                      type="date"
-                      value={fecha}
-                      onChange={(e) => setFecha(e.target.value)}
-                    />
-                  </Box>
-                  <Flex gap={4}>
-                    <Box flexGrow={1}>
-                      <FormLabel>Moneda</FormLabel>
+                  <Grid
+                    templateColumns={
+                      isMobile ? "repeat(1, 1fr)" : "repeat(3, 1fr)"
+                    }
+                    gap={3}
+                    mb={4}
+                  >
+                    <Box>
+                      <FormLabel>Sucursal</FormLabel>
                       <Select
-                        placeholder="Seleccionar moneda"
-                        value={moneda}
-                        onChange={(e) => setMoneda(e.target.value)}
+                        placeholder="Seleccionar sucursal"
+                        value={sucursal}
+                        onChange={(e) => setSucursal(e.target.value)}
                       >
-                        <option value="USD">USD</option>
-                        <option value="PYG">PYG</option>
+                        {sucursales.map((sucursal) => (
+                          <option
+                            key={sucursal.id}
+                            value={sucursal.id.toString()}
+                          >
+                            {sucursal.descripcion}
+                          </option>
+                        ))}
                       </Select>
                     </Box>
-                    <Box flexGrow={1}>
-                      <FormLabel>Lista de Precios</FormLabel>
+                    <Box>
+                      <FormLabel>Depósito</FormLabel>
                       <Select
-                        placeholder="Seleccionar..."
-                        value={listaPrecio}
-                        onChange={(e) => setListaPrecio(e.target.value)}
+                        placeholder="Seleccionar depósito"
+                        value={depositoId}
+                        onChange={handleDepositoChange}
                       >
-                        {listaPrecios.map(
-                          (listaPrecio: {
-                            lp_codigo: React.Key | null | undefined;
-                            lp_descripcion:
-                              | string
-                              | number
-                              | boolean
-                              | React.ReactElement<
-                                  any,
-                                  string | React.JSXElementConstructor<any>
-                                >
-                              | Iterable<React.ReactNode>
-                              | React.ReactPortal
-                              | null
-                              | undefined;
-                          }) => (
-                            <option
-                              key={listaPrecio.lp_codigo}
-                              value={listaPrecio.lp_codigo?.toString()}
-                            >
-                              {listaPrecio.lp_descripcion}
-                            </option>
-                          )
-                        )}
+                        {depositos.map((deposito) => (
+                          <option
+                            key={deposito.dep_codigo}
+                            value={deposito.dep_codigo.toString()}
+                          >
+                            {deposito.dep_descripcion}
+                          </option>
+                        ))}
                       </Select>
                     </Box>
-                  </Flex>
-                  <Box position={"relative"}>
-                    <FormLabel>Vendedor</FormLabel>
-                    <Input
-                      id="vendedor-search"
-                      placeholder="Buscar vendedor por código"
-                      value={buscarVendedor}
-                      onChange={handleBusquedaVendedor}
-                      onFocus={() => {
-                        if (vendedor) {
-                          setBuscarVendedor("");
-                          setRecomendacionesVendedores([]);
+                    <Box>
+                      <FormLabel>Fecha</FormLabel>
+                      <Input
+                        type="date"
+                        value={fecha}
+                        onChange={(e) => setFecha(e.target.value)}
+                      />
+                    </Box>
+                    <Flex gap={4}>
+                      <Box flexGrow={1}>
+                        <FormLabel>Moneda</FormLabel>
+                        <Select
+                          placeholder="Seleccionar moneda"
+                          value={moneda}
+                          onChange={(e) => setMoneda(e.target.value)}
+                        >
+                          <option value="USD">USD</option>
+                          <option value="PYG">PYG</option>
+                        </Select>
+                      </Box>
+                      <Box flexGrow={1}>
+                        <FormLabel>Lista de Precios</FormLabel>
+                        <Select
+                          placeholder="Seleccionar..."
+                          value={listaPrecio}
+                          onChange={(e) => setListaPrecio(e.target.value)}
+                        >
+                          {listaPrecios.map(
+                            (listaPrecio: {
+                              lp_codigo: React.Key | null | undefined;
+                              lp_descripcion:
+                                | string
+                                | number
+                                | boolean
+                                | React.ReactElement<
+                                    any,
+                                    string | React.JSXElementConstructor<any>
+                                  >
+                                | Iterable<React.ReactNode>
+                                | React.ReactPortal
+                                | null
+                                | undefined;
+                            }) => (
+                              <option
+                                key={listaPrecio.lp_codigo}
+                                value={listaPrecio.lp_codigo?.toString()}
+                              >
+                                {listaPrecio.lp_descripcion}
+                              </option>
+                            )
+                          )}
+                        </Select>
+                      </Box>
+                    </Flex>
+                    <Box position={"relative"}>
+                      <FormLabel>Vendedor</FormLabel>
+                      <Input
+                        id="vendedor-search"
+                        placeholder="Buscar vendedor por código"
+                        value={buscarVendedor}
+                        onChange={handleBusquedaVendedor}
+                        onFocus={() => {
+                          if (vendedor) {
+                            setBuscarVendedor("");
+                            setRecomendacionesVendedores([]);
+                          }
+                        }}
+                        aria-autocomplete="list"
+                        aria-controls="vendedor-recommendations"
+                        ref={vendedorRef}
+                        onKeyDown={(e) =>
+                          handleEnterKey(e, clienteRef, selectFirstVendedor)
                         }
-                      }}
-                      aria-autocomplete="list"
-                      aria-controls="vendedor-recommendations"
-                      ref={vendedorRef}
-                      onKeyDown={(e) =>
-                        handleEnterKey(e, clienteRef, selectFirstVendedor)
-                      }
-                    />
-                    {vendedor && (
-                      <Text mt={2} fontWeight="bold" color="green.500">
-                        Vendedor seleccionado: {vendedor}
-                      </Text>
-                    )}
-                    {recomedacionesVendedores.length === 0 &&
-                      buscarVendedor.length > 0 &&
-                      !vendedor && (
-                        <Text color="red.500" mt={2}>
-                          No se encontró vendedor con ese código
+                      />
+                      {vendedor && (
+                        <Text mt={2} fontWeight="bold" color="green.500">
+                          Vendedor seleccionado: {vendedor}
                         </Text>
                       )}
-                    {recomedacionesVendedores.length > 0 && (
-                      <Box
-                        id="vendedor-recommendations"
-                        position="absolute"
-                        top="100%"
-                        left={0}
-                        right={0}
-                        zIndex={20}
-                        bg="white"
-                        boxShadow="md"
-                        borderRadius="md"
-                        mt={1}
-                        className="recomendaciones-menu"
-                        maxH="200px"
-                        overflowY="auto"
-                      >
-                        {recomedacionesVendedores.map((vendedor) => (
-                          <Box
-                            key={vendedor.op_codigo}
-                            p={2}
-                            _hover={{ bg: "gray.100" }}
-                            cursor="pointer"
-                            onClick={() => {
-                              setBuscarVendedor(vendedor.op_codigo);
-                              setVendedor(vendedor.op_nombre);
-                              setOperador(vendedor.op_codigo);
-                              setRecomendacionesVendedores([]);
-                            }}
-                          >
-                            <Text fontWeight="bold">{vendedor.op_nombre}</Text>
-                            <Text as="span" color="gray.500" fontSize="sm">
-                              Código: {vendedor.op_codigo}
-                            </Text>
-                          </Box>
-                        ))}
-                      </Box>
-                    )}
-                  </Box>
-                  <Box position="relative">
-                    <FormLabel htmlFor="cliente-search">Cliente</FormLabel>
-                    <Input
-                      id="cliente-search"
-                      placeholder="Buscar cliente por nombre o RUC"
-                      value={clienteBusqueda}
-                      onChange={handleBusquedaCliente}
-                      aria-autocomplete="list"
-                      aria-controls="cliente-recommendations"
-                      ref={clienteRef}
-                      onKeyDown={(e) =>
-                        handleEnterKey(e, articuloRef, selectFirstCliente)
-                      }
-                    />
-                    {clienteSeleccionado?.cli_acuerdo === 1 ? (
-                      <Box
-                        display={"flex"}
-                        gap={2}
-                        alignItems={"center"}
-                        mt={2}
-                      >
-                        <Checkbox
-                          isChecked={acuerdoCliente === 1}
-                          value={acuerdoCliente}
-                          onChange={() =>
-                            setAcuerdoCliente(acuerdoCliente ? 0 : 1)
-                          }
-                        ></Checkbox>
-                        <Text fontWeight="bold" color="red.500">
-                          Cliente con acuerdo de crédito.
-                        </Text>
-                      </Box>
-                    ) : null}
-                    {recomendacionesClientes.length > 0 && (
-                      <Box
-                        id="cliente-recommendations"
-                        position="absolute"
-                        top="100%"
-                        left={0}
-                        right={0}
-                        zIndex={10}
-                        bg="white"
-                        boxShadow="md"
-                        borderRadius="md"
-                        mt={1}
-                        className="recomendaciones-menu"
-                        maxH="200px"
-                        overflowY="auto"
-                      >
-                        {recomendacionesClientes.map((cliente) => {
-                          const credit = Number(cliente.cli_limitecredito) || 0;
-                          const creditColor = getCreditColor(credit);
-
-                          return (
+                      {recomedacionesVendedores.length === 0 &&
+                        buscarVendedor.length > 0 &&
+                        !vendedor && (
+                          <Text color="red.500" mt={2}>
+                            No se encontró vendedor con ese código
+                          </Text>
+                        )}
+                      {recomedacionesVendedores.length > 0 && (
+                        <Box
+                          id="vendedor-recommendations"
+                          position="absolute"
+                          top="100%"
+                          left={0}
+                          right={0}
+                          zIndex={20}
+                          bg="white"
+                          boxShadow="md"
+                          borderRadius="md"
+                          mt={1}
+                          className="recomendaciones-menu"
+                          maxH="200px"
+                          overflowY="auto"
+                        >
+                          {recomedacionesVendedores.map((vendedor) => (
                             <Box
-                              key={cliente.cli_codigo}
+                              key={vendedor.op_codigo}
                               p={2}
                               _hover={{ bg: "gray.100" }}
                               cursor="pointer"
                               onClick={() => {
-                                setClienteBusqueda(cliente.cli_razon);
-                                setClienteSeleccionado(cliente);
-                                setRecomendacionesClientes([]);
+                                setBuscarVendedor(vendedor.op_codigo);
+                                setVendedor(vendedor.op_nombre);
+                                setOperador(vendedor.op_codigo);
+                                setRecomendacionesVendedores([]);
                               }}
                             >
-                              <Text fontWeight="bold">{cliente.cli_razon}</Text>
-                              <Text as="span" color="gray.500" fontSize="sm">
-                                RUC: {cliente.cli_ruc}
+                              <Text fontWeight="bold">
+                                {vendedor.op_nombre}
                               </Text>
-                              <Text
-                                as="span"
-                                color={creditColor}
-                                fontSize="sm"
-                                ml={2}
-                              >
-                                Línea de crédito: {formatCurrency(credit)}
+                              <Text as="span" color="gray.500" fontSize="sm">
+                                Código: {vendedor.op_codigo}
                               </Text>
                             </Box>
-                          );
-                        })}
-                      </Box>
-                    )}
-                  </Box>
-                  {isMobile?
-                  (<Flex gap={4} >
-                    <Select
-                  bg={"white"}
-                  color={"black"}
-                  value={consultaExterna}
-                  onChange={(e) => {
-                    setConsultaExterna(Number(e.target.value));
-                  }}
-                >
-                  <option value={0}>Pedidos</option>
-                  <option value={1}>Presupuesto</option>
-                </Select>
-                <Button
-                  leftIcon={<FileText />}
-                  onClick={
-                    consultaExterna === 0
-                      ? handleOpenPedidoModal
-                      : handleOpenPresupuestoModal
-                  }
-                  w={"200px"}
-                >
-                  Consultar
-                </Button>
+                          ))}
+                        </Box>
+                      )}
+                    </Box>
+                    <Box position="relative">
+                      <FormLabel htmlFor="cliente-search">Cliente</FormLabel>
+                      <Input
+                        id="cliente-search"
+                        placeholder="Buscar cliente por nombre o RUC"
+                        value={clienteBusqueda}
+                        onChange={handleBusquedaCliente}
+                        aria-autocomplete="list"
+                        aria-controls="cliente-recommendations"
+                        ref={clienteRef}
+                        onKeyDown={(e) =>
+                          handleEnterKey(e, articuloRef, selectFirstCliente)
+                        }
+                      />
+                      {clienteSeleccionado?.cli_acuerdo === 1 ? (
+                        <Box
+                          display={"flex"}
+                          gap={2}
+                          alignItems={"center"}
+                          mt={2}
+                        >
+                          <Checkbox
+                            isChecked={acuerdoCliente === 1}
+                            value={acuerdoCliente}
+                            onChange={() =>
+                              setAcuerdoCliente(acuerdoCliente ? 0 : 1)
+                            }
+                          ></Checkbox>
+                          <Text fontWeight="bold" color="red.500">
+                            Cliente con acuerdo de crédito.
+                          </Text>
+                        </Box>
+                      ) : null}
+                      {recomendacionesClientes.length > 0 && (
+                        <Box
+                          id="cliente-recommendations"
+                          position="absolute"
+                          top="100%"
+                          left={0}
+                          right={0}
+                          zIndex={10}
+                          bg="white"
+                          boxShadow="md"
+                          borderRadius="md"
+                          mt={1}
+                          className="recomendaciones-menu"
+                          maxH="200px"
+                          overflowY="auto"
+                        >
+                          {recomendacionesClientes.map((cliente) => {
+                            const credit =
+                              Number(cliente.cli_limitecredito) || 0;
+                            const creditColor = getCreditColor(credit);
+
+                            return (
+                              <Box
+                                key={cliente.cli_codigo}
+                                p={2}
+                                _hover={{ bg: "gray.100" }}
+                                cursor="pointer"
+                                onClick={() => {
+                                  setClienteBusqueda(cliente.cli_razon);
+                                  setClienteSeleccionado(cliente);
+                                  setRecomendacionesClientes([]);
+                                }}
+                              >
+                                <Text fontWeight="bold">
+                                  {cliente.cli_razon}
+                                </Text>
+                                <Text as="span" color="gray.500" fontSize="sm">
+                                  RUC: {cliente.cli_ruc}
+                                </Text>
+                                <Text
+                                  as="span"
+                                  color={creditColor}
+                                  fontSize="sm"
+                                  ml={2}
+                                >
+                                  Línea de crédito: {formatCurrency(credit)}
+                                </Text>
+                              </Box>
+                            );
+                          })}
+                        </Box>
+                      )}
+                    </Box>
+                    {isMobile ? (
+                      <Flex gap={4}>
+                        <Select
+                          bg={"white"}
+                          color={"black"}
+                          value={consultaExterna}
+                          onChange={(e) => {
+                            setConsultaExterna(Number(e.target.value));
+                          }}
+                        >
+                          <option value={0}>Pedidos</option>
+                          <option value={1}>Presupuesto</option>
+                        </Select>
+                        <Button
+                          leftIcon={<FileText />}
+                          onClick={
+                            consultaExterna === 0
+                              ? handleOpenPedidoModal
+                              : handleOpenPresupuestoModal
+                          }
+                          w={"200px"}
+                        >
+                          Consultar
+                        </Button>
+                      </Flex>
+                    ) : null}
+                  </Grid>
+                  <Flex
+                    position="relative"
+                    flexDirection={isMobile ? "column" : "row"}
+                    px={4}
+                    gap={4}
+                    border={"1px solid #E2E8F0"}
+                    h={"120px"}
+                    borderRadius={"md"}
+                    alignItems={"center"}
+                    justifyContent={"center"}
+                  >
+                    <Box
+                      position="absolute"
+                      top="-10px"
+                      left="20px"
+                      bg="white"
+                      px={2}
+                      fontSize="sm"
+                      fontWeight="bold"
+                      color="gray.600"
+                    >
+                      Numero de la venta:
+                    </Box>
+                    <Heading>
+                      {newSaleID
+                        ? `Venta #${newSaleID + 1}`
+                        : `Venta #${ultimaVentaId}`}
+                    </Heading>
                   </Flex>
-                  ) : null}
-                </Grid>
+                  <Flex
+                    position="relative"
+                    flexDirection={isMobile ? "column" : "row"}
+                    px={4}
+                    mb={4}
+                    gap={4}
+                    border={"1px solid #E2E8F0"}
+                    h={"120px"}
+                    borderRadius={"md"}
+                    alignItems={"center"}
+                    justifyContent={"center"}
+                    flexGrow={1}
+                    bg={"blue.100"}
+                  >
+                    <Box
+                      position="absolute"
+                      top="-10px"
+                      left="20px"
+                      bg="gray.50"
+                      px={2}
+                      fontSize="sm"
+                      fontWeight="bold"
+                      color="gray.600"
+                    >
+                      Cotizacion del día
+                    </Box>
+                    <Flex gap={4}>
+                      <Box>
+                        <FormLabel>USD:</FormLabel>
+                        <Input
+                          type="number"
+                          value={cotizacionDolar}
+                          width={"100px"}
+                          bg={"white"}
+                          fontWeight={"bold"}
+                        />
+                      </Box>
+                      <Box>
+                        <FormLabel>BRL:</FormLabel>
+                        <Input
+                          type="number"
+                          value={cotizacionReal}
+                          width={"100px"}
+                          bg={"white"}
+                          fontWeight={"bold"}
+                        />
+                      </Box>
+                      <Box>
+                        <FormLabel>ARS:</FormLabel>
+                        <Input
+                          type="number"
+                          value={cotizacionPeso}
+                          width={"100px"}
+                          bg={"white"}
+                          fontWeight={"bold"}
+                        />
+                      </Box>
+                    </Flex>
+                  </Flex>
+                </Flex>
                 <Flex
                   gap={4}
                   mb={6}
@@ -2195,54 +2326,50 @@ export default function VentaBalcon() {
                     )}
                   </Box>
                   <Flex gap={4}>
-                  <Input
-                    type="number"
-                    placeholder="Cantidad"
-                    value={cantidad}
-                    onChange={(e) => setCantidad(parseInt(e.target.value))}
-                    width={ "60px"}
-                    min={1}
-                    ref={cantidadRef}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        agregarItem();
-                        articuloRef.current?.focus();
-                      }
-                    }}
-                  />
-                  <Checkbox
-                    isChecked={buscarSoloConStock}
-                    onChange={handleStockCheckboxChange}
-                  >
-                    En stock
-                  </Checkbox>
-                  <Select
-                    w={"80px"}
-                    defaultValue={"0"}
-                    color={"black"}
-                    variant={"filled"}
-                    onChange={(e) => {
-                      setBonificacion(parseInt(e.target.value));
-                    }}
-                  >
-                    <option value={"0"}>V</option>
-                    <option value={"1"}>B</option>
-                  </Select>
-                  <Button
-                    colorScheme="green"
-                    onClick={agregarItem}
-                    flexGrow={1}
-                  >
-                    +
-                  </Button>
+                    <Input
+                      type="number"
+                      placeholder="Cantidad"
+                      value={cantidad}
+                      onChange={(e) => setCantidad(parseInt(e.target.value))}
+                      width={"60px"}
+                      min={1}
+                      ref={cantidadRef}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          agregarItem();
+                          articuloRef.current?.focus();
+                        }
+                      }}
+                    />
+                    <Checkbox
+                      isChecked={buscarSoloConStock}
+                      onChange={handleStockCheckboxChange}
+                    >
+                      En stock
+                    </Checkbox>
+                    <Select
+                      w={"80px"}
+                      defaultValue={"0"}
+                      color={"black"}
+                      variant={"filled"}
+                      onChange={(e) => {
+                        setBonificacion(parseInt(e.target.value));
+                      }}
+                    >
+                      <option value={"0"}>V</option>
+                      <option value={"1"}>B</option>
+                    </Select>
+                    <Button
+                      colorScheme="green"
+                      onClick={agregarItem}
+                      flexGrow={1}
+                    >
+                      +
+                    </Button>
                   </Flex>
                 </Flex>
-                <Box
-                  overflowX={"auto"}
-                  height={"300px"}
-                  width={"100%"}
-                >
+                <Box overflowX={"auto"} height={"300px"} width={"100%"}>
                   <Table variant="striped" size={"sm"}>
                     <Thead position="sticky" top={0} bg="white" zIndex={0}>
                       <Tr>
@@ -2383,111 +2510,185 @@ export default function VentaBalcon() {
                     </Tbody>
                   </Table>
                 </Box>
+                <Divider borderWidth={"2px"} borderColor={"gray.600"} my={2} />
               </Box>
               <Flex
-                w={isMobile ? "full" : "30%"}
+                w={"100%"}
                 p={isMobile ? 2 : 4}
                 rounded="lg"
-                flexDirection={"column"}
+                flexDirection={isMobile ? "column" : "row"}
                 gap={4}
+                flexGrow={1}
+                justifyContent={"space-between"}
+                alignItems={"center"}
               >
-                <Flex
-                  flexDirection={isMobile ? "column" : "row"}
-                  px={4}
-                  gap={4}
-                ></Flex>
-                <Flex
-                  gap={2}
-                  flexDirection={isMobile ? "row" : "column"}
-                  alignItems={"center"}
-                >
-                  <Text fontSize="md" fontWeight={"semibold"}>
-                    Descuento
+                <Flex gap={4}>
+                  <Flex
+                    flexDirection={isMobile ? "column" : "row"}
+                    px={4}
+                    gap={4}
+                  ></Flex>
+                  <Flex
+                    gap={2}
+                    flexDirection={'column'}
+                    alignItems={"start"}
+                    justifyContent={isMobile? 'space-between' : 'start'}
+                  >
+                    <Text fontSize="xx-large" fontWeight={"bold"}>
+                    Total items: {items.length}
                   </Text>
-                  <Flex>
-                    <Select
-                      value={descuentoTipo}
-                      onChange={(e) => {
-                        setDescuentoTipo(
-                          e.target.value as "porcentaje" | "valor"
-                        );
-                        setDescuentoValor(0);
-                      }}
-                      width={"150px"}
-                    >
-                      <option value="porcentaje">Porcentaje</option>
-                      <option value="monto">Monto</option>
-                    </Select>
-                    <Input
-                      type="number"
-                      placeholder="Descuento"
-                      value={descuentoValor}
-                      onChange={(e) =>
-                        setDescuentoValor(parseInt(e.target.value))
-                      }
-                      width={"90px"}
-                      ml={2}
-                    />
+                    <Text fontSize="x-large" fontWeight={"semibold"}>
+                      Descuento
+                    </Text>
+                    <Flex>
+                      <Select
+                        value={descuentoTipo}
+                        onChange={(e) => {
+                          setDescuentoTipo(
+                            e.target.value as "porcentaje" | "valor"
+                          );
+                          setDescuentoValor(0);
+                        }}
+                        width={"150px"}
+                      >
+                        <option value="porcentaje">Porcentaje</option>
+                        <option value="monto">Monto</option>
+                      </Select>
+                      <Input
+                        type="number"
+                        placeholder="Descuento"
+                        value={descuentoValor}
+                        onChange={(e) =>
+                          setDescuentoValor(parseInt(e.target.value))
+                        }
+                        width={"90px"}
+                        ml={2}
+                      />
+                    </Flex>
                   </Flex>
-                </Flex>
 
-                <Box pt={2}>
-                  <Text fontSize="sm" fontWeight="bold">
-                    Total Exentas: {formatCurrency(calcularTotalExcentas())}
-                  </Text>
-                  <Divider
-                    borderWidth={"2px"}
-                    borderColor={"blue.500"}
-                    my={1}
-                  />
-                  <Text fontSize="sm" fontWeight="bold">
-                    Total IVA 5%: {formatCurrency(calcularTotal5())}
-                  </Text>
-                  <Divider
-                    borderWidth={"2px"}
-                    borderColor={"blue.500"}
-                    my={1}
-                  />
-                  <Text fontSize="sm" fontWeight="bold">
-                    Total IVA 10%: {formatCurrency(calcularTotal10())}
-                  </Text>
-                  <Divider
-                    borderWidth={"2px"}
-                    borderColor={"blue.500"}
-                    my={1}
-                  />
-                  <Text fontSize="md" fontWeight="bold">
-                    Total Impuestos: {formatCurrency(calcularTotalImpuestos())}
-                  </Text>
-                </Box>
-                <Box textAlign={"right"} mt={isMobile ? 2 : 0}>
-                  <Text fontSize="lg" fontWeight="bold">
+                  <Box pt={2}>
+                    <Text fontSize="x-large" fontWeight="bold">
+                      Total Exentas: {formatCurrency(calcularTotalExcentas())}
+                    </Text>
+                    <Divider
+                      borderWidth={"2px"}
+                      borderColor={"blue.500"}
+                      my={1}
+                    />
+                    <Text fontSize="x-large" fontWeight="bold">
+                      Total IVA 5%: {formatCurrency(calcularTotal5())}
+                    </Text>
+                    <Divider
+                      borderWidth={"2px"}
+                      borderColor={"blue.500"}
+                      my={1}
+                    />
+                    <Text fontSize="x-large" fontWeight="bold">
+                      Total IVA 10%: {formatCurrency(calcularTotal10())}
+                    </Text>
+                    <Divider
+                      borderWidth={"2px"}
+                      borderColor={"blue.500"}
+                      my={1}
+                    />
+                    <Text fontSize="x-large" fontWeight="bold">
+                      Total Impuestos:{" "}
+                      {formatCurrency(calcularTotalImpuestos())}
+                    </Text>
+                  </Box>
+                </Flex>
+                <Flex
+                  flexDir={'column'}
+                  gap={4}
+                >
+                <Box
+                  display={"flex"}
+                  justifyContent={"center"}
+                  flexDir={"row"}
+                  textAlign={"center"}
+                  mt={isMobile ? 2 : 0}
+                  gap={8}
+                >
+                  {" "}
+                  <Text fontSize="xx-large" fontWeight="bold">
                     Subtotal:{" "}
                     {formatCurrency(
                       items.reduce((acc, item) => acc + item.subtotal, 0)
                     )}
                   </Text>
-                  <Text fontSize="lg" fontWeight="bold">
+                  <Text fontSize="xx-large" fontWeight="bold">
                     Descuento General:{" "}
                     {descuentoTipo === "porcentaje"
                       ? `${descuentoValor}%`
                       : formatCurrency(descuentoValor * tasasDeCambio[moneda])}
                   </Text>
-                  <Text fontSize="lg" fontWeight="bold">
+                  <Text fontSize="xx-large" fontWeight="bold">
                     Total Neto: {formatCurrency(calcularTotal())}
                   </Text>
-                  <Flex gap={4}>
+                </Box>
+                <Flex
+                  position="relative"
+                  flexDirection={isMobile ? "column" : "row"}
+                  px={4}
+                  gap={4}
+                  border={"1px solid #E2E8F0"}
+                  h={"120px"}
+                  borderRadius={"md"}
+                  alignItems={"center"}
+                  justifyContent={"center"}
+                  flexGrow={1}
+                  bg={'green.800'}
+                >
+                  <Box
+                    position="absolute"
+                    top="-10px"
+                    left="20px"
+                    bg="gray.50"
+                    px={2}
+                    fontSize="sm"
+                    fontWeight="bold"
+                    color="gray.600"
+                  >
+                  </Box>
+                  <Flex
+                    gap={4}
+                    justifyContent={'space-between'}
+                  >
+                    <Box>
+                      <FormLabel color={'white'} fontWeight={'bold'} fontSize={'large'}> 
+                        Total USD:
+                      </FormLabel>
+                      <Input type="text" value={formatNumber(totalDolares)}  h='48px' bg={'white'} fontSize={'x-large'} fontWeight={'bold'}/>
+                    </Box>
+                    <Box>
+                      <FormLabel color={'white'} fontWeight={'bold'} fontSize={'large'}>
+                        Total BRL:
+                      </FormLabel>
+                      <Input type="text" value={formatNumber(totalReales)}  bg={'white'} h='48px' fontSize={'x-large'} fontWeight={'bold'}/>
+                    </Box>
+                    <Box>
+                      <FormLabel color={'white'} fontWeight={'bold'} fontSize={'large'}>
+                        Total ARS:
+                      </FormLabel>
+                      <Input type="text" value={formatNumber(totalPesos)}  bg={'white'}  h='48px' fontSize={'x-large'} fontWeight={'bold'}/>
+                    </Box>
+                  </Flex>
+                </Flex>
+                </Flex>
+                <Box display={'flex'} flexDir={'column'}  textAlign={"right"} mt={isMobile ? 2 : 0}>
+
+                  <Flex gap={4} flexDir={isMobile? 'row' : 'column'} justifyContent={'center'} alignItems={'center'}>
                     <Button
                       colorScheme="red"
-                      mt={4}
-                      width={isMobile ? "full" : "auto"}
+
+                      width={'full'}
                       onClick={cancelarVenta}
                     >
                       Cancelar Venta
                     </Button>
                     <Button
                       colorScheme="blue"
-                      mt={4}
                       width={isMobile ? "full" : "auto"}
                       onClick={handleOpenFinalizarVentaModal}
                     >

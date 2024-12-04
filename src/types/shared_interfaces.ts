@@ -224,4 +224,5 @@ export interface Nota {
     descuento: number;
     estado: number;
     cod_retencion: number;
+    metodo: number
   }

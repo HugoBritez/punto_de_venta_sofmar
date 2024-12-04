@@ -310,6 +310,9 @@ export default function PuntoDeVenta() {
   const [facturaData, setFacturaData] = useState<Factura[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [ultimaVentaId, setUltimaVentaId] = useState<number>(0);
+  const [cotizacionDolar, setCotizacionDolar]= useState<number>(7770)
+  const [cotizacionReal, setCotizacionReal] = useState<number>(1200)
+  const [cotizacionPeso, setCotizacionPeso] = useState<number>(5)
 
   async function traerUltimaVentaId() {
     try {
@@ -388,6 +391,19 @@ export default function PuntoDeVenta() {
         duration: 3000,
         isClosable: true,
       });
+    }
+  }
+
+
+  const fetchCotizaciones = async () => {
+    try {
+      const response = await axios.get(`${api_url}cotizaciones/`);
+      console.log('Cotizaciones',response.data.body)
+      setCotizacionDolar(response.data.body[0].usd_venta)
+      setCotizacionPeso(response.data.body[0].ars_venta)
+      setCotizacionReal(response.data.body[0].brl_venta)
+    } catch(err) {
+      console.log(err)
     }
   }
 
@@ -545,7 +561,7 @@ export default function PuntoDeVenta() {
         });
       }
     };
-
+    fetchCotizaciones();
     verificarCajaAbierta();
     fetchListasPrecios();
     fetchSucursales();
@@ -553,6 +569,7 @@ export default function PuntoDeVenta() {
     fetchClientes();
     fetchVendedores();
     fetchMetodoPago();
+    traerUltimaVentaId();
   }, [auth, toast]);
 
   useEffect(() => {
@@ -578,6 +595,17 @@ export default function PuntoDeVenta() {
       .replace(/\s/g, "")
       .replace(moneda, currencySymbol[moneda]);
   };
+
+  const formatNumber = (amount: number) => {
+    return new Intl.NumberFormat("es-PY", {
+      style: "decimal",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })
+      .format(amount)
+      .replace(/\s/g, "");
+  };
+
 
   // Hacer que articulo sea opcional
   const agregarItem = (articulo?: Articulo) => {
@@ -1919,6 +1947,14 @@ export default function PuntoDeVenta() {
     }
   }
 
+  const totalDolares = (parseFloat((calcularTotal() / cotizacionDolar).toFixed(2)));
+
+  const totalPesos = parseFloat((calcularTotal() / cotizacionPeso).toFixed(2));
+  
+  const totalReales = parseFloat((calcularTotal() / cotizacionReal).toFixed(2));
+
+
+
   // if (loading) {
   //   return <Flex>Loading...</Flex>;
   // }
@@ -1941,7 +1977,7 @@ export default function PuntoDeVenta() {
             rounded="lg"
             fontSize={"smaller"}
             mb={16}
-            
+            overflowY={"auto"}
           >
             <Flex
               bgGradient="linear(to-r, blue.500, blue.600)"
@@ -2001,16 +2037,20 @@ export default function PuntoDeVenta() {
                 </Flex>
               )}
             </Flex>
-            <Flex flexDirection={isMobile ? "column" : "row"} w={'100%'}>
-              <Box p={isMobile ? 2 : 4}  w={isMobile? '100%' : '70%'}>
+            <Flex flexDirection={'column'} w={'100%'}>
+              <Box p={isMobile ? 2 : 4}  w={'100%'}>
+              <Flex
+                alignItems={isMobile? undefined : 'center'}
+                gap={4}
+                flexDir={isMobile? 'column' : 'row'}
+                w={'100%'}
+              >
                 <Grid
                   templateColumns={
                     isMobile ? "repeat(1, 1fr)" : "repeat(3, 1fr)"
                   }
                   gap={3}
-                  mb={4}
-                   
-                >
+                  mb={4}                >
                   <Box>
                     <FormLabel>Sucursal</FormLabel>
                     <Select
@@ -2290,7 +2330,85 @@ export default function PuntoDeVenta() {
                       </Button>
                     </Flex>
                   ) : null}
+                  
                 </Grid>
+                <Flex
+                  position="relative"
+                  flexDirection={isMobile ? "column" : "row"}
+                  px={4}
+                  gap={4}
+                  border={"1px solid #E2E8F0"}
+                  h={"120px"}
+                  borderRadius={"md"}
+                  alignItems={"center"}
+                  justifyContent={"center"}
+                >
+                  <Box
+                    position="absolute"
+                    top="-10px"
+                    left="20px"
+                    bg="white"
+                    px={2}
+                    fontSize="sm"
+                    fontWeight="bold"
+                    color="gray.600"
+                  >
+                    Caja recaudacion
+                  </Box>
+                  <Heading>
+                    {newSaleID ? `Venta #${newSaleID + 1}` : `Venta #${ultimaVentaId}` }
+                  </Heading>
+                </Flex>
+                <Flex
+                  position="relative"
+                  flexDirection={isMobile ? "column" : "row"}
+                  px={4}
+                  mb={4}
+                  gap={4}
+                  border={"1px solid #E2E8F0"}
+                  h={"120px"}
+                  borderRadius={"md"}
+                  alignItems={"center"}
+                  justifyContent={"center"}
+                  flexGrow={1}
+                  bg={'blue.100'}
+                >
+                  <Box
+                    position="absolute"
+                    top="-10px"
+                    left="20px"
+                    bg="gray.50"
+                    px={2}
+                    fontSize="sm"
+                    fontWeight="bold"
+                    color="gray.600"
+                  >
+                    Cotizacion del día
+                  </Box>
+                  <Flex
+                    gap={4}
+                  >
+                    <Box>
+                      <FormLabel>
+                        USD:
+                      </FormLabel>
+                      <Input type="number" value={cotizacionDolar} width={'100px'} bg={'white'}  fontWeight={'bold'}/>
+                    </Box>
+                    <Box>
+                      <FormLabel>
+                        BRL:
+                      </FormLabel>
+                      <Input type="number" value={cotizacionReal} width={'100px'} bg={'white'} fontWeight={'bold'}/>
+                    </Box>
+                    <Box>
+                      <FormLabel>
+                        ARS:
+                      </FormLabel>
+                      <Input type="number" value={cotizacionPeso} width={'100px'} bg={'white'}  fontWeight={'bold'}/>
+                    </Box>
+                  </Flex>
+                </Flex>
+                </Flex>
                 <Flex
                   gap={4}
                   mb={6}
@@ -2602,52 +2720,31 @@ export default function PuntoDeVenta() {
                     </Tbody>
                   </Table>
                 </Box>
+                <Divider borderWidth={"2px"} borderColor={"gray.600"} my={2} />
               </Box>
               <Flex
-                w={isMobile ? "full" : "30%"}
+                w={'100%'}
                 p={isMobile ? 2 : 4}
                 rounded="lg"
-                flexDirection={"column"}
+                flexDirection={isMobile? 'column' : 'row'}
                 gap={4}
                 flexGrow={1}
-              >
-                <Flex
-                  position="relative"
-                  flexDirection={isMobile ? "column" : "row"}
-                  px={4}
-                  gap={4}
-                  border={"1px solid #E2E8F0"}
-                  h={"120px"}
-                  borderRadius={"md"}
-                  alignItems={"center"}
-                  justifyContent={"center"}
-                >
-                  <Box
-                    position="absolute"
-                    top="-10px"
-                    left="20px"
-                    bg="white"
-                    px={2}
-                    fontSize="sm"
-                    fontWeight="bold"
-                    color="gray.600"
-                  >
-                    Caja recaudacion
-                  </Box>
-                  <Heading>
-                    {newSaleID ? `Venta #${newSaleID + 1}` : "Nueva Venta"}
-                  </Heading>
-                </Flex>
-
+                justifyContent={'space-between'}
+                alignItems={'center'}              >
+                <Flex gap={4}>
                 <Flex
                   gap={2}
-                  flexDirection={isMobile ? "row" : "column"}
-                  alignItems={"center"}
+                  flexDirection={'column'}
+                  alignItems={"start"}
+                  justifyContent={isMobile? 'space-between' : 'start'}
                 >
-                  <Text fontSize="md" fontWeight={"semibold"}>
+                  <Text fontSize="xx-large" fontWeight={"bold"}>
+                    Total items: {items.length}
+                  </Text>
+                  <Text fontSize="x-large" fontWeight={"semibold"}>
                     Descuento
                   </Text>
-                  <Flex>
+                  <Flex flexDir={'column'} justifyContent={'start'} gap={4}>
                     <Select
                       value={descuentoTipo}
                       onChange={(e) => {
@@ -2656,7 +2753,7 @@ export default function PuntoDeVenta() {
                         );
                         setDescuentoValor(0);
                       }}
-                      width={"150px"}
+                      width={"full"}
                     >
                       <option value="porcentaje">Porcentaje</option>
                       <option value="monto">Monto</option>
@@ -2668,14 +2765,13 @@ export default function PuntoDeVenta() {
                       onChange={(e) =>
                         setDescuentoValor(parseInt(e.target.value))
                       }
-                      width={"90px"}
-                      ml={2}
+                      width={"full"}
                     />
                   </Flex>
                 </Flex>
 
-                <Box pt={2}>
-                  <Text fontSize="sm" fontWeight="bold">
+                <Box pt={2} >
+                  <Text fontSize="x-large" fontWeight="bold">
                     Total Exentas: {formatCurrency(calcularTotalExcentas())}
                   </Text>
                   <Divider
@@ -2683,7 +2779,7 @@ export default function PuntoDeVenta() {
                     borderColor={"blue.500"}
                     my={1}
                   />
-                  <Text fontSize="sm" fontWeight="bold">
+                  <Text fontSize="x-large" fontWeight="bold">
                     Total IVA 5%: {formatCurrency(calcularTotal5())}
                   </Text>
                   <Divider
@@ -2691,7 +2787,7 @@ export default function PuntoDeVenta() {
                     borderColor={"blue.500"}
                     my={1}
                   />
-                  <Text fontSize="sm" fontWeight="bold">
+                  <Text fontSize="x-large" fontWeight="bold">
                     Total IVA 10%: {formatCurrency(calcularTotal10())}
                   </Text>
                   <Divider
@@ -2699,38 +2795,94 @@ export default function PuntoDeVenta() {
                     borderColor={"blue.500"}
                     my={1}
                   />
-                  <Text fontSize="md" fontWeight="bold">
+                  <Text fontSize="x-large" fontWeight="bold">
                     Total Impuestos: {formatCurrency(calcularTotalImpuestos())}
                   </Text>
                 </Box>
-                <Box textAlign={"right"} mt={isMobile ? 2 : 0}>
-                  <Text fontSize="lg" fontWeight="bold">
+                </Flex>
+                <Flex
+                  flexDir={'column'}
+                  gap={4}
+                >
+                  <Box display={'flex'} justifyContent={'center'} flexDir={'row'}  textAlign={"center"} mt={isMobile ? 2 : 0} gap={8}>
+                  <Text fontSize="xx-large" fontWeight="bold">
                     Subtotal:{" "}
                     {formatCurrency(
                       items.reduce((acc, item) => acc + item.subtotal, 0)
                     )}
                   </Text>
-                  <Text fontSize="lg" fontWeight="bold">
-                    Descuento General:{" "}
+                  <Text fontSize="xx-large" fontWeight="bold">
+                    Descuento :{" "}
                     {descuentoTipo === "porcentaje"
                       ? `${descuentoValor}%`
                       : formatCurrency(descuentoValor * tasasDeCambio[moneda])}
                   </Text>
-                  <Text fontSize="lg" fontWeight="bold">
-                    Total Neto: {formatCurrency(calcularTotal())}
+                  <Text fontSize="xx-large" fontWeight="bold">
+                    Neto a pagar: {formatCurrency(calcularTotal())}
                   </Text>
-                  <Flex gap={4}>
+                </Box>
+                <Flex
+                  position="relative"
+                  flexDirection={isMobile ? "column" : "row"}
+                  px={4}
+                  gap={4}
+                  border={"1px solid #E2E8F0"}
+                  h={"120px"}
+                  borderRadius={"md"}
+                  alignItems={"center"}
+                  justifyContent={"center"}
+                  flexGrow={1}
+                  bg={'green.800'}
+                >
+                  <Box
+                    position="absolute"
+                    top="-10px"
+                    left="20px"
+                    bg="gray.50"
+                    px={2}
+                    fontSize="sm"
+                    fontWeight="bold"
+                    color="gray.600"
+                  >
+                  </Box>
+                  <Flex
+                    gap={4}
+                    justifyContent={'space-between'}
+                  >
+                    <Box>
+                      <FormLabel color={'white'} fontWeight={'bold'} fontSize={'large'}> 
+                        Total USD:
+                      </FormLabel>
+                      <Input type="text" value={formatNumber(totalDolares)}  h='48px' bg={'white'} fontSize={'x-large'} fontWeight={'bold'}/>
+                    </Box>
+                    <Box>
+                      <FormLabel color={'white'} fontWeight={'bold'} fontSize={'large'}>
+                        Total BRL:
+                      </FormLabel>
+                      <Input type="text" value={formatNumber(totalReales)}  bg={'white'} h='48px' fontSize={'x-large'} fontWeight={'bold'}/>
+                    </Box>
+                    <Box>
+                      <FormLabel color={'white'} fontWeight={'bold'} fontSize={'large'}>
+                        Total ARS:
+                      </FormLabel>
+                      <Input type="text" value={formatNumber(totalPesos)}  bg={'white'}  h='48px' fontSize={'x-large'} fontWeight={'bold'}/>
+                    </Box>
+                  </Flex>
+                </Flex>
+                </Flex>
+                <Box display={'flex'} flexDir={'column'}  textAlign={"right"} mt={isMobile ? 2 : 0}>
+
+                  <Flex gap={4} flexDir={isMobile? 'row' : 'column'} justifyContent={'center'} alignItems={'center'}>
                     <Button
                       colorScheme="red"
-                      mt={4}
-                      width={isMobile ? "full" : "auto"}
+
+                      width={'full'}
                       onClick={cancelarVenta}
                     >
                       Cancelar Venta
                     </Button>
                     <Button
                       colorScheme="blue"
-                      mt={4}
                       width={isMobile ? "full" : "auto"}
                       onClick={handleOpenFinalizarVentaModal}
                     >

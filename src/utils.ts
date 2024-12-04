@@ -10,6 +10,6 @@ export const  api_url = 'https://localhost:4000/api/'
 
 
 export const version = '0.8.9'
-export const fechaRelease = '02/12/2024'
+export const fechaRelease = '04/12/2024'
 export const db = 'bodega'
 export const userName = localStorage.getItem('userName')

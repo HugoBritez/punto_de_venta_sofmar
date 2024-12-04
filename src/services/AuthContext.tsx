@@ -36,7 +36,8 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [auth, setAuth] = useState<AuthState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
+  const [lastActivity, setLastActivity] = useState(new Date().getTime());
+  const INACTIVITY_THRESHOLD = 10 * 60 * 1000;
 
   useEffect(() => {
     const loadAuthState = () => {
@@ -59,18 +60,38 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     loadAuthState();
   }, []);
 
-  useEffect(() => {
-    if (auth?.tokenExpiration) {
-      const checkExpiration = setInterval(() => {
-        const now = new Date().getTime();
-        if (now > auth.tokenExpiration) {
-          logout();
-        }
-      }, 1000);
+
+ useEffect(() => {
+  const updateActivity = () => {
+    const currentTime = new Date().getTime();
+    setLastActivity(currentTime);
+  };
+  const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'];
+  
+  events.forEach(event => window.addEventListener(event, updateActivity));
+  
+  return () => {
+    events.forEach(event => window.removeEventListener(event, updateActivity));
+  };
+}, []);
+
+useEffect(() => {
+  if (auth?.tokenExpiration) {
+    const checkSession = setInterval(() => {
+      const now = new Date().getTime();
+      const inactiveTime = now - lastActivity;
       
-      return () => clearInterval(checkExpiration);
-    }
-  }, [auth?.tokenExpiration]);
+
+      if (now > auth.tokenExpiration && inactiveTime >= INACTIVITY_THRESHOLD) {
+        logout();
+      }
+    }, 1000);
+    
+    return () => clearInterval(checkSession);
+  }
+}, [auth?.tokenExpiration, lastActivity]);
+
+
   const login = (data: LoginData) => {
     const expirationTime = new Date().getTime() + (30 * 60 * 1000);
 
