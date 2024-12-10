@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import {
   Box,
@@ -30,6 +30,10 @@ import {
   ModalBody,
   ModalFooter,
   ModalOverlay,
+  FormLabel,
+  Select,
+  Textarea,
+  Spinner,
 } from "@chakra-ui/react";
 import { format, subDays, startOfWeek, startOfMonth } from "date-fns";
 import { api_url } from "@/utils";
@@ -39,6 +43,7 @@ import VentaModal from "./imprimirVenta";
 import { useAuth } from "@/services/AuthContext";
 import Auditar from "@/services/AuditoriaHook";
 import { Tooltip } from "@chakra-ui/react";
+import { debounce } from "lodash";
 
 interface Venta {
   codigo: number;
@@ -59,6 +64,7 @@ interface Venta {
   obs: string;
   estado: number;
   estado_desc: string;
+  obs_anulacion: string;
 }
 
 interface DetalleVenta {
@@ -127,6 +133,36 @@ export default function ResumenVentas({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [saleID, setSaleID] = useState<number | null>(null);
   const { auth } = useAuth();
+  const [estadoVenta, setEstadoVenta] = useState<number>(3);
+  const [obsAnulacion, setObsAnulacion] = useState<string>("");
+  const [, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const observerTarget = useRef(null);
+  const DEBOUNCE_DELAY = 300;
+
+  const scrollbarStyles = {
+    "&::-webkit-scrollbar": {
+      width: "4px",
+      height: "8px",
+      backgroundColor: "#f5f5f5",
+      "&:hover": {
+        width: "12px",
+      },
+    },
+    "&::-webkit-scrollbar-thumb": {
+      backgroundColor: "#3182ce", 
+      borderRadius: "4px",
+      "&:hover": {
+        backgroundColor: "#2b6cb0", 
+        width: "12px",
+      },
+    },
+    "&::-webkit-scrollbar-track": {
+      backgroundColor: "#e2e8f0", 
+      borderRadius: "4px",
+    },
+  };
 
   const {
     isOpen: isAdvertenciaModalOpen,
@@ -134,13 +170,59 @@ export default function ResumenVentas({
     onClose: handleCLoseAdvertenciaModal,
   } = useDisclosure();
 
-  useEffect(() => {
-    fetchVentas();
-    console.log(auth?.rol);
-  }, [fechaDesde, fechaHasta]);
+  const debouncedVendedorChange = useCallback(
+    debounce((value: string) => {
+      setVendedorFiltro(value);
+    }, DEBOUNCE_DELAY),
+    []
+  );
 
-  const fetchVentas = async () => {
-    setIsLoading(true);
+  const debouncedClienteChange = useCallback(
+    debounce((value: string) => {
+      setClienteFiltro(value); 
+    }, DEBOUNCE_DELAY),
+    []
+  );
+
+  const debouncedEstadoChange = useCallback(
+    debounce((value: string)=> {
+      setEstadoVenta(Number(value));
+    }, DEBOUNCE_DELAY),
+    []
+  )
+
+  useEffect(() => {
+    fetchVentas(1, false);
+  }, [fechaDesde, fechaHasta, estadoVenta]);
+
+  
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isLoadingMore) {
+          setPage((prevPage) => {
+            const nextPage = prevPage + 1;
+            fetchVentas(nextPage, true);
+            return nextPage;
+          });
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (observerTarget.current) {
+      observer.observe(observerTarget.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasMore, isLoadingMore]);
+
+
+  const fetchVentas = async (pageNum = 1, append = false) => {
+    setIsLoadingMore(pageNum > 1);
+    setIsLoading(pageNum === 1);
+
     try {
       const response = await axios.post(`${api_url}venta/consultas`, {
         fecha_desde: fechaDesde,
@@ -153,9 +235,21 @@ export default function ResumenVentas({
         articulo: "",
         moneda: "",
         factura: facturaFiltro,
+        estadoVenta,
+        page: pageNum,
+        itemsPorPagina: 20,
       });
-      setVentas(response.data.body);
-      console.log(response.data.body);
+
+      const newVentas = response.data.body;
+      setHasMore(newVentas.length === 20);
+
+      if (append) {
+        setVentas((prev) => [...prev, ...newVentas]);
+      } else {
+        setVentas(newVentas);
+        setPage(1);
+      }
+      console.log(newVentas);
     } catch (error) {
       toast({
         title: "Error al cargar las ventas",
@@ -166,6 +260,7 @@ export default function ResumenVentas({
       });
     } finally {
       setIsLoading(false);
+      setIsLoadingMore(false);
     }
   };
 
@@ -177,7 +272,6 @@ export default function ResumenVentas({
       );
       setDetalleVenta(response.data.body);
       setSaleID(codigo);
-      console.log(response.data.body);
     } catch (error) {
       toast({
         title: "Error al cargar el detalle de la venta",
@@ -273,6 +367,7 @@ export default function ResumenVentas({
         codigo: ventaSeleccionada,
         userId: auth?.userId,
         metodo: metodo,
+        obs: obsAnulacion,
       });
       console.log(response.data);
       toast({
@@ -293,7 +388,8 @@ export default function ResumenVentas({
     } catch (error: any) {
       toast({
         title: "Error al anular la venta",
-        description: error.response?.data?.body || "Intentelo de nuevo mas tarde",
+        description:
+          error.response?.data?.body || "Intentelo de nuevo mas tarde",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -301,19 +397,34 @@ export default function ResumenVentas({
     }
   };
 
-
-  const handleSelectVenta = (venta: Venta) =>{
+  const handleSelectVenta = (venta: Venta) => {
     if (onSelectVenta) {
       onSelectVenta(venta, detalleVenta);
     }
     if (onCloseVenta) {
-      onCloseVenta
+      onCloseVenta;
     }
-  }
+  };
+
+  const handleFechaDesdeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setFechaDesde(e.target.value);
+  }, []);
+
+  const handleFechaHastaChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setFechaHasta(e.target.value);
+  }, []);
 
   return (
     <Box bg={"gray.100"} h={"100vh"} w={"100%"} p={2}>
-      <VStack spacing={4} align="stretch" bg={'white'} p={2} borderRadius={'md'} boxShadow={'sm'} h={'100%'}> 
+      <VStack
+        spacing={4}
+        align="stretch"
+        bg={"white"}
+        p={2}
+        borderRadius={"md"}
+        boxShadow={"sm"}
+        h={"100%"}
+      >
         <Flex
           bgGradient="linear(to-r, blue.500, blue.600)"
           color="white"
@@ -329,12 +440,12 @@ export default function ResumenVentas({
           <Input
             type="date"
             value={fechaDesde}
-            onChange={(e) => setFechaDesde(e.target.value)}
+            onChange={handleFechaDesdeChange}
           />
           <Input
             type="date"
             value={fechaHasta}
-            onChange={(e) => setFechaHasta(e.target.value)}
+            onChange={handleFechaHastaChange}
           />
         </HStack>
 
@@ -346,7 +457,7 @@ export default function ResumenVentas({
             <Input
               placeholder="Filtrar por vendedor"
               value={vendedorFiltro}
-              onChange={(e) => setVendedorFiltro(e.target.value)}
+              onChange={(e) => debouncedVendedorChange(e.target.value)}
             />
           </InputGroup>
           <InputGroup>
@@ -356,7 +467,7 @@ export default function ResumenVentas({
             <Input
               placeholder="Filtrar por cliente"
               value={clienteFiltro}
-              onChange={(e) => setClienteFiltro(e.target.value)}
+              onChange={(e) => debouncedClienteChange(e.target.value)}
             />
           </InputGroup>
           <InputGroup>
@@ -369,6 +480,21 @@ export default function ResumenVentas({
               onChange={(e) => setFacturaFiltro(e.target.value)}
             />
           </InputGroup>
+          <Flex alignItems={"center"} justify={"flex-end"}>
+            <FormLabel w={"100px"} overflowWrap="normal">
+              Filtrar por estado:
+            </FormLabel>
+            <Select
+              w={"200px"}
+              value={estadoVenta}
+              onChange={(e) => debouncedEstadoChange(e.target.value)}
+            >
+              <option value="0">Pendiente</option>
+              <option value="1">Cobrado</option>
+              <option value="2">Anulado</option>
+              <option value="3">Todos</option>
+            </Select>
+          </Flex>
         </HStack>
         <Tabs
           index={periodoSeleccionado}
@@ -384,10 +510,11 @@ export default function ResumenVentas({
         </Tabs>
 
         <Box
-          height={"600px"}
+          height={"100%"}
           overflowY={"auto"}
-          maxWidth={"90vw"}
+          maxWidth={"100%"}
           overflowX={"auto"}
+          sx={scrollbarStyles}
         >
           <Table variant="simple">
             <Thead bg={"blue.100"}>
@@ -430,8 +557,13 @@ export default function ResumenVentas({
                     <Td>
                       <Box>
                         <Tooltip
-                          label={venta.estado_desc}
+                          label={`${venta.estado_desc}${
+                            venta.obs_anulacion
+                              ? `\nMotivo: ${venta.obs_anulacion}`
+                              : ""
+                          }`}
                           aria-label="A tooltip"
+                          whiteSpace="pre-line"
                         >
                           <Box>
                             <Dot
@@ -456,16 +588,20 @@ export default function ResumenVentas({
                       </Button>
                     </Td>
                     <Td>
-                      { isModal && (
+                      {isModal && (
                         <Button
-                          size={'sm'}
+                          size={"sm"}
                           onClick={() => handleSelectVenta(venta)}
-                          colorScheme={'blue'}
+                          colorScheme={"blue"}
                           leftIcon={<ShoppingBag />}
-                          isDisabled={venta.estado_desc.toLowerCase() === "anulado" ? true : false}
-                          >
-                            Seleccionar venta balcón
-                          </Button>
+                          isDisabled={
+                            venta.estado_desc.toLowerCase() === "anulado"
+                              ? true
+                              : false
+                          }
+                        >
+                          Seleccionar venta balcón
+                        </Button>
                       )}
                     </Td>
                   </Tr>
@@ -545,6 +681,9 @@ export default function ResumenVentas({
                   </Tr>
                 </React.Fragment>
               ))}
+              <div ref={observerTarget} style={{ height: "20px" }}>
+                {isLoadingMore && <Spinner size="sm" />}
+              </div>
             </Tbody>
           </Table>
         </Box>
@@ -558,17 +697,31 @@ export default function ResumenVentas({
         <ModalContent>
           <ModalHeader>Seleccione metodo de anulación</ModalHeader>
           <ModalCloseButton />
-          <ModalBody></ModalBody>
+          <ModalBody>
+            <FormLabel>
+              Ingrese el motivo de la anulación de la venta:
+            </FormLabel>
+            <Textarea
+              value={obsAnulacion}
+              onChange={(e) => setObsAnulacion(e.target.value)}
+              placeholder="Motivo de la anulación"
+              variant={"filled"}
+            />
+          </ModalBody>
 
           <ModalFooter>
             <Button
               colorScheme="red"
               mr={3}
               onClick={() => {
-              anularVenta(1);
-              handleCLoseAdvertenciaModal();
+                anularVenta(1);
+                handleCLoseAdvertenciaModal();
               }}
-              isDisabled={!!ventaSeleccionada && ventas.find(v => v.codigo === ventaSeleccionada)?.factura === ""}
+              isDisabled={
+                !!ventaSeleccionada &&
+                ventas.find((v) => v.codigo === ventaSeleccionada)?.factura ===
+                  ""
+              }
             >
               Anular factura completa
             </Button>
@@ -580,7 +733,7 @@ export default function ResumenVentas({
                 anularVenta(0);
               }}
             >
-              Anular  venta
+              Anular venta
             </Button>
           </ModalFooter>
         </ModalContent>

@@ -2203,7 +2203,7 @@ export default function Pedidos() {
         <Modal
           isOpen={activeModal === "resumen"}
           onClose={handleCloseOtherModal}
-          size="6xl"
+          size="full"
           isCentered={true}
         >
           <ModalOverlay />

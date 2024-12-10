@@ -221,8 +221,8 @@ const Rutas = () => {
         {/* FAB Button */}
         <Button
           position="fixed"
-          bottom="80px"
-          right="20px"
+          bottom="60px"
+          left="20px"
           borderRadius="md"
           h="3rem"
           p={4}

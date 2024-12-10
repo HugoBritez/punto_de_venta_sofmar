@@ -97,6 +97,7 @@ interface Articulo {
   al_cantidad: number;
   al_vencimiento: string;
   ar_editar_desc: number;
+  ar_vencimiento: number
 }
 
 interface Presupuesto {
@@ -841,7 +842,7 @@ export default function PuntoDeVenta() {
           stock: buscarSoloConStock ? true : false,
         },
       });
-
+      console.log(response.data.body);
       setRecomendaciones(response.data.body);
       setArticulos(response.data.body);
     } catch (error) {
@@ -1311,7 +1312,13 @@ export default function PuntoDeVenta() {
             metodo: metodoPago,
           };
 
-          insertarOperacion(operacionData);
+          const operacionDataCompleta = {
+            ...operacionData,
+            tipomovimiento: 1, 
+            codigotarjeta: 0, 
+            tipotarjeta: 0, 
+          };
+          insertarOperacion(operacionDataCompleta);
         }
         setVentaFinalizada(localVentaData.venta);
         setDetalleVentaFinalizada(localVentaData.detalle_ventas);
@@ -2008,7 +2015,6 @@ export default function PuntoDeVenta() {
                       setConsultaExterna(Number(e.target.value));
                     }}
                   >
-                    <option value={2}>Venta Balcon</option>
                     <option value={1}>Presupuestos</option>
                     <option value={0}>Pedidos</option>
                   </Select>
@@ -2449,6 +2455,7 @@ export default function PuntoDeVenta() {
                                   },
                                 }
                               );
+                              console.log("Articulos encontrados:", response.data.body);
 
                               const articulos = response.data.body;
                               const articuloExacto = articulos.find(
@@ -2540,14 +2547,19 @@ export default function PuntoDeVenta() {
                                 Stock {articulo.al_cantidad}
                               </Text>
                               <Minus />
-                              <Text
+                              {
+                              articulo.ar_vencimiento === 1 ?
+                              (<Text
                                 as="span"
                                 color="gray.500"
                                 fontSize={"14px"}
                               >
                                 Vencimiento:{" "}
                                 {articulo.al_vencimiento.substring(0, 10)}
-                              </Text>
+                              </Text>)
+                              : null
+                                
+                            }
                               {/*que enter cambie los inputs, y agregar cierre de sesion resaltar color del articulo agregar mas recomendaciones*/}
                             </Flex>
                             {/*/condicionar vencimiento*/}

@@ -85,6 +85,9 @@ export default function CobrosDiarios() {
   const operadorActual = auth?.userId || "";
   const [tipoRecibo, setTipoRecibo] = useState(1);
   const [cajaId, setCajaId] = useState<number>(0);
+  const [tipoMovimiento, setTipoMovimiento] = useState(1);
+  const [codigoTarjeta, setCodigoTarjeta] = useState(0);
+  const [tipoTarjeta, setTipoTarjeta] = useState(0);
 
   const {
     isOpen: isCobroModalOpen,
@@ -303,6 +306,9 @@ export default function CobrosDiarios() {
       estado: 1,
       cod_retencion: 0,
       metodo: 1,
+      tipomovimiento: tipoMovimiento,
+      codigotarjeta: codigoTarjeta,
+      tipotarjeta: tipoTarjeta,
     };
 
     insertarOperacion(operacionData);
@@ -356,10 +362,7 @@ export default function CobrosDiarios() {
           />
           <Select>
             <option value="1">Ventas contado</option>
-            <option value="2">Cheque</option>
-            <option value="3">Tarjeta</option>
-            <option value="4">Transferencia</option>
-            <option value="5">Depósito</option>
+            <option value="2">Ventas crédito</option>
           </Select>
           <Box>
             <Select

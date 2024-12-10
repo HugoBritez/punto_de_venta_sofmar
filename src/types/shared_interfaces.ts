@@ -225,4 +225,7 @@ export interface Nota {
     estado: number;
     cod_retencion: number;
     metodo: number
+    tipomovimiento: number,
+    codigotarjeta: number,
+    tipotarjeta: number,
   }

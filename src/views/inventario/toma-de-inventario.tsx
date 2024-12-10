@@ -26,6 +26,7 @@ import {
   DrawerHeader,
   DrawerBody,
   DrawerFooter,
+  Divider,
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import {
@@ -43,6 +44,51 @@ import axios from "axios";
 import { api_url } from "@/utils";
 
 const TomaDeInventario = () => {
+
+  const [codigoNuevo, setCodigoNuevo] = useState<number>(0);
+  const [descripcionNuevo, setDescripcionNuevo] = useState<string>("");
+  const [codigoBarraNuevo, setCodigoBarraNuevo] = useState<string>("");
+  const [descripcionGenericaNuevo, setDescripcionGenericaNuevo] = useState<string>("");
+  const [presentacionNuevo, setPresentacionNuevo] = useState<string>("");
+  const [modeloNuevo, setModeloNuevo] = useState<string>("");
+  const [cantidadCajaNuevo, setCantidadCajaNuevo] = useState<number>(0);
+  const [kilosNuevo, setKilosNuevo] = useState<number>(0);
+  const [marcaNuevo, setMarcaNuevo] = useState<string>("");
+  const [paisOrigenNuevo, setPaisOrigenNuevo] = useState<number>(0);
+  const [unidadMedidaNuevo, setUnidadMedidaNuevo] = useState<number>(0);
+  const [ubicacionNuevo, setUbicacionNuevo] = useState<number>(0);
+  const [subUbicacionNuevo, setSubUbicacionNuevo] = useState<number>(0);
+  const [categoriaNuevo, setCategoriaNuevo] = useState<number>(0);
+  const [subCategoriaNuevo, setSubCategoriaNuevo] = useState<number>(0);
+  const [bloqueNuevo, setBloqueNuevo] = useState<string>("");
+  const [dvlNuevo, setDvlNuevo] = useState<number>(0);
+  const [monedaNuevo, setMonedaNuevo] = useState<number>(0);
+  const [ivaNuevo, setIvaNuevo] = useState<number>(0);
+  const [fabricanteNuevo, setFabricanteNuevo] = useState<number>(0);
+  const [stockMinimoNuevo, setStockMinimoNuevo] = useState<number>(0);
+  const [numeroSerieNuevo, setNumeroSerieNuevo] = useState<number>(0);
+  const [costoGuaraniNuevo, setCostoGuaraniNuevo] = useState<number>(0);
+  const [precioContadoNuevo, setPrecioContadoNuevo] = useState<number>(0);
+  const [precioCreditoNuevo, setPrecioCreditoNuevo] = useState<number>(0);
+  const [precioMostradorNuevo, setPrecioMostradorNuevo] = useState<number>(0);
+  const [precio4Nuevo, setPrecio4Nuevo] = useState<number>(0);
+
+  //states para arrays
+
+  const [marcas, setMarcas] = useState<[]>([]);
+  const [paises, setPaises] = useState<[]>([]);
+  const [unidadesMedida, setUnidadesMedida] = useState<[]>([]);
+  const [ubicaciones, setUbicaciones] = useState<[]>([]);
+  const [subUbicaciones, setSubUbicaciones] = useState<[]>([]);
+  const [categorias, setCategorias] = useState<[]>([]);
+  const [subCategorias, setSubCategorias] = useState<[]>([]);
+  const [monedas, setMonedas] = useState<[]>([]);
+  const [fabricantes, setFabricantes] = useState<[]>([]);
+  const [cotizacionDolar, setCotizacionDolar]= useState<number>(7770)
+  const [cotizacionReal, setCotizacionReal] = useState<number>(1200)
+  const [cotizacionPeso, setCotizacionPeso] = useState<number>(5)
+
+
   const [articulos, setArticulos] = useState<Articulo[]>([]);
   const [sucursales, setSucursales] = useState<Sucursal[]>([]);
   const [depositos, setDepositos] = useState<Deposito[]>([]);
@@ -97,6 +143,105 @@ const TomaDeInventario = () => {
     "Varios",
   ];
   // const [itemsGuardados, setItemsGuardados] = useState<Articulo[]>([]);
+
+  
+  const fetchCotizaciones = async () => {
+    try {
+      const response = await axios.get(`${api_url}cotizaciones/`);
+      console.log('Cotizaciones',response.data.body)
+      setCotizacionDolar(response.data.body[0].usd_venta)
+      setCotizacionPeso(response.data.body[0].ars_venta)
+      setCotizacionReal(response.data.body[0].brl_venta)
+    } catch(err) {
+      console.log(err)
+    }
+  }
+
+
+  const fetchMarcas = async () => {
+    try {
+      const response = await axios.get(`${api_url}marcas/`);
+      setMarcas(response.data.body);
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  const fetchPaises = async () => {
+    try {
+      const response = await axios.get(`${api_url}paises/`);
+      setPaises(response.data.body);
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  const fetchUnidadesMedida = async () => {
+    try {
+      const response = await axios.get(`${api_url}unidadmedidas/`);
+      setUnidadesMedida(response.data.body);
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  const fetchUbicaciones = async () => {
+    try {
+      const response = await axios.get(`${api_url}ubicaciones/`);
+      setUbicaciones(response.data.body);
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  const fetchSubUbicaciones = async () => {
+    try {
+      const response = await axios.get(`${api_url}sububicaciones/`);
+      setSubUbicaciones(response.data.body);
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  const fetchCategorias = async () => {
+    try {
+      const response = await axios.get(`${api_url}categorias/`);
+      setCategorias(response.data.body);
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  const fetchSubCategorias = async () => {
+    try {
+      const response = await axios.get(`${api_url}subcategorias/`);
+      setSubCategorias(response.data.body);
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  const fetchMonedas = async () => {
+    try {
+      const response = await axios.get(`${api_url}monedas/`);
+      setMonedas(response.data.body);
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  const fetchFabricantes = async () => {
+    try {
+      const response = await axios.get(`${api_url}fabricantes/`);
+      setFabricantes(response.data.body);
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+
+
+
 
   const fetchSucursales = async () => {
     try {
@@ -350,6 +495,18 @@ const TomaDeInventario = () => {
     );
   };
 
+  const costoDolar = costoGuaraniNuevo / cotizacionDolar;
+
+  const costoReal = costoGuaraniNuevo / cotizacionReal;
+
+  const costoPeso = costoGuaraniNuevo / cotizacionPeso;
+
+  const precioContadoDolar = precioContadoNuevo / cotizacionDolar;
+
+  const precioContadoReal = precioContadoNuevo / cotizacionReal;
+
+  const precioContadoPeso = precioContadoNuevo / cotizacionPeso;
+
   return (
     <Flex padding={2} h={"100vh"} bg={"gray.100"}>
       <Flex
@@ -371,7 +528,21 @@ const TomaDeInventario = () => {
           <ArchiveRestore size={24} className="mr-2" />
           <Heading size={"md"}>Toma de inventario</Heading>
           <Flex ml="auto" gap={4}>
-            <Button colorScheme="green" onClick={onModalOpen}>
+            <Button colorScheme="green" onClick={
+              () => {
+                onModalOpen();
+                fetchCotizaciones();
+                fetchMarcas();
+                fetchPaises();
+                fetchUnidadesMedida();
+                fetchUbicaciones();
+                fetchSubUbicaciones();
+                fetchCategorias();
+                fetchSubCategorias();
+                fetchMonedas();
+                fetchFabricantes();
+              }
+            }>
               Agregar Item
               <Plus size={16} className="ml-2" />
             </Button>
@@ -719,120 +890,119 @@ const TomaDeInventario = () => {
                 <Flex gap={4}>
                   <Box>
                     <FormLabel>Código:</FormLabel>
-                    <Input type="number" variant={'filled'} />
+                    <Input type="number" variant={'filled'}  value={codigoNuevo} onChange={(e)=> setCodigoNuevo(Number(e.target.value))}/>
                   </Box>
                   <Box flexGrow={1}>
                     <FormLabel>Descripción:</FormLabel>
-                    <Input type="text" variant={'filled'} />
+                    <Input type="text" variant={'filled'} value={descripcionNuevo} onChange={(e)=> setDescripcionNuevo(e.target.value)}/>
                   </Box>
                   <Box >
                     <FormLabel>Código de barras:</FormLabel>
-                    <Input type="text" variant={'filled'} />
+                      <Input type="text" variant={'filled'} value={codigoBarraNuevo} onChange={(e)=>{ setCodigoBarraNuevo(e.target.value)}} />
                   </Box>
                   <Box>
                     <FormLabel>Código de origen:</FormLabel>
-                    <Input type="text" variant={'filled'} />
+                    <Input type="text" variant={'filled'} value={codigoBarraNuevo} />
                   </Box>
                 </Flex>
                 <Flex gap={4}>
                   <Box flexGrow={1}>
                     <FormLabel>Descripcion Generica:</FormLabel>
-                    <Input type="text" variant={'filled'} />
+                    <Input type="text" variant={'filled'} value={descripcionGenericaNuevo} onChange={(e) => setDescripcionGenericaNuevo(e.target.value)}/>
                   </Box>
                   <Box>
                     <FormLabel>Presentacion:</FormLabel>
-                    <Input type="text" variant={'filled'} />
+                    <Input type="text" variant={'filled'} value={presentacionNuevo} onChange={(e) => setPresentacionNuevo(e.target.value)} />
                   </Box>
                   <Box>
                     <FormLabel>Modelo:</FormLabel>
-                    <Input type="text" variant={'filled'} />
+                    <Input type="text" variant={'filled'} value={modeloNuevo} onChange={(e)=> setModeloNuevo(e.target.value)}/>
                   </Box>
                   <Box>
                     <FormLabel>Cant./Caja:</FormLabel>
-                    <Input type="number" variant={'filled'} />
+                    <Input type="number" variant={'filled'}  value={cantidadCajaNuevo} onChange={(e)=> setCantidadCajaNuevo(Number(e.target.value))}/>
                   </Box>
                   <Box>
                     <FormLabel>Kilos:</FormLabel>
-                    <Input type="number" variant={'filled'} />
+                    <Input type="number" variant={'filled'} value={kilosNuevo} onChange={(e)=> setKilosNuevo(Number(e.target.value))} />
                   </Box>
                   <Box>
                     <FormLabel>Marca/Laboratorio:</FormLabel>
-                    <Select variant={'filled'}>
-                      <option value="1">Marca 1</option>
-                      <option value="2">Marca 2</option>
-                      <option value="3">Marca 3</option>
+                    <Select variant={'filled'} value={marcaNuevo} onChange={(e) => setMarcaNuevo(e.target.value)}>
+                      {marcas.map((marca: any) => (
+                        <option value={marca.ma_codigo}>{marca.ma_descripcion}</option>
+                      ))}
                     </Select>
                   </Box>
                   <Box>
                     <FormLabel>Pais de origen:</FormLabel>
-                    <Select variant={'filled'}>
-                      <option value="1">Paraguay 1</option>
-                      <option value="2">Pais 2</option>
-                      <option value="3">Pais 3</option>
+                    <Select variant={'filled'} value={paisOrigenNuevo} onChange={(e)=> setPaisOrigenNuevo(Number(e.target.value))}>
+                      {paises.map((pais: any) => (
+                        <option value={pais.nac_codigo}>{pais.descripcion}</option> //reparar
+                      ))}
                     </Select>
                   </Box>
                   <Box>
                     <FormLabel>Unidad de medida:</FormLabel>
-                    <Select variant={'filled'}>
-                      <option value="1">Caja</option>
-                      <option value="2">Unidad 2</option>
-                      <option value="3">Unidad 3</option>
+                    <Select variant={'filled'} value={unidadMedidaNuevo} onChange={(e)=> setUnidadMedidaNuevo(Number(e.target.value))}>
+                      {unidadesMedida.map((unidad: any) => (
+                        <option value={unidad.um_codigo}>{unidad.um_descripcion}</option>
+                      ))}
                     </Select>
                   </Box>
                 </Flex>
                 <Flex gap={4}>
                   <Box>
                     <FormLabel>Ubicación:</FormLabel>
-                    <Select variant={'filled'}>
-                      <option value="1">General</option>
-                      <option value="2">Ubicación 2</option>
-                      <option value="3">Ubicación 3</option>
+                    <Select variant={'filled'} value={ubicacionNuevo} onChange={(e)=> setUbicacionNuevo(Number(e.target.value))}>
+                      {ubicaciones.map((ubicacion: any) => (
+                        <option value={ubicacion.ub_codigo}>{ubicacion.ub_descripcion}</option>
+                      ))}
                     </Select>
                   </Box>
                   <Box>
                     <FormLabel>Sub-ubicación:</FormLabel>
-                    <Select variant={'filled'}>
-                      <option value="1">General</option>
-                      <option value="2">Ubicación 2</option>
-                      <option value="3">Ubicación 3</option>
+                    <Select variant={'filled'} value={subUbicacionNuevo} onChange={(e)=> setSubUbicacionNuevo(Number(e.target.value))}>
+                      {subUbicaciones.map((subUbicacion: any) => (
+                        <option value={subUbicacion.s_codigo}>{subUbicacion.s_descripcion}</option>
+                      ))}
                     </Select>
                   </Box>
                   <Box>
                     <FormLabel>Categoria:</FormLabel>
-                    <Select variant={'filled'}>
-                      <option value="1">Categoria 1</option>
-                      <option value="2">Categoria 2</option>
-                      <option value="3">Categoria 3</option>
+                    <Select variant={'filled'} value={categoriaNuevo} onChange={(e)=> setCategoriaNuevo(Number(e.target.value))}>
+                      {categorias.map((categoria: any) => (
+                        <option value={categoria.ca_codigo}>{categoria.ca_descripcion}</option>
+                      ))}
                     </Select>
                   </Box>
                   <Box>
                     <FormLabel>Sub-categoria:</FormLabel>
-                    <Select variant={'filled'}>
-                      <option value="1">Sub-categoria 1</option>
-                      <option value="2">Sub-categoria 2</option>
-                      <option value="3">Sub-categoria 3</option>
+                    <Select variant={'filled'} value={subCategoriaNuevo} onChange={(e)=> setSubCategoriaNuevo(Number(e.target.value))}>
+                      {subCategorias.map((subCategoria: any) => (
+                        <option value={subCategoria.sc_codigo}>{subCategoria.sc_descripcion}</option>
+                      ))}
                     </Select>
                   </Box>
                   <Box>
                     <FormLabel>Bloque:</FormLabel>
-                    <Input type="text" variant={'filled'} />
+                    <Input type="text" variant={'filled'} value={bloqueNuevo} onChange={(e) => setBloqueNuevo(e.target.value)}/>
                   </Box>
                   <Box>
                     <FormLabel>DVL:</FormLabel>
-                    <Input type="number" variant={'filled'} />
+                    <Input type="number" variant={'filled'} value={dvlNuevo} onChange={(e)=> setDvlNuevo(Number(e.target.value))}/>
                   </Box>
                   <Box>
                     <FormLabel>Moneda:</FormLabel>
-                    <Select variant={'filled'}>
-                      <option value="1">Guaraní</option>
-                      <option value="2">Dolar</option>
-                      <option value="3">Real</option>
-                      <option value="3">Peso</option>
+                    <Select variant={'filled'} value={monedaNuevo} onChange={(e)=> setMonedaNuevo(Number(e.target.value))}>
+                      {monedas.map((moneda: any) => (
+                        <option value={moneda.mo_codigo}>{moneda.mo_descripcion}</option>
+                      ))}
                     </Select>
                   </Box>
                   <Box>
                     <FormLabel>IVA:</FormLabel>
-                    <Select variant={'filled'}>
+                    <Select variant={'filled'} value={ivaNuevo} onChange={(e)=> setIvaNuevo(Number(e.target.value))}>
                       <option value="1">Exentas</option>
                       <option value="2">5%</option>
                       <option value="3">10%</option>
@@ -840,19 +1010,19 @@ const TomaDeInventario = () => {
                   </Box>
                   <Box>
                     <FormLabel>Fabricante:</FormLabel>
-                    <Select variant={'filled'}>
-                      <option value="1">Lasca</option>
-                      <option value="2">5%</option>
-                      <option value="3">10%</option>
+                    <Select variant={'filled'} value={fabricanteNuevo} onChange={(e)=> setFabricanteNuevo(Number(e.target.value))}>
+                      {fabricantes.map((fabricante: any) => (
+                        <option value={fabricante.f_codigo}>{fabricante.f_razon_social}</option>
+                      ))}
                     </Select>
                   </Box>
                   <Box>
                     <FormLabel>Stock Mínimo</FormLabel>
-                    <Input type="number" variant={'filled'} />
+                    <Input type="number" variant={'filled'} value={stockMinimoNuevo} onChange={(e)=> setStockMinimoNuevo(Number(e.target.value))}/>
                   </Box>
                   <Box>
                     <FormLabel>Número de serie</FormLabel>
-                    <Input type="number" variant={'filled'} />
+                    <Input type="number" variant={'filled'} value={numeroSerieNuevo} onChange={(e)=> setNumeroSerieNuevo(Number(e.target.value))} />
                   </Box>
                 </Flex>
                 <Flex
@@ -865,23 +1035,105 @@ const TomaDeInventario = () => {
                     <Flex
                       flexDir={'column'}
                     >
+
+                      <Heading size={'md'}>Costos:</Heading>
+                      <Divider   my={2}/>
                     <Box>
-                      <FormLabel>Costo:</FormLabel>
-                      <Input type="number" variant={'outline'} bg={'white'} placeholder="Gs. 0" />
+                      <FormLabel>Costo Guaraní:</FormLabel>
+                      <Input type="number" variant={'outline'} bg={'white'} value={costoGuaraniNuevo} onChange={(e)=> setCostoGuaraniNuevo(Number(e.target.value))}/>
                     </Box>
                     <Box>
-                      <FormLabel>Precio Particular:</FormLabel>
-                      <Input type="number" variant={'outline'} bg={'white'} placeholder="Gs. 0" />
+                      <FormLabel>Costo Dolar:</FormLabel>
+                      <Input type="number" variant={'outline'} bg={'white'} placeholder="Gs. 0"  value={costoDolar}/>
+                    </Box>
+                    <Box>
+                      <FormLabel>Costo Real:</FormLabel>
+                      <Input type="number" variant={'outline'} bg={'white'} placeholder="Gs. 0" value={costoReal} />
+                    </Box>
+                    <Box>
+                      <FormLabel>Costo Peso:</FormLabel>
+                      <Input type="number" variant={'outline'} bg={'white'} placeholder="0" value={costoPeso} />
+                    </Box>
+                    </Flex>
+
+                    <Flex
+                      flexDir={'column'}
+                    >
+                      <Heading size={'md'}>Utilidades (Guaraníes):</Heading>
+                      <Divider   my={2}/>
+                    <Box>
+                      <FormLabel>Contado:</FormLabel>
+                      <Flex>
+                      <Input type="number" variant={'outline'} bg={'white'} value={precioContadoNuevo} onChange={(e)=>setPrecioContadoNuevo(Number(e.target.value))}/>
+                      <Input type="number" variant={'outline'} bg={'white'}/></Flex> 
+                    </Box>
+                    <Box>
+                      <FormLabel>Crédito:</FormLabel>
+                      <Flex>
+                      <Input type="number" variant={'outline'} bg={'white'} value={precioCreditoNuevo} onChange={(e)=>setPrecioCreditoNuevo(Number(e.target.value))}/>
+                      <Input type="number" variant={'outline'} bg={'white'}/>
+                      </Flex>
+                    </Box>
+                    <Box>
+                      <FormLabel>Mostrador:</FormLabel>
+                      <Flex>
+                      <Input type="number" variant={'outline'} bg={'white'} value={precioMostradorNuevo} onChange={(e)=>setPrecioMostradorNuevo(Number(e.target.value))}/>
+                      <Input type="number" variant={'outline'} bg={'white'}/>
+                      </Flex>
+                    </Box>
+                    <Box>
+                      <FormLabel>Precio 4:</FormLabel>
+                      <Flex>
+                      <Input type="number" variant={'outline'} bg={'white'} value={precio4Nuevo} onChange={(e)=>setPrecio4Nuevo(Number(e.target.value))}/>
+                      <Input type="number" variant={'outline'} bg={'white'}/>
+                      </Flex>
+                    </Box>
+                    </Flex>
+                    <Flex
+                      flexDir={'column'}
+                    >
+                      <Heading size={'md'}>Precios:</Heading>
+                      <Divider   my={2}/>
+                    <Box>
+                      <FormLabel>Precio Contado:</FormLabel>
+                      <Input type="number" variant={'outline'} bg={'white'} placeholder="Gs. 0" value={precioContadoNuevo} onChange={(e)=> {setPrecioContadoNuevo(parseFloat(e.target.value))}}/>
+                    </Box>
+                    <Box>
+                      <FormLabel>Precio Contado Dolar:</FormLabel>
+                      <Input type="number" variant={'outline'} bg={'white'} placeholder="Gs. 0" value={precioContadoDolar} />
+                    </Box>
+                    <Box>
+                      <FormLabel>Precio Contado Real:</FormLabel>
+                      <Input type="number" variant={'outline'} bg={'white'} placeholder="Gs. 0"  value={precioContadoReal}/>
                     </Box>
                     <Box>
                       <FormLabel>Precio Sugerido:</FormLabel>
-                      <Input type="number" variant={'outline'} bg={'white'} placeholder="Gs. 0" />
-                    </Box>
-                    <Box>
-                      <FormLabel>Cant. Desc:</FormLabel>
-                      <Input type="number" variant={'outline'} bg={'white'} placeholder="0" />
+                      <Input type="number" variant={'outline'} bg={'white'} placeholder="Gs. 0"  value={precioContadoPeso}/>
                     </Box>
                     </Flex>
+
+                    <Flex
+                      flexDir={'column'}
+                    >
+                      <Heading size={'md'}>Fraccionamientos:</Heading>
+                      <Divider   my={2}/>
+                    <Box>
+                      <FormLabel>Fraccionamiento:</FormLabel>
+                      <Select bg={'white'}>
+                        <option value="1">Por Unidad</option>
+                        <option value="2">Entero</option>
+                      </Select>
+                    </Box>
+                    <Box>
+                      <FormLabel>Cantidad fraccionada:</FormLabel>
+                      <Input type="number" variant={'outline'} bg={'white'} placeholder="0" />
+                    </Box>
+                    <Box>
+                      <FormLabel>Precio Fraccionado:</FormLabel>
+                      <Input type="number" variant={'outline'} bg={'white'} placeholder="Gs. 0" />
+                    </Box>
+                    </Flex>
+
                 </Flex>
               </Flex>
             </div>}

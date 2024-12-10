@@ -53,10 +53,13 @@ const Sidebar = () => {
   const navigate = useNavigate();
   const { isOpen, onOpen, onClose } = useDisclosure();
 
-
   const NAV_ITEMS: NavItem[] = [
     { name: "Dashboard", icon: ChartSpline, path: "/dashboard", enabled: true },
-    { name: "Módulo Financiero", icon: Receipt, path: "/cobros", enabled: true, 
+    {
+      name: "Módulo Financiero",
+      icon: Receipt,
+      path: "/cobros",
+      enabled: true,
       subItems: [
         {
           name: "Op. Caja Diaria",
@@ -70,7 +73,7 @@ const Sidebar = () => {
           path: "/consulta-de-cobros",
           enabled: true,
         },
-      ]
+      ],
     },
     {
       name: "Modulo Ventas",
@@ -183,8 +186,6 @@ const Sidebar = () => {
       setExpandedItem(null);
     }
   };
-
-
 
   const handleLogout = () => {
     logout();
@@ -330,7 +331,6 @@ const Sidebar = () => {
     </GridItem>
   );
 
-
   if (!isLargerThan768) {
     return (
       <Box
@@ -355,7 +355,7 @@ const Sidebar = () => {
           _hover={{ transform: "scale(1.1)" }}
         >
           <Flex h="100%" w="100%" align="center" justify="center">
-            <Icon as={Ellipsis} boxSize={6} color={'white'} />
+            <Icon as={Ellipsis} boxSize={6} color={"white"} />
           </Flex>
         </Box>
 
@@ -375,92 +375,92 @@ const Sidebar = () => {
 
   return (
     <>
-    <Box
-    pos="fixed"
-    inset={0}
-    bg="blackAlpha.500"
-    transition="all 0.3s"
-    opacity={isExpanded ? 1 : 0}
-    visibility={isExpanded ? "visible" : "hidden"}
-    onClick={handleMouseLeave}
-    zIndex={999}
-  />
-    <Box
-    as="nav"
-    pos="fixed"
-    left={2} 
-    top={2} 
-    h="calc(100vh - 16px)" 
-    w={isExpanded ? "200px" : "60px"}
-    bg="white"
-    color="blue.500"
-    transition="all 0.3s"
-    zIndex={1000}
-    onMouseEnter={handleMouseEnter}
-    onMouseLeave={handleMouseLeave}
-    overflowY="auto"
-    borderRadius="md" 
-    boxShadow="lg" 
-    sx={{
-      '&::-webkit-scrollbar': {
-        width: '4px',
-      },
-      '&::-webkit-scrollbar-track': {
-        background: 'transparent',
-      },
-      '&::-webkit-scrollbar-thumb': {
-        background: '#CBD5E0',
-        borderRadius: '20px',
-      },
-    }}
-  >
-      <Flex direction="column" h="100%" align="stretch">
-        {isExpanded && (
-          <Flex
-            align="center"
-            p={2}
-            mt={4}
-            direction={"column"}
-            _hover={{ color: "red.500", cursor: "pointer" }}
-          >
-            <Text color={"black"} fontWeight={"bold"}>
-              {" "}
-              Bienvenido, {userName}
-            </Text>
-          </Flex>
-        )}
+      <Box
+        pos="fixed"
+        inset={0}
+        bg="blackAlpha.500"
+        transition="all 0.3s"
+        opacity={isExpanded ? 1 : 0}
+        visibility={isExpanded ? "visible" : "hidden"}
+        onClick={handleMouseLeave}
+        zIndex={999}
+      />
+      <Box
+        as="nav"
+        pos="fixed"
+        left={2}
+        top={2}
+        h="calc(100vh - 16px)"
+        w={isExpanded ? "200px" : "60px"}
+        bg="white"
+        color="blue.500"
+        transition="all 0.3s"
+        zIndex={1000}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        overflowY="auto"
+        borderRadius="md"
+        boxShadow="lg"
+        sx={{
+          "&::-webkit-scrollbar": {
+            width: "4px",
+          },
+          "&::-webkit-scrollbar-track": {
+            background: "transparent",
+          },
+          "&::-webkit-scrollbar-thumb": {
+            background: "#CBD5E0",
+            borderRadius: "20px",
+          },
+        }}
+      >
+        <Flex direction="column" h="100%" align="stretch">
+          {isExpanded && (
+            <Flex
+              align="center"
+              p={2}
+              mt={4}
+              direction={"column"}
+              _hover={{ color: "red.500", cursor: "pointer" }}
+            >
+              <Text color={"black"} fontWeight={"bold"}>
+                {" "}
+                Bienvenido, {userName}
+              </Text>
+            </Flex>
+          )}
 
-        {NAV_ITEMS.map(renderNavItem)}
-        <Box mt="auto">
-          <Flex
-            align="center"
-            p={2}
-            direction={"column"}
-            onClick={handleLogout}
-            _hover={{ color: "red.500", cursor: "pointer" }}
-          >
-            <LogOut />
-            {isExpanded && <Text mt={1}>Cerrar Sesión</Text>}
-          </Flex>
-        </Box>
-        {isExpanded && (
-          <Flex
-            align="center"
-            p={2}
-            mt={4}
-            direction={"column"}
-            _hover={{ color: "red.500", cursor: "pointer" }}
-          >
-            <Text color={"gray.500"} fontWeight={"thin"}>
-              {version} - {fechaRelease}
-            </Text>
-            <Text color={"gray.500"} fontWeight={"thin"}>
-              DB: {db}
-            </Text>
-          </Flex>
-        )}
-      </Flex>
-    </Box>
+          {NAV_ITEMS.map(renderNavItem)}
+          <Box mt="auto">
+            <Flex
+              align="center"
+              p={2}
+              direction={"column"}
+              onClick={handleLogout}
+              _hover={{ color: "red.500", cursor: "pointer" }}
+            >
+              <LogOut />
+              {isExpanded && <Text mt={1}>Cerrar Sesión</Text>}
+            </Flex>
+          </Box>
+          {isExpanded && (
+            <Flex
+              align="center"
+              p={2}
+              mt={4}
+              direction={"column"}
+              _hover={{ color: "red.500", cursor: "pointer" }}
+            >
+              <Text color={"gray.500"} fontWeight={"thin"}>
+                {version} - {fechaRelease}
+              </Text>
+              <Text color={"gray.500"} fontWeight={"thin"}>
+                DB: {db}
+              </Text>
+            </Flex>
+          )}
+        </Flex>
+      </Box>
     </>
   );
 };
