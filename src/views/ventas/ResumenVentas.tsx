@@ -449,7 +449,7 @@ export default function ResumenVentas({
           />
         </HStack>
 
-        <HStack spacing={4}>
+        <Flex gap={4} flexDir={isMobile? 'column' : 'row'}>
           <InputGroup>
             <InputLeftElement pointerEvents="none">
               <SearchIcon color="gray.300" />
@@ -495,7 +495,7 @@ export default function ResumenVentas({
               <option value="3">Todos</option>
             </Select>
           </Flex>
-        </HStack>
+        </Flex>
         <Tabs
           index={periodoSeleccionado}
           onChange={handlePeriodoChange}

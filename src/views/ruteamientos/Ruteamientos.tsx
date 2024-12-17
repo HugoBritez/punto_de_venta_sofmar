@@ -146,6 +146,12 @@ const Ruteamientos = () => {
     setFechaHasta(format(nuevaFechaHasta, "yyyy-MM-dd"));
   };
 
+  const operadorMovimiento = Number(
+    localStorage.getItem("operador_movimiento")
+  );
+
+  const operadorActual = Number(localStorage.getItem("user_id"));
+
   const agregarRuteamiento = () => {
     if (!clienteSeleccionado) {
       toast({
@@ -231,6 +237,7 @@ const Ruteamientos = () => {
         planificacion: filtroPlanificacion,
         orden: filtroOrden,
       });
+      console.log(response.data.body);
       setRuteamientos(response.data.body);
     } catch (error) {
       toast({
@@ -274,7 +281,11 @@ const Ruteamientos = () => {
       return;
     }
     try {
-      const response = await axios.get(`${api_url}clientes`);
+      const response = await axios.get(
+        operadorMovimiento === 1
+          ? `${api_url}clientes?vendedor=${operadorActual}`
+          : `${api_url}clientes`
+      );
       setClientes(response.data.body);
     } catch (err) {
       if (err instanceof Error) {
@@ -367,7 +378,15 @@ const Ruteamientos = () => {
 
   return (
     <Box bg={"gray.100"} h={"100vh"} w={"100%"} p={2}>
-      <VStack spacing={4} align="stretch" bg={'white'} p={2} borderRadius={'md'} boxShadow={'sm'} h={'100%'}>
+      <VStack
+        spacing={4}
+        align="stretch"
+        bg={"white"}
+        p={2}
+        borderRadius={"md"}
+        boxShadow={"sm"}
+        h={"100%"}
+      >
         <HeaderComponent Icono={Truck} titulo="Consulta de ruteamientos" />
 
         {isMobile && (
@@ -511,30 +530,38 @@ const Ruteamientos = () => {
           templateColumns={{ base: "1fr", md: "repeat(3, 1fr)" }}
           gap={4}
         >
-          {ruteamientos.map((ruteamiento) => (
-            <RuteamientoCard
-              key={ruteamiento.a_codigo}
-              clienteNombre={ruteamiento.cliente}
-              observacion={ruteamiento.a_obs}
-              vendedor={ruteamiento.vendedor}
-              prioridad={ruteamiento.a_prioridad}
-              ruteamientoId={ruteamiento.a_codigo}
-              fecha={ruteamiento.fecha}
-              hora={ruteamiento.a_hora}
-              dia={ruteamiento.a_dias}
-              latitud={ruteamiento.a_latitud}
-              longitud={ruteamiento.a_longitud}
-              clienteTelefono={ruteamiento.cli_tel}
-              misVisitas={ruteamiento.mis_visitas}
-              misVisitasCliente={ruteamiento.mis_visitas_cliente}
-              visitado={ruteamiento.a_visitado}
-              planificacion={ruteamiento.a_planificacion}
-              estado={ruteamiento.a_estado}
-              l_longitud={ruteamiento.l_longitud}
-              l_latitud={ruteamiento.l_latitud}
-              fetchRuteamientos={fetchRuteamientos}
-            />
-          ))}
+          {ruteamientos.map((ruteamiento) => {
+            const clientId =
+              clientes.find(
+                (cliente) => cliente.cli_razon === ruteamiento.cliente
+              )?.cli_codigo ?? 0;
+
+            return (
+              <RuteamientoCard
+                key={ruteamiento.a_codigo}
+                clienteNombre={ruteamiento.cliente}
+                observacion={ruteamiento.a_obs}
+                vendedor={ruteamiento.vendedor}
+                prioridad={ruteamiento.a_prioridad}
+                ruteamientoId={ruteamiento.a_codigo}
+                fecha={ruteamiento.fecha}
+                hora={ruteamiento.a_hora}
+                dia={ruteamiento.a_dias}
+                latitud={ruteamiento.a_latitud}
+                longitud={ruteamiento.a_longitud}
+                clienteTelefono={ruteamiento.cli_tel}
+                misVisitas={ruteamiento.mis_visitas}
+                misVisitasCliente={ruteamiento.mis_visitas_cliente}
+                visitado={ruteamiento.a_visitado}
+                planificacion={ruteamiento.a_planificacion}
+                estado={ruteamiento.a_estado}
+                l_longitud={ruteamiento.l_longitud}
+                l_latitud={ruteamiento.l_latitud}
+                fetchRuteamientos={fetchRuteamientos}
+                clienteId={clientId}
+              />
+            );
+          })}
         </Grid>
       </VStack>
       <Modal isOpen={isOpen} onClose={onClose}>
@@ -736,17 +763,13 @@ const Ruteamientos = () => {
           </ModalFooter>
         </ModalContent>
       </Modal>
-      <Modal isOpen={isOpenModal} onClose={onCloseModal} size={'full'}>
+      <Modal isOpen={isOpenModal} onClose={onCloseModal} size={"full"}>
         <ModalOverlay />
         <ModalContent>
           <ModalHeader>Modal Title</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <Box
-              ref={targetRef}
-              py={8}
-              px={16}
-            >
+            <Box ref={targetRef} py={8} px={16}>
               <Flex flexDir={"column"}>
                 <Text fontSize="lg" textAlign="end">
                   {operadorNombre} - {fechaHasta} -{" "}
@@ -844,10 +867,14 @@ const Ruteamientos = () => {
             </Box>
           </ModalBody>
           <ModalFooter>
-            <Button colorScheme="green" mr={3} onClick={()=>{
-              toPDF(targetRef.current);
-              onCloseModal();
-            }}>
+            <Button
+              colorScheme="green"
+              mr={3}
+              onClick={() => {
+                toPDF(targetRef.current);
+                onCloseModal();
+              }}
+            >
               Descargar
             </Button>
           </ModalFooter>

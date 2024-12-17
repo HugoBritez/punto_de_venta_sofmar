@@ -290,6 +290,8 @@ export default function PuntoDeVenta() {
 
   const operadorActual = localStorage.getItem("user_id");
 
+  const operadorMovimiento = Number(localStorage.getItem("operador_movimiento"));
+
   // Funciones y Effects para traer los datos//
 
   const [, setDetalleVentas] = useState<DetalleVentas[]>([]);
@@ -492,7 +494,8 @@ export default function PuntoDeVenta() {
         return;
       }
       try {
-        const response = await axios.get(`${api_url}clientes`);
+         const response = await axios.get(operadorMovimiento ===1 ? `${api_url}clientes?vendedor=${operadorActual}` : `${api_url}clientes`);
+        console.log( 'CLientes',response.data.body)
         setClientes(response.data.body);
         setClienteSeleccionado(response.data.body[0]);
         setClienteBusqueda(response.data.body[0].cli_razon);
@@ -2392,25 +2395,25 @@ export default function PuntoDeVenta() {
                     Cotizacion del día
                   </Box>
                   <Flex
-                    gap={4}
+                    gap={2}
                   >
                     <Box>
                       <FormLabel>
                         USD:
                       </FormLabel>
-                      <Input type="number" value={cotizacionDolar} width={'100px'} bg={'white'}  fontWeight={'bold'}/>
+                      <Input type="number" value={cotizacionDolar} width={'85px'} bg={'white'}  fontWeight={'bold'}/>
                     </Box>
                     <Box>
                       <FormLabel>
                         BRL:
                       </FormLabel>
-                      <Input type="number" value={cotizacionReal} width={'100px'} bg={'white'} fontWeight={'bold'}/>
+                      <Input type="number" value={cotizacionReal} width={'85px'} bg={'white'} fontWeight={'bold'}/>
                     </Box>
                     <Box>
                       <FormLabel>
                         ARS:
                       </FormLabel>
-                      <Input type="number" value={cotizacionPeso} width={'100px'} bg={'white'}  fontWeight={'bold'}/>
+                      <Input type="number" value={cotizacionPeso} width={'85px'} bg={'white'}  fontWeight={'bold'}/>
                     </Box>
                   </Flex>
                 </Flex>
@@ -2750,10 +2753,10 @@ export default function PuntoDeVenta() {
                   alignItems={"start"}
                   justifyContent={isMobile? 'space-between' : 'start'}
                 >
-                  <Text fontSize="xx-large" fontWeight={"bold"}>
+                  <Text fontSize={isMobile? 'large' :  "xx-large"} fontWeight={"bold"}>
                     Total items: {items.length}
                   </Text>
-                  <Text fontSize="x-large" fontWeight={"semibold"}>
+                  <Text fontSize={isMobile? 'large' :  "x-large"} fontWeight={"semibold"}>
                     Descuento
                   </Text>
                   <Flex flexDir={'column'} justifyContent={'start'} gap={4}>
@@ -2783,7 +2786,7 @@ export default function PuntoDeVenta() {
                 </Flex>
 
                 <Box pt={2} >
-                  <Text fontSize="x-large" fontWeight="bold">
+                  <Text fontSize={isMobile? 'large' :  "x-large"} fontWeight="bold">
                     Total Exentas: {formatCurrency(calcularTotalExcentas())}
                   </Text>
                   <Divider
@@ -2791,7 +2794,7 @@ export default function PuntoDeVenta() {
                     borderColor={"blue.500"}
                     my={1}
                   />
-                  <Text fontSize="x-large" fontWeight="bold">
+                  <Text fontSize={isMobile? 'large' :  "x-large"} fontWeight="bold">
                     Total IVA 5%: {formatCurrency(calcularTotal5())}
                   </Text>
                   <Divider
@@ -2799,7 +2802,7 @@ export default function PuntoDeVenta() {
                     borderColor={"blue.500"}
                     my={1}
                   />
-                  <Text fontSize="x-large" fontWeight="bold">
+                  <Text fontSize={isMobile? 'large' :  "x-large"} fontWeight="bold">
                     Total IVA 10%: {formatCurrency(calcularTotal10())}
                   </Text>
                   <Divider
@@ -2807,7 +2810,7 @@ export default function PuntoDeVenta() {
                     borderColor={"blue.500"}
                     my={1}
                   />
-                  <Text fontSize="x-large" fontWeight="bold">
+                  <Text fontSize={isMobile? 'large' :  "x-large"} fontWeight="bold">
                     Total Impuestos: {formatCurrency(calcularTotalImpuestos())}
                   </Text>
                 </Box>
@@ -2816,7 +2819,7 @@ export default function PuntoDeVenta() {
                   flexDir={'column'}
                   gap={4}
                 >
-                  <Box display={'flex'} justifyContent={'center'} flexDir={'row'}  textAlign={"center"} mt={isMobile ? 2 : 0} gap={8}>
+                  <Box display={'flex'} justifyContent={'center'} flexDir={isMobile? 'column' : 'row'}  textAlign={"center"} mt={isMobile ? 2 : 0} gap={8}>
                   <Text fontSize="xx-large" fontWeight="bold">
                     Subtotal:{" "}
                     {formatCurrency(

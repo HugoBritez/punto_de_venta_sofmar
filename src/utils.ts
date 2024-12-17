@@ -9,11 +9,11 @@ export const  api_url = 'https://localhost:4000/api/'
 /* Aqui va la fecha del release, la version y la db */
 
 
-export const version = '0.8.9'
+export const version = '0.9.1'
 
 
 
 
-export const fechaRelease = '04/12/2024'
+export const fechaRelease = '16/12/2024'
 export const db = 'bodega'
 export const userName = localStorage.getItem('userName')

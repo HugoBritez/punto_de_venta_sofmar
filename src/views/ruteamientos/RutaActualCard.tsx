@@ -27,6 +27,8 @@ import {
   Textarea,
   useDisclosure,
   useToast,
+  VStack,
+  Badge,
 } from "@chakra-ui/react";
 import axios from "axios";
 import {
@@ -93,88 +95,15 @@ const RutaActualCard = ({
   const [fechaProxima, setFechaProxima] = useState<string>("");
   const [horaProxima, setHoraProxima] = useState<string>("");
   const [pedidos, setPedidos] = useState<Pedidos[]>([]);
-  const [detallePedido, setDetallePedido] = useState<DetallePedidos[]>([]);
-  const [editarPedido, setEditarPedido] = useState<boolean>(false);
+  const [detallesPedidos, setDetallesPedidos] = useState<{ [key: number]: DetallePedidos[] }>({});
+  const [editarPedido, ] = useState<boolean>(false);
   const [ventas, setVentas] = useState<Venta[]>([]);
-  const [detalleVenta, setDetalleVenta] = useState<DetalleVenta[]>([]);
+  const [detallesVentas, setDetallesVentas] = useState<{ [key: number]: DetalleVenta[] }>({});
 
-
-
-  const fetchVentas = async () => {
-    try {
-      const response = await axios.post(`${api_url}venta/consultas`, {
-        cliente: clienteId,
-        vendedor: Number(localStorage.getItem("user_id")),
-        limit: 1,
-      })
-      setVentas(response.data.body)
-      console.log(response.data.body)
-    } catch (error) {
-      toast({
-        title: "Error al cargar las ventas",
-        description: "Por favor, intenta de nuevo más tarde",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      })
-  }
-}
-
-const fetchDetalleVenta = async (codigo: number) => {
-  try {
-    const response = await axios.get(`${api_url}venta/detalles?cod=${codigo}`)
-    setDetalleVenta(response.data.body)
-    console.log(response.data.body)
-  } catch (error) {
-    toast({
-      title: "Error al cargar el detalle de la venta",
-      description: "Por favor, intenta de nuevo más tarde",
-      status: "error",
-      duration: 3000,
-      isClosable: true,
-    })
-  }
-}
-
-  const fetchPedidos = async () => {
-    try {
-      const response = await axios.post(`${api_url}pedidos/consultas`, {
-        cliente: clienteId,
-        limit: 1,
-      });
-      setPedidos(response.data.body);
-    } catch (error) {
-      toast({
-        title: "Error al cargar los presupuestos",
-        description: "Por favor, intenta de nuevo más tarde",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-  };
-
-  const fetchDetallePedido = async (codigo: number) => {
-    try {
-      await fetchPedidos();
-      const response = await axios.get(
-        `${api_url}pedidos/detalles?cod=${codigo}`
-      );
-      setDetallePedido(response.data.body);
-      console.log(response.data.body);
-    } catch (error) {
-      toast({
-        title: "Error al cargar el detalle del pedido",
-        description: "Por favor, intenta de nuevo más tarde",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-  };
 
   const agregarNota = async () => {
     try {
+      if (nota.length > 0) {
       const response = await axios.post(`${api_url}agendas/nueva-nota`, {
         an_agenda_id: ruteamientoId,
         an_nota: nota,
@@ -182,12 +111,13 @@ const fetchDetalleVenta = async (codigo: number) => {
         an_hora: new Date().toISOString().split("T")[1].split(".")[0],
         an_sistema: 0,
       });
+
       if (response.data.status === 201) {
         toast({
           title: "Nota agregada",
           description: "La nota fue agregada correctamente",
           status: "success",
-          duration: 5000,
+          duration: 2000,
           isClosable: true,
         });
         setNota("");
@@ -198,6 +128,15 @@ const fetchDetalleVenta = async (codigo: number) => {
           Number(localStorage.getItem("user_id")),
           `Se agregó una nota al ruteamiento #${ruteamientoId}`
         );
+        }
+      }else{
+        toast({
+          title: "Error",
+          description: "La nota no puede estar vacia",
+          status: "error",
+          duration: 2000,
+          isClosable: true,
+        });
       }
     } catch (error) {
       toast({
@@ -425,10 +364,75 @@ const fetchDetalleVenta = async (codigo: number) => {
   }, [ruteamientoId]);
 
   useEffect(() => {
-    fetchPedidos();
-    fetchVentas();
-  }, []);
+    const cargarPedidosYDetalles = async () => {
+      try {
+        // Primero cargamos los pedidos
+        const responsePedidos = await axios.post(`${api_url}pedidos/consultas`, {
+          cliente: clienteId,
+          limit: 3,
+        });
+        
+        setPedidos(responsePedidos.data.body);
+        
+        // Luego cargamos los detalles de cada pedido
+        for (const pedido of responsePedidos.data.body) {
+          const responseDetalles = await axios.get(
+            `${api_url}pedidos/detalles?cod=${pedido.codigo}`
+          );
+          setDetallesPedidos(prev => ({
+            ...prev,
+            [pedido.codigo]: responseDetalles.data.body
+          }));
+        }
+      } catch (error) {
+        toast({
+          title: "Error al cargar los pedidos y detalles",
+          description: "Por favor, intenta de nuevo más tarde",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    };
 
+    cargarPedidosYDetalles();
+  }, [clienteId]);
+
+  useEffect(() => {
+    const cargarVentasYDetalles = async () => {
+      try {
+        // Primero cargamos las ventas
+        const responseVentas = await axios.post(`${api_url}venta/consultas`, {
+          cliente: clienteId,
+          vendedor: Number(localStorage.getItem("user_id")),
+          limit: 5,
+        });
+        
+        setVentas(responseVentas.data.body);
+        
+        // Luego cargamos los detalles de cada venta
+        for (const venta of responseVentas.data.body) {
+          const responseDetalles = await axios.get(
+            `${api_url}venta/detalles?cod=${venta.codigo}`
+          );
+          setDetallesVentas(prev => ({
+            ...prev,
+            [venta.codigo]: responseDetalles.data.body
+          }));
+        }
+      } catch (error) {
+        toast({
+          title: "Error al cargar las ventas y detalles",
+          description: "Por favor, intenta de nuevo más tarde",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    };
+
+    cargarVentasYDetalles();
+  }, [clienteId]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("es-PY", {
@@ -554,11 +558,9 @@ const fetchDetalleVenta = async (codigo: number) => {
                       variant={"outline"}
                       onClick={() => {
                         onOpenPedido();
-                        fetchPedidos();
-                        fetchDetallePedido(pedidos[0].codigo);
                       }}
                     >
-                      Consultar Pedidos <Search />{" "}
+                      Consultar Pedidos <Search />
                     </Button>
                     <Button
                       colorScheme="blue"
@@ -566,11 +568,9 @@ const fetchDetalleVenta = async (codigo: number) => {
                       variant={"outline"}
                       onClick={() => {
                         onOpenVenta();
-                        fetchVentas();
-                        fetchDetalleVenta(ventas[0].codigo);
                       }}
                     >
-                      Consultar Ventas <Search />{" "}
+                      Consultar Ventas <Search />
                     </Button>
                   </Flex>
                 </TabPanel>
@@ -583,122 +583,175 @@ const fetchDetalleVenta = async (codigo: number) => {
         <ModalOverlay />
         <ModalContent>
           <ModalHeader>
-          <Flex flexDir={"column"} gap={2}>
-              <Text>Ultima venta  de {clienteNombre}</Text>
-              <Text> Fecha: {ventas[0]?.fecha}</Text>
-              <Divider></Divider>
-            </Flex>
+            <VStack align="stretch" spacing={2}>
+              <Text fontWeight="bold">Últimas ventas de {clienteNombre}</Text>
+              <Divider />
+            </VStack>
           </ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <Flex
-              flexDirection={"column"}
-              maxH={"500px"}
-              overflowY={"auto"}
-              gap={4}
-              p={2}
-            >
-              {detalleVenta.map((detalle, index) => (
-                <Flex
-                  key={index}
-                  justify={"space-between"}
-                  boxShadow="xs"
-                  borderRadius={"md"}
+            <VStack spacing={4} w="100%">
+              {ventas.map((venta) => (
+                <Box
+                  key={venta.codigo}
+                  w="100%"
+                  borderRadius="lg"
+                  bg="gray.50"
                   p={4}
+                  border={"1px solid"}
+                  borderColor={"green.600"}
                 >
-                  <Box>
-                    <Heading size={"sm"}>{detalle.descripcion}</Heading>
+                  <Flex justify="space-between" align="center" mb={4}>
+                    <Heading size="md">Venta #{venta.codigo}</Heading>
+                    <Badge colorScheme="green" fontSize="sm" p={2} variant="solid">
+                      {venta.fecha}
+                    </Badge>
+                  </Flex>
+
+                  <Box maxH="300px" overflowY="auto">
+                    {detallesVentas[venta.codigo]?.map((detalle, idx) => (
+                      <Flex
+                        key={idx}
+                        justify="space-between"
+                        bg="white"
+                        p={4}
+                        mb={2}
+                        borderRadius="md"
+                        boxShadow="sm"
+                        _hover={{ boxShadow: "md" }}
+                        transition="all 0.2s"
+                      >
+                        <VStack align="start" spacing={1}>
+                          <Heading size="sm">{detalle.descripcion}</Heading>
+                          <Text color="gray.600" fontSize="sm">
+                            Cantidad: {detalle.cantidad}
+                          </Text>
+                        </VStack>
+                        <VStack align="end" spacing={1}>
+                          <Heading size="sm" color="green.600">
+                            {formatCurrency(detalle.precio * detalle.cantidad)}
+                          </Heading>
+                          <Text fontSize="xs" color="gray.500">
+                            {formatCurrency(detalle.precio)} c/u
+                          </Text>
+                        </VStack>
+                      </Flex>
+                    ))}
                   </Box>
-                  <Box>
-                    <Heading size={"md"} textAlign={"end"}>
-                      {formatCurrency(detalle.precio * detalle.cantidad)}
-                    </Heading>
-                    <Text textAlign={"end"} color={"gray"} mt={2}>
-                      {" "}
-                      {detalle.cantidad} x {formatCurrency(detalle.precio)}
-                    </Text>
-                  </Box>
-                </Flex>
+
+                  <Flex justify="flex-end" bg="white" p={2} mt={2} borderRadius="md">
+                    <Heading size="sm">Total: {formatCurrency(venta.total)}</Heading>
+                  </Flex>
+                </Box>
               ))}
-              <Divider></Divider>
-            </Flex>
+            </VStack>
           </ModalBody>
-          <ModalFooter>
-            <Heading size={"md"}>Total:  {formatCurrency(ventas[0]?.total)}</Heading>
-          </ModalFooter>
         </ModalContent>
       </Modal>
       <Modal
         isOpen={isOpenPedido}
         onClose={onClosePedido}
-        size={"lg"}
-        isCentered={true}
+        size={"md"}
+        isCentered
       >
         <ModalOverlay />
         <ModalContent>
           <ModalHeader>
-            <Flex flexDir={"column"} gap={2}>
-              <Text>Ultimo pedido de {clienteNombre}</Text>
-              <Text> Fecha: {pedidos[0]?.fecha}</Text>
-              <Divider></Divider>
-            </Flex>
+            <VStack align="stretch" spacing={2}>
+              <Text fontWeight="bold">Últimos pedidos de {clienteNombre}</Text>
+              <Divider />
+            </VStack>
           </ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            {
-              editarPedido ? 
-              (
-                <Flex>
-                  <Heading>
-                    
-                  </Heading>
-                </Flex>
-              ) :
-              (<Flex
-                flexDirection={"column"}
-                maxH={"500px"}
-                overflowY={"auto"}
-                gap={4}
-                p={2}
-              >
-                {detallePedido.map((detalle, index) => (
-                  <Flex
-                    key={index}
-                    justify={"space-between"}
-                    boxShadow="xs"
-                    borderRadius={"md"}
+            {editarPedido ? (
+              <Flex>
+                <Heading>{/* contenido de edición */}</Heading>
+              </Flex>
+            ) : (
+              <VStack spacing={4} w="100%">
+                {pedidos.map((pedido) => (
+                  <Box
+                    key={pedido.codigo}
+                    w="100%"
+                    borderRadius="lg"
+                    bg="gray.50"
                     p={4}
+                    border={"1px solid"}
+                    borderColor={"blue.600"}
                   >
-                    <Box>
-                      <Heading size={"sm"}>{detalle.descripcion}</Heading>
+                    <Flex justify="space-between" align="center" mb={4}>
+                      <Heading size="md">Pedido #{pedido.codigo}</Heading>
+                      <Badge colorScheme="blue" fontSize="sm" p={2} variant="solid">
+                        {pedido.fecha}
+                      </Badge>
+                    </Flex>
+
+                    <Box
+                      maxH="300px"
+                      overflowY="auto"
+                      css={{
+                        "&::-webkit-scrollbar": {
+                          width: "4px",
+                        },
+                        "&::-webkit-scrollbar-track": {
+                          width: "6px",
+                        },
+                        "&::-webkit-scrollbar-thumb": {
+                          background: "gray.200",
+                          borderRadius: "24px",
+                        },
+                      }}
+                    >
+                      {detallesPedidos[pedido.codigo]?.map((detalle, idx) => (
+                        <Flex
+                          key={idx}
+                          justify="space-between"
+                          bg="white"
+                          p={4}
+                          mb={2}
+                          borderRadius="md"
+                          boxShadow="sm"
+                          _hover={{ boxShadow: "md" }}
+                          transition="all 0.2s"
+                        >
+                          <VStack align="start" spacing={1}>
+                            <Heading size="sm">{detalle.descripcion}</Heading>
+                            <Text color="gray.600" fontSize="sm">
+                              Cantidad: {detalle.cantidad}
+                            </Text>
+                          </VStack>
+                          <VStack align="end" spacing={1}>
+                            <Heading size="sm" color="blue.600">
+                              {formatCurrency(
+                                detalle.precio * detalle.cantidad
+                              )}
+                            </Heading>
+                            <Text fontSize="xs" color="gray.500">
+                              {formatCurrency(detalle.precio)} c/u
+                            </Text>
+                          </VStack>
+                        </Flex>
+                      ))}
                     </Box>
-                    <Box>
-                      <Heading size={"md"} textAlign={"end"}>
-                        {formatCurrency(detalle.precio * detalle.cantidad)}
+
+                    <Flex
+                      justify="flex-end"
+                      align="center"
+                      bg="white"
+                      p={2}
+                      mt={2}
+                      borderRadius="md"
+                    >
+                      <Heading size="sm">
+                        Total: {formatCurrency(pedido.total)}
                       </Heading>
-                      <Text textAlign={"end"} color={"gray"} mt={2} fontSize={'sm'}>
-                        {" "}
-                        {detalle.cantidad} x {formatCurrency(detalle.precio)}
-                      </Text>
-                    </Box>
-                  </Flex>
+                    </Flex>
+                  </Box>
                 ))}
-                <Divider></Divider>
-              </Flex>)
-            }
+              </VStack>
+            )}
           </ModalBody>
-          <ModalFooter w={"100%"}>
-            <Flex justifyContent={"space-between"} w={"100%"}>
-              <Heading size={"md"}>Total:  {formatCurrency(pedidos[0]?.total)}</Heading>
-              <Button colorScheme="green" mr={3} onClick={
-                ()=>{
-                  setEditarPedido(true);
-                }
-              }>
-                Rehacer pedido
-              </Button>
-            </Flex>
-          </ModalFooter>
         </ModalContent>
       </Modal>
       <Modal isOpen={isOpen} onClose={onClose} size={"sm"} isCentered={true}>

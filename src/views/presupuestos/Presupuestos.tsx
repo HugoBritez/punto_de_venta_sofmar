@@ -180,6 +180,8 @@ export default function Presupuestos() {
   const [tipoFlete, setTipoFlete] = useState("");
   const [observaciones, setObservaciones] = useState("");
   const { isSwitchOn } = useSwitch();
+  const operadorActual = localStorage.getItem("user_id");
+  const operadorMovimiento = Number(localStorage.getItem("operador_movimiento"));
 
   useEffect(() => {
 
@@ -265,7 +267,7 @@ export default function Presupuestos() {
         return;
       }
       try {
-        const response = await axios.get(`${api_url}clientes`);
+        const response = await axios.get(operadorMovimiento ===1 ? `${api_url}clientes?vendedor=${operadorActual}` : `${api_url}clientes`);
         setClientes(response.data.body);
       } catch (err) {
         if (err instanceof Error) {
@@ -955,6 +957,7 @@ export default function Presupuestos() {
     <div>
       <ChakraProvider>
       <Box bg={"gray.100"} h={"100vh"} w={"100%"} p={2}>
+        <Box>
         <Box
           w="100%"
           h={"100%"}
@@ -1618,6 +1621,7 @@ export default function Presupuestos() {
               </Box>
             </Flex>
           </Flex>
+        </Box>
         </Box>
         </Box>
         {isSwitchOn ? (

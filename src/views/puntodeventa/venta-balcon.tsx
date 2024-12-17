@@ -294,6 +294,7 @@ export default function VentaBalcon() {
   const [cotizacionDolar, setCotizacionDolar] = useState<number>(7770);
   const [cotizacionReal, setCotizacionReal] = useState<number>(1200);
   const [cotizacionPeso, setCotizacionPeso] = useState<number>(5);
+  const operadorMovimiento = Number(localStorage.getItem("operador_movimiento"));
 
   async function traerUltimaVentaId() {
     try {
@@ -455,7 +456,8 @@ export default function VentaBalcon() {
         return;
       }
       try {
-        const response = await axios.get(`${api_url}clientes`);
+        const response = await axios.get(operadorMovimiento ===1 ? `${api_url}clientes?vendedor=${operadorActual}` : `${api_url}clientes`);
+        console.log(response.data.body);
         setClientes(response.data.body);
       } catch (err) {
         if (err instanceof Error) {
@@ -2207,7 +2209,7 @@ export default function VentaBalcon() {
                         <Input
                           type="number"
                           value={cotizacionDolar}
-                          width={"100px"}
+                          width={"85px"}
                           bg={"white"}
                           fontWeight={"bold"}
                         />
@@ -2217,7 +2219,7 @@ export default function VentaBalcon() {
                         <Input
                           type="number"
                           value={cotizacionReal}
-                          width={"100px"}
+                          width={"85px"}
                           bg={"white"}
                           fontWeight={"bold"}
                         />
@@ -2227,7 +2229,7 @@ export default function VentaBalcon() {
                         <Input
                           type="number"
                           value={cotizacionPeso}
-                          width={"100px"}
+                          width={"85px"}
                           bg={"white"}
                           fontWeight={"bold"}
                         />
@@ -2522,9 +2524,9 @@ export default function VentaBalcon() {
                 justifyContent={"space-between"}
                 alignItems={"center"}
               >
-                <Flex gap={4}>
+                <Flex gap={4} flexDirection={isMobile? 'column' : 'row'} >
                   <Flex
-                    flexDirection={isMobile ? "column" : "row"}
+                    flexDirection={isMobile? 'column' : 'row'}
                     px={4}
                     gap={4}
                   ></Flex>
@@ -2532,12 +2534,12 @@ export default function VentaBalcon() {
                     gap={2}
                     flexDirection={'column'}
                     alignItems={"start"}
-                    justifyContent={isMobile? 'space-between' : 'start'}
+                    justifyContent={'start'}
                   >
-                    <Text fontSize="xx-large" fontWeight={"bold"}>
+                    <Text fontSize={isMobile? 'large' :  "xx-large"} fontWeight={"bold"}>
                     Total items: {items.length}
                   </Text>
-                    <Text fontSize="x-large" fontWeight={"semibold"}>
+                    <Text fontSize={isMobile? 'large' :  "x-large"} fontWeight={"semibold"}>
                       Descuento
                     </Text>
                     <Flex>
@@ -2568,7 +2570,7 @@ export default function VentaBalcon() {
                   </Flex>
 
                   <Box pt={2}>
-                    <Text fontSize="x-large" fontWeight="bold">
+                    <Text fontSize={isMobile? 'large' :  "x-large"} fontWeight="bold">
                       Total Exentas: {formatCurrency(calcularTotalExcentas())}
                     </Text>
                     <Divider
@@ -2576,7 +2578,7 @@ export default function VentaBalcon() {
                       borderColor={"blue.500"}
                       my={1}
                     />
-                    <Text fontSize="x-large" fontWeight="bold">
+                    <Text fontSize={isMobile? 'large' :  "x-large"} fontWeight="bold">
                       Total IVA 5%: {formatCurrency(calcularTotal5())}
                     </Text>
                     <Divider
@@ -2584,7 +2586,7 @@ export default function VentaBalcon() {
                       borderColor={"blue.500"}
                       my={1}
                     />
-                    <Text fontSize="x-large" fontWeight="bold">
+                    <Text fontSize={isMobile? 'large' :  "x-large"} fontWeight="bold">
                       Total IVA 10%: {formatCurrency(calcularTotal10())}
                     </Text>
                     <Divider
@@ -2592,7 +2594,7 @@ export default function VentaBalcon() {
                       borderColor={"blue.500"}
                       my={1}
                     />
-                    <Text fontSize="x-large" fontWeight="bold">
+                    <Text fontSize={isMobile? 'large' :  "x-large"} fontWeight="bold">
                       Total Impuestos:{" "}
                       {formatCurrency(calcularTotalImpuestos())}
                     </Text>
@@ -2605,25 +2607,25 @@ export default function VentaBalcon() {
                 <Box
                   display={"flex"}
                   justifyContent={"center"}
-                  flexDir={"row"}
+                  flexDir={isMobile? 'column' : 'row'}
                   textAlign={"center"}
                   mt={isMobile ? 2 : 0}
                   gap={8}
                 >
                   {" "}
-                  <Text fontSize="xx-large" fontWeight="bold">
+                  <Text fontSize={isMobile? 'large' : 'xx-large'} fontWeight="bold">
                     Subtotal:{" "}
                     {formatCurrency(
                       items.reduce((acc, item) => acc + item.subtotal, 0)
                     )}
                   </Text>
-                  <Text fontSize="xx-large" fontWeight="bold">
+                  <Text fontSize={isMobile? 'large' : 'xx-large'} fontWeight="bold">
                     Descuento General:{" "}
                     {descuentoTipo === "porcentaje"
                       ? `${descuentoValor}%`
                       : formatCurrency(descuentoValor * tasasDeCambio[moneda])}
                   </Text>
-                  <Text fontSize="xx-large" fontWeight="bold">
+                  <Text fontSize={isMobile? 'large' : 'xx-large'} fontWeight="bold">
                     Total Neto: {formatCurrency(calcularTotal())}
                   </Text>
                 </Box>

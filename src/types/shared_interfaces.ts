@@ -229,3 +229,26 @@ export interface Nota {
     codigotarjeta: number,
     tipotarjeta: number,
   }
+
+  export interface Banco {
+    ba_codigo: number;
+    ba_descripcion: string;
+  }
+
+  export interface CuentasBancarias {
+    cb_codigo: number;
+    cb_banco: number;
+    cb_descripcion: string;
+  }
+
+  export interface Tarjetas {
+    t_codigo: number;
+    t_descripcion: string;
+  }
+
+  export interface Monedas {
+    mo_codigo: number;
+    mo_descripcion: string;
+  }
+
+

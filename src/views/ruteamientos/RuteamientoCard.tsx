@@ -1,4 +1,4 @@
-import { Localizacion } from "@/types/shared_interfaces";
+import { DetallePedidos, Localizacion, Pedidos } from "@/types/shared_interfaces";
 import { api_url } from "@/utils";
 import {
   Badge,
@@ -28,6 +28,7 @@ import {
   useDisclosure,
   useMediaQuery,
   useToast,
+  VStack,
 } from "@chakra-ui/react";
 import axios from "axios";
 import {
@@ -42,7 +43,7 @@ import {
   Phone,
   SquareMenu,
 } from "lucide-react";
-import { useState } from "react";
+import {  useState } from "react";
 import { Nota } from "@/types/shared_interfaces";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
@@ -68,6 +69,7 @@ interface RuteamientoCardProps {
   l_latitud?: string;
   l_longitud?: string;
   fetchRuteamientos: () => void;
+  clienteId: number;
 }
 
 const RuteamientoCard = ({
@@ -87,6 +89,7 @@ const RuteamientoCard = ({
   l_longitud,
   l_latitud,
   fetchRuteamientos,
+  clienteId,
 }: RuteamientoCardProps) => {
   const [tapCount, setTapCount] = useState(0);
   const isMobile = useMediaQuery("(max-width: 768px)");
@@ -97,6 +100,14 @@ const RuteamientoCard = ({
   const [notaNueva, setNotaNueva] = useState<string>("");
   const [fechaProxima, setFechaProxima] = useState<string>("");
   const [horaProxima, setHoraProxima] = useState<string>("");
+  const [pedidos, setPedidos] = useState<Pedidos[]>([]);
+  const [detallesPedidos, setDetallesPedidos] = useState<{ [key: number]: DetallePedidos[] }>({});
+
+  const {
+    isOpen: isOpenPedido,
+    onOpen: onOpenPedido,
+    onClose: onClosePedido,
+  } = useDisclosure();
 
   const {
     isOpen: isLeerNotasModalOpen,
@@ -299,6 +310,52 @@ const RuteamientoCard = ({
   };
 
   const diaDeLaSemana = getDiaDeLaSemana(fecha);
+
+    const cargarPedidosYDetalles = async (clienteId: number) => {
+      try {
+
+        console.log("Cargando pedidos y detalles para el cliente con ID:", clienteId);
+
+        // Primero cargamos los pedidos
+        const responsePedidos = await axios.post(`${api_url}pedidos/consultas`, {
+          cliente: clienteId,
+          limit: 3,
+        });
+
+        console.log(responsePedidos.data.body);
+        
+        setPedidos(responsePedidos.data.body);
+        
+        // Luego cargamos los detalles de cada pedido
+        for (const pedido of responsePedidos.data.body) {
+          const responseDetalles = await axios.get(
+            `${api_url}pedidos/detalles?cod=${pedido.codigo}`
+          );
+          setDetallesPedidos(prev => ({
+            ...prev,
+            [pedido.codigo]: responseDetalles.data.body
+          }));
+        }
+      } catch (error) {
+        toast({
+          title: "Error al cargar los pedidos y detalles",
+          description: "Por favor, intenta de nuevo más tarde",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    };
+
+    const formatCurrency = (value: number) => {
+      return new Intl.NumberFormat("es-PY", {
+        style: "currency",
+        currency: "PYG",
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(value);
+    };
+
 
   return (
     <Box>
@@ -653,6 +710,10 @@ const RuteamientoCard = ({
             </Flex>
           </ModalBody>
           <ModalFooter gap={4}>
+            <Button onClick={()=>{
+              cargarPedidosYDetalles(clienteId);
+              onOpenPedido();
+            }} colorScheme="green">Consultar Pedidos</Button>
             <Button onClick={onVerDetallesModalClose}>Cerrar</Button>
           </ModalFooter>
         </ModalContent>
@@ -703,6 +764,106 @@ const RuteamientoCard = ({
               Reagendar
             </Button>
           </ModalFooter>
+        </ModalContent>
+      </Modal>
+      <Modal
+        isOpen={isOpenPedido}
+        onClose={onClosePedido}
+        size={"md"}
+        isCentered
+      >
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>
+            <VStack align="stretch" spacing={2}>
+              <Text fontWeight="bold">Últimos pedidos de {clienteNombre}</Text>
+              <Divider />
+            </VStack>
+          </ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+              <VStack spacing={4} w="100%">
+                {pedidos.map((pedido) => (
+                  <Box
+                    key={pedido.codigo}
+                    w="100%"
+                    borderRadius="lg"
+                    bg="gray.50"
+                    p={4}
+                    border={"1px solid"}
+                    borderColor={"blue.600"}
+                  >
+                    <Flex justify="space-between" align="center" mb={4}>
+                      <Heading size="md">Pedido #{pedido.codigo}</Heading>
+                      <Badge colorScheme="blue" fontSize="sm" p={2} variant="solid">
+                        {pedido.fecha}
+                      </Badge>
+                    </Flex>
+
+                    <Box
+                      maxH="300px"
+                      overflowY="auto"
+                      css={{
+                        "&::-webkit-scrollbar": {
+                          width: "4px",
+                        },
+                        "&::-webkit-scrollbar-track": {
+                          width: "6px",
+                        },
+                        "&::-webkit-scrollbar-thumb": {
+                          background: "gray.200",
+                          borderRadius: "24px",
+                        },
+                      }}
+                    >
+                      {detallesPedidos[pedido.codigo]?.map((detalle, idx) => (
+                        <Flex
+                          key={idx}
+                          justify="space-between"
+                          bg="white"
+                          p={4}
+                          mb={2}
+                          borderRadius="md"
+                          boxShadow="sm"
+                          _hover={{ boxShadow: "md" }}
+                          transition="all 0.2s"
+                        >
+                          <VStack align="start" spacing={1}>
+                            <Heading size="sm">{detalle.descripcion}</Heading>
+                            <Text color="gray.600" fontSize="sm">
+                              Cantidad: {detalle.cantidad}
+                            </Text>
+                          </VStack>
+                          <VStack align="end" spacing={1}>
+                            <Heading size="sm" color="blue.600">
+                              {formatCurrency(
+                                detalle.precio * detalle.cantidad
+                              )}
+                            </Heading>
+                            <Text fontSize="xs" color="gray.500">
+                              {formatCurrency(detalle.precio)} c/u
+                            </Text>
+                          </VStack>
+                        </Flex>
+                      ))}
+                    </Box>
+
+                    <Flex
+                      justify="flex-end"
+                      align="center"
+                      bg="white"
+                      p={2}
+                      mt={2}
+                      borderRadius="md"
+                    >
+                      <Heading size="sm">
+                        Total: {formatCurrency(pedido.total)}
+                      </Heading>
+                    </Flex>
+                  </Box>
+                ))}
+              </VStack>
+          </ModalBody>
         </ModalContent>
       </Modal>
     </Box>

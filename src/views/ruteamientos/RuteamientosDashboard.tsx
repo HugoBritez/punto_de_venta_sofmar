@@ -336,7 +336,6 @@ const RuteamientosDashboard = () => {
           bgGradient="linear(to-r, blue.500, blue.600)"
           color="white"
           p={4}
-
           alignItems="center"
           rounded="lg"
           justifyContent={"space-between"}

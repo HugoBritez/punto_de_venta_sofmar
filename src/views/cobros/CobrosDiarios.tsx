@@ -34,7 +34,15 @@ import { api_url } from "@/utils";
 import { SearchIcon } from "@chakra-ui/icons";
 import { HandCoins } from "lucide-react";
 import { useAuth } from "@/services/AuthContext";
-import { Factura, OperacionData, Sucursal } from "@/types/shared_interfaces";
+import {
+  Banco,
+  CuentasBancarias,
+  Factura,
+  Monedas,
+  OperacionData,
+  Sucursal,
+  Tarjetas,
+} from "@/types/shared_interfaces";
 
 interface Venta {
   codigo: number;
@@ -57,6 +65,11 @@ interface Venta {
   estado_desc: string;
   ruc: string;
   direccion: string;
+}
+
+interface Caja {
+  cd_codigo: number;
+  cd_descripcion: string;
 }
 
 export default function CobrosDiarios() {
@@ -85,9 +98,30 @@ export default function CobrosDiarios() {
   const operadorActual = auth?.userId || "";
   const [tipoRecibo, setTipoRecibo] = useState(1);
   const [cajaId, setCajaId] = useState<number>(0);
-  const [tipoMovimiento, setTipoMovimiento] = useState(1);
-  const [codigoTarjeta, setCodigoTarjeta] = useState(0);
-  const [tipoTarjeta, setTipoTarjeta] = useState(0);
+  const [tipoMovimiento] = useState(1);
+  const [codigoTarjeta] = useState(0);
+  const [tipoTarjeta] = useState(0);
+  const [cajas, setCajas] = useState<Caja[]>([]);
+  const [cajaAbierta, setCajaAbierta] = useState(false);
+
+  const [bancos, setBancos] = useState<Banco[]>([]);
+  const [bancoSeleccionado, setBancoSeleccionado] = useState<number>(0);
+  const [metodoPagoSeleccionado, setMetodoPagoSeleccionado] = useState(1);
+
+  const [cuentasBancarias, setCuentasBancarias] = useState<CuentasBancarias[]>(
+    []
+  );
+  const [cuentaBancariaSeleccionada, setCuentaBancariaSeleccionada] =
+    useState<number>(0);
+
+  const [tarjetas, setTarjetas] = useState<Tarjetas[]>([]);
+  const [tarjetaSeleccionada, setTarjetaSeleccionada] = useState<number>(0);
+
+  const [monedas, setMonedas] = useState<Monedas[]>([]);
+  const [monedaSeleccionada, setMonedaSeleccionada] = useState<number>(0);
+
+  const [numeroTarjeta, setNumeroTarjeta] = useState("");
+  const [numeroActualizacion, setNumeroActualizacion] = useState("");
 
   const {
     isOpen: isCobroModalOpen,
@@ -95,14 +129,105 @@ export default function CobrosDiarios() {
     onClose: onCobroModalClose,
   } = useDisclosure();
 
+  const {
+    isOpen: isTarjetaModalOpen,
+    onOpen: onTarjetaModalOpen,
+    onClose: onTarjetaModalClose,
+  } = useDisclosure();
+
   useEffect(() => {
     fetchVentas();
   }, [fecha]);
 
   useEffect(() => {
+    fetchCajas();
     fetchSucursales();
     verificarCajaAbierta();
+    fetchBancos();
+    fetchCuentasBancarias();
+    fetchTarjetas();
+    fetchMonedas();
   }, []);
+
+  const fetchMonedas = async () => {
+    try {
+      const response = await axios.get(`${api_url}monedas/`);
+      console.log(response.data.body);
+      setMonedas(response.data.body);
+    } catch (error) {
+      toast({
+        title: "Error al cargar las monedas",
+        description: "Por favor, intenta de nuevo más tarde",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const fetchTarjetas = async () => {
+    try {
+      const response = await axios.get(`${api_url}bancos/tarjetas`);
+      console.log("Estas son las tarjetas", response.data.body);
+      setTarjetas(response.data.body);
+    } catch (error) {
+      toast({
+        title: "Error al cargar las tarjetas",
+        description: "Por favor, intenta de nuevo más tarde",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const fetchCajas = async () => {
+    try {
+      const response = await axios.get(`${api_url}caja/traer-cajas`);
+      console.log(response.data.body);
+      setCajas(response.data.body);
+    } catch (error) {
+      toast({
+        title: "Error al cargar las cajas",
+        description: "Por favor, intenta de nuevo más tarde",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const fetchBancos = async () => {
+    try {
+      const response = await axios.get(`${api_url}bancos/todos`);
+      console.log("Estos son los bancos", response.data.body);
+      setBancos(response.data.body);
+    } catch (error) {
+      toast({
+        title: "Error al cargar los bancos",
+        description: "Por favor, intenta de nuevo más tarde",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const fetchCuentasBancarias = async () => {
+    try {
+      const response = await axios.get(`${api_url}bancos/cuentas`);
+      console.log("Estas son las cuentas bancarias", response.data.body);
+      setCuentasBancarias(response.data.body);
+    } catch (error) {
+      toast({
+        title: "Error al cargar las cuentas bancarias",
+        description: "Por favor, intenta de nuevo más tarde",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
 
   const fetchVentas = async () => {
     setIsLoading(true);
@@ -240,6 +365,9 @@ export default function CobrosDiarios() {
         response.data.body[0].ca_fecha_cierre === null
       ) {
         setCajaId(response.data.body[0].ca_codigo);
+        setCajaAbierta(true);
+      } else {
+        setCajaAbierta(false);
       }
     } catch (error) {
       toast({
@@ -286,9 +414,18 @@ export default function CobrosDiarios() {
         duration: 3000,
         isClosable: true,
       });
-      return;
+      return false;
     }
-
+    if (cajaAbierta === false) {
+      toast({
+        title: "Error",
+        description: "No hay caja abierta",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return false;
+    }
     const operacionData: OperacionData = {
       ventaId: ventaSeleccionada?.codigo || 0,
       caja: cajaId,
@@ -316,7 +453,6 @@ export default function CobrosDiarios() {
       Number(facturaData[0]?.d_nro_secuencia),
       Number(numeroFactura)
     );
-    onCobroModalClose();
     toast({
       title: "Venta cobrada",
       description: "La venta fue cobrada exitosamente",
@@ -324,6 +460,7 @@ export default function CobrosDiarios() {
       duration: 3000,
       isClosable: true,
     });
+    return true;
   };
 
   const handleCancelarCobro = () => {
@@ -331,6 +468,7 @@ export default function CobrosDiarios() {
     setMontoRecibido(0);
     setFiltroMetodo(0);
   };
+
 
   return (
     <Box bg={"gray.100"} h={"100vh"} w={"100%"} p={2}>
@@ -540,17 +678,26 @@ export default function CobrosDiarios() {
                     <Box flexGrow={1} w={"100%"}>
                       <FormLabel>Caja</FormLabel>
                       <Select flexGrow={1}>
-                        <option value="0">Caja Cobro- Tesorería</option>
+                        {cajas.map((caja) => (
+                          <option key={caja.cd_codigo} value={caja.cd_codigo}>
+                            {caja.cd_descripcion}
+                          </option>
+                        ))}
                       </Select>
                     </Box>
                     <Box flexGrow={1} w={"100%"}>
                       <FormLabel>Método</FormLabel>
-                      <Select isDisabled={true}>
+                      <Select
+                        value={Number(metodoPagoSeleccionado)}
+                        onChange={(e) => {
+                          setMetodoPagoSeleccionado(Number(e.target.value));
+                        }}
+                      >
                         <option value="1">Efectivo</option>
                         <option value="2">Cheque</option>
-                        <option value="3">Tarjeta</option>
-                        <option value="4">Transferencia</option>
-                        <option value="5">Depósito</option>
+                        <option value="3">Tarjeta Crédito</option>
+                        <option value="4">Tarjeta Débito</option>
+                        <option value="5">Transferencia</option>
                       </Select>
                     </Box>
                   </Flex>
@@ -732,7 +879,6 @@ export default function CobrosDiarios() {
           </ModalBody>
 
           <ModalFooter>
-            
             <Button
               colorScheme="red"
               variant={"outline"}
@@ -745,21 +891,135 @@ export default function CobrosDiarios() {
               variant="solid"
               colorScheme="green"
               onClick={async () => {
-                try {
-                  await handleCobro();
-                  // Update the main ventas state instead
-                  setVentas((prev) =>
-                    prev.filter(
-                      (venta) => venta.codigo !== ventaSeleccionada?.codigo
-                    )
-                  );
-                  onCobroModalClose();
-                } catch (error) {
-                  console.error("Error processing payment:", error);
+                if (
+                  metodoPagoSeleccionado === 3 ||
+                  metodoPagoSeleccionado === 4
+                ) {
+                  onTarjetaModalOpen();
+                } else {
+                  try {
+                    const success = await handleCobro();
+                    if (success) {
+                      setVentas((prev) =>
+                        prev.filter(
+                          (venta) => venta.codigo !== ventaSeleccionada?.codigo
+                        )
+                      );
+                      onCobroModalClose();
+                    }
+                  } catch (error) {
+                    console.error("Error processing payment:", error);
+                  }
                 }
               }}
             >
               Cobrar
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+      <Modal
+        isOpen={isTarjetaModalOpen}
+        onClose={onTarjetaModalClose}
+        isCentered={true}
+        size={"md"}
+      >
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Tarjetas</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Box display={"flex"} flexDir={"column"} gap={4}>
+              <Flex alignItems={"center"}>
+                <FormLabel>Banco:</FormLabel>
+                <Select
+                  value={bancoSeleccionado}
+                  onChange={(e) => {
+                    setBancoSeleccionado(Number(e.target.value));
+                  }}
+                >
+                  {bancos.map((banco) => (
+                    <option key={banco.ba_codigo} value={banco.ba_codigo}>
+                      {banco.ba_descripcion}
+                    </option>
+                  ))}
+                </Select>
+              </Flex>
+              <Flex alignItems={"center"}>
+                <FormLabel>Cuenta:</FormLabel>
+                <Select
+                  value={cuentaBancariaSeleccionada}
+                  onChange={(e) => {
+                    setCuentaBancariaSeleccionada(Number(e.target.value));
+                  }}
+                >
+                  {cuentasBancarias.map((cuenta) => (
+                    <option key={cuenta.cb_codigo} value={cuenta.cb_codigo}>
+                      {cuenta.cb_descripcion}
+                    </option>
+                  ))}
+                </Select>
+              </Flex>
+              <Flex>
+                <FormLabel>Tarjeta:</FormLabel>
+                <Select
+                  value={tarjetaSeleccionada}
+                  onChange={(e) => {
+                    setTarjetaSeleccionada(Number(e.target.value));
+                  }}
+                >
+                  {tarjetas.map((tarjeta) => (
+                    <option key={tarjeta.t_codigo} value={tarjeta.t_codigo}>
+                      {tarjeta.t_descripcion}
+                    </option>
+                  ))}
+                </Select>
+              </Flex>
+              <Flex>
+                <FormLabel>Moneda:</FormLabel>
+                <Select
+                  value={monedaSeleccionada}
+                  onChange={(e) => {
+                    setMonedaSeleccionada(Number(e.target.value));
+                  }}
+                >
+                  {monedas.map((moneda) => (
+                    <option key={moneda.mo_codigo} value={moneda.mo_codigo}>
+                      {moneda.mo_descripcion}
+                    </option>
+                  ))}
+                </Select>
+              </Flex>
+              <Flex>
+                <FormLabel>Nro. Tarjeta:</FormLabel>
+                <Input
+                  value={numeroTarjeta}
+                  onChange={(e) => {
+                    setNumeroTarjeta(e.target.value);
+                  }}
+                />
+              </Flex>
+              <Flex>
+                <FormLabel>Nro. Autorización:</FormLabel>
+                <Input
+                  value={numeroActualizacion}
+                  onChange={(e) => {
+                    setNumeroActualizacion(e.target.value);
+                  }}
+                />
+              </Flex>
+              <Flex>
+                <FormLabel>Importe:</FormLabel>
+                <Input type="number" value={ventaSeleccionada?.total} />
+              </Flex>
+            </Box>
+          </ModalBody>
+          <ModalFooter>
+            <Button colorScheme="red" mr={3} onClick={onCobroModalClose}>
+              Cancelar
+            </Button>
+            <Button variant="solid" colorScheme="green">
+              Aceptar
             </Button>
           </ModalFooter>
         </ModalContent>

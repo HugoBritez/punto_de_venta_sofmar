@@ -5,19 +5,23 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Box, 
   Button, 
-  Container, 
   FormControl, 
-  Input, 
-  VStack, 
+  Input,  
   Heading, 
   Text, 
   InputGroup, 
   InputLeftElement,
-  useToast
+  useToast,
+  useMediaQuery,
+  Flex,
+  Image,
 } from '@chakra-ui/react';
 import { LockIcon, AtSignIcon } from '@chakra-ui/icons';
 import { api_url } from '@/utils';
 import Auditar from '@/services/AuditoriaHook';
+
+import logoSofmar from '@/assets/logos/logo_sofmar.png';
+import bgLogin from '@/assets/bg/login_bg.jpg';
 // import { traerConfiguraciones } from '@/services/ConfiguracionesHook';
 
 const Login: React.FC = () => {
@@ -28,6 +32,7 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
   const toast = useToast();
   const userID = parseInt(localStorage.getItem('user_id') || '0');
+  const [isMobile] = useMediaQuery('(max-width: 768px)');
 
   const ingresar = async () => {
     try {
@@ -56,12 +61,40 @@ const Login: React.FC = () => {
     }
   };
 
+
   return (
-    <Container maxW="md" centerContent>
-      <Box padding="8" bg="white" boxShadow="md" borderRadius="lg" width="100%" mt="20">
-        <VStack spacing="6">
-          <Heading size="lg">Iniciar Sesión</Heading>
-          <Text fontSize="sm" color="gray.500">Ingrese sus credenciales para acceder</Text>
+    <Box w={'100%'} h={'100vh'} alignItems={'center'} justifyContent={'center'} display={'flex'} bg={'gray.50'}>
+      <Flex
+        borderRadius={'md'}
+        boxShadow={'xs'}
+        w={isMobile ? '100%' : '50%'}
+        h={isMobile? '100%' : '70%'}
+        bg={'white'}
+        flexDir={isMobile ? 'column' : 'row'}
+      >
+        <Flex 
+          w={isMobile ? '100%' : '50%'} 
+          h={isMobile ? '40%' : '100%'}
+          bgImage={`url(${bgLogin})`} 
+          bgRepeat={'no-repeat'} 
+          bgPosition={isMobile? 'bottom' : 'center'}
+          backgroundSize="cover"
+        />
+
+        <Flex 
+          w={isMobile ? '100%' : '50%'}
+          h={isMobile ? '60%' : '100%'}
+          padding={isMobile ? 2 : 8} 
+          flexDir={'column'} 
+          justifyContent={'center'} 
+          alignItems={'center'}
+          gap={isMobile? 2 : 6}
+          borderTopLeftRadius={isMobile? 50 : 0}
+          borderTopRightRadius={isMobile? 50 : 0}
+        >
+          <Image src={logoSofmar} w={isMobile? '150px' : '250px'} />
+          <Heading size={isMobile ? 'lg' : 'xl'}>Iniciar Sesión</Heading>
+          <Text fontSize={isMobile? 'sm' : 'md'} color="gray.500">Ingrese sus credenciales para acceder</Text>
           <FormControl>
             <InputGroup>
               <InputLeftElement pointerEvents="none">
@@ -91,9 +124,14 @@ const Login: React.FC = () => {
           <Button colorScheme="blue" width="100%" onClick={ingresar}>
             Ingresar
           </Button>
-        </VStack>
-      </Box>
-    </Container>
+
+          <Box alignItems={'center'} textAlign={'center'} mt={4}>
+          <Text fontWeight={'bold'} fontSize={isMobile? 'xs' : 'md'} color={'gray.500'}>Celular: 0971 271 288</Text>
+          <Text fontWeight={'bold'} fontSize={isMobile? 'xs' : 'md'} color={'gray.500'}>E-Mail: administracion@sofmarsistema.net</Text>
+          </Box>
+        </Flex>
+      </Flex>
+    </Box>
   );
 };
 

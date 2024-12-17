@@ -106,14 +106,10 @@ const tasasDeCambio: { [key: string]: number } = {
   PYG: 1,
 };
 
-
-
 interface ItemEditado {
   ar_codigo: number;
   nombre_editado: string;
 }
-
-
 
 const saveItemsToLocalStorage = (items: any[]) => {
   localStorage.setItem("cartItems", JSON.stringify(items));
@@ -212,6 +208,9 @@ export default function Pedidos() {
   const [bonificacion, setBonificacion] = useState(0);
   const [activeModal, setActiveModal] = useState<ModalType>(null);
 
+  const operadorMovimiento = Number(
+    localStorage.getItem("operador_movimiento")
+  );
 
   useEffect(() => {
     // traerListaPrecios
@@ -298,7 +297,11 @@ export default function Pedidos() {
         return;
       }
       try {
-        const response = await axios.get(`${api_url}clientes`);
+        const response = await axios.get(
+          operadorMovimiento === 1
+            ? `${api_url}clientes?vendedor=${operadorActual}`
+            : `${api_url}clientes`
+        );
         setClientes(response.data.body);
       } catch (err) {
         if (err instanceof Error) {
@@ -579,7 +582,7 @@ export default function Pedidos() {
     const busqueda = e.target.value;
     setArticuloBusqueda(busqueda);
     debouncedFetchArticulos(busqueda);
-  }
+  };
 
   const debouncedFetchArticulos = debounce(async (busqueda: string) => {
     if (busqueda.length > 0) {
@@ -772,8 +775,8 @@ export default function Pedidos() {
       p_autorizar_a_contado: 0,
       p_zona: zona, //'0=ShoW R; 1=Encomienda; 2=Regional',
       p_acuerdo: 0, //
-      p_longitud: '',
-      p_latitud: '',
+      p_longitud: "",
+      p_latitud: "",
     },
     detalle_pedido: items.map((item) => {
       const itemSubtotal = item.precioUnitario * item.cantidad;
@@ -814,7 +817,7 @@ export default function Pedidos() {
         dp_articulo: item.id,
         dp_descipcion_art: item.nombre,
         dp_cantidad: item.cantidad,
-        dp_precio: bonificacion === 1? 0 : item.precioUnitario,
+        dp_precio: bonificacion === 1 ? 0 : item.precioUnitario,
         dp_descuento: itemDescuento,
         dp_exentas: deve_exentas,
         dp_cinco: deve_cinco,
@@ -1151,12 +1154,9 @@ export default function Pedidos() {
     setNumeroFactura("");
   };
 
-
-
-
   useEffect(() => {
-    console.log('estado del acuerdo con el cliente', acuerdoCliente)
-  }, [acuerdoCliente, clienteSeleccionado])
+    console.log("estado del acuerdo con el cliente", acuerdoCliente);
+  }, [acuerdoCliente, clienteSeleccionado]);
 
   const handleOpenOtherModal = (modalType: ModalType) => {
     setActiveModal(modalType);
@@ -1166,663 +1166,717 @@ export default function Pedidos() {
     setActiveModal(null);
   };
 
-
   return (
     <div>
       <ChakraProvider>
-      <Box bg={"gray.100"} h={"100vh"} w={"100%"} p={2}>
-        <Box
-          w="100%"
-          h={"100%"}
-          p={isMobile ? 2 : 4}
-          bg="white"
-          shadow="xl"
-          rounded="lg"
-          fontSize={"smaller"}
-          mb={16}
-        >
-          <Flex
-            bgGradient="linear(to-r, blue.500, blue.600)"
-            color="white"
-            p={isMobile ? 4 : 6}
-            alignItems="center"
-            rounded="lg"
+      <Box bg={"gray.100"} h={"100vh"} w={"100%"} p={2} shadow="xl" rounded="lg" overflowY={'auto'}>
+        <Box >
+          <Box
+            w="100%"
+            h={"100%"}
+            p={isMobile ? 2 : 4}
+            bg="white"
+            fontSize={"smaller"}
+            mb={16}
+            rounded={"lg"}
           >
-            <ShoppingCart size={24} className="mr-2" />
-            <Heading size={isMobile ? "sm" : "md"}>Registrar Pedido</Heading>
-          </Flex>
-          <Flex flexDirection={isMobile ? "column" : "row"}>
-            <Box p={isMobile ? 2 : 4}>
-              <Grid
-                templateColumns={isMobile ? "repeat(1, 1fr)" : "repeat(3, 1fr)"}
-                gap={3}
-                mb={4}
-              >
-                <Box>
-                  <FormLabel>Sucursal</FormLabel>
-                  <Select
-                    placeholder="Seleccionar sucursal"
-                    value={sucursal}
-                    onChange={(e) => setSucursal(e.target.value)}
-                  >
-                    {sucursales.map((sucursal) => (
-                      <option key={sucursal.id} value={sucursal.id.toString()}>
-                        {sucursal.descripcion}
-                      </option>
-                    ))}
-                  </Select>
-                </Box>
-                <Box>
-                  <FormLabel>Depósito</FormLabel>
-                  <Select
-                    placeholder="Seleccionar depósito"
-                    value={depositoId}
-                    onChange={handleDepositoChange}
-                  >
-                    {depositos.map((deposito) => (
-                      <option
-                        key={deposito.dep_codigo}
-                        value={deposito.dep_codigo.toString()}
-                      >
-                        {deposito.dep_descripcion}
-                      </option>
-                    ))}
-                  </Select>
-                </Box>
-                <Flex align={"end"} fill={"row"} justify={"space-between"}>
-
-                <Box>
-
-                  <FormLabel>Fecha</FormLabel>
-                  <Input
-                    type="date"
-                    value={fecha}
-                    onChange={(e) => setFecha(e.target.value)}
-                  />
-                </Box>
-                <Button
-                    colorScheme="blue"
-                    size="md"
-                    ml={2}
-                    onClick={() => handleOpenOtherModal("resumen")}
-                    width={"100%"}
-                    variant={"outline"}
-                  >
-                    <WalletCards />
-                    Consultar Ventas
-                  </Button>
+            <Flex
+              bgGradient="linear(to-r, blue.500, blue.600)"
+              color="white"
+              p={isMobile ? 4 : 6}
+              alignItems="center"
+              rounded="lg"
+            >
+              <ShoppingCart size={24} className="mr-2" />
+              <Heading size={isMobile ? "sm" : "md"}>Registrar Pedido</Heading>
+            </Flex>
+            <Flex flexDirection={isMobile ? "column" : "row"}>
+              <Box p={isMobile ? 2 : 4}>
+                <Grid
+                  templateColumns={
+                    isMobile ? "repeat(1, 1fr)" : "repeat(3, 1fr)"
+                  }
+                  gap={3}
+                  mb={4}
+                >
+                  <Box>
+                    <FormLabel>Sucursal</FormLabel>
+                    <Select
+                      placeholder="Seleccionar sucursal"
+                      value={sucursal}
+                      onChange={(e) => setSucursal(e.target.value)}
+                    >
+                      {sucursales.map((sucursal) => (
+                        <option
+                          key={sucursal.id}
+                          value={sucursal.id.toString()}
+                        >
+                          {sucursal.descripcion}
+                        </option>
+                      ))}
+                    </Select>
+                  </Box>
+                  <Box>
+                    <FormLabel>Depósito</FormLabel>
+                    <Select
+                      placeholder="Seleccionar depósito"
+                      value={depositoId}
+                      onChange={handleDepositoChange}
+                    >
+                      {depositos.map((deposito) => (
+                        <option
+                          key={deposito.dep_codigo}
+                          value={deposito.dep_codigo.toString()}
+                        >
+                          {deposito.dep_descripcion}
+                        </option>
+                      ))}
+                    </Select>
+                  </Box>
+                  <Flex align={"end"} fill={"row"} justify={"space-between"}>
+                    <Box>
+                      <FormLabel>Fecha</FormLabel>
+                      <Input
+                        type="date"
+                        value={fecha}
+                        onChange={(e) => setFecha(e.target.value)}
+                      />
+                    </Box>
+                    <Button
+                      colorScheme="blue"
+                      size="md"
+                      ml={2}
+                      onClick={() => handleOpenOtherModal("resumen")}
+                      width={"100%"}
+                      variant={"outline"}
+                    >
+                      <WalletCards />
+                      Consultar Ventas
+                    </Button>
                   </Flex>
-                <Flex gap={4}>
-                  <Box flexGrow={1}>
-                    <FormLabel>Moneda</FormLabel>
-                    <Select
-                      placeholder="Seleccionar moneda"
-                      value={moneda}
-                      onChange={(e) => setMoneda(e.target.value)}
-                    >
-                      <option value="USD">USD</option>
-                      <option value="PYG">PYG</option>
-                    </Select>
-                  </Box>
-                  <Box flexGrow={1}>
-                    <FormLabel>Lista de Precios</FormLabel>
-                    <Select
-                      placeholder="Seleccionar..."
-                      value={listaPrecio}
-                      onChange={(e) => setListaPrecio(e.target.value)}
-                    >
-                      {listaPrecios.map(
-                        (listaPrecio: {
-                          lp_codigo: React.Key | null | undefined;
-                          lp_descripcion:
-                            | string
-                            | number
-                            | boolean
-                            | React.ReactElement<
-                                any,
-                                string | React.JSXElementConstructor<any>
-                              >
-                            | Iterable<React.ReactNode>
-                            | React.ReactPortal
-                            | null
-                            | undefined;
-                        }) => (
-                          <option
-                            key={listaPrecio.lp_codigo}
-                            value={listaPrecio.lp_codigo?.toString()}
-                          >
-                            {listaPrecio.lp_descripcion}
-                          </option>
-                        )
-                      )}
-                    </Select>
-                  </Box>
-                </Flex>
-                <Box position={"relative"}>
-                  <FormLabel>Vendedor</FormLabel>
-                  <Input
-                    id="vendedor-search"
-                    placeholder="Buscar vendedor por código"
-                    value={buscarVendedor}
-                    onChange={handleBusquedaVendedor}
-                    onFocus={() => {
-                      if (vendedor) {
-                        setBuscarVendedor("");
-                        setRecomendacionesVendedores([]);
+                  <Flex gap={4}>
+                    <Box flexGrow={1}>
+                      <FormLabel>Moneda</FormLabel>
+                      <Select
+                        placeholder="Seleccionar moneda"
+                        value={moneda}
+                        onChange={(e) => setMoneda(e.target.value)}
+                      >
+                        <option value="USD">USD</option>
+                        <option value="PYG">PYG</option>
+                      </Select>
+                    </Box>
+                    <Box flexGrow={1}>
+                      <FormLabel>Lista de Precios</FormLabel>
+                      <Select
+                        placeholder="Seleccionar..."
+                        value={listaPrecio}
+                        onChange={(e) => setListaPrecio(e.target.value)}
+                      >
+                        {listaPrecios.map(
+                          (listaPrecio: {
+                            lp_codigo: React.Key | null | undefined;
+                            lp_descripcion:
+                              | string
+                              | number
+                              | boolean
+                              | React.ReactElement<
+                                  any,
+                                  string | React.JSXElementConstructor<any>
+                                >
+                              | Iterable<React.ReactNode>
+                              | React.ReactPortal
+                              | null
+                              | undefined;
+                          }) => (
+                            <option
+                              key={listaPrecio.lp_codigo}
+                              value={listaPrecio.lp_codigo?.toString()}
+                            >
+                              {listaPrecio.lp_descripcion}
+                            </option>
+                          )
+                        )}
+                      </Select>
+                    </Box>
+                  </Flex>
+                  <Box position={"relative"}>
+                    <FormLabel>Vendedor</FormLabel>
+                    <Input
+                      id="vendedor-search"
+                      placeholder="Buscar vendedor por código"
+                      value={buscarVendedor}
+                      onChange={handleBusquedaVendedor}
+                      onFocus={() => {
+                        if (vendedor) {
+                          setBuscarVendedor("");
+                          setRecomendacionesVendedores([]);
+                        }
+                      }}
+                      aria-autocomplete="list"
+                      aria-controls="vendedor-recommendations"
+                      ref={vendedorRef}
+                      onKeyDown={(e) =>
+                        handleEnterKey(e, clienteRef, selectFirstVendedor)
                       }
-                    }}
-                    aria-autocomplete="list"
-                    aria-controls="vendedor-recommendations"
-                    ref={vendedorRef}
-                    onKeyDown={(e) =>
-                      handleEnterKey(e, clienteRef, selectFirstVendedor)
-                    }
-                  />
-                  {vendedor && (
-                    <Text mt={2} fontWeight="bold" color="green.500">
-                      Vendedor seleccionado: {vendedor}
-                    </Text>
-                  )}
-                  {recomedacionesVendedores.length === 0 &&
-                    buscarVendedor.length > 0 &&
-                    !vendedor && (
-                      <Text color="red.500" mt={2}>
-                        No se encontró vendedor con ese código
+                    />
+                    {vendedor && (
+                      <Text mt={2} fontWeight="bold" color="green.500">
+                        Vendedor seleccionado: {vendedor}
                       </Text>
                     )}
-                  {recomedacionesVendedores.length > 0 && (
-                    <Box
-                      id="vendedor-recommendations"
-                      position="absolute"
-                      top="100%"
-                      left={0}
-                      right={0}
-                      zIndex={20}
-                      bg="white"
-                      boxShadow="md"
-                      borderRadius="md"
-                      mt={1}
-                      className="recomendaciones-menu"
-                      maxH="200px"
-                      overflowY="auto"
-                    >
-                      {recomedacionesVendedores.map((vendedor) => (
-                        <Box
-                          key={vendedor.op_codigo}
-                          p={2}
-                          _hover={{ bg: "gray.100" }}
-                          cursor="pointer"
-                          onClick={() => {
-                            setBuscarVendedor(vendedor.op_codigo);
-                            setVendedor(vendedor.op_nombre);
-                            setOperador(vendedor.op_codigo);
-                            setRecomendacionesVendedores([]);
-                          }}
-                        >
-                          <Text fontWeight="bold">{vendedor.op_nombre}</Text>
-                          <Text as="span" color="gray.500" fontSize="sm">
-                            Código: {vendedor.op_codigo}
-                          </Text>
-                        </Box>
-                      ))}
-                    </Box>
-                  )}
-                </Box>
-                <Box position="relative">
-                  <FormLabel htmlFor="cliente-search">Cliente</FormLabel>
-                  <Input
-                    id="cliente-search"
-                    placeholder="Buscar cliente por nombre o RUC"
-                    value={clienteBusqueda}
-                    onChange={handleBusquedaCliente}
-                    aria-autocomplete="list"
-                    aria-controls="cliente-recommendations"
-                    ref={clienteRef}
-                    onKeyDown={(e) =>
-                      handleEnterKey(e, articuloRef, selectFirstCliente)
-                    }
-                  />
-                  {clienteSeleccionado?.cli_acuerdo === 1 ? (
-                    <Box display={'flex'} gap={2} alignItems={'center'} mt={2}>
-                        <Checkbox isChecked={acuerdoCliente === 1} value={acuerdoCliente} onChange={() => setAcuerdoCliente(acuerdoCliente ? 0 : 1)}></Checkbox>
-                      <Text  fontWeight="bold" color="red.500">
-                        Cliente con acuerdo de crédito.
-                      </Text>
-                    </Box>
-                  ) : null}
-                  {recomendacionesClientes.length > 0 && (
-                    <Box
-                      id="cliente-recommendations"
-                      position="absolute"
-                      top="100%"
-                      left={0}
-                      right={0}
-                      zIndex={10}
-                      bg="white"
-                      boxShadow="md"
-                      borderRadius="md"
-                      mt={1}
-                      className="recomendaciones-menu"
-                      maxH="200px"
-                      overflowY="auto"
-                    >
-                      {recomendacionesClientes.map((cliente) => {
-                        const credit = Number(cliente.cli_limitecredito) || 0;
-                        const creditColor = getCreditColor(credit);
-
-                        return (
+                    {recomedacionesVendedores.length === 0 &&
+                      buscarVendedor.length > 0 &&
+                      !vendedor && (
+                        <Text color="red.500" mt={2}>
+                          No se encontró vendedor con ese código
+                        </Text>
+                      )}
+                    {recomedacionesVendedores.length > 0 && (
+                      <Box
+                        id="vendedor-recommendations"
+                        position="absolute"
+                        top="100%"
+                        left={0}
+                        right={0}
+                        zIndex={20}
+                        bg="white"
+                        boxShadow="md"
+                        borderRadius="md"
+                        mt={1}
+                        className="recomendaciones-menu"
+                        maxH="200px"
+                        overflowY="auto"
+                      >
+                        {recomedacionesVendedores.map((vendedor) => (
                           <Box
-                            key={cliente.cli_codigo}
+                            key={vendedor.op_codigo}
                             p={2}
                             _hover={{ bg: "gray.100" }}
                             cursor="pointer"
                             onClick={() => {
-                              setClienteBusqueda(cliente.cli_razon);
-                              setClienteSeleccionado(cliente);
-                              setRecomendacionesClientes([]);
+                              setBuscarVendedor(vendedor.op_codigo);
+                              setVendedor(vendedor.op_nombre);
+                              setOperador(vendedor.op_codigo);
+                              setRecomendacionesVendedores([]);
                             }}
                           >
-                            <Text fontWeight="bold">{cliente.cli_razon}</Text>
+                            <Text fontWeight="bold">{vendedor.op_nombre}</Text>
                             <Text as="span" color="gray.500" fontSize="sm">
-                              RUC: {cliente.cli_ruc}
-                            </Text>
-                            <Text
-                              as="span"
-                              color={creditColor}
-                              fontSize="sm"
-                              ml={2}
-                            >
-                              Línea de crédito: {formatCurrency(credit)}
+                              Código: {vendedor.op_codigo}
                             </Text>
                           </Box>
-                        );
-                      })}
-                    </Box>
-                  )}
-                </Box>
-              </Grid>
-              <Flex gap={4} mb={6} flexDirection={isMobile ? "column" : "row"}>
-                <Box position="relative" flexGrow={1}>
-                  <Input
-                    placeholder="Buscar artículo"
-                    value={articuloBusqueda}
-                    onChange={handleBusqueda}
-                    ref={articuloRef}
-                    onKeyDown={(e) =>
-                      handleEnterKey(e, cantidadRef, selectFirstArticulo)
-                    }
-                  />
-                  {recomendaciones.length > 0 && (
-                    <Box
-                      position={"absolute"}
-                      top={"100%"}
-                      left={0}
-                      zIndex={1}
-                      width={"100%"}
-                      bg={"white"}
-                      boxShadow={"md"}
-                      borderRadius={"md"}
-                      className="recomendaciones-menu"
-                      maxHeight={"600px"}
-                      overflowY={"auto"}
-                    >
-                      {recomendaciones.map((articulo) => (
-                        <Box
-                          key={articulo.ar_codigo}
-                          p={2}
-                          _hover={{ bg: "gray.100" }}
-                          onClick={() => {
-                            setArticuloBusqueda(articulo.ar_descripcion);
-                            setSelectedItem(articulo);
-                            setRecomendaciones([]);
-                          }}
-                        >
-                          <Flex>
-                            {articulo.ar_descripcion}
-                            <Minus />
-                            <Text as="span" color="gray.500" fontSize={"14px"}>
-                              Codigo: {articulo.ar_codbarra}
-                            </Text>
-                            <Minus />
-                            <Text as="span" color="red.500" fontSize={"14px"}>
-                              Precio Contado: {formatCurrency(articulo.ar_pvg)}
-                            </Text>
-                            <Minus />
-                            <Text as="span" color="red.500" fontSize={"14px"}>
-                              Precio Credito:{" "}
-                              {formatCurrency(articulo.ar_pvcredito)}
-                            </Text>
-                            <Minus />
-                            <Text as="span" color="red.500" fontSize={"14px"}>
-                              Precio Mostrador:{" "}
-                              {formatCurrency(articulo.ar_pvmostrador)}
-                            </Text>
-                            <Minus />
-                            <Text as="span" color="gray.500" fontSize={"14px"}>
-                              Stock {articulo.al_cantidad}
-                            </Text>
-                            <Minus />
-                            <Text as="span" color="gray.500" fontSize={"14px"}>
-                              Vencimiento:{" "}
-                              {articulo.al_vencimiento.substring(0, 10)}
-                            </Text>
-                            {/*que enter cambie los inputs, y agregar cierre de sesion resaltar color del articulo agregar mas recomendaciones*/}
-                          </Flex>
-                          {/*/condicionar vencimiento*/}
-                        </Box>
-                      ))}
-                    </Box>
-                  )}
-                </Box>
-                <Flex gap={4}>
-                <Input
-                  type="number"
-                  placeholder="Cantidad"
-                  value={cantidad}
-                  onChange={(e) => setCantidad(parseInt(e.target.value))}
-                  width={"60px"}
-                  min={1}
-                  ref={cantidadRef}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      agregarItem();
-                      articuloRef.current?.focus();
-                    }
-                  }}
-                />
-                <Checkbox
-                  isChecked={buscarSoloConStock}
-                  onChange={handleStockCheckboxChange}
-                >
-                  En stock
-                </Checkbox>
-                <Select w={'80px'}  defaultValue={'0'} color={'black'} variant={'filled'} onChange={(e)=>{
-                  setBonificacion(parseInt(e.target.value))
-                }}>
-                  <option value={'0'}>V</option>
-                  <option value={'1'}>B</option>
-                </Select>
-                <Button
-                  colorScheme="green"
-                  onClick={agregarItem}
-                  flexGrow={1}
-                >
-                  +
-                </Button>
-                </Flex>
-              </Flex>
-              <Box
-                overflowX={"auto"}
-                height={"300px"}
-                width={isMobile ? "100%" : "1400px"}
-              >
-                <Table variant="striped" size={"sm"}>
-                  <Thead position="sticky" top={0} bg="white" zIndex={0}>
-                    <Tr>
-                      <Th>Código</Th>
-                      <Th>Nombre</Th>
-                      <Th isNumeric>Precio Unitario</Th>
-                      <Th isNumeric>Cantidad</Th>
-                      <Th isNumeric>Descuento (%)</Th>
-                      <Th isNumeric>Exentas</Th>
-                      <Th isNumeric>5%</Th>
-                      <Th isNumeric>10%</Th>
-                      <Th isNumeric>Subtotal</Th>
-                    </Tr>
-                  </Thead>
-                  <Tbody>
-                    {items.map((item, index) => (
-                      <Tr key={index}>
-                        <Td>{item.id}</Td>
-                        <Td>
-                          {item.editarDescripcion === 0 ? (
-                            item.nombre
-                          ) : (
-                            <Input
-                              value={item.nombre}
-                              type="text"
-                              bg={"white"}
-                              onChange={(e) => {
-                                actualizarDescripcionArticulo(
-                                  index,
-                                  e.target.value
-                                );
+                        ))}
+                      </Box>
+                    )}
+                  </Box>
+                  <Box position="relative">
+                    <FormLabel htmlFor="cliente-search">Cliente</FormLabel>
+                    <Input
+                      id="cliente-search"
+                      placeholder="Buscar cliente por nombre o RUC"
+                      value={clienteBusqueda}
+                      onChange={handleBusquedaCliente}
+                      aria-autocomplete="list"
+                      aria-controls="cliente-recommendations"
+                      ref={clienteRef}
+                      onKeyDown={(e) =>
+                        handleEnterKey(e, articuloRef, selectFirstCliente)
+                      }
+                    />
+                    {clienteSeleccionado?.cli_acuerdo === 1 ? (
+                      <Box
+                        display={"flex"}
+                        gap={2}
+                        alignItems={"center"}
+                        mt={2}
+                      >
+                        <Checkbox
+                          isChecked={acuerdoCliente === 1}
+                          value={acuerdoCliente}
+                          onChange={() =>
+                            setAcuerdoCliente(acuerdoCliente ? 0 : 1)
+                          }
+                        ></Checkbox>
+                        <Text fontWeight="bold" color="red.500">
+                          Cliente con acuerdo de crédito.
+                        </Text>
+                      </Box>
+                    ) : null}
+                    {recomendacionesClientes.length > 0 && (
+                      <Box
+                        id="cliente-recommendations"
+                        position="absolute"
+                        top="100%"
+                        left={0}
+                        right={0}
+                        zIndex={10}
+                        bg="white"
+                        boxShadow="md"
+                        borderRadius="md"
+                        mt={1}
+                        className="recomendaciones-menu"
+                        maxH="200px"
+                        overflowY="auto"
+                      >
+                        {recomendacionesClientes.map((cliente) => {
+                          const credit = Number(cliente.cli_limitecredito) || 0;
+                          const creditColor = getCreditColor(credit);
+
+                          return (
+                            <Box
+                              key={cliente.cli_codigo}
+                              p={2}
+                              _hover={{ bg: "gray.100" }}
+                              cursor="pointer"
+                              onClick={() => {
+                                setClienteBusqueda(cliente.cli_razon);
+                                setClienteSeleccionado(cliente);
+                                setRecomendacionesClientes([]);
                               }}
-                            ></Input>
-                          )}
-                        </Td>
-                        <Td isNumeric>
-                          <NumberInput
-                            value={item.precioUnitario}
-                            bg={"white"}
-                            min={0}
-                            step={1000}
-                            w={32}
-                            precision={2}
-                            onChange={(valueString) =>
-                              actualizarPrecioUnitario(
-                                index,
-                                parseFloat(valueString)
-                              )
-                            }
+                            >
+                              <Text fontWeight="bold">{cliente.cli_razon}</Text>
+                              <Text as="span" color="gray.500" fontSize="sm">
+                                RUC: {cliente.cli_ruc}
+                              </Text>
+                              <Text
+                                as="span"
+                                color={creditColor}
+                                fontSize="sm"
+                                ml={2}
+                              >
+                                Línea de crédito: {formatCurrency(credit)}
+                              </Text>
+                            </Box>
+                          );
+                        })}
+                      </Box>
+                    )}
+                  </Box>
+                </Grid>
+                <Flex
+                  gap={4}
+                  mb={6}
+                  flexDirection={isMobile ? "column" : "row"}
+                >
+                  <Box position="relative" flexGrow={1}>
+                    <Input
+                      placeholder="Buscar artículo"
+                      value={articuloBusqueda}
+                      onChange={handleBusqueda}
+                      ref={articuloRef}
+                      onKeyDown={(e) =>
+                        handleEnterKey(e, cantidadRef, selectFirstArticulo)
+                      }
+                    />
+                    {recomendaciones.length > 0 && (
+                      <Box
+                        position={"absolute"}
+                        top={"100%"}
+                        left={0}
+                        zIndex={1}
+                        width={"100%"}
+                        bg={"white"}
+                        boxShadow={"md"}
+                        borderRadius={"md"}
+                        className="recomendaciones-menu"
+                        maxHeight={"600px"}
+                        overflowY={"auto"}
+                      >
+                        {recomendaciones.map((articulo) => (
+                          <Box
+                            key={articulo.ar_codigo}
+                            p={2}
+                            _hover={{ bg: "gray.100" }}
+                            onClick={() => {
+                              setArticuloBusqueda(articulo.ar_descripcion);
+                              setSelectedItem(articulo);
+                              setRecomendaciones([]);
+                            }}
                           >
-                            <NumberInputField />
-                            <NumberInputStepper>
-                              <NumberIncrementStepper />
-                              <NumberDecrementStepper />
-                            </NumberInputStepper>
-                          </NumberInput>
-                        </Td>
-                        <Td isNumeric>
-                          <NumberInput
-                            value={item.cantidad}
-                            bg={"white"}
-                            min={1}
-                            max={1000}
-                            w={20}
-                            onChange={(valueString) =>
-                              actualizarCantidadItem(
-                                index,
-                                parseInt(valueString)
-                              )
-                            }
-                          >
-                            <NumberInputField />
-                            <NumberInputStepper>
-                              <NumberIncrementStepper />
-                              <NumberDecrementStepper />
-                            </NumberInputStepper>
-                          </NumberInput>
-                        </Td>
-                        <Td isNumeric>
-                          <NumberInput
-                            value={item.descuentoIndividual}
-                            bg={"white"}
-                            min={0}
-                            max={100}
-                            w={20}
-                            onChange={(valueString) =>
-                              actualizarDescuentoIndividual(
-                                index,
-                                parseFloat(valueString)
-                              )
-                            }
-                          >
-                            <NumberInputField />
-                            <NumberInputStepper>
-                              <NumberIncrementStepper />
-                              <NumberDecrementStepper />
-                            </NumberInputStepper>
-                          </NumberInput>
-                        </Td>
-                        <Td isNumeric>
-                          {formatCurrency(
-                            actualizarMoneda(item.exentas) *
-                              item.cantidad *
-                              (1 - item.descuentoIndividual / 100)
-                          )}
-                        </Td>
-                        <Td isNumeric>
-                          {formatCurrency(
-                            actualizarMoneda(item.impuesto5) *
-                              item.cantidad *
-                              (1 - item.descuentoIndividual / 100)
-                          )}
-                        </Td>
-                        <Td isNumeric>
-                          {formatCurrency(
-                            actualizarMoneda(item.impuesto10) *
-                              item.cantidad *
-                              (1 - item.descuentoIndividual / 100)
-                          )}
-                        </Td>
-                        <Td isNumeric>
-                          {formatCurrency(
-                            item.subtotal * (1 - item.descuentoIndividual / 100)
-                          )}
-                        </Td>
-                        <Td>
-                          <Button
-                            size="xs"
-                            colorScheme="red"
-                            onClick={() => eliminarItem(index)}
-                          >
-                            x
-                          </Button>
-                        </Td>
+                            <Flex>
+                              {articulo.ar_descripcion}
+                              <Minus />
+                              <Text
+                                as="span"
+                                color="gray.500"
+                                fontSize={"14px"}
+                              >
+                                Codigo: {articulo.ar_codbarra}
+                              </Text>
+                              <Minus />
+                              <Text as="span" color="red.500" fontSize={"14px"}>
+                                Precio Contado:{" "}
+                                {formatCurrency(articulo.ar_pvg)}
+                              </Text>
+                              <Minus />
+                              <Text as="span" color="red.500" fontSize={"14px"}>
+                                Precio Credito:{" "}
+                                {formatCurrency(articulo.ar_pvcredito)}
+                              </Text>
+                              <Minus />
+                              <Text as="span" color="red.500" fontSize={"14px"}>
+                                Precio Mostrador:{" "}
+                                {formatCurrency(articulo.ar_pvmostrador)}
+                              </Text>
+                              <Minus />
+                              <Text
+                                as="span"
+                                color="gray.500"
+                                fontSize={"14px"}
+                              >
+                                Stock {articulo.al_cantidad}
+                              </Text>
+                              <Minus />
+                              <Text
+                                as="span"
+                                color="gray.500"
+                                fontSize={"14px"}
+                              >
+                                Vencimiento:{" "}
+                                {articulo.al_vencimiento.substring(0, 10)}
+                              </Text>
+                              {/*que enter cambie los inputs, y agregar cierre de sesion resaltar color del articulo agregar mas recomendaciones*/}
+                            </Flex>
+                            {/*/condicionar vencimiento*/}
+                          </Box>
+                        ))}
+                      </Box>
+                    )}
+                  </Box>
+                  <Flex gap={4}>
+                    <Input
+                      type="number"
+                      placeholder="Cantidad"
+                      value={cantidad}
+                      onChange={(e) => setCantidad(parseInt(e.target.value))}
+                      width={"60px"}
+                      min={1}
+                      ref={cantidadRef}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          agregarItem();
+                          articuloRef.current?.focus();
+                        }
+                      }}
+                    />
+                    <Checkbox
+                      isChecked={buscarSoloConStock}
+                      onChange={handleStockCheckboxChange}
+                    >
+                      En stock
+                    </Checkbox>
+                    <Select
+                      w={"80px"}
+                      defaultValue={"0"}
+                      color={"black"}
+                      variant={"filled"}
+                      onChange={(e) => {
+                        setBonificacion(parseInt(e.target.value));
+                      }}
+                    >
+                      <option value={"0"}>V</option>
+                      <option value={"1"}>B</option>
+                    </Select>
+                    <Button
+                      colorScheme="green"
+                      onClick={agregarItem}
+                      flexGrow={1}
+                    >
+                      +
+                    </Button>
+                  </Flex>
+                </Flex>
+                <Box
+                  overflowX={"auto"}
+                  height={"300px"}
+                  width={isMobile ? "100%" : "1400px"}
+                >
+                  <Table variant="striped" size={"sm"}>
+                    <Thead position="sticky" top={0} bg="white" zIndex={0}>
+                      <Tr>
+                        <Th>Código</Th>
+                        <Th>Nombre</Th>
+                        <Th isNumeric>Precio Unitario</Th>
+                        <Th isNumeric>Cantidad</Th>
+                        <Th isNumeric>Descuento (%)</Th>
+                        <Th isNumeric>Exentas</Th>
+                        <Th isNumeric>5%</Th>
+                        <Th isNumeric>10%</Th>
+                        <Th isNumeric>Subtotal</Th>
                       </Tr>
-                    ))}
-                  </Tbody>
-                </Table>
+                    </Thead>
+                    <Tbody>
+                      {items.map((item, index) => (
+                        <Tr key={index}>
+                          <Td>{item.id}</Td>
+                          <Td>
+                            {item.editarDescripcion === 0 ? (
+                              item.nombre
+                            ) : (
+                              <Input
+                                value={item.nombre}
+                                type="text"
+                                bg={"white"}
+                                onChange={(e) => {
+                                  actualizarDescripcionArticulo(
+                                    index,
+                                    e.target.value
+                                  );
+                                }}
+                              ></Input>
+                            )}
+                          </Td>
+                          <Td isNumeric>
+                            <NumberInput
+                              value={item.precioUnitario}
+                              bg={"white"}
+                              min={0}
+                              step={1000}
+                              w={32}
+                              precision={2}
+                              onChange={(valueString) =>
+                                actualizarPrecioUnitario(
+                                  index,
+                                  parseFloat(valueString)
+                                )
+                              }
+                            >
+                              <NumberInputField />
+                              <NumberInputStepper>
+                                <NumberIncrementStepper />
+                                <NumberDecrementStepper />
+                              </NumberInputStepper>
+                            </NumberInput>
+                          </Td>
+                          <Td isNumeric>
+                            <NumberInput
+                              value={item.cantidad}
+                              bg={"white"}
+                              min={1}
+                              max={1000}
+                              w={20}
+                              onChange={(valueString) =>
+                                actualizarCantidadItem(
+                                  index,
+                                  parseInt(valueString)
+                                )
+                              }
+                            >
+                              <NumberInputField />
+                              <NumberInputStepper>
+                                <NumberIncrementStepper />
+                                <NumberDecrementStepper />
+                              </NumberInputStepper>
+                            </NumberInput>
+                          </Td>
+                          <Td isNumeric>
+                            <NumberInput
+                              value={item.descuentoIndividual}
+                              bg={"white"}
+                              min={0}
+                              max={100}
+                              w={20}
+                              onChange={(valueString) =>
+                                actualizarDescuentoIndividual(
+                                  index,
+                                  parseFloat(valueString)
+                                )
+                              }
+                            >
+                              <NumberInputField />
+                              <NumberInputStepper>
+                                <NumberIncrementStepper />
+                                <NumberDecrementStepper />
+                              </NumberInputStepper>
+                            </NumberInput>
+                          </Td>
+                          <Td isNumeric>
+                            {formatCurrency(
+                              actualizarMoneda(item.exentas) *
+                                item.cantidad *
+                                (1 - item.descuentoIndividual / 100)
+                            )}
+                          </Td>
+                          <Td isNumeric>
+                            {formatCurrency(
+                              actualizarMoneda(item.impuesto5) *
+                                item.cantidad *
+                                (1 - item.descuentoIndividual / 100)
+                            )}
+                          </Td>
+                          <Td isNumeric>
+                            {formatCurrency(
+                              actualizarMoneda(item.impuesto10) *
+                                item.cantidad *
+                                (1 - item.descuentoIndividual / 100)
+                            )}
+                          </Td>
+                          <Td isNumeric>
+                            {formatCurrency(
+                              item.subtotal *
+                                (1 - item.descuentoIndividual / 100)
+                            )}
+                          </Td>
+                          <Td>
+                            <Button
+                              size="xs"
+                              colorScheme="red"
+                              onClick={() => eliminarItem(index)}
+                            >
+                              x
+                            </Button>
+                          </Td>
+                        </Tr>
+                      ))}
+                    </Tbody>
+                  </Table>
+                </Box>
               </Box>
-            </Box>
-            <Flex
-              p={isMobile ? 2 : 4}
-              rounded="lg"
-              flexDirection={"column"}
-              gap={4}
-            >
-              <Flex justifyContent={"space-between"} gap={4} flexDir={"column"}>
-                <Box p={2}>
-                  <RadioGroup
-                    colorScheme="green"
-                    defaultValue="0"
-                    onChange={(value) => setZona(Number(value))}
-                  >
-                    <Stack spacing={[1, 5]} direction={"row"}>
-                      <Radio value="0">Show Room</Radio>
-                      <Radio value="1">Encomienda</Radio>
-                      <Radio value="2">N. Nacional</Radio>
-                    </Stack>
-                  </RadioGroup>
-                </Box>
-                <Box p={2}>
-                  <RadioGroup
-                    colorScheme="blue"
-                    defaultValue="0"
-                    onChange={(value) => setTipo(Number(value))}
-                  >
-                    <Stack spacing={[1, 5]} direction={"row"}>
-                      <Radio value="0">Vendedor</Radio>
-                      <Radio value="1">Telefono</Radio>
-                      <Radio value="2">Facebook</Radio>
-                    </Stack>
-                  </RadioGroup>
-                </Box>
-              </Flex>
-
               <Flex
-                gap={2}
-                flexDirection={isMobile ? "row" : "column"}
-                alignItems={"center"}
+                p={isMobile ? 2 : 4}
+                rounded="lg"
+                flexDirection={"column"}
+                gap={4}
               >
-                <Text fontSize="md" fontWeight={"semibold"}>
-                  Descuento
-                </Text>
-                <Flex>
-                  <Select
-                    value={descuentoTipo}
-                    onChange={(e) => {
-                      setDescuentoTipo(
-                        e.target.value as "porcentaje" | "valor"
-                      );
-                      setDescuentoValor(0);
-                    }}
-                    width={"150px"}
-                  >
-                    <option value="porcentaje">Porcentaje</option>
-                    <option value="monto">Monto</option>
-                  </Select>
-                  <Input
-                    type="number"
-                    placeholder="Descuento"
-                    value={descuentoValor}
-                    onChange={(e) =>
-                      setDescuentoValor(parseInt(e.target.value))
-                    }
-                    width={"90px"}
-                    ml={2}
-                  />
+                <Flex
+                  justifyContent={"space-between"}
+                  gap={4}
+                  flexDir={"column"}
+                >
+                  <Box p={2}>
+                    <RadioGroup
+                      colorScheme="green"
+                      defaultValue="0"
+                      onChange={(value) => setZona(Number(value))}
+                    >
+                      <Stack spacing={[1, 5]} direction={"row"}>
+                        <Radio value="0">Show Room</Radio>
+                        <Radio value="1">Encomienda</Radio>
+                        <Radio value="2">N. Nacional</Radio>
+                      </Stack>
+                    </RadioGroup>
+                  </Box>
+                  <Box p={2}>
+                    <RadioGroup
+                      colorScheme="blue"
+                      defaultValue="0"
+                      onChange={(value) => setTipo(Number(value))}
+                    >
+                      <Stack spacing={[1, 5]} direction={"row"}>
+                        <Radio value="0">Vendedor</Radio>
+                        <Radio value="1">Telefono</Radio>
+                        <Radio value="2">Facebook</Radio>
+                      </Stack>
+                    </RadioGroup>
+                  </Box>
                 </Flex>
-              </Flex>
 
-              <Box pt={2}>
-                <Text fontSize="sm" fontWeight="bold">
-                  Total Exentas: {formatCurrency(calcularTotalExcentas())}
-                </Text>
-                <Divider borderWidth={"2px"} borderColor={"blue.500"} my={1} />
-                <Text fontSize="sm" fontWeight="bold">
-                  Total IVA 5%: {formatCurrency(calcularTotal5())}
-                </Text>
-                <Divider borderWidth={"2px"} borderColor={"blue.500"} my={1} />
-                <Text fontSize="sm" fontWeight="bold">
-                  Total IVA 10%: {formatCurrency(calcularTotal10())}
-                </Text>
-                <Divider borderWidth={"2px"} borderColor={"blue.500"} my={1} />
-                <Text fontSize="md" fontWeight="bold">
-                  Total Impuestos: {formatCurrency(calcularTotalImpuestos())}
-                </Text>
-              </Box>
-              <Box textAlign={"right"} mt={isMobile ? 2 : 0}>
-                <Text fontSize="lg" fontWeight="bold">
-                  Subtotal:{" "}
-                  {formatCurrency(
-                    items.reduce((acc, item) => acc + item.subtotal, 0)
-                  )}
-                </Text>
-                <Text fontSize="lg" fontWeight="bold">
-                  Descuento General:{" "}
-                  {descuentoTipo === "porcentaje"
-                    ? `${descuentoValor}%`
-                    : formatCurrency(descuentoValor * tasasDeCambio[moneda])}
-                </Text>
-                <Text fontSize="lg" fontWeight="bold">
-                  Total Neto: {formatCurrency(calcularTotal())}
-                </Text>
-                <Flex gap={4}>
-                  <Button
-                    colorScheme="red"
-                    mt={4}
-                    width={isMobile ? "full" : "auto"}
-                    onClick={cancelarVenta}
-                  >
-                    Cancelar Pedido
-                  </Button>
-                  <Button
-                    colorScheme="blue"
-                    mt={4}
-                    width={isMobile ? "full" : "auto"}
-                    onClick={handleOpenFinalizarVentaModal}
-                  >
-                    Guardar Pedido
-                  </Button>
+                <Flex
+                  gap={2}
+                  flexDirection={isMobile ? "row" : "column"}
+                  alignItems={"center"}
+                >
+                  <Text fontSize="md" fontWeight={"semibold"}>
+                    Descuento
+                  </Text>
+                  <Flex>
+                    <Select
+                      value={descuentoTipo}
+                      onChange={(e) => {
+                        setDescuentoTipo(
+                          e.target.value as "porcentaje" | "valor"
+                        );
+                        setDescuentoValor(0);
+                      }}
+                      width={"150px"}
+                    >
+                      <option value="porcentaje">Porcentaje</option>
+                      <option value="monto">Monto</option>
+                    </Select>
+                    <Input
+                      type="number"
+                      placeholder="Descuento"
+                      value={descuentoValor}
+                      onChange={(e) =>
+                        setDescuentoValor(parseInt(e.target.value))
+                      }
+                      width={"90px"}
+                      ml={2}
+                    />
+                  </Flex>
                 </Flex>
-              </Box>
+
+                <Box pt={2}>
+                  <Text fontSize="sm" fontWeight="bold">
+                    Total Exentas: {formatCurrency(calcularTotalExcentas())}
+                  </Text>
+                  <Divider
+                    borderWidth={"2px"}
+                    borderColor={"blue.500"}
+                    my={1}
+                  />
+                  <Text fontSize="sm" fontWeight="bold">
+                    Total IVA 5%: {formatCurrency(calcularTotal5())}
+                  </Text>
+                  <Divider
+                    borderWidth={"2px"}
+                    borderColor={"blue.500"}
+                    my={1}
+                  />
+                  <Text fontSize="sm" fontWeight="bold">
+                    Total IVA 10%: {formatCurrency(calcularTotal10())}
+                  </Text>
+                  <Divider
+                    borderWidth={"2px"}
+                    borderColor={"blue.500"}
+                    my={1}
+                  />
+                  <Text fontSize="md" fontWeight="bold">
+                    Total Impuestos: {formatCurrency(calcularTotalImpuestos())}
+                  </Text>
+                </Box>
+                <Box textAlign={"right"} mt={isMobile ? 2 : 0}>
+                  <Text fontSize="lg" fontWeight="bold">
+                    Subtotal:{" "}
+                    {formatCurrency(
+                      items.reduce((acc, item) => acc + item.subtotal, 0)
+                    )}
+                  </Text>
+                  <Text fontSize="lg" fontWeight="bold">
+                    Descuento General:{" "}
+                    {descuentoTipo === "porcentaje"
+                      ? `${descuentoValor}%`
+                      : formatCurrency(descuentoValor * tasasDeCambio[moneda])}
+                  </Text>
+                  <Text fontSize="lg" fontWeight="bold">
+                    Total Neto: {formatCurrency(calcularTotal())}
+                  </Text>
+                  <Flex gap={4}>
+                    <Button
+                      colorScheme="red"
+                      mt={4}
+                      width={isMobile ? "full" : "auto"}
+                      onClick={cancelarVenta}
+                    >
+                      Cancelar Pedido
+                    </Button>
+                    <Button
+                      colorScheme="blue"
+                      mt={4}
+                      width={isMobile ? "full" : "auto"}
+                      onClick={handleOpenFinalizarVentaModal}
+                    >
+                      Guardar Pedido
+                    </Button>
+                  </Flex>
+                </Box>
+              </Flex>
             </Flex>
-          </Flex>
+          </Box>
         </Box>
-      </Box>
+        </Box>
         <VentaModal
           isOpen={isModalOpen}
           onClose={handleCloseModal}
@@ -2014,9 +2068,9 @@ export default function Pedidos() {
                         alignItems={"center"}
                         flexDir={"row-reverse"}
                       >
-                        <Checkbox 
-                          value={consignacion} 
-                          onChange={() => setConsignacion(consignacion ? 0 : 1)} 
+                        <Checkbox
+                          value={consignacion}
+                          onChange={() => setConsignacion(consignacion ? 0 : 1)}
                           fontWeight={"bold"}
                         >
                           A consignación
@@ -2047,7 +2101,8 @@ export default function Pedidos() {
                       <Text
                         color={getCreditColor(
                           clienteSeleccionado?.cli_limitecredito || 0
-                        )} fontWeight={'bold'}
+                        )}
+                        fontWeight={"bold"}
                       >
                         {formatCurrency(
                           clienteSeleccionado?.cli_limitecredito || 0
@@ -2063,8 +2118,10 @@ export default function Pedidos() {
                     <Box>
                       <Text fontWeight={"bold"}>Saldo restante:</Text>
                       <Text fontWeight={"bold"} color={"gray.500"}>
-                        {formatCurrency((clienteSeleccionado?.cli_limitecredito ?? 0) -
-                          entregaInicial)}
+                        {formatCurrency(
+                          (clienteSeleccionado?.cli_limitecredito ?? 0) -
+                            entregaInicial
+                        )}
                       </Text>
                     </Box>
                   </Flex>

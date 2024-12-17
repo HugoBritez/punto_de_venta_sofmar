@@ -1,193 +1,104 @@
-"use client";
-
-import { useState, useEffect, useMemo } from "react";
-import axios from "axios";
 import {
   Box,
-  VStack,
-  Heading,
-  useToast,
-  Tabs,
-  TabList,
-  Tab,
   Flex,
+  Heading,
   useMediaQuery,
   Text,
-  HStack,
   Select,
 } from "@chakra-ui/react";
-import {
-  format,
-  subDays,
-  startOfWeek,
-  startOfMonth,
-  startOfYear,
-  endOfYear,
-} from "date-fns";
-import { api_url } from "@/utils";
-import { ChartLine, HandCoins } from "lucide-react";
+
+import fondoDashboardResponsive from "@/assets/bg/fondodashboardResponsive.png";
+import fondoDashboard from "@/assets/bg/fondodashboard.png";
 import {
   Area,
   AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
-
-import fondoDashboardResponsive from '@/assets/bg/fondodashboardResponsive.png';
-import fondoDashboard from '@/assets/bg/fondodashboard.png';
-
-interface Venta {
-  codigo: number;
-  codcliente: number;
-  cliente: string;
-  moneda: string;
-  fecha: string;
-  codsucursal: number;
-  sucursal: string;
-  vendedor: string;
-  operador: string;
-  total: string;
-  descuento: number;
-  saldo: number;
-  condicion: string;
-  vencimiento: string;
-  factura: string;
-  obs: string;
-  estado: number;
-  estado_desc: string;
-}
-
-const periodos = [
-  { label: "Hoy", value: "hoy" },
-  { label: "Ayer", value: "ayer" },
-  { label: "Últimos 3 Días", value: "tresDias" },
-  { label: "Esta Semana", value: "semana" },
-  { label: "Este Mes", value: "mes" },
-  { label: "Anual", value: "ano" },
-];
+import axios from "axios";
+import { api_url } from "@/utils";
+import { useEffect, useState } from "react";
+import { ChartNoAxesCombined } from "lucide-react";
 
 export default function VentasChart() {
-  const [ventas, setVentas] = useState<Venta[]>([]);
-  const [fechaDesde, setFechaDesde] = useState(
-    format(new Date(), "yyyy-MM-dd")
-  );
-  const [fechaHasta, setFechaHasta] = useState(
-    format(new Date(), "yyyy-MM-dd")
-  );
-  const [periodoSeleccionado, setPeriodoSeleccionado] = useState(0);
-  const [, setIsLoading] = useState(false);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const toast = useToast();
   const [isMobile] = useMediaQuery("(max-width: 48em)");
   const verGrafico = localStorage.getItem("permiso_graficos") === "1";
+  const [tipo, setTipo] = useState("hoy");
+  const [ventasData, setVentasData] = useState([]);
+  const [totalVentas, setTotalVentas] = useState("");
+  const [cantidadVentas, setCantidadVentas] = useState(0);
+  const [cantidadProductosVendidos, setCantidadProductosVendidos] =
+    useState("");
+
+  const traerVentas = async () => {
+    try {
+      const response = await axios.get(`${api_url}venta/ventas-data`, {
+        params: {
+          tipo,
+        },
+      });
+      console.log(response.data.body);
+
+      // Convertir total_ventas a número
+      const datosFormateados = response.data.body.map((item: any) => ({
+        ...item,
+        total_ventas: parseFloat(item.total_ventas),
+      }));
+      setVentasData(datosFormateados);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const fetchTotalVentas = async () => {
+    try {
+      const response = await axios.get(`${api_url}venta/total-ventas`, {
+        params: {
+          tipo,
+        },
+      });
+      console.log(response.data.body);
+      setTotalVentas(response.data.body[0].total_ventas);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const fetchCantidadVentas = async () => {
+    try {
+      const response = await axios.get(`${api_url}venta/contar-ventas`, {
+        params: {
+          tipo,
+        },
+      });
+      console.log(response.data.body);
+      setCantidadVentas(response.data.body[0].cantidad_ventas);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const fetchCantidadArticulos = async () => {
+    try {
+      const response = await axios.get(`${api_url}venta/contar-articulos`, {
+        params: {
+          tipo,
+        },
+      });
+      console.log(response.data.body);
+      setCantidadProductosVendidos(response.data.body[0].cantidad_articulos);
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   useEffect(() => {
-    fetchVentas();
-  }, [fechaDesde, fechaHasta]);
-
-  const fetchVentas = async () => {
-    setIsLoading(true);
-    try {
-      const response = await axios.post(`${api_url}venta/consultas`, {
-        fecha_desde: fechaDesde,
-        fecha_hasta: fechaHasta,
-        sucursal: "",
-        cliente: "",
-        vendedor: "",
-        articulo: "",
-        moneda: "",
-        factura: "",
-      });
-      setVentas(response.data.body);
-    } catch (error) {
-      toast({
-        title: "Error al cargar las ventas",
-        description: "Por favor, intenta de nuevo más tarde",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handlePeriodoChange = (index: number) => {
-    setPeriodoSeleccionado(index);
-    const hoy = new Date();
-    let nuevaFechaDesde = hoy;
-
-    switch (periodos[index].value) {
-      case "hoy":
-        nuevaFechaDesde = hoy;
-        break;
-      case "ayer":
-        nuevaFechaDesde = subDays(hoy, 1);
-        break;
-      case "tresDias":
-        nuevaFechaDesde = subDays(hoy, 2);
-        break;
-      case "semana":
-        nuevaFechaDesde = startOfWeek(hoy);
-        break;
-      case "mes":
-        nuevaFechaDesde = startOfMonth(hoy);
-        break;
-      case "ano":
-        nuevaFechaDesde = startOfYear(new Date(selectedYear, 0, 1));
-        setFechaHasta(
-          format(endOfYear(new Date(selectedYear, 0, 1)), "yyyy-MM-dd")
-        );
-        return;
-    }
-
-    setFechaDesde(format(nuevaFechaDesde, "yyyy-MM-dd"));
-    setFechaHasta(format(hoy, "yyyy-MM-dd"));
-  };
-
-  const handleYearChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const year = parseInt(event.target.value);
-    setSelectedYear(year);
-    setFechaDesde(format(startOfYear(new Date(year, 0, 1)), "yyyy-MM-dd"));
-    setFechaHasta(format(endOfYear(new Date(year, 0, 1)), "yyyy-MM-dd"));
-  };
-
-  const formatNumber = (value: number) => {
-    return value.toLocaleString("es-ES", { minimumFractionDigits: 0 });
-  };
-
-  const sumaTotalVentas = useMemo(() => {
-    return ventas.reduce((total, venta) => {
-      const ventaNumero = parseFloat(venta.total.replace(/[^\d.-]/g, ""));
-      return total + (isNaN(ventaNumero) ? 0 : ventaNumero);
-    }, 0);
-  }, [ventas]);
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("es-PY", {
-      style: "currency",
-      currency: "PYG",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
-
-  const dataDelGrafico = ventas.map((dato) => {
-    return {
-      monto: parseFloat(dato.total.replace(/[^\d.-]/g, "")) || 0,
-      fecha: dato.fecha,
-    };
-  });
-
-  const maxMonto = Math.max(...dataDelGrafico.map((d) => d.monto));
-
-  const years = Array.from(
-    { length: 5 },
-    (_, i) => new Date().getFullYear() - i
-  );
+    traerVentas();
+    fetchTotalVentas();
+    fetchCantidadVentas();
+    fetchCantidadArticulos();
+  }, [tipo]);
 
   if (!verGrafico) {
     return isMobile ? (
@@ -219,166 +130,179 @@ export default function VentasChart() {
     );
   }
 
-  return (
-    <Box
-      h="100%"
-      w="100%"
-      display="flex"
-      justifyContent={isMobile? "center" : "flex-start"}
-      alignItems={isMobile? "center" : "flex-start"}
-      p={isMobile ? 0 : 2}
-    >
-      <Box
-        h={'100%'}
-        bg="white"
-        p={isMobile ? 2 : 4}
-        shadow="xl"
-        rounded="lg"
-        border="1px"
-        borderColor="gray.200"
+  const formatMonto = (monto: number) => {
+    return monto.toLocaleString("es-PY", {
+      style: "currency",
+      currency: "PYG",
+    });
+  };
+
+  const redondear = (numero: number) => {
+    return Math.floor(numero);
+  };
+
+  const GraficoVentas = () => {
+    if (!ventasData || ventasData.length === 0) {
+      return (
+        <Box
+          h="100%"
+          w="100%"
+          display="flex"
+          justifyContent="center"
+          alignItems="center"
+
+        >
+          <Text fontSize="xl" fontWeight="bold" color={'gray.600'}>
+            Aún no hay datos para mostrar
+          </Text>
+        </Box>
+      );
+    }
+
+    return (
+      <AreaChart
+        margin={{ top: isMobile? 10 : 50, right: 0, left: isMobile? 0 : 60, bottom: 0 }}
+        width={isMobile? 500 : 700}
+        height={ 300}
+        data={ventasData}
       >
-        <VStack spacing={isMobile ? 4 : 8} align="stretch">
-          {/* Encabezado */}
-          <Flex
-            bgGradient="linear(to-r, blue.500, blue.600)"
-            color="white"
-            p={isMobile ? 3 : 6}
-            rounded="md"
-            alignItems="center"
-            justifyContent="center"
-            mb={4}
-          >
-            <ChartLine size={28} className="mr-2" />
-            <Heading size={isMobile ? "md" : "lg"}>Ventas</Heading>
+        <defs>
+          <linearGradient id="colorV" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#3cab73" stopOpacity={0.9} />
+            <stop offset="95%" stopColor="#3cab73" stopOpacity={0.1} />
+          </linearGradient>
+        </defs>
+        <XAxis dataKey="fecha" />
+        <YAxis />
+        <Tooltip
+          itemStyle={{ color: "#3cab73", fontWeight: "bold", fontSize: "14px" }}
+          wrapperStyle={{
+            backgroundColor: "#fff",
+            padding: "5px",
+            borderRadius: "5px",
+            boxShadow: "0px 0px 5px 0px rgba(0,0,0,0.2)",
+          }}
+          formatter={(value) => [value.toLocaleString(), "Total Gs.:"]}
+        />
+        <Area
+          type="monotone"
+          dataKey="total_ventas"
+          stroke="#3cab73"
+          fillOpacity={1}
+          fill="url(#colorV)"
+        />
+      </AreaChart>
+    );
+  };
+
+  return (
+    <>
+      <Box h={"100vh"} p={2} display={"flex"} flexDirection={"column"} gap={2}>
+        <Flex
+          h={"10%"}
+          w={"100%"}
+          bg={"white"}
+          borderRadius={"md"}
+          boxShadow={"sm"}
+          bgGradient="linear(to-r, blue.500, blue.600)"
+          color="white"
+          p={4}
+          alignItems="center"
+          justifyContent={"space-between"}
+        >
+          <Flex alignItems={"center"}>
+            <ChartNoAxesCombined size={32} className="mr-2" />
+            <Heading size={"md"}>Dashboard de Ventas</Heading>
           </Flex>
-
-          {/* Contenido de Ventas */}
-          <Box
-            p={isMobile ? 4 : 6}
-            bg="gray.50"
-            shadow="md"
-            rounded="md"
-            border="1px"
-            borderColor="gray.200"
+          <Select
+            ml={"auto"}
+            w={"10%"}
+            value={tipo}
+            onChange={(e) => setTipo(e.target.value)}
+            bg={"white"}
+            color={"black"}
           >
-            <Heading size={isMobile ? "sm" : "md"} color="gray.700" mb={4}>
-              Ventas Totales
-            </Heading>
-
-            {/* Tabs de Periodos */}
-            <Tabs
-              index={periodoSeleccionado}
-              onChange={handlePeriodoChange}
-              variant="solid-rounded"
-              colorScheme="green"
-              mb={4}
-              isFitted
+            <option value="año">Año</option>
+            <option value="mes">Mes</option>
+            <option value="semana">Semana</option>
+            <option value="hoy">Hoy</option>
+          </Select>
+        </Flex>
+        <Flex h={"90%"} w={"100%"} gap={2}>
+          <Box
+            h={"100%"}
+            w={isMobile? '100%' : "60%"}
+            display={"flex"}
+            flexDirection={"column"}
+            gap={2}
+          >
+            <Flex h={"20%"} w={"100%"} gap={2} flexDir={isMobile? 'column' : 'row'}>
+              <Box
+                h={"100%"}
+                w={isMobile? "100%" : "20%"}
+                bg={"white"}
+                borderRadius={"md"}
+                boxShadow={"sm"}
+                p={4}
+                justifyItems={"center"}
+                alignContent={"center"}
+              >
+                <Text textAlign={"center"}>Total de ventas</Text>
+                <Text fontWeight={"bold"} fontSize={"x-large"}>
+                  {formatMonto(Number(totalVentas))}
+                </Text>
+              </Box>
+              <Box
+                h={"100%"}
+                w={isMobile? "100%" : "20%"}
+                bg={"white"}
+                borderRadius={"md"}
+                boxShadow={"sm"}
+                p={4}
+                justifyItems={"center"}
+                alignContent={"center"}
+              >
+                <Text textAlign={"center"}>Cantidad de tickets</Text>
+                <Text fontWeight={"bold"} fontSize={"x-large"}>
+                  {cantidadVentas}
+                </Text>
+              </Box>
+              <Box
+                h={"100%"}
+                w={isMobile? "100%" : "20%"}
+                bg={"white"}
+                borderRadius={"md"}
+                boxShadow={"sm"}
+                p={4}
+                justifyItems={"center"}
+                alignContent={"center"}
+              >
+                <Text textAlign={"center"}>Items vendidos</Text>
+                <Text fontWeight={"bold"} fontSize={"x-large"}>
+                  {redondear(Number(cantidadProductosVendidos))}
+                </Text>
+              </Box>
+            </Flex>
+            {isMobile? <Box h={"20%"} w={"100%"}></Box> : null}
+            <Flex
+              h={ "60%"}
+              w={isMobile? "100%" : "61.5%"}
+              bg={"white"}
+              borderRadius={"md"}
+              boxShadow={"sm"}
+              p={4}
+              justifyItems={"center"}
+              alignContent={"center"}
+              alignItems={'center'}
+              border={"1px solid #3cab73"}
             >
-              <TabList>
-                {periodos.map((periodo, index) => (
-                  <Tab
-                    key={index}
-                    fontSize={isMobile ? "xx-small" : "sm"}
-                    p={2}
-                  >
-                    {periodo.label}
-                  </Tab>
-                ))}
-              </TabList>
-            </Tabs>
-
-            {/* Selección de Año */}
-            {periodoSeleccionado === 5 && (
-              <Select
-                value={selectedYear}
-                onChange={handleYearChange}
-                mb={4}
-                size="sm"
-                variant="filled"
-                borderColor="blue.500"
-                borderRadius="md"
-              >
-                {years.map((year) => (
-                  <option key={year} value={year}>
-                    {year}
-                  </option>
-                ))}
-              </Select>
-            )}
-
-            {/* Gráfico */}
-            <ResponsiveContainer width="100%" height={250}>
-              <AreaChart
-                data={dataDelGrafico}
-                margin={{ top: 5, right: 2, left: 2, bottom: 2 }}
-              >
-                <defs>
-                  <linearGradient id="colorPv" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#82ca9d" stopOpacity={0.8} />
-                    <stop offset="95%" stopColor="#82ca9d" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <XAxis
-                  dataKey="fecha"
-                  tick={false}
-                  axisLine={false}
-                  tickLine={false}
-                  interval={0}
-                  label={"Fecha"}
-                />
-                <YAxis
-                  domain={[0, maxMonto]}
-                  tick={false}
-                  axisLine={false}
-                  tickLine={false}
-                  interval={0}
-                  label={"Monto"}
-                />
-                <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
-                <Tooltip
-                  formatter={(value) => formatCurrency(value as number)}
-                  contentStyle={{
-                    backgroundColor: "white",
-                    borderRadius: "8px",
-                    boxShadow: "0px 0px 5px rgba(0, 0, 0, 0.2)",
-                  }}
-                  labelStyle={{ fontWeight: "bold" }}
-                  itemStyle={{ color: "#82ca9d" }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="monto"
-                  stroke="#82ca9d"
-                  fill="url(#colorPv)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-
-            {/* Total de Ventas */}
-            <HStack
-              justifyContent="space-between"
-              alignItems="center"
-              mt={5}
-              py={3}
-              px={4}
-              bg="gray.100"
-              rounded="md"
-            >
-              <HandCoins size={24} color="green" />
-              <Heading size="xs" color="blue.600">
-                Total Ventas:
-              </Heading>
-              <Text
-                fontSize={isMobile ? "lg" : "2xl"}
-                fontWeight="bold"
-                color="green.700"
-              >
-                Gs. {formatNumber(sumaTotalVentas)}
-              </Text>
-            </HStack>
+              <GraficoVentas />
+            </Flex>
           </Box>
-        </VStack>
+          <Box h={"100%"} w={"20%"}></Box>
+          <Box h={"100%"} w={"20%"}></Box>
+        </Flex>
       </Box>
-    </Box>
+    </>
   );
 }

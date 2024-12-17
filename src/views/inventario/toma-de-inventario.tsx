@@ -43,51 +43,82 @@ import {
 import axios from "axios";
 import { api_url } from "@/utils";
 
+interface Marca {
+  ma_codigo: number;
+  ma_descripcion: string;
+}
+
+interface Pais {
+  nac_codigo: number;
+  descripcion: string;
+}
+
+interface UnidadMedida {
+  um_codigo: number;
+  um_descripcion: string;
+}
+
+interface Ubicacion {
+  ub_codigo: number;
+  ub_descripcion: string;
+}
+
+interface SubUbicacion {
+  s_codigo: number;
+  s_descripcion: string;
+}
+
+interface Categoria {
+  ca_codigo: number;
+  ca_descripcion: string;
+}
+
+interface SubCategoria {
+  sc_codigo: number;
+  sc_descripcion: string;
+}
+
+interface Moneda {
+  mo_codigo: number;
+  mo_descripcion: string;
+}
+
+interface Proveedor {
+  pro_codigo: number;
+  pro_razon: string;
+}
+
+interface Fabricante {
+  f_codigo: number;
+  f_razon_social: string;
+}
+
+
 const TomaDeInventario = () => {
 
-  const [codigoNuevo, setCodigoNuevo] = useState<number>(0);
-  const [descripcionNuevo, setDescripcionNuevo] = useState<string>("");
-  const [codigoBarraNuevo, setCodigoBarraNuevo] = useState<string>("");
-  const [descripcionGenericaNuevo, setDescripcionGenericaNuevo] = useState<string>("");
-  const [presentacionNuevo, setPresentacionNuevo] = useState<string>("");
-  const [modeloNuevo, setModeloNuevo] = useState<string>("");
-  const [cantidadCajaNuevo, setCantidadCajaNuevo] = useState<number>(0);
-  const [kilosNuevo, setKilosNuevo] = useState<number>(0);
-  const [marcaNuevo, setMarcaNuevo] = useState<string>("");
-  const [paisOrigenNuevo, setPaisOrigenNuevo] = useState<number>(0);
-  const [unidadMedidaNuevo, setUnidadMedidaNuevo] = useState<number>(0);
-  const [ubicacionNuevo, setUbicacionNuevo] = useState<number>(0);
-  const [subUbicacionNuevo, setSubUbicacionNuevo] = useState<number>(0);
-  const [categoriaNuevo, setCategoriaNuevo] = useState<number>(0);
-  const [subCategoriaNuevo, setSubCategoriaNuevo] = useState<number>(0);
-  const [bloqueNuevo, setBloqueNuevo] = useState<string>("");
-  const [dvlNuevo, setDvlNuevo] = useState<number>(0);
-  const [monedaNuevo, setMonedaNuevo] = useState<number>(0);
-  const [ivaNuevo, setIvaNuevo] = useState<number>(0);
-  const [fabricanteNuevo, setFabricanteNuevo] = useState<number>(0);
-  const [stockMinimoNuevo, setStockMinimoNuevo] = useState<number>(0);
-  const [numeroSerieNuevo, setNumeroSerieNuevo] = useState<number>(0);
-  const [costoGuaraniNuevo, setCostoGuaraniNuevo] = useState<number>(0);
-  const [precioContadoNuevo, setPrecioContadoNuevo] = useState<number>(0);
-  const [precioCreditoNuevo, setPrecioCreditoNuevo] = useState<number>(0);
-  const [precioMostradorNuevo, setPrecioMostradorNuevo] = useState<number>(0);
-  const [precio4Nuevo, setPrecio4Nuevo] = useState<number>(0);
+  // constantes para los selectores en agregar item
 
-  //states para arrays
+  const [marcas, setMarcas] = useState<Marca[]>([]);
+  const [paises, setPaises] = useState<Pais[]>([]);
+  const [unidadesMedida, setUnidadesMedida] = useState<UnidadMedida[]>([]);
+  const [ubicaciones, setUbicaciones] = useState<Ubicacion[]>([]);
+  const [subUbicaciones, setSubUbicaciones] = useState<SubUbicacion[]>([]);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [subCategorias, setSubCategorias] = useState<SubCategoria[]>([]);
+  const [monedas, setMonedas] = useState<Moneda[]>([]);
+  const [, setProveedores] = useState<Proveedor[]>([]);
+  const [fabricantes, setFabricantes] = useState<Fabricante[]>([]);
 
-  const [marcas, setMarcas] = useState<[]>([]);
-  const [paises, setPaises] = useState<[]>([]);
-  const [unidadesMedida, setUnidadesMedida] = useState<[]>([]);
-  const [ubicaciones, setUbicaciones] = useState<[]>([]);
-  const [subUbicaciones, setSubUbicaciones] = useState<[]>([]);
-  const [categorias, setCategorias] = useState<[]>([]);
-  const [subCategorias, setSubCategorias] = useState<[]>([]);
-  const [monedas, setMonedas] = useState<[]>([]);
-  const [fabricantes, setFabricantes] = useState<[]>([]);
-  const [cotizacionDolar, setCotizacionDolar]= useState<number>(7770)
-  const [cotizacionReal, setCotizacionReal] = useState<number>(1200)
-  const [cotizacionPeso, setCotizacionPeso] = useState<number>(5)
-
+  const [marcaSeleccionada, setMarcaSeleccionada] = useState<number>(0);
+  const [paisSeleccionado, setPaisSeleccionado] = useState<number>(0);
+  const [unidadMedidaSeleccionada, setUnidadMedidaSeleccionada] = useState<number>(0);
+  const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState<number>(0);
+  const [subUbicacionSeleccionada, setSubUbicacionSeleccionada] = useState<number>(0);
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<number>(0);
+  const [subCategoriaSeleccionada, setSubCategoriaSeleccionada] = useState<number>(0);
+  const [monedaSeleccionada, setMonedaSeleccionada] = useState<number>(0);
+  const [ivaSeleccionado, setIvaSeleccionado] = useState<number>(0);
+  const [fabricanteSeleccionado, setFabricanteSeleccionado] = useState<number>(0);
 
   const [articulos, setArticulos] = useState<Articulo[]>([]);
   const [sucursales, setSucursales] = useState<Sucursal[]>([]);
@@ -143,19 +174,6 @@ const TomaDeInventario = () => {
     "Varios",
   ];
   // const [itemsGuardados, setItemsGuardados] = useState<Articulo[]>([]);
-
-  
-  const fetchCotizaciones = async () => {
-    try {
-      const response = await axios.get(`${api_url}cotizaciones/`);
-      console.log('Cotizaciones',response.data.body)
-      setCotizacionDolar(response.data.body[0].usd_venta)
-      setCotizacionPeso(response.data.body[0].ars_venta)
-      setCotizacionReal(response.data.body[0].brl_venta)
-    } catch(err) {
-      console.log(err)
-    }
-  }
 
 
   const fetchMarcas = async () => {
@@ -230,6 +248,15 @@ const TomaDeInventario = () => {
     }
   }
 
+  const fetchProveedores = async () => {
+    try {
+      const response = await axios.get(`${api_url}proveedores/`);
+      setProveedores(response.data.body);
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
   const fetchFabricantes = async () => {
     try {
       const response = await axios.get(`${api_url}fabricantes/`);
@@ -241,7 +268,7 @@ const TomaDeInventario = () => {
 
 
 
-
+  
 
   const fetchSucursales = async () => {
     try {
@@ -318,6 +345,16 @@ const TomaDeInventario = () => {
   useEffect(() => {
     fetchSucursales();
     fetchDepositos();
+    fetchMarcas();
+    fetchPaises();
+    fetchUnidadesMedida();
+    fetchUbicaciones();
+    fetchSubUbicaciones();
+    fetchCategorias();
+    fetchSubCategorias();
+    fetchMonedas();
+    fetchProveedores();
+    fetchFabricantes();
   }, []);
 
   const formatearFecha = (fecha: string) => {
@@ -495,18 +532,6 @@ const TomaDeInventario = () => {
     );
   };
 
-  const costoDolar = costoGuaraniNuevo / cotizacionDolar;
-
-  const costoReal = costoGuaraniNuevo / cotizacionReal;
-
-  const costoPeso = costoGuaraniNuevo / cotizacionPeso;
-
-  const precioContadoDolar = precioContadoNuevo / cotizacionDolar;
-
-  const precioContadoReal = precioContadoNuevo / cotizacionReal;
-
-  const precioContadoPeso = precioContadoNuevo / cotizacionPeso;
-
   return (
     <Flex padding={2} h={"100vh"} bg={"gray.100"}>
       <Flex
@@ -528,21 +553,7 @@ const TomaDeInventario = () => {
           <ArchiveRestore size={24} className="mr-2" />
           <Heading size={"md"}>Toma de inventario</Heading>
           <Flex ml="auto" gap={4}>
-            <Button colorScheme="green" onClick={
-              () => {
-                onModalOpen();
-                fetchCotizaciones();
-                fetchMarcas();
-                fetchPaises();
-                fetchUnidadesMedida();
-                fetchUbicaciones();
-                fetchSubUbicaciones();
-                fetchCategorias();
-                fetchSubCategorias();
-                fetchMonedas();
-                fetchFabricantes();
-              }
-            }>
+            <Button colorScheme="green" onClick={onModalOpen}>
               Agregar Item
               <Plus size={16} className="ml-2" />
             </Button>
@@ -860,299 +871,425 @@ const TomaDeInventario = () => {
         </ModalContent>
       </Modal>
 
-      <Modal isOpen={isModalOpen} onClose={onModalClose} size={'full'}>
-      <ModalOverlay />
-      <ModalContent className="bg-white shadow-lg rounded-lg">
-        <ModalHeader className="text-3xl font-bold text-gray-800">Registrar Productos</ModalHeader>
-        <ModalCloseButton className="text-gray-800 hover:text-gray-900" />
-        <ModalBody>
-          <div className="border-b border-gray-300 mb-4">
-            <nav className="flex justify-around">
-              {tabs.map((tab, index) => (
-                <button
-                  key={index}
-                  className={`w-full py-4 px-1 text-center border-b-2 font-medium text-lg transition duration-300 ease-in-out ${
-                    activeTab === index
-                      ? "border-blue-500 text-blue-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                  }`}
-                  onClick={() => setActiveTab(index)}
-                >
-                  {tab}
-                </button>
-              ))}
-            </nav>
-          </div>
-          <div className="p-6 transition duration-300 ease-in-out">
-            {activeTab === 0 &&
-            <div className="animate-fadeIn">
-              <Flex flexDir={'column'} gap={2}>
-                <Flex gap={4}>
-                  <Box>
-                    <FormLabel>Código:</FormLabel>
-                    <Input type="number" variant={'filled'}  value={codigoNuevo} onChange={(e)=> setCodigoNuevo(Number(e.target.value))}/>
-                  </Box>
-                  <Box flexGrow={1}>
-                    <FormLabel>Descripción:</FormLabel>
-                    <Input type="text" variant={'filled'} value={descripcionNuevo} onChange={(e)=> setDescripcionNuevo(e.target.value)}/>
-                  </Box>
-                  <Box >
-                    <FormLabel>Código de barras:</FormLabel>
-                      <Input type="text" variant={'filled'} value={codigoBarraNuevo} onChange={(e)=>{ setCodigoBarraNuevo(e.target.value)}} />
-                  </Box>
-                  <Box>
-                    <FormLabel>Código de origen:</FormLabel>
-                    <Input type="text" variant={'filled'} value={codigoBarraNuevo} />
-                  </Box>
-                </Flex>
-                <Flex gap={4}>
-                  <Box flexGrow={1}>
-                    <FormLabel>Descripcion Generica:</FormLabel>
-                    <Input type="text" variant={'filled'} value={descripcionGenericaNuevo} onChange={(e) => setDescripcionGenericaNuevo(e.target.value)}/>
-                  </Box>
-                  <Box>
-                    <FormLabel>Presentacion:</FormLabel>
-                    <Input type="text" variant={'filled'} value={presentacionNuevo} onChange={(e) => setPresentacionNuevo(e.target.value)} />
-                  </Box>
-                  <Box>
-                    <FormLabel>Modelo:</FormLabel>
-                    <Input type="text" variant={'filled'} value={modeloNuevo} onChange={(e)=> setModeloNuevo(e.target.value)}/>
-                  </Box>
-                  <Box>
-                    <FormLabel>Cant./Caja:</FormLabel>
-                    <Input type="number" variant={'filled'}  value={cantidadCajaNuevo} onChange={(e)=> setCantidadCajaNuevo(Number(e.target.value))}/>
-                  </Box>
-                  <Box>
-                    <FormLabel>Kilos:</FormLabel>
-                    <Input type="number" variant={'filled'} value={kilosNuevo} onChange={(e)=> setKilosNuevo(Number(e.target.value))} />
-                  </Box>
-                  <Box>
-                    <FormLabel>Marca/Laboratorio:</FormLabel>
-                    <Select variant={'filled'} value={marcaNuevo} onChange={(e) => setMarcaNuevo(e.target.value)}>
-                      {marcas.map((marca: any) => (
-                        <option value={marca.ma_codigo}>{marca.ma_descripcion}</option>
-                      ))}
-                    </Select>
-                  </Box>
-                  <Box>
-                    <FormLabel>Pais de origen:</FormLabel>
-                    <Select variant={'filled'} value={paisOrigenNuevo} onChange={(e)=> setPaisOrigenNuevo(Number(e.target.value))}>
-                      {paises.map((pais: any) => (
-                        <option value={pais.nac_codigo}>{pais.descripcion}</option> //reparar
-                      ))}
-                    </Select>
-                  </Box>
-                  <Box>
-                    <FormLabel>Unidad de medida:</FormLabel>
-                    <Select variant={'filled'} value={unidadMedidaNuevo} onChange={(e)=> setUnidadMedidaNuevo(Number(e.target.value))}>
-                      {unidadesMedida.map((unidad: any) => (
-                        <option value={unidad.um_codigo}>{unidad.um_descripcion}</option>
-                      ))}
-                    </Select>
-                  </Box>
-                </Flex>
-                <Flex gap={4}>
-                  <Box>
-                    <FormLabel>Ubicación:</FormLabel>
-                    <Select variant={'filled'} value={ubicacionNuevo} onChange={(e)=> setUbicacionNuevo(Number(e.target.value))}>
-                      {ubicaciones.map((ubicacion: any) => (
-                        <option value={ubicacion.ub_codigo}>{ubicacion.ub_descripcion}</option>
-                      ))}
-                    </Select>
-                  </Box>
-                  <Box>
-                    <FormLabel>Sub-ubicación:</FormLabel>
-                    <Select variant={'filled'} value={subUbicacionNuevo} onChange={(e)=> setSubUbicacionNuevo(Number(e.target.value))}>
-                      {subUbicaciones.map((subUbicacion: any) => (
-                        <option value={subUbicacion.s_codigo}>{subUbicacion.s_descripcion}</option>
-                      ))}
-                    </Select>
-                  </Box>
-                  <Box>
-                    <FormLabel>Categoria:</FormLabel>
-                    <Select variant={'filled'} value={categoriaNuevo} onChange={(e)=> setCategoriaNuevo(Number(e.target.value))}>
-                      {categorias.map((categoria: any) => (
-                        <option value={categoria.ca_codigo}>{categoria.ca_descripcion}</option>
-                      ))}
-                    </Select>
-                  </Box>
-                  <Box>
-                    <FormLabel>Sub-categoria:</FormLabel>
-                    <Select variant={'filled'} value={subCategoriaNuevo} onChange={(e)=> setSubCategoriaNuevo(Number(e.target.value))}>
-                      {subCategorias.map((subCategoria: any) => (
-                        <option value={subCategoria.sc_codigo}>{subCategoria.sc_descripcion}</option>
-                      ))}
-                    </Select>
-                  </Box>
-                  <Box>
-                    <FormLabel>Bloque:</FormLabel>
-                    <Input type="text" variant={'filled'} value={bloqueNuevo} onChange={(e) => setBloqueNuevo(e.target.value)}/>
-                  </Box>
-                  <Box>
-                    <FormLabel>DVL:</FormLabel>
-                    <Input type="number" variant={'filled'} value={dvlNuevo} onChange={(e)=> setDvlNuevo(Number(e.target.value))}/>
-                  </Box>
-                  <Box>
-                    <FormLabel>Moneda:</FormLabel>
-                    <Select variant={'filled'} value={monedaNuevo} onChange={(e)=> setMonedaNuevo(Number(e.target.value))}>
-                      {monedas.map((moneda: any) => (
-                        <option value={moneda.mo_codigo}>{moneda.mo_descripcion}</option>
-                      ))}
-                    </Select>
-                  </Box>
-                  <Box>
-                    <FormLabel>IVA:</FormLabel>
-                    <Select variant={'filled'} value={ivaNuevo} onChange={(e)=> setIvaNuevo(Number(e.target.value))}>
-                      <option value="1">Exentas</option>
-                      <option value="2">5%</option>
-                      <option value="3">10%</option>
-                    </Select>
-                  </Box>
-                  <Box>
-                    <FormLabel>Fabricante:</FormLabel>
-                    <Select variant={'filled'} value={fabricanteNuevo} onChange={(e)=> setFabricanteNuevo(Number(e.target.value))}>
-                      {fabricantes.map((fabricante: any) => (
-                        <option value={fabricante.f_codigo}>{fabricante.f_razon_social}</option>
-                      ))}
-                    </Select>
-                  </Box>
-                  <Box>
-                    <FormLabel>Stock Mínimo</FormLabel>
-                    <Input type="number" variant={'filled'} value={stockMinimoNuevo} onChange={(e)=> setStockMinimoNuevo(Number(e.target.value))}/>
-                  </Box>
-                  <Box>
-                    <FormLabel>Número de serie</FormLabel>
-                    <Input type="number" variant={'filled'} value={numeroSerieNuevo} onChange={(e)=> setNumeroSerieNuevo(Number(e.target.value))} />
-                  </Box>
-                </Flex>
-                <Flex
-                  borderRadius={"md"}
-                  bg={'gray.100'}
-                  flexGrow={1}
-                  h={'auto'}
-                  p={4}
-                >
-                    <Flex
-                      flexDir={'column'}
-                    >
-
-                      <Heading size={'md'}>Costos:</Heading>
-                      <Divider   my={2}/>
-                    <Box>
-                      <FormLabel>Costo Guaraní:</FormLabel>
-                      <Input type="number" variant={'outline'} bg={'white'} value={costoGuaraniNuevo} onChange={(e)=> setCostoGuaraniNuevo(Number(e.target.value))}/>
-                    </Box>
-                    <Box>
-                      <FormLabel>Costo Dolar:</FormLabel>
-                      <Input type="number" variant={'outline'} bg={'white'} placeholder="Gs. 0"  value={costoDolar}/>
-                    </Box>
-                    <Box>
-                      <FormLabel>Costo Real:</FormLabel>
-                      <Input type="number" variant={'outline'} bg={'white'} placeholder="Gs. 0" value={costoReal} />
-                    </Box>
-                    <Box>
-                      <FormLabel>Costo Peso:</FormLabel>
-                      <Input type="number" variant={'outline'} bg={'white'} placeholder="0" value={costoPeso} />
-                    </Box>
+      <Modal isOpen={isModalOpen} onClose={onModalClose} size={"full"}>
+        <ModalOverlay />
+        <ModalContent className="bg-white shadow-lg rounded-lg">
+          <ModalHeader className="text-3xl font-bold text-gray-800">
+            Registrar Productos
+          </ModalHeader>
+          <ModalCloseButton className="text-gray-800 hover:text-gray-900" />
+          <ModalBody>
+            <div className="border-b border-gray-300 mb-4">
+              <nav className="flex justify-around">
+                {tabs.map((tab, index) => (
+                  <button
+                    key={index}
+                    className={`w-full py-4 px-1 text-center border-b-2 font-medium text-lg transition duration-300 ease-in-out ${
+                      activeTab === index
+                        ? "border-blue-500 text-blue-600"
+                        : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    }`}
+                    onClick={() => setActiveTab(index)}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </nav>
+            </div>
+            <div className="p-6 transition duration-300 ease-in-out">
+              {activeTab === 0 && (
+                <div className="animate-fadeIn">
+                  <Flex flexDir={"column"} gap={2}>
+                    <Flex gap={4}>
+                      <Box>
+                        <FormLabel>Código:</FormLabel>
+                        <Input type="number" variant={"filled"} />
+                      </Box>
+                      <Box flexGrow={1}>
+                        <FormLabel>Descripción:</FormLabel>
+                        <Input type="text" variant={"filled"} />
+                      </Box>
+                      <Box>
+                        <FormLabel>Código de barras:</FormLabel>
+                        <Input type="text" variant={"filled"} />
+                      </Box>
+                      <Box>
+                        <FormLabel>Código de origen:</FormLabel>
+                        <Input type="text" variant={"filled"} />
+                      </Box>
                     </Flex>
-
+                    <Flex gap={4}>
+                      <Box flexGrow={1}>
+                        <FormLabel>Descripcion Generica:</FormLabel>
+                        <Input type="text" variant={"filled"} />
+                      </Box>
+                      <Box>
+                        <FormLabel>Presentacion:</FormLabel>
+                        <Input type="text" variant={"filled"} />
+                      </Box>
+                      <Box>
+                        <FormLabel>Modelo:</FormLabel>
+                        <Input type="text" variant={"filled"} />
+                      </Box>
+                      <Box>
+                        <FormLabel>Cant./Caja:</FormLabel>
+                        <Input type="number" variant={"filled"} />
+                      </Box>
+                      <Box>
+                        <FormLabel>Kilos:</FormLabel>
+                        <Input type="number" variant={"filled"} />
+                      </Box>
+                      <Box>
+                        <FormLabel>Marca/Laboratorio:</FormLabel>
+                        <Select variant={"filled"} value={marcaSeleccionada} onChange={(e) => setMarcaSeleccionada(parseInt(e.target.value))}>
+                          {marcas.map((marca) => (
+                            <option value={marca.ma_codigo}>
+                              {marca.ma_descripcion}
+                            </option>
+                          ))}
+                        </Select>
+                      </Box>
+                      <Box>
+                        <FormLabel>Pais de origen:</FormLabel>
+                        <Select variant={"filled"} value={paisSeleccionado} onChange={(e) => setPaisSeleccionado(parseInt(e.target.value))}>
+                          {paises.map((pais) => (
+                            <option value={pais.nac_codigo}>
+                              {pais.descripcion}
+                            </option>
+                          ))}
+                        </Select>
+                      </Box>
+                      <Box>
+                        <FormLabel>Unidad de medida:</FormLabel>
+                        <Select variant={"filled"} value={unidadMedidaSeleccionada} onChange={(e) => setUnidadMedidaSeleccionada(parseInt(e.target.value))}>
+                          {unidadesMedida.map((unidadMedida) => (
+                            <option value={unidadMedida.um_codigo}>
+                              {unidadMedida.um_descripcion}
+                            </option>
+                          ))}
+                        </Select>
+                      </Box>
+                    </Flex>
+                    <Flex gap={4}>
+                      <Box>
+                        <FormLabel>Ubicación:</FormLabel>
+                        <Select variant={"filled"} value={ubicacionSeleccionada} onChange={(e) => setUbicacionSeleccionada(parseInt(e.target.value))}>
+                          {ubicaciones.map((ubicacion) => (
+                            <option value={ubicacion.ub_codigo}>
+                              {ubicacion.ub_descripcion}
+                            </option>
+                          ))}
+                        </Select>
+                      </Box>
+                      <Box>
+                        <FormLabel>Sub-ubicación:</FormLabel>
+                        <Select variant={"filled"} value={subUbicacionSeleccionada} onChange={(e) => setSubUbicacionSeleccionada(parseInt(e.target.value))}>
+                          {subUbicaciones.map((subUbicacion) => (
+                            <option value={subUbicacion.s_codigo}>
+                              {subUbicacion.s_descripcion}
+                            </option>
+                          ))}
+                        </Select>
+                      </Box>
+                      <Box>
+                        <FormLabel>Categoria:</FormLabel>
+                        <Select variant={"filled"} value={categoriaSeleccionada} onChange={(e) => setCategoriaSeleccionada(parseInt(e.target.value))}>
+                          {categorias.map((categoria) => (
+                            <option value={categoria.ca_codigo}>
+                              {categoria.ca_descripcion}
+                            </option>
+                          ))}
+                        </Select>
+                      </Box>
+                      <Box>
+                        <FormLabel>Sub-categoria:</FormLabel>
+                        <Select variant={"filled"} value={subCategoriaSeleccionada} onChange={(e) => setSubCategoriaSeleccionada(parseInt(e.target.value))}>
+                          {subCategorias.map((subCategoria) => (
+                            <option value={subCategoria.sc_codigo}>
+                              {subCategoria.sc_descripcion}
+                            </option>
+                          ))}
+                        </Select>
+                      </Box>
+                      <Box>
+                        <FormLabel>Bloque:</FormLabel>
+                        <Input type="text" variant={"filled"} />
+                      </Box>
+                      <Box>
+                        <FormLabel>DVL:</FormLabel>
+                        <Input type="number" variant={"filled"} />
+                      </Box>
+                      <Box>
+                        <FormLabel>Moneda:</FormLabel>
+                        <Select variant={"filled"} value={monedaSeleccionada} onChange={(e) => setMonedaSeleccionada(parseInt(e.target.value))}>
+                          {monedas.map((moneda) => (
+                            <option value={moneda.mo_codigo}>
+                              {moneda.mo_descripcion}
+                            </option>
+                          ))}
+                        </Select>
+                      </Box>
+                      <Box>
+                        <FormLabel>IVA:</FormLabel>
+                        <Select variant={"filled"} value={ivaSeleccionado} onChange={(e) => setIvaSeleccionado(parseInt(e.target.value))}>
+                          <option value="1">Exentas</option>
+                          <option value="2">5%</option>
+                          <option value="3">10%</option>
+                        </Select>
+                      </Box>
+                      <Box>
+                        <FormLabel>Fabricante:</FormLabel>
+                        <Select variant={"filled"} value={fabricanteSeleccionado} onChange={(e) => setFabricanteSeleccionado(parseInt(e.target.value))}>
+                          {fabricantes.map((fabricante) => (
+                            <option value={fabricante.f_codigo}>
+                              {fabricante.f_razon_social}
+                            </option>
+                          ))}
+                        </Select>
+                      </Box>
+                      <Box>
+                        <FormLabel>Stock Mínimo</FormLabel>
+                        <Input type="number" variant={"filled"} />
+                      </Box>
+                      <Box>
+                        <FormLabel>Número de serie</FormLabel>
+                        <Input type="number" variant={"filled"} />
+                      </Box>
+                    </Flex>
                     <Flex
-                      flexDir={'column'}
+                      borderRadius={"md"}
+                      bg={"gray.100"}
+                      flexGrow={1}
+                      h={"auto"}
+                      p={4}
                     >
-                      <Heading size={'md'}>Utilidades (Guaraníes):</Heading>
-                      <Divider   my={2}/>
-                    <Box>
-                      <FormLabel>Contado:</FormLabel>
-                      <Flex>
-                      <Input type="number" variant={'outline'} bg={'white'} value={precioContadoNuevo} onChange={(e)=>setPrecioContadoNuevo(Number(e.target.value))}/>
-                      <Input type="number" variant={'outline'} bg={'white'}/></Flex> 
-                    </Box>
-                    <Box>
-                      <FormLabel>Crédito:</FormLabel>
-                      <Flex>
-                      <Input type="number" variant={'outline'} bg={'white'} value={precioCreditoNuevo} onChange={(e)=>setPrecioCreditoNuevo(Number(e.target.value))}/>
-                      <Input type="number" variant={'outline'} bg={'white'}/>
+                      <Flex flexDir={"column"}>
+                        <Heading size={"md"}>Costos:</Heading>
+                        <Divider my={2} />
+                        <Box>
+                          <FormLabel>Costo Guaraní:</FormLabel>
+                          <Input
+                            type="number"
+                            variant={"outline"}
+                            bg={"white"}
+                            placeholder="Gs. 0"
+                          />
+                        </Box>
+                        <Box>
+                          <FormLabel>Costo Dolar:</FormLabel>
+                          <Input
+                            type="number"
+                            variant={"outline"}
+                            bg={"white"}
+                            placeholder="Gs. 0"
+                          />
+                        </Box>
+                        <Box>
+                          <FormLabel>Costo Real:</FormLabel>
+                          <Input
+                            type="number"
+                            variant={"outline"}
+                            bg={"white"}
+                            placeholder="Gs. 0"
+                          />
+                        </Box>
+                        <Box>
+                          <FormLabel>Costo Peso:</FormLabel>
+                          <Input
+                            type="number"
+                            variant={"outline"}
+                            bg={"white"}
+                            placeholder="0"
+                          />
+                        </Box>
                       </Flex>
-                    </Box>
-                    <Box>
-                      <FormLabel>Mostrador:</FormLabel>
-                      <Flex>
-                      <Input type="number" variant={'outline'} bg={'white'} value={precioMostradorNuevo} onChange={(e)=>setPrecioMostradorNuevo(Number(e.target.value))}/>
-                      <Input type="number" variant={'outline'} bg={'white'}/>
-                      </Flex>
-                    </Box>
-                    <Box>
-                      <FormLabel>Precio 4:</FormLabel>
-                      <Flex>
-                      <Input type="number" variant={'outline'} bg={'white'} value={precio4Nuevo} onChange={(e)=>setPrecio4Nuevo(Number(e.target.value))}/>
-                      <Input type="number" variant={'outline'} bg={'white'}/>
-                      </Flex>
-                    </Box>
-                    </Flex>
-                    <Flex
-                      flexDir={'column'}
-                    >
-                      <Heading size={'md'}>Precios:</Heading>
-                      <Divider   my={2}/>
-                    <Box>
-                      <FormLabel>Precio Contado:</FormLabel>
-                      <Input type="number" variant={'outline'} bg={'white'} placeholder="Gs. 0" value={precioContadoNuevo} onChange={(e)=> {setPrecioContadoNuevo(parseFloat(e.target.value))}}/>
-                    </Box>
-                    <Box>
-                      <FormLabel>Precio Contado Dolar:</FormLabel>
-                      <Input type="number" variant={'outline'} bg={'white'} placeholder="Gs. 0" value={precioContadoDolar} />
-                    </Box>
-                    <Box>
-                      <FormLabel>Precio Contado Real:</FormLabel>
-                      <Input type="number" variant={'outline'} bg={'white'} placeholder="Gs. 0"  value={precioContadoReal}/>
-                    </Box>
-                    <Box>
-                      <FormLabel>Precio Sugerido:</FormLabel>
-                      <Input type="number" variant={'outline'} bg={'white'} placeholder="Gs. 0"  value={precioContadoPeso}/>
-                    </Box>
-                    </Flex>
 
-                    <Flex
-                      flexDir={'column'}
-                    >
-                      <Heading size={'md'}>Fraccionamientos:</Heading>
-                      <Divider   my={2}/>
-                    <Box>
-                      <FormLabel>Fraccionamiento:</FormLabel>
-                      <Select bg={'white'}>
-                        <option value="1">Por Unidad</option>
-                        <option value="2">Entero</option>
-                      </Select>
-                    </Box>
-                    <Box>
-                      <FormLabel>Cantidad fraccionada:</FormLabel>
-                      <Input type="number" variant={'outline'} bg={'white'} placeholder="0" />
-                    </Box>
-                    <Box>
-                      <FormLabel>Precio Fraccionado:</FormLabel>
-                      <Input type="number" variant={'outline'} bg={'white'} placeholder="Gs. 0" />
-                    </Box>
-                    </Flex>
+                      <Flex flexDir={"column"}>
+                        <Heading size={"md"}>Utilidades (Guaraníes):</Heading>
+                        <Divider my={2} />
+                        <Box>
+                          <FormLabel>Contado:</FormLabel>
+                          <Input
+                            type="number"
+                            variant={"outline"}
+                            bg={"white"}
+                            placeholder="Gs. 0"
+                          />
+                        </Box>
+                        <Box>
+                          <FormLabel>Crédito:</FormLabel>
+                          <Input
+                            type="number"
+                            variant={"outline"}
+                            bg={"white"}
+                            placeholder="Gs. 0"
+                          />
+                        </Box>
+                        <Box>
+                          <FormLabel>Mostrador:</FormLabel>
+                          <Input
+                            type="number"
+                            variant={"outline"}
+                            bg={"white"}
+                            placeholder="Gs. 0"
+                          />
+                        </Box>
+                        <Box>
+                          <FormLabel>Precio 4:</FormLabel>
+                          <Input
+                            type="number"
+                            variant={"outline"}
+                            bg={"white"}
+                            placeholder="0"
+                          />
+                        </Box>
+                      </Flex>
+                      <Flex flexDir={"column"}>
+                        <Heading size={"md"}>Utilidades (Dolares):</Heading>
+                        <Divider my={2} />
+                        <Box>
+                          <FormLabel>Contado:</FormLabel>
+                          <Input
+                            type="number"
+                            variant={"outline"}
+                            bg={"white"}
+                            placeholder="$ 0"
+                          />
+                        </Box>
+                        <Box>
+                          <FormLabel>Crédito:</FormLabel>
+                          <Input
+                            type="number"
+                            variant={"outline"}
+                            bg={"white"}
+                            placeholder="$ 0"
+                          />
+                        </Box>
+                        <Box>
+                          <FormLabel>Mostrador:</FormLabel>
+                          <Input
+                            type="number"
+                            variant={"outline"}
+                            bg={"white"}
+                            placeholder="$ 0"
+                          />
+                        </Box>
+                        <Box>
+                          <FormLabel>Precio 4:</FormLabel>
+                          <Input
+                            type="number"
+                            variant={"outline"}
+                            bg={"white"}
+                            placeholder="0"
+                          />
+                        </Box>
+                      </Flex>
+                      <Flex flexDir={"column"}>
+                        <Heading size={"md"}>Precios:</Heading>
+                        <Divider my={2} />
+                        <Box>
+                          <FormLabel>Precio Contado:</FormLabel>
+                          <Input
+                            type="number"
+                            variant={"outline"}
+                            bg={"white"}
+                            placeholder="Gs. 0"
+                          />
+                        </Box>
+                        <Box>
+                          <FormLabel>Precio Contado Dolar:</FormLabel>
+                          <Input
+                            type="number"
+                            variant={"outline"}
+                            bg={"white"}
+                            placeholder="Gs. 0"
+                          />
+                        </Box>
+                        <Box>
+                          <FormLabel>Precio Contado Real:</FormLabel>
+                          <Input
+                            type="number"
+                            variant={"outline"}
+                            bg={"white"}
+                            placeholder="Gs. 0"
+                          />
+                        </Box>
+                        <Box>
+                          <FormLabel>Precio Sugerido:</FormLabel>
+                          <Input
+                            type="number"
+                            variant={"outline"}
+                            bg={"white"}
+                            placeholder="Gs. 0"
+                          />
+                        </Box>
+                      </Flex>
 
-                </Flex>
-              </Flex>
-            </div>}
-            {activeTab === 1 && <div className="animate-fadeIn">Contenido de Listas de Precios</div>}
-            {activeTab === 2 && <div className="animate-fadeIn">Contenido de Desglose por caja</div>}
-            {activeTab === 3 && <div className="animate-fadeIn">Contenido de Ensamble</div>}
-            {activeTab === 4 && <div className="animate-fadeIn">Contenido de Historico</div>}
-            {activeTab === 5 && <div className="animate-fadeIn">Contenido de Compra/venta</div>}
-            {activeTab === 6 && <div className="animate-fadeIn">Contenido de Varios</div>}
-          </div>
-        </ModalBody>
-        <ModalFooter>
-          <Button colorScheme="blue" mr={3}>
-            Save
-          </Button>
-          <Button onClick={onClose}>Cancel</Button>
-        </ModalFooter>
-      </ModalContent>
-    </Modal>
+                      <Flex flexDir={"column"}>
+                        <Heading size={"md"}>Fraccionamientos:</Heading>
+                        <Divider my={2} />
+                        <Box>
+                          <FormLabel>Fraccionamiento:</FormLabel>
+                          <Select bg={"white"}>
+                            <option value="1">Por Unidad</option>
+                            <option value="2">Entero</option>
+                          </Select>
+                        </Box>
+                        <Box>
+                          <FormLabel>Cantidad fraccionada:</FormLabel>
+                          <Input
+                            type="number"
+                            variant={"outline"}
+                            bg={"white"}
+                            placeholder="0"
+                          />
+                        </Box>
+                        <Box>
+                          <FormLabel>Precio Fraccionado:</FormLabel>
+                          <Input
+                            type="number"
+                            variant={"outline"}
+                            bg={"white"}
+                            placeholder="Gs. 0"
+                          />
+                        </Box>
+                      </Flex>
+                    </Flex>
+                  </Flex>
+                </div>
+              )}
+              {activeTab === 1 && (
+                <div className="animate-fadeIn">
+                  Contenido de Listas de Precios
+                </div>
+              )}
+              {activeTab === 2 && (
+                <div className="animate-fadeIn">
+                  Contenido de Desglose por caja
+                </div>
+              )}
+              {activeTab === 3 && (
+                <div className="animate-fadeIn">Contenido de Ensamble</div>
+              )}
+              {activeTab === 4 && (
+                <div className="animate-fadeIn">Contenido de Historico</div>
+              )}
+              {activeTab === 5 && (
+                <div className="animate-fadeIn">Contenido de Compra/venta</div>
+              )}
+              {activeTab === 6 && (
+                <div className="animate-fadeIn">Contenido de Varios</div>
+              )}
+            </div>
+          </ModalBody>
+          <ModalFooter>
+            <Button colorScheme="blue" mr={3}>
+              Save
+            </Button>
+            <Button onClick={onClose}>Cancel</Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
 
       <Drawer
         isOpen={isDrawerOpen}

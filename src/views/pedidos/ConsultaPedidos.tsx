@@ -330,7 +330,7 @@ export default function ConsultaPedidos({
           />
         </HStack>
 
-        <HStack spacing={4}>
+        <Flex flexDir={isMobile? 'column' : 'row'} gap={4}>
           <InputGroup>
             <InputLeftElement pointerEvents="none">
               <SearchIcon color="gray.300" />
@@ -361,7 +361,7 @@ export default function ConsultaPedidos({
               onChange={(e) => setIdFiltro(e.target.value)}
             />
           </InputGroup>
-        </HStack>
+        </Flex>
         <Tabs
           index={periodoSeleccionado}
           onChange={handlePeriodoChange}

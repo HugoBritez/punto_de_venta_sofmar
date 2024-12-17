@@ -32,6 +32,7 @@ const Rutas = () => {
   const { auth } = useAuth();
   const [, setError] = useState<string | null>(null);
   const [inicioRuta, setInicioRuta] = useState<boolean>(false);
+  const operadorMovimiento = Number(localStorage.getItem('operador_movimiento'));
 
   const handleInicioRuta = () => {
     if (rutas.length === 0) {
@@ -80,7 +81,7 @@ const Rutas = () => {
       return;
     }
     try {
-      const response = await axios.get(`${api_url}clientes`);
+      const response = await axios.get(operadorMovimiento ===1 ? `${api_url}clientes?vendedor=${operadorActual}` : `${api_url}clientes`);
       setClientes(response.data.body);
     } catch (err) {
       if (err instanceof Error) {
@@ -212,6 +213,7 @@ const Rutas = () => {
                   l_longitud={ruteamiento.l_longitud}
                   l_latitud={ruteamiento.l_latitud}
                   fetchRuteamientos={() => fetchRuteamientos(operadorActual)}
+                  clienteId={clienteId(ruteamiento.cliente) ?? 0}
                 />
               ))}
             </Grid>

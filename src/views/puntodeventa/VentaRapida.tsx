@@ -217,6 +217,7 @@ export default function VentaRapida() {
   const [ultimaVentaId, setUltimaVentaId] = useState<number>(0);
   const [vendedor] = useState(operadorActual);
   const [clienteCasual, setClienteCasual] = useState<Cliente | null>(null);
+  const operadorMovimiento = Number(localStorage.getItem("operador_movimiento"));
 
   async function traerUltimaVentaId() {
     try {
@@ -287,7 +288,7 @@ export default function VentaRapida() {
       return;
     }
     try {
-      const response = await axios.get(`${api_url}clientes`);
+      const response = await axios.get(operadorMovimiento ===1 ? `${api_url}clientes?vendedor=${operadorActual}` : `${api_url}clientes`);
       setClientes(response.data.body);
       setClienteCasual(response.data.body[0]);
       setClienteSeleccionado(response.data.body[0]); // Selecciona el primer cliente
