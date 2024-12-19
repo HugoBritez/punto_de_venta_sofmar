@@ -28,16 +28,23 @@ import {
   CheckboxGroup,
   Stack,
   InputLeftAddon,
+  Table,
+  Tr,
+  Th,
+  Td,
+  IconButton,
 } from "@chakra-ui/react";
 import { format } from "date-fns";
 import { api_url } from "@/utils";
 import { SearchIcon } from "@chakra-ui/icons";
-import { HandCoins } from "lucide-react";
+import { DeleteIcon, HandCoins } from "lucide-react";
 import { useAuth } from "@/services/AuthContext";
 import {
   Banco,
+  Cheque,
   CuentasBancarias,
   Factura,
+  MetodosPago,
   Monedas,
   OperacionData,
   Sucursal,
@@ -98,14 +105,15 @@ export default function CobrosDiarios() {
   const operadorActual = auth?.userId || "";
   const [tipoRecibo, setTipoRecibo] = useState(1);
   const [cajaId, setCajaId] = useState<number>(0);
-  const [tipoMovimiento] = useState(1);
+  const [tipoMovimiento] = useState(2);
   const [codigoTarjeta] = useState(0);
-  const [tipoTarjeta] = useState(0);
   const [cajas, setCajas] = useState<Caja[]>([]);
   const [cajaAbierta, setCajaAbierta] = useState(false);
 
   const [bancos, setBancos] = useState<Banco[]>([]);
-  const [bancoSeleccionado, setBancoSeleccionado] = useState<number>(0);
+  const [bancoSeleccionado, setBancoSeleccionado] = useState<number>(1);
+
+  const [metodosPago, setMetodosPago] = useState<MetodosPago[]>([]);
   const [metodoPagoSeleccionado, setMetodoPagoSeleccionado] = useState(1);
 
   const [cuentasBancarias, setCuentasBancarias] = useState<CuentasBancarias[]>(
@@ -123,6 +131,54 @@ export default function CobrosDiarios() {
   const [numeroTarjeta, setNumeroTarjeta] = useState("");
   const [numeroActualizacion, setNumeroActualizacion] = useState("");
 
+  const [transferenciaObservacion, setTransferenciaObservacion] = useState("");
+  const [numeroTransferencia, setNumeroTransferencia] = useState("");
+
+  const [fechaVencimientoCheque, setFechaVencimientoCheque] = useState("");
+
+  const [numeroCheque, setNumeroCheque] = useState("");
+
+  const [importeDesdeCheque, setImporteDesdeCheque] = useState(0);
+
+  const [chequeAgregado, setChequeAgregado] = useState<Cheque[]>([]);
+
+  
+
+
+  const agregarChequeALaTabla = () => {
+    if (fechaVencimientoCheque === "") {
+      toast({
+        title: "Error",
+        description: "Debe completar todos los campos",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+    const cheque = {
+      importe: importeDesdeCheque,
+      vencimiento: fechaVencimientoCheque,
+      numero: numeroCheque,
+      banco: bancoSeleccionado,
+    };
+    setChequeAgregado([...chequeAgregado, cheque]);
+    setFechaVencimientoCheque("");
+    setNumeroCheque("");
+    setImporteDesdeCheque(0);
+  };
+
+  const limpiarCamposCheque = () => {
+    setFechaVencimientoCheque("");
+    setNumeroCheque("");
+    setImporteDesdeCheque(0);
+  };
+
+  const borrarCheque = (index: number) => {
+    const newCheques = chequeAgregado.filter((_, i) => i !== index);
+    setChequeAgregado(newCheques);
+  };
+
   const {
     isOpen: isCobroModalOpen,
     onOpen: onCobroModalOpen,
@@ -133,6 +189,18 @@ export default function CobrosDiarios() {
     isOpen: isTarjetaModalOpen,
     onOpen: onTarjetaModalOpen,
     onClose: onTarjetaModalClose,
+  } = useDisclosure();
+
+  const {
+    isOpen: isTransferenciaModalOpen,
+    onOpen: onTransferenciaModalOpen,
+    onClose: onTransferenciaModalClose,
+  } = useDisclosure();
+
+  const {
+    isOpen: isChequeModalOpen,
+    onOpen: onChequeModalOpen,
+    onClose: onChequeModalClose,
   } = useDisclosure();
 
   useEffect(() => {
@@ -147,13 +215,31 @@ export default function CobrosDiarios() {
     fetchCuentasBancarias();
     fetchTarjetas();
     fetchMonedas();
+    fetchMetodosPago();
   }, []);
+
+  const fetchMetodosPago = async () => {
+    try {
+      const response = await axios.get(`${api_url}venta/metodospago`);
+      setMetodosPago(response.data.body);
+      setMetodoPagoSeleccionado(response.data.body[0].me_codigo);
+    } catch (error) {
+      toast({
+        title: "Error al cargar los métodos de pago",
+        description: "Por favor, intenta de nuevo más tarde",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
 
   const fetchMonedas = async () => {
     try {
       const response = await axios.get(`${api_url}monedas/`);
       console.log(response.data.body);
       setMonedas(response.data.body);
+      setMonedaSeleccionada(response.data.body[0].mo_codigo);
     } catch (error) {
       toast({
         title: "Error al cargar las monedas",
@@ -202,6 +288,7 @@ export default function CobrosDiarios() {
       const response = await axios.get(`${api_url}bancos/todos`);
       console.log("Estos son los bancos", response.data.body);
       setBancos(response.data.body);
+      setBancoSeleccionado(response.data.body[0].ba_codigo);
     } catch (error) {
       toast({
         title: "Error al cargar los bancos",
@@ -218,6 +305,7 @@ export default function CobrosDiarios() {
       const response = await axios.get(`${api_url}bancos/cuentas`);
       console.log("Estas son las cuentas bancarias", response.data.body);
       setCuentasBancarias(response.data.body);
+      setBancoSeleccionado(response.data.body[0].ba_codigo);
     } catch (error) {
       toast({
         title: "Error al cargar las cuentas bancarias",
@@ -298,7 +386,6 @@ export default function CobrosDiarios() {
       });
     }
   }
-
   async function actualizarUltimaFactura(codigo: number, numero: number) {
     try {
       await axios.post(
@@ -317,7 +404,6 @@ export default function CobrosDiarios() {
   }
 
   const insertarOperacion = async (operacionData: OperacionData) => {
-    // Validación del ventaId
     if (!operacionData.ventaId) {
       toast({
         title: "Error",
@@ -329,7 +415,6 @@ export default function CobrosDiarios() {
       });
       return;
     }
-
     try {
       const response = await axios.post(
         `${api_url}caja/insertar-operacion`,
@@ -405,7 +490,85 @@ export default function CobrosDiarios() {
     return result < 0 ? 0 : result;
   };
 
+  const determinarObservacion = (metodo: number) => {
+    switch (metodo) {
+      case 1:
+        return "Cobro en Efectivo";
+      case 2:
+        return "Cobro en Cheque";
+      case 3:
+        return "Cobro con Tarjeta de Crédito";
+      case 6:
+        return "Cobro con Debito Automático";
+      case 8:
+        return "Cobro con Tarjeta de Débito";
+      case 9:
+        return `Transferencia  ${ventaSeleccionada?.cliente}/${
+          bancos.find((banco) => banco.ba_codigo === bancoSeleccionado)
+            ?.ba_descripcion
+        }`;
+      case 11:
+        return "Cobro con billetera Zimple";
+    }
+  };
+
   const handleCobro = async () => {
+    if (montoRecibido === 0) {
+      toast({
+        title: "Error",
+        description: "El monto recibido no puede ser cero",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return false;
+    }
+    if (bancoSeleccionado === 0) {
+      toast({
+        title: "Error",
+        description: "Debe seleccionar un banco",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return false;
+    }
+    if (
+      cuentaBancariaSeleccionada === 0 &&
+      [3, 6, 8, 9].includes(metodoPagoSeleccionado)
+    ) {
+      toast({
+        title: "Error",
+        description: "Debe seleccionar una cuenta bancaria",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return false;
+    }
+    if (tarjetaSeleccionada === 0 && [3, 8].includes(metodoPagoSeleccionado)) {
+      toast({
+        title: "Error",
+        description: "Debe seleccionar una tarjeta",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return false;
+    }
+    if (
+      monedaSeleccionada === 0 &&
+      [3, 6, 8, 9].includes(metodoPagoSeleccionado)
+    ) {
+      toast({
+        title: "Error",
+        description: "Debe seleccionar una moneda",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return false;
+    }
     if (montoRecibido < (ventaSeleccionada?.total ?? 0)) {
       toast({
         title: "Error",
@@ -418,9 +581,9 @@ export default function CobrosDiarios() {
     }
     if (cajaAbierta === false) {
       toast({
-        title: "Error",
-        description: "No hay caja abierta",
-        status: "error",
+        title: "Advertencia",
+        description: "No existe una caja abierta actualmente.",
+        status: "warning",
         duration: 3000,
         isClosable: true,
       });
@@ -431,7 +594,7 @@ export default function CobrosDiarios() {
       caja: cajaId,
       cuenta: 1,
       fecha: fecha,
-      observacion: "Venta",
+      observacion: determinarObservacion(metodoPagoSeleccionado) || "",
       recibo: 0,
       documento: Number(ventaSeleccionada?.factura) || 0,
       operador: operadorActual,
@@ -442,10 +605,20 @@ export default function CobrosDiarios() {
       descuento: ventaSeleccionada?.descuento || 0,
       estado: 1,
       cod_retencion: 0,
-      metodo: 1,
+      metodo: metodoPagoSeleccionado,
       tipomovimiento: tipoMovimiento,
       codigotarjeta: codigoTarjeta,
-      tipotarjeta: tipoTarjeta,
+      tipotarjeta:
+        metodoPagoSeleccionado === 3 ? 2 : metodoPagoSeleccionado === 9 ? 1 : 0,
+      banco: bancoSeleccionado,
+      cuenta_bancaria: cuentaBancariaSeleccionada,
+      tarjeta: tarjetaSeleccionada,
+      moneda: monedaSeleccionada,
+      nro_tarjeta: numeroTarjeta,
+      nro_autorizacion: numeroActualizacion,
+      titular: ventaSeleccionada?.codcliente,
+      nro_transferencia: numeroTransferencia,
+      observacion_transferencia: transferenciaObservacion,
     };
 
     insertarOperacion(operacionData);
@@ -469,6 +642,13 @@ export default function CobrosDiarios() {
     setFiltroMetodo(0);
   };
 
+  const handleCobroTarjeta = async () => {
+    onTarjetaModalClose();
+    onTransferenciaModalClose();
+    setMontoRecibido(0);
+    setNumeroTarjeta("");
+    setNumeroActualizacion("");
+  };
 
   return (
     <Box bg={"gray.100"} h={"100vh"} w={"100%"} p={2}>
@@ -664,7 +844,7 @@ export default function CobrosDiarios() {
         isOpen={isCobroModalOpen}
         onClose={onCobroModalClose}
         isCentered={true}
-        size={"4xl"}
+        size={"5xl"}
       >
         <ModalOverlay />
         <ModalContent>
@@ -693,11 +873,14 @@ export default function CobrosDiarios() {
                           setMetodoPagoSeleccionado(Number(e.target.value));
                         }}
                       >
-                        <option value="1">Efectivo</option>
-                        <option value="2">Cheque</option>
-                        <option value="3">Tarjeta Crédito</option>
-                        <option value="4">Tarjeta Débito</option>
-                        <option value="5">Transferencia</option>
+                        {metodosPago.map((metodo) => (
+                          <option
+                            key={metodo.me_codigo}
+                            value={metodo.me_codigo}
+                          >
+                            {metodo.me_codigo}-{metodo.me_descripcion}
+                          </option>
+                        ))}
                       </Select>
                     </Box>
                   </Flex>
@@ -790,6 +973,21 @@ export default function CobrosDiarios() {
                   </Box>
                 </Flex>
               )}
+              <Flex>
+                <Table>
+                  <Tr>
+                    <Th>Método</Th>
+                    <Th>Monto</Th>
+                    <Th>Titular</Th>
+                    <Th>Banco/Teléfono</Th>
+                    <Th>Vencimiento</Th>
+                    <Th>Nro. Cheq./Tarj.</Th>
+                    <Th>Nro. Aut.</Th>
+                    <Th>Tarjeta</Th>
+
+                  </Tr>
+                </Table>
+              </Flex>
               <Flex
                 w="100%"
                 h={isMobile ? "auto" : "40"}
@@ -896,6 +1094,13 @@ export default function CobrosDiarios() {
                   metodoPagoSeleccionado === 4
                 ) {
                   onTarjetaModalOpen();
+                } else if (
+                  metodoPagoSeleccionado === 9 ||
+                  metodoPagoSeleccionado === 6
+                ) {
+                  onTransferenciaModalOpen();
+                } else if (metodoPagoSeleccionado === 2) {
+                  onChequeModalOpen();
                 } else {
                   try {
                     const success = await handleCobro();
@@ -908,7 +1113,7 @@ export default function CobrosDiarios() {
                       onCobroModalClose();
                     }
                   } catch (error) {
-                    console.error("Error processing payment:", error);
+                    console.error("Error procesando el pago:", error);
                   }
                 }
               }}
@@ -936,6 +1141,7 @@ export default function CobrosDiarios() {
                   value={bancoSeleccionado}
                   onChange={(e) => {
                     setBancoSeleccionado(Number(e.target.value));
+                    console.log("Banco seleccionado", e.target.value);
                   }}
                 >
                   {bancos.map((banco) => (
@@ -1015,10 +1221,332 @@ export default function CobrosDiarios() {
             </Box>
           </ModalBody>
           <ModalFooter>
-            <Button colorScheme="red" mr={3} onClick={onCobroModalClose}>
+            <Button
+              colorScheme="red"
+              mr={3}
+              onClick={() => {
+                onTarjetaModalClose();
+              }}
+            >
               Cancelar
             </Button>
-            <Button variant="solid" colorScheme="green">
+            <Button
+              variant="solid"
+              colorScheme="green"
+              onClick={async () => {
+                try {
+                  const success = await handleCobro();
+                  if (success) {
+                    setVentas((prev) =>
+                      prev.filter(
+                        (venta) => venta.codigo !== ventaSeleccionada?.codigo
+                      )
+                    );
+                    onCobroModalClose();
+                    handleCobroTarjeta();
+                  }
+                } catch (error) {
+                  console.error("Error processing payment:", error);
+                }
+              }}
+            >
+              Aceptar
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+      <Modal
+        isOpen={isTransferenciaModalOpen}
+        onClose={onTransferenciaModalClose}
+        isCentered={true}
+        size={"md"}
+      >
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Transferencia Bancaria</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Box display={"flex"} flexDir={"column"} gap={4}>
+              <Flex alignItems={"center"}>
+                <FormLabel>Banco Emisor:</FormLabel>
+                <Select
+                  value={bancoSeleccionado}
+                  onChange={(e) => {
+                    setBancoSeleccionado(Number(e.target.value));
+                    console.log("Banco seleccionado", e.target.value);
+                  }}
+                >
+                  {bancos.map((banco) => (
+                    <option key={banco.ba_codigo} value={banco.ba_codigo}>
+                      {banco.ba_descripcion}
+                    </option>
+                  ))}
+                </Select>
+              </Flex>
+              <Flex alignItems={"center"}>
+                <FormLabel>Cuenta:</FormLabel>
+                <Select
+                  value={cuentaBancariaSeleccionada}
+                  onChange={(e) => {
+                    setCuentaBancariaSeleccionada(Number(e.target.value));
+                  }}
+                >
+                  {cuentasBancarias.map((cuenta) => (
+                    <option key={cuenta.cb_codigo} value={cuenta.cb_codigo}>
+                      {cuenta.cb_descripcion}
+                    </option>
+                  ))}
+                </Select>
+              </Flex>
+              <Flex>
+                <FormLabel>Moneda:</FormLabel>
+                <Select
+                  value={monedaSeleccionada}
+                  onChange={(e) => {
+                    setMonedaSeleccionada(Number(e.target.value));
+                  }}
+                >
+                  {monedas.map((moneda) => (
+                    <option key={moneda.mo_codigo} value={moneda.mo_codigo}>
+                      {moneda.mo_descripcion}
+                    </option>
+                  ))}
+                </Select>
+              </Flex>
+              <Flex>
+                <FormLabel>Numero:</FormLabel>
+                <Input
+                  value={numeroTransferencia}
+                  onChange={(e) => {
+                    setNumeroTransferencia(e.target.value);
+                  }}
+                />
+              </Flex>
+              <Flex>
+                <FormLabel>Importe:</FormLabel>
+                <Input type="number" value={ventaSeleccionada?.total} />
+              </Flex>
+              <Flex flexDir={"column"}>
+                <FormLabel>Obs.:</FormLabel>
+                <Textarea
+                  value={transferenciaObservacion}
+                  onChange={(e) => {
+                    setTransferenciaObservacion(e.target.value);
+                  }}
+                />
+              </Flex>
+            </Box>
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              colorScheme="red"
+              mr={3}
+              onClick={() => {
+                onTarjetaModalClose();
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="solid"
+              colorScheme="green"
+              onClick={async () => {
+                try {
+                  const success = await handleCobro();
+                  if (success) {
+                    setVentas((prev) =>
+                      prev.filter(
+                        (venta) => venta.codigo !== ventaSeleccionada?.codigo
+                      )
+                    );
+                    onCobroModalClose();
+                    handleCobroTarjeta();
+                  }
+                } catch (error) {
+                  console.error("Error processing payment:", error);
+                }
+              }}
+            >
+              Aceptar
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+      <Modal
+        isOpen={isChequeModalOpen}
+        onClose={onChequeModalClose}
+        isCentered={true}
+        size={"md"}
+      >
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Cheque</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Box display={"flex"} flexDir={"column"} gap={4}>
+              <Flex alignItems={"center"}>
+                <FormLabel>Banco Emisor:</FormLabel>
+                <Select
+                  value={bancoSeleccionado}
+                  onChange={(e) => {
+                    setBancoSeleccionado(Number(e.target.value));
+                    console.log("Banco seleccionado", e.target.value);
+                  }}
+                >
+                  {bancos.map((banco) => (
+                    <option key={banco.ba_codigo} value={banco.ba_codigo}>
+                      {banco.ba_descripcion}
+                    </option>
+                  ))}
+                </Select>
+              </Flex>
+              <Flex>
+                <FormLabel>Titular:</FormLabel>
+                <Input
+                  isDisabled
+                  value={ventaSeleccionada?.cliente}
+                  onChange={(e) => {
+                    setNumeroTransferencia(e.target.value);
+                  }}
+                />
+              </Flex>
+              <Flex>
+                <FormLabel>Moneda:</FormLabel>
+                <Select
+                  value={monedaSeleccionada}
+                  onChange={(e) => {
+                    setMonedaSeleccionada(Number(e.target.value));
+                  }}
+                >
+                  {monedas.map((moneda) => (
+                    <option key={moneda.mo_codigo} value={moneda.mo_codigo}>
+                      {moneda.mo_descripcion}
+                    </option>
+                  ))}
+                </Select>
+              </Flex>
+
+              <Flex>
+                <FormLabel>Importe:</FormLabel>
+                <Input
+                  type="number"
+                  value={importeDesdeCheque}
+                  onChange={(e) =>
+                    setImporteDesdeCheque(Number(e.target.value))
+                  }
+                />
+              </Flex>
+              <Flex>
+                <FormLabel>Fecha de vencimiento:</FormLabel>
+                <Input
+                  type="date"
+                  value={fechaVencimientoCheque}
+                  onChange={(e) => {
+                    setFechaVencimientoCheque(e.target.value);
+                  }}
+                />
+              </Flex>
+              <Flex>
+                <FormLabel>Numero:</FormLabel>
+                <Input
+                  value={numeroCheque}
+                  onChange={(e) => {
+                    setNumeroCheque(e.target.value);
+                  }}
+                />
+                <Button
+                  colorScheme="blue"
+                  ml={2}
+                  flex={1}
+                  onClick={agregarChequeALaTabla}
+                >
+                  +
+                </Button>
+                <Button
+                  colorScheme="red"
+                  variant={"outline"}
+                  ml={2}
+                  onClick={limpiarCamposCheque}
+                >
+                  Borrar
+                </Button>
+              </Flex>
+              <Flex>
+                <Table size={"sm"}>
+                  <Tr>
+                    <Th>Importe</Th>
+                    <Th>Vencimiento</Th>
+                    <Th>Número</Th>
+                    <Th>Banco</Th>
+                  </Tr>
+                  {chequeAgregado.map((cheque, index) => (
+                    <Tr
+                      key={index}
+                      position="relative"
+                      _hover={{
+                        "& .delete-button": {
+                          opacity: 1,
+                          transform: "translateX(0)",
+                        },
+                      }}
+                    >
+                      <Td>{cheque.vencimiento}</Td>
+                      <Td>{cheque.numero}</Td>
+                      <Td>{cheque.banco}</Td>
+                      <Td>{cheque.importe}</Td>
+                      <Box
+                        className="delete-button"
+                        position="absolute"
+                        right="-8"
+                        top="0%"
+                        transform="translateY(-50%) translateX(20px)"
+                        opacity="0"
+                        transition="all 0.2s"
+                      >
+                        <IconButton
+                          aria-label="Eliminar cheque"
+                          icon={<DeleteIcon />}
+                          colorScheme="red"
+                          size="sm"
+                          onClick={() => borrarCheque(index)}
+                        />
+                      </Box>
+                    </Tr>
+                  ))}
+                </Table>
+              </Flex>
+            </Box>
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              colorScheme="red"
+              mr={3}
+              onClick={() => {
+                onTarjetaModalClose();
+              }}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="solid"
+              colorScheme="green"
+              onClick={async () => {
+                try {
+                  const success = await handleCobro();
+                  if (success) {
+                    setVentas((prev) =>
+                      prev.filter(
+                        (venta) => venta.codigo !== ventaSeleccionada?.codigo
+                      )
+                    );
+                    onCobroModalClose();
+                    handleCobroTarjeta();
+                  }
+                } catch (error) {
+                  console.error("Error processing payment:", error);
+                }
+              }}
+            >
               Aceptar
             </Button>
           </ModalFooter>

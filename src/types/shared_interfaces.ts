@@ -228,6 +228,15 @@ export interface Nota {
     tipomovimiento: number,
     codigotarjeta: number,
     tipotarjeta: number,
+    banco?: number,
+    cuenta_bancaria?: number,
+    tarjeta?: number,
+    moneda?: number,
+    nro_tarjeta?: string,
+    nro_autorizacion?: string,
+    titular?: number,
+    nro_transferencia?: string,
+    observacion_transferencia?: string,
   }
 
   export interface Banco {
@@ -249,6 +258,18 @@ export interface Nota {
   export interface Monedas {
     mo_codigo: number;
     mo_descripcion: string;
+  }
+
+  export interface Cheque {
+    importe: number;
+    vencimiento: string;
+    numero: string; 
+    banco: number;
+  }
+
+
+  export interface Movimiento {
+    
   }
 
 
