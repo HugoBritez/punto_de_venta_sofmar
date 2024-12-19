@@ -225,9 +225,9 @@ export interface Nota {
     estado: number;
     cod_retencion: number;
     metodo: number
-    tipomovimiento: number,
-    codigotarjeta: number,
-    tipotarjeta: number,
+    tipomovimiento?: number,
+    codigotarjeta?: number,
+    tipotarjeta?: number,
     banco?: number,
     cuenta_bancaria?: number,
     tarjeta?: number,
@@ -235,8 +235,15 @@ export interface Nota {
     nro_tarjeta?: string,
     nro_autorizacion?: string,
     titular?: number,
+    titularNombre?: string,
     nro_transferencia?: string,
     observacion_transferencia?: string,
+    vencimientoCheque?: string,
+    metodoNombre?: string,
+    telefonoZimple?: string,
+    tarjetaNombre?: string,
+    numero_cheque?: string,
+    bancoNombre?: string,
   }
 
   export interface Banco {

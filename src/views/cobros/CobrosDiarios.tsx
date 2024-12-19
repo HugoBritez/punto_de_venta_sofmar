@@ -32,16 +32,15 @@ import {
   Tr,
   Th,
   Td,
-  IconButton,
+  Tbody,
 } from "@chakra-ui/react";
 import { format } from "date-fns";
 import { api_url } from "@/utils";
 import { SearchIcon } from "@chakra-ui/icons";
-import { DeleteIcon, HandCoins } from "lucide-react";
+import { HandCoins, Trash } from "lucide-react";
 import { useAuth } from "@/services/AuthContext";
 import {
   Banco,
-  Cheque,
   CuentasBancarias,
   Factura,
   MetodosPago,
@@ -90,6 +89,7 @@ export default function CobrosDiarios() {
   const [ventaSeleccionada, setVentaSeleccionada] = useState<Venta | null>(
     null
   );
+
   const [, setIsLoading] = useState(false);
   const toast = useToast();
   const [isMobile] = useMediaQuery("(max-width: 48em)");
@@ -97,7 +97,12 @@ export default function CobrosDiarios() {
   const [sucursal, setSucursal] = useState<Sucursal[]>([]);
   const [selectedSucursal, setSelectedSucursal] = useState<string | number>("");
   const [, setFiltroMetodo] = useState(1);
-  const [montoRecibido, setMontoRecibido] = useState(0);
+
+  const [montoRecibidoEfectivo, setMontoRecibidoEfectivo] = useState(0);
+  const [montoRecibidoTarjeta, setMontoRecibidoTarjeta] = useState(0);
+  const [montoRecibidoTransferencia, setMontoRecibidoTransferencia] =
+    useState(0);
+
   const [numeroFactura, setNumeroFactura] = useState("");
   const [, setNumeroTimbrado] = useState("");
   const [numeroEstablecimiento, setNumeroEstablecimiento] = useState("");
@@ -115,6 +120,7 @@ export default function CobrosDiarios() {
 
   const [metodosPago, setMetodosPago] = useState<MetodosPago[]>([]);
   const [metodoPagoSeleccionado, setMetodoPagoSeleccionado] = useState(1);
+  const [listaMetodosPago, setListaMetodosPago] = useState<OperacionData[]>([]);
 
   const [cuentasBancarias, setCuentasBancarias] = useState<CuentasBancarias[]>(
     []
@@ -140,43 +146,302 @@ export default function CobrosDiarios() {
 
   const [importeDesdeCheque, setImporteDesdeCheque] = useState(0);
 
-  const [chequeAgregado, setChequeAgregado] = useState<Cheque[]>([]);
+  const [selectedRow, setSelectedRow] = useState<number | null>(null);
 
-  
-
-
-  const agregarChequeALaTabla = () => {
-    if (fechaVencimientoCheque === "") {
-      toast({
-        title: "Error",
-        description: "Debe completar todos los campos",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
+  const determinarObservacion = (metodo: number) => {
+    switch (metodo) {
+      case 1:
+        return "Cobro en Efectivo";
+      case 2:
+        return "Cobro en Cheque";
+      case 3:
+        return "Cobro con Tarjeta de Crédito";
+      case 6:
+        return "Cobro con Debito Automático";
+      case 8:
+        return "Cobro con Tarjeta de Débito";
+      case 9:
+        return `Transferencia  ${ventaSeleccionada?.cliente}/${
+          bancos.find((banco) => banco.ba_codigo === bancoSeleccionado)
+            ?.ba_descripcion
+        }`;
+      case 11:
+        return "Cobro con billetera Zimple";
     }
-    const cheque = {
-      importe: importeDesdeCheque,
-      vencimiento: fechaVencimientoCheque,
-      numero: numeroCheque,
-      banco: bancoSeleccionado,
-    };
-    setChequeAgregado([...chequeAgregado, cheque]);
-    setFechaVencimientoCheque("");
-    setNumeroCheque("");
-    setImporteDesdeCheque(0);
   };
+
+  const agregarMetodoPagoALaLista = () => {
+    if (metodoPagoSeleccionado === 1) {
+      if (montoRecibidoEfectivo === 0) {
+        toast({
+          title: "Error",
+          description: "Debe ingresar un monto para el efectivo",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+        return;
+      }
+      const nuevoMetodo: OperacionData = {
+        ventaId: ventaSeleccionada?.codigo || 0,
+        caja: cajaId,
+        cuenta: 1,
+        fecha: fecha,
+        observacion: determinarObservacion(metodoPagoSeleccionado) || "",
+        recibo: 0,
+        documento: Number(ventaSeleccionada?.factura) || 0,
+        operador: operadorActual,
+        redondeo: 0,
+        monto: montoRecibidoEfectivo,
+        mora: 0,
+        punitorio: 0,
+        descuento: ventaSeleccionada?.descuento || 0,
+        estado: 1,
+        cod_retencion: 0,
+        metodo: metodoPagoSeleccionado,
+        tipomovimiento: tipoMovimiento,
+        codigotarjeta: codigoTarjeta,
+        banco: bancoSeleccionado,
+        cuenta_bancaria: cuentaBancariaSeleccionada,
+        tarjeta: tarjetaSeleccionada,
+        moneda: monedaSeleccionada,
+        nro_tarjeta: numeroTarjeta,
+        nro_autorizacion: numeroActualizacion,
+        titular: ventaSeleccionada?.codcliente,
+        titularNombre: ventaSeleccionada?.cliente,
+        nro_transferencia: numeroTransferencia,
+        observacion_transferencia: transferenciaObservacion,
+        vencimientoCheque: fechaVencimientoCheque,
+        metodoNombre:
+          metodosPago.find(
+            (metodo) => metodo.me_codigo === metodoPagoSeleccionado
+          )?.me_descripcion || "",
+      };
+      setListaMetodosPago([...listaMetodosPago, nuevoMetodo]);
+      setMontoRecibidoEfectivo(0);
+      onEfectivoModalClose();
+
+    } else if ([3, 8].includes(metodoPagoSeleccionado)) {
+      if (tarjetaSeleccionada === 0) {
+        toast({
+          title: "Error",
+          description: "Debe seleccionar una tarjeta",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+        return;
+      }
+      if (!numeroTarjeta || !numeroActualizacion) {
+        toast({
+          title: "Error",
+          description: "Debe completar los campos de la tarjeta",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+        return;
+      }
+      const nuevoMetodo: OperacionData = {
+        ventaId: ventaSeleccionada?.codigo || 0,
+        caja: cajaId,
+        cuenta: 1,
+        fecha: fecha,
+        observacion: determinarObservacion(metodoPagoSeleccionado) || "",
+        recibo: 0,
+        documento: Number(ventaSeleccionada?.factura) || 0,
+        operador: operadorActual,
+        redondeo: 0,
+        monto: montoRecibidoTarjeta,
+        mora: 0,
+        punitorio: 0,
+        descuento: ventaSeleccionada?.descuento || 0,
+        estado: 1,
+        cod_retencion: 0,
+        metodo: metodoPagoSeleccionado,
+        tipomovimiento: tipoMovimiento,
+        codigotarjeta: codigoTarjeta,
+        tipotarjeta:
+          metodoPagoSeleccionado === 3
+            ? 2
+            : metodoPagoSeleccionado === 9
+            ? 1
+            : 0,
+        banco: bancoSeleccionado,
+        cuenta_bancaria: cuentaBancariaSeleccionada,
+        tarjeta: tarjetaSeleccionada,
+        moneda: monedaSeleccionada,
+        nro_tarjeta: numeroTarjeta,
+        nro_autorizacion: numeroActualizacion,
+        titular: ventaSeleccionada?.codcliente,
+        titularNombre: ventaSeleccionada?.cliente,
+        nro_transferencia: numeroTransferencia,
+        observacion_transferencia: transferenciaObservacion,
+        vencimientoCheque: "",
+        metodoNombre:
+          metodosPago.find(
+            (metodo) => metodo.me_codigo === metodoPagoSeleccionado
+          )?.me_descripcion || "",
+        bancoNombre:
+          bancos.find((banco) => banco.ba_codigo === bancoSeleccionado)
+            ?.ba_descripcion || "",
+        tarjetaNombre:
+          tarjetas.find((tarjeta) => tarjeta.t_codigo === tarjetaSeleccionada)
+            ?.t_descripcion || "",
+      };
+      setListaMetodosPago([...listaMetodosPago, nuevoMetodo]);
+
+      setNumeroTarjeta("");
+      setNumeroActualizacion("");
+      setMontoRecibidoTarjeta(0);
+      onTarjetaModalClose();
+    } else if ([6, 9].includes(metodoPagoSeleccionado)) {
+      if (!numeroTransferencia) {
+        toast({
+          title: "Error",
+          description: "Debe ingresar el número de transferencia",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+        return;
+      }
+      const nuevoMetodo: OperacionData = {
+        ventaId: ventaSeleccionada?.codigo || 0,
+        caja: cajaId,
+        cuenta: 1,
+        fecha: fecha,
+        observacion: determinarObservacion(metodoPagoSeleccionado) || "",
+        recibo: 0,
+        documento: Number(ventaSeleccionada?.factura) || 0,
+        operador: operadorActual,
+        redondeo: 0,
+        monto: montoRecibidoTransferencia,
+        mora: 0,
+        punitorio: 0,
+        descuento: ventaSeleccionada?.descuento || 0,
+        estado: 1,
+        cod_retencion: 0,
+        metodo: metodoPagoSeleccionado,
+        tipomovimiento: tipoMovimiento,
+        codigotarjeta: codigoTarjeta,
+        tipotarjeta:
+          metodoPagoSeleccionado === 3
+            ? 2
+            : metodoPagoSeleccionado === 9
+            ? 1
+            : 0,
+        banco: bancoSeleccionado,
+        cuenta_bancaria: cuentaBancariaSeleccionada,
+        tarjeta: tarjetaSeleccionada,
+        moneda: monedaSeleccionada,
+        nro_tarjeta: numeroTarjeta,
+        nro_autorizacion: numeroActualizacion,
+        titular: ventaSeleccionada?.codcliente,
+        titularNombre: ventaSeleccionada?.cliente,
+        nro_transferencia: numeroTransferencia,
+        observacion_transferencia: transferenciaObservacion,
+        vencimientoCheque: fechaVencimientoCheque,
+        metodoNombre:
+          metodosPago.find(
+            (metodo) => metodo.me_codigo === metodoPagoSeleccionado
+          )?.me_descripcion || "",
+        bancoNombre:
+          bancos.find((banco) => banco.ba_codigo === bancoSeleccionado)
+            ?.ba_descripcion || "",
+      };
+      setListaMetodosPago([...listaMetodosPago, nuevoMetodo]);
+
+      setNumeroTransferencia("");
+      setTransferenciaObservacion("");
+      setMontoRecibidoTransferencia(0);
+      onTransferenciaModalClose();
+    } else if (metodoPagoSeleccionado === 2) {
+      if (!numeroCheque || !fechaVencimientoCheque || !importeDesdeCheque) {
+        toast({
+          title: "Error",
+          description: "Debe completar los campos del cheque",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+        return;
+      }
+      const nuevoMetodo: OperacionData = {
+        ventaId: ventaSeleccionada?.codigo || 0,
+        caja: cajaId,
+        cuenta: 1,
+        fecha: fecha,
+        observacion: determinarObservacion(metodoPagoSeleccionado) || "",
+        recibo: 0,
+        documento: Number(ventaSeleccionada?.factura) || 0,
+        operador: operadorActual,
+        redondeo: 0,
+        monto: importeDesdeCheque,
+        mora: 0,
+        punitorio: 0,
+        descuento: ventaSeleccionada?.descuento || 0,
+        estado: 1,
+        cod_retencion: 0,
+        metodo: metodoPagoSeleccionado,
+        tipomovimiento: tipoMovimiento,
+        codigotarjeta: codigoTarjeta,
+        tipotarjeta: 0,
+        banco: bancoSeleccionado,
+        cuenta_bancaria: cuentaBancariaSeleccionada,
+        tarjeta: tarjetaSeleccionada,
+        moneda: monedaSeleccionada,
+        nro_tarjeta: numeroTarjeta,
+        numero_cheque: numeroCheque,
+        nro_autorizacion: numeroActualizacion,
+        titular: ventaSeleccionada?.codcliente,
+        titularNombre: ventaSeleccionada?.cliente,
+        nro_transferencia: numeroTransferencia,
+        observacion_transferencia: transferenciaObservacion,
+        vencimientoCheque: fechaVencimientoCheque,
+        metodoNombre:
+          metodosPago.find(
+            (metodo) => metodo.me_codigo === metodoPagoSeleccionado
+          )?.me_descripcion || "",
+        bancoNombre:
+          bancos.find((banco) => banco.ba_codigo === bancoSeleccionado)
+            ?.ba_descripcion || "Hola",
+      };
+      setListaMetodosPago([...listaMetodosPago, nuevoMetodo]);
+
+      setFechaVencimientoCheque("");
+      setNumeroCheque("");
+      setImporteDesdeCheque(0);
+
+      onChequeModalClose();
+    }
+  };
+
+  const borrarMetodoPago = (index: number) => {
+    const newMetodos = listaMetodosPago.filter((_, i) => i !== index);
+    setListaMetodosPago(newMetodos);
+  };
+
+  const totalmetodos = listaMetodosPago.reduce((acc, curr) => {
+    if (curr.metodo !== 1) {
+      return acc + curr.monto;
+    }
+    return acc;
+  }, 0);
+
+  const totalEfectivo = listaMetodosPago.reduce((acc, curr) => {
+    if (curr.metodo === 1) {
+      return acc + curr.monto;
+    }
+    return acc;
+  }, 0);
+
+  const totalRecibido = totalEfectivo + totalmetodos;
 
   const limpiarCamposCheque = () => {
     setFechaVencimientoCheque("");
     setNumeroCheque("");
     setImporteDesdeCheque(0);
-  };
-
-  const borrarCheque = (index: number) => {
-    const newCheques = chequeAgregado.filter((_, i) => i !== index);
-    setChequeAgregado(newCheques);
   };
 
   const {
@@ -201,6 +466,12 @@ export default function CobrosDiarios() {
     isOpen: isChequeModalOpen,
     onOpen: onChequeModalOpen,
     onClose: onChequeModalClose,
+  } = useDisclosure();
+
+  const {
+    isOpen: isEfectivoModalOpen,
+    onOpen: onEfectivoModalOpen,
+    onClose: onEfectivoModalClose,
   } = useDisclosure();
 
   useEffect(() => {
@@ -256,6 +527,7 @@ export default function CobrosDiarios() {
       const response = await axios.get(`${api_url}bancos/tarjetas`);
       console.log("Estas son las tarjetas", response.data.body);
       setTarjetas(response.data.body);
+      setTarjetaSeleccionada(response.data.body[0].t_codigo);
     } catch (error) {
       toast({
         title: "Error al cargar las tarjetas",
@@ -289,6 +561,7 @@ export default function CobrosDiarios() {
       console.log("Estos son los bancos", response.data.body);
       setBancos(response.data.body);
       setBancoSeleccionado(response.data.body[0].ba_codigo);
+      console.log("Banco seleccionado", response.data.body[0].ba_codigo);
     } catch (error) {
       toast({
         title: "Error al cargar los bancos",
@@ -305,7 +578,7 @@ export default function CobrosDiarios() {
       const response = await axios.get(`${api_url}bancos/cuentas`);
       console.log("Estas son las cuentas bancarias", response.data.body);
       setCuentasBancarias(response.data.body);
-      setBancoSeleccionado(response.data.body[0].ba_codigo);
+      setCuentaBancariaSeleccionada(response.data.body[0].cb_codigo);
     } catch (error) {
       toast({
         title: "Error al cargar las cuentas bancarias",
@@ -480,6 +753,8 @@ export default function CobrosDiarios() {
       venta.factura.toLowerCase().includes(facturaFiltro.toLowerCase())
   );
 
+  const efectivorestante = (ventaSeleccionada?.total ?? 0) - totalmetodos;
+
   const vuelto = (monto: number, total: number) => {
     const result = monto - total;
     return result < 0 ? 0 : result;
@@ -490,94 +765,16 @@ export default function CobrosDiarios() {
     return result < 0 ? 0 : result;
   };
 
-  const determinarObservacion = (metodo: number) => {
-    switch (metodo) {
-      case 1:
-        return "Cobro en Efectivo";
-      case 2:
-        return "Cobro en Cheque";
-      case 3:
-        return "Cobro con Tarjeta de Crédito";
-      case 6:
-        return "Cobro con Debito Automático";
-      case 8:
-        return "Cobro con Tarjeta de Débito";
-      case 9:
-        return `Transferencia  ${ventaSeleccionada?.cliente}/${
-          bancos.find((banco) => banco.ba_codigo === bancoSeleccionado)
-            ?.ba_descripcion
-        }`;
-      case 11:
-        return "Cobro con billetera Zimple";
-    }
-  };
-
   const handleCobro = async () => {
-    if (montoRecibido === 0) {
+    if (listaMetodosPago.length === 0) {
       toast({
         title: "Error",
-        description: "El monto recibido no puede ser cero",
+        description: "Debe agregar al menos un método de pago",
         status: "error",
         duration: 3000,
         isClosable: true,
       });
-      return false;
-    }
-    if (bancoSeleccionado === 0) {
-      toast({
-        title: "Error",
-        description: "Debe seleccionar un banco",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-      return false;
-    }
-    if (
-      cuentaBancariaSeleccionada === 0 &&
-      [3, 6, 8, 9].includes(metodoPagoSeleccionado)
-    ) {
-      toast({
-        title: "Error",
-        description: "Debe seleccionar una cuenta bancaria",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-      return false;
-    }
-    if (tarjetaSeleccionada === 0 && [3, 8].includes(metodoPagoSeleccionado)) {
-      toast({
-        title: "Error",
-        description: "Debe seleccionar una tarjeta",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-      return false;
-    }
-    if (
-      monedaSeleccionada === 0 &&
-      [3, 6, 8, 9].includes(metodoPagoSeleccionado)
-    ) {
-      toast({
-        title: "Error",
-        description: "Debe seleccionar una moneda",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-      return false;
-    }
-    if (montoRecibido < (ventaSeleccionada?.total ?? 0)) {
-      toast({
-        title: "Error",
-        description: "El monto recibido no puede ser menor al total",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-      return false;
+      return;
     }
     if (cajaAbierta === false) {
       toast({
@@ -587,41 +784,11 @@ export default function CobrosDiarios() {
         duration: 3000,
         isClosable: true,
       });
-      return false;
+      return;
     }
-    const operacionData: OperacionData = {
-      ventaId: ventaSeleccionada?.codigo || 0,
-      caja: cajaId,
-      cuenta: 1,
-      fecha: fecha,
-      observacion: determinarObservacion(metodoPagoSeleccionado) || "",
-      recibo: 0,
-      documento: Number(ventaSeleccionada?.factura) || 0,
-      operador: operadorActual,
-      redondeo: 0,
-      monto: ventaSeleccionada?.total ?? 0,
-      mora: 0,
-      punitorio: 0,
-      descuento: ventaSeleccionada?.descuento || 0,
-      estado: 1,
-      cod_retencion: 0,
-      metodo: metodoPagoSeleccionado,
-      tipomovimiento: tipoMovimiento,
-      codigotarjeta: codigoTarjeta,
-      tipotarjeta:
-        metodoPagoSeleccionado === 3 ? 2 : metodoPagoSeleccionado === 9 ? 1 : 0,
-      banco: bancoSeleccionado,
-      cuenta_bancaria: cuentaBancariaSeleccionada,
-      tarjeta: tarjetaSeleccionada,
-      moneda: monedaSeleccionada,
-      nro_tarjeta: numeroTarjeta,
-      nro_autorizacion: numeroActualizacion,
-      titular: ventaSeleccionada?.codcliente,
-      nro_transferencia: numeroTransferencia,
-      observacion_transferencia: transferenciaObservacion,
-    };
-
-    insertarOperacion(operacionData);
+    listaMetodosPago.forEach((metodo) => {
+      insertarOperacion(metodo);
+    });
     await actualizarUltimaFactura(
       Number(facturaData[0]?.d_nro_secuencia),
       Number(numeroFactura)
@@ -633,21 +800,32 @@ export default function CobrosDiarios() {
       duration: 3000,
       isClosable: true,
     });
-    return true;
   };
 
   const handleCancelarCobro = () => {
     onCobroModalClose();
-    setMontoRecibido(0);
+    setMontoRecibidoEfectivo(0);
     setFiltroMetodo(0);
   };
 
-  const handleCobroTarjeta = async () => {
-    onTarjetaModalClose();
-    onTransferenciaModalClose();
-    setMontoRecibido(0);
-    setNumeroTarjeta("");
-    setNumeroActualizacion("");
+  const abrirModalMetodoPago = () => {
+    switch (metodoPagoSeleccionado) {
+      case 1:
+        onEfectivoModalOpen();
+        break;
+      case 2:
+        onChequeModalOpen();
+        break;
+      case 3:
+      case 8:
+        onTarjetaModalOpen();
+        break;
+      case 6:
+      case 9:
+        onTransferenciaModalOpen();
+        break;
+      // Añade más casos según sea necesario
+    }
   };
 
   return (
@@ -867,21 +1045,25 @@ export default function CobrosDiarios() {
                     </Box>
                     <Box flexGrow={1} w={"100%"}>
                       <FormLabel>Método</FormLabel>
-                      <Select
-                        value={Number(metodoPagoSeleccionado)}
-                        onChange={(e) => {
-                          setMetodoPagoSeleccionado(Number(e.target.value));
-                        }}
-                      >
-                        {metodosPago.map((metodo) => (
-                          <option
-                            key={metodo.me_codigo}
-                            value={metodo.me_codigo}
-                          >
-                            {metodo.me_codigo}-{metodo.me_descripcion}
-                          </option>
-                        ))}
-                      </Select>
+                      <Flex>
+                        <Select
+                          value={Number(metodoPagoSeleccionado)}
+                          onChange={(e) => {
+                            setMetodoPagoSeleccionado(Number(e.target.value));
+                          }}
+                          mr={2}
+                        >
+                          {metodosPago.map((metodo) => (
+                            <option
+                              key={metodo.me_codigo}
+                              value={metodo.me_codigo}
+                            >
+                              {metodo.me_codigo}-{metodo.me_descripcion}
+                            </option>
+                          ))}
+                        </Select>
+                        <Button onClick={abrirModalMetodoPago}>Detalles</Button>
+                      </Flex>
                     </Box>
                   </Flex>
                   <Textarea placeholder="Observaciones" />
@@ -984,8 +1166,56 @@ export default function CobrosDiarios() {
                     <Th>Nro. Cheq./Tarj.</Th>
                     <Th>Nro. Aut.</Th>
                     <Th>Tarjeta</Th>
-
+                    <Th></Th>
                   </Tr>
+                  <Tbody>
+                    {listaMetodosPago.map((metodo, index) => (
+                      <Tr
+                        key={index}
+                        onClick={() =>
+                          setSelectedRow(selectedRow === index ? null : index)
+                        }
+                        position="relative"
+                        cursor="pointer"
+                      >
+                        <Td>{metodo.metodoNombre}</Td>
+                        <Td>{metodo.monto}</Td>
+                        <Td>{metodo.titularNombre}</Td>
+                        <Td>{metodo.bancoNombre}</Td>
+                        <Td>{metodo.vencimientoCheque}</Td>
+                        <Td>
+                          {metodo.nro_tarjeta ||
+                            metodo.nro_transferencia ||
+                            metodo.numero_cheque}
+                        </Td>
+                        <Td>{metodo.nro_autorizacion}</Td>
+                        <Td>{metodo.tarjetaNombre}</Td>
+                        <Td width="0" padding="0" position="relative">
+                          <Box
+                            bg="red.500"
+                            color="white"
+                            borderRadius="md"
+                            p={2}
+                            position="absolute"
+                            right="0"
+                            top="50%"
+                            transform={`translateY(-50%) translateX(${
+                              selectedRow === index ? "0" : "100%"
+                            })`}
+                            opacity={selectedRow === index ? 1 : 0}
+                            transition="all 0.2s ease"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              borrarMetodoPago(index);
+                            }}
+                            _hover={{ bg: "red.600" }}
+                          >
+                            <Trash />
+                          </Box>
+                        </Td>
+                      </Tr>
+                    ))}
+                  </Tbody>
                 </Table>
               </Flex>
               <Flex
@@ -1009,7 +1239,7 @@ export default function CobrosDiarios() {
                     alignItems={"flex-end"}
                   >
                     <FormLabel color={"white"}>
-                      <strong>Total a cobrar:</strong>
+                      <strong>Total Neto:</strong>
                     </FormLabel>
                     <Text
                       color={"white"}
@@ -1023,20 +1253,32 @@ export default function CobrosDiarios() {
                     justifyContent={isMobile ? "space-between" : "center"}
                     alignItems={"flex-end"}
                   >
-                    <FormLabel color={"white"} pb={isMobile ? 0 : 6}>
-                      <strong>Recibido:</strong>
+                    <FormLabel color={"white"}>
+                      <strong>Recibido de otros métodos:</strong>
                     </FormLabel>
-                    <Input
-                      height={isMobile ? "40px" : "60px"}
-                      type="number"
-                      placeholder="Gs."
-                      value={montoRecibido}
-                      onChange={(e) => setMontoRecibido(Number(e.target.value))}
-                      width={isMobile ? "full" : "240px"}
-                      bg={"white"}
+                    <Text
+                      color={"white"}
                       fontSize={isMobile ? "x-large" : "xxx-large"}
-                    />
+                    >
+                      {formatCurrency(totalmetodos)}
+                    </Text>
                   </Flex>
+                  <Flex
+                    flexDir={isMobile ? "row" : "column"}
+                    justifyContent={isMobile ? "space-between" : "center"}
+                    alignItems={"flex-end"}
+                  >
+                    <FormLabel color={"white"}>
+                      <strong>Recibido en efectivo:</strong>
+                    </FormLabel>
+                    <Text
+                      color={"white"}
+                      fontSize={isMobile ? "x-large" : "xxx-large"}
+                    >
+                      {formatCurrency(totalEfectivo)}
+                    </Text>
+                  </Flex>
+
                   <Flex
                     flexDir={isMobile ? "row" : "column"}
                     justifyContent={isMobile ? "space-between" : "center"}
@@ -1050,9 +1292,48 @@ export default function CobrosDiarios() {
                       fontSize={isMobile ? "x-large" : "xxx-large"}
                     >
                       {formatCurrency(
-                        faltante(montoRecibido, ventaSeleccionada?.total || 0)
+                        faltante(totalRecibido, efectivorestante)
                       )}
                     </Text>
+                  </Flex>
+                
+                </Flex>
+              </Flex>
+              <Flex
+                w="100%"
+                h={isMobile ? "auto" : "40"}
+                bg="green.600"
+                borderRadius={"md"}
+                p={2}
+                px={4}
+              >
+                <Flex
+                  gap={isMobile ? 2 : 4}
+                  display={"flex"}
+                  w={"100%"}
+                  justifyContent={"flex-start"}
+                  flexDir={isMobile ? "column" : "row"}
+                >
+                  <Flex
+                    flexDir={isMobile ? "row" : "column"}
+                    justifyContent={isMobile ? "space-between" : "center"}
+                    alignItems={"flex-end"}
+                  >
+                    <FormLabel color={"white"} pb={isMobile ? 0 : 4}>
+                      <strong>Entr. en Efectivo:</strong>
+                    </FormLabel>
+                    <Input
+                      height={isMobile ? "40px" : "60px"}
+                      type="number"
+                      placeholder="Gs."
+                      value={montoRecibidoEfectivo}
+                      onChange={(e) =>
+                        setMontoRecibidoEfectivo(Number(e.target.value))
+                      }
+                      width={isMobile ? "full" : "240px"}
+                      bg={"white"}
+                      fontSize={isMobile ? "x-large" : "xxx-large"}
+                    />
                   </Flex>
                   <Flex
                     flexDir={isMobile ? "row" : "column"}
@@ -1067,10 +1348,12 @@ export default function CobrosDiarios() {
                       fontSize={isMobile ? "x-large" : "xxx-large"}
                     >
                       {formatCurrency(
-                        vuelto(montoRecibido, ventaSeleccionada?.total || 0)
+                        vuelto(montoRecibidoEfectivo, efectivorestante)
                       )}
                     </Text>
                   </Flex>
+
+                  
                 </Flex>
               </Flex>
             </Flex>
@@ -1085,39 +1368,7 @@ export default function CobrosDiarios() {
             >
               Cancelar
             </Button>
-            <Button
-              variant="solid"
-              colorScheme="green"
-              onClick={async () => {
-                if (
-                  metodoPagoSeleccionado === 3 ||
-                  metodoPagoSeleccionado === 4
-                ) {
-                  onTarjetaModalOpen();
-                } else if (
-                  metodoPagoSeleccionado === 9 ||
-                  metodoPagoSeleccionado === 6
-                ) {
-                  onTransferenciaModalOpen();
-                } else if (metodoPagoSeleccionado === 2) {
-                  onChequeModalOpen();
-                } else {
-                  try {
-                    const success = await handleCobro();
-                    if (success) {
-                      setVentas((prev) =>
-                        prev.filter(
-                          (venta) => venta.codigo !== ventaSeleccionada?.codigo
-                        )
-                      );
-                      onCobroModalClose();
-                    }
-                  } catch (error) {
-                    console.error("Error procesando el pago:", error);
-                  }
-                }
-              }}
-            >
+            <Button variant="solid" colorScheme="green" onClick={handleCobro}>
               Cobrar
             </Button>
           </ModalFooter>
@@ -1216,7 +1467,13 @@ export default function CobrosDiarios() {
               </Flex>
               <Flex>
                 <FormLabel>Importe:</FormLabel>
-                <Input type="number" value={ventaSeleccionada?.total} />
+                <Input
+                  type="number"
+                  value={montoRecibidoTarjeta}
+                  onChange={(e) => {
+                    setMontoRecibidoTarjeta(Number(e.target.value));
+                  }}
+                />
               </Flex>
             </Box>
           </ModalBody>
@@ -1233,24 +1490,12 @@ export default function CobrosDiarios() {
             <Button
               variant="solid"
               colorScheme="green"
-              onClick={async () => {
-                try {
-                  const success = await handleCobro();
-                  if (success) {
-                    setVentas((prev) =>
-                      prev.filter(
-                        (venta) => venta.codigo !== ventaSeleccionada?.codigo
-                      )
-                    );
-                    onCobroModalClose();
-                    handleCobroTarjeta();
-                  }
-                } catch (error) {
-                  console.error("Error processing payment:", error);
-                }
+              onClick={() => {
+                agregarMetodoPagoALaLista();
+                onTarjetaModalClose();
               }}
             >
-              Aceptar
+              Agregar
             </Button>
           </ModalFooter>
         </ModalContent>
@@ -1324,7 +1569,13 @@ export default function CobrosDiarios() {
               </Flex>
               <Flex>
                 <FormLabel>Importe:</FormLabel>
-                <Input type="number" value={ventaSeleccionada?.total} />
+                <Input
+                  type="number"
+                  value={montoRecibidoTransferencia}
+                  onChange={(e) => {
+                    setMontoRecibidoTransferencia(Number(e.target.value));
+                  }}
+                />
               </Flex>
               <Flex flexDir={"column"}>
                 <FormLabel>Obs.:</FormLabel>
@@ -1350,24 +1601,12 @@ export default function CobrosDiarios() {
             <Button
               variant="solid"
               colorScheme="green"
-              onClick={async () => {
-                try {
-                  const success = await handleCobro();
-                  if (success) {
-                    setVentas((prev) =>
-                      prev.filter(
-                        (venta) => venta.codigo !== ventaSeleccionada?.codigo
-                      )
-                    );
-                    onCobroModalClose();
-                    handleCobroTarjeta();
-                  }
-                } catch (error) {
-                  console.error("Error processing payment:", error);
-                }
+              onClick={() => {
+                agregarMetodoPagoALaLista();
+                onTransferenciaModalClose();
               }}
             >
-              Aceptar
+              Agregar
             </Button>
           </ModalFooter>
         </ModalContent>
@@ -1455,14 +1694,6 @@ export default function CobrosDiarios() {
                   }}
                 />
                 <Button
-                  colorScheme="blue"
-                  ml={2}
-                  flex={1}
-                  onClick={agregarChequeALaTabla}
-                >
-                  +
-                </Button>
-                <Button
                   colorScheme="red"
                   variant={"outline"}
                   ml={2}
@@ -1470,50 +1701,6 @@ export default function CobrosDiarios() {
                 >
                   Borrar
                 </Button>
-              </Flex>
-              <Flex>
-                <Table size={"sm"}>
-                  <Tr>
-                    <Th>Importe</Th>
-                    <Th>Vencimiento</Th>
-                    <Th>Número</Th>
-                    <Th>Banco</Th>
-                  </Tr>
-                  {chequeAgregado.map((cheque, index) => (
-                    <Tr
-                      key={index}
-                      position="relative"
-                      _hover={{
-                        "& .delete-button": {
-                          opacity: 1,
-                          transform: "translateX(0)",
-                        },
-                      }}
-                    >
-                      <Td>{cheque.vencimiento}</Td>
-                      <Td>{cheque.numero}</Td>
-                      <Td>{cheque.banco}</Td>
-                      <Td>{cheque.importe}</Td>
-                      <Box
-                        className="delete-button"
-                        position="absolute"
-                        right="-8"
-                        top="0%"
-                        transform="translateY(-50%) translateX(20px)"
-                        opacity="0"
-                        transition="all 0.2s"
-                      >
-                        <IconButton
-                          aria-label="Eliminar cheque"
-                          icon={<DeleteIcon />}
-                          colorScheme="red"
-                          size="sm"
-                          onClick={() => borrarCheque(index)}
-                        />
-                      </Box>
-                    </Tr>
-                  ))}
-                </Table>
               </Flex>
             </Box>
           </ModalBody>
@@ -1530,24 +1717,56 @@ export default function CobrosDiarios() {
             <Button
               variant="solid"
               colorScheme="green"
-              onClick={async () => {
-                try {
-                  const success = await handleCobro();
-                  if (success) {
-                    setVentas((prev) =>
-                      prev.filter(
-                        (venta) => venta.codigo !== ventaSeleccionada?.codigo
-                      )
-                    );
-                    onCobroModalClose();
-                    handleCobroTarjeta();
-                  }
-                } catch (error) {
-                  console.error("Error processing payment:", error);
-                }
+              onClick={agregarMetodoPagoALaLista}
+            >
+              Agregar Cheque
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+      <Modal
+        isOpen={isEfectivoModalOpen}
+        onClose={onEfectivoModalClose}
+        isCentered={true}
+        size={"md"}
+      >
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Efectivo</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Box display={"flex"} flexDir={"column"} gap={4}>
+              <Flex>
+                <FormLabel>Importe:</FormLabel>
+                <Input
+                  type="number"
+                  value={montoRecibidoEfectivo}
+                  onChange={(e) => {
+                    setMontoRecibidoEfectivo(Number(e.target.value));
+                  }}
+                />
+              </Flex>
+            </Box>
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              colorScheme="red"
+              mr={3}
+              onClick={() => {
+                onEfectivoModalClose();
               }}
             >
-              Aceptar
+              Cancelar
+            </Button>
+            <Button
+              variant="solid"
+              colorScheme="green"
+              onClick={() => {
+                agregarMetodoPagoALaLista();
+                onEfectivoModalClose();
+              }}
+            >
+              Agregar
             </Button>
           </ModalFooter>
         </ModalContent>
