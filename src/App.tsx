@@ -34,6 +34,7 @@ import PuntoDeVenta from "./views/puntodeventa/punto-de-venta";
 import TomaDeInventario from "./views/inventario/toma-de-inventario";
 import CobrosDiarios from "./views/cobros/CobrosDiarios";
 import VentaRapida from "./views/puntodeventa/VentaRapida";
+import InformeVentas from "./views/ventas/informeVentas";
 
 const ProtectedLayout: React.FC = () => {
   const { auth, isLoading } = useAuth();
@@ -80,6 +81,7 @@ function App() {
                 <Route path="/punto-de-venta" element={<PuntoDeVenta />} />
                 <Route path="/venta-rapida" element={<VentaRapida />} />
                 <Route path="/consulta-de-ventas" element={<ResumenVentas />} />
+                <Route path="/informe-de-ventas" element={<InformeVentas />} />
                 <Route path="/inventario" element={<GestionInventario />} />
                 <Route
                   path="/toma-de-inventario"

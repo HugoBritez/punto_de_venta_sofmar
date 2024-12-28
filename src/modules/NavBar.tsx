@@ -29,6 +29,7 @@ import {
   Ellipsis,
   Receipt,
   SmartphoneNfc,
+  FileChartColumnIncreasing,
 } from "lucide-react";
 import { useAuth } from "@/services/AuthContext";
 import { db, fechaRelease, userName, version } from "@/utils";
@@ -103,6 +104,12 @@ const Sidebar = () => {
           name: "Consulta de Ventas",
           icon: HandCoins,
           path: "/consulta-de-ventas",
+          enabled: true,
+        },
+        {
+          name: "Informe de Ventas",
+          icon: FileChartColumnIncreasing,
+          path: "/informe-de-ventas",
           enabled: true,
         },
         {

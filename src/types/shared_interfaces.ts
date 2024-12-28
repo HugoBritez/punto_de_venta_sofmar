@@ -1,3 +1,4 @@
+
 export interface Sucursal {
   id: number;
   descripcion: string;
@@ -274,9 +275,34 @@ export interface Nota {
     banco: number;
   }
 
+export interface Categoria {
+  ca_codigo: number;
+  ca_descripcion: string;
+}
 
-  export interface Movimiento {
-    
-  }
+export interface Subcategoria {
+  sc_codigo: number;
+  sc_descripcion: string;
+}
+
+export interface Marca {
+  ma_codigo: number;
+  ma_descripcion: string;
+}
+
+export interface Ciudad {
+  ciu_codigo: number;
+  ciu_descripcion: string;
+}
+
+export interface Moneda {
+  mo_codigo: number;
+  mo_descripcion: string;
+}
+
+export interface Seccion {
+  s_codigo: number;
+  s_descripcion: string;
+}
 
 
