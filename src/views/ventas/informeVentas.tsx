@@ -28,18 +28,93 @@ import {
   ModalHeader,
   ModalOverlay,
   Select,
+  Spinner,
   Text,
   useDisclosure,
   useMediaQuery,
 } from "@chakra-ui/react";
 import axios from "axios";
-import { EyeIcon, EyeOff, FileChartColumnIncreasing } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  EyeIcon,
+  EyeOff,
+  FileChartColumnIncreasing,
+} from "lucide-react";
 import { useEffect, useState } from "react";
+
+interface ResumenItem {
+  ar_codbarra: string;
+  ar_descripcion: string;
+  pcosto: string;
+  precio: string;
+  cantidad: string;
+  exentas: string;
+  cinco: string;
+  diez: string;
+  Utilidad_sobre_PrecioCosto_UltimaCompra_Venta: string;
+  Utilidad_sobre_PrecioCosto_UltimaCompra_costo: string;
+  subtotal: string;
+  iva_total: string;
+  boni: number;
+  Utilidad_sobre_PrecioCosto_AVG_Ventail: string;
+  PrecioCostoAVG: string;
+  ve_fecha: string;
+  ve_hora: string;
+  ve_sucursal: number;
+  ve_deposito: number;
+  ve_cliente: number;
+  ve_operador: number;
+  deve_articulo: number;
+  ar_servicio: number;
+  ar_marca: number;
+  ar_subcategoria: number;
+  cli_ciudad: number;
+  deve_talle: string;
+  ar_dvl: number;
+  ve_moneda: number;
+  ve_credito: number;
+  ve_estado: number;
+  Codigo_Proveedor: string;
+  ve_vendedor: number;
+  ve_descuento: string;
+  ve_total: string;
+  ma_descripcion: string;
+  ca_descripcion: string;
+  desc_Proveedor: string;
+  dep_descripcion: string;
+  ciu_descripcion: string;
+  ve_codigo: number;
+  montonc: string;
+  deve_descuento: string;
+  cli_razon: string;
+  op_nombre: string;
+  ve_factura: {
+    type: string;
+    data: number[];
+  };
+  descripcion: string;
+  desc_articulo: string;
+  lote: string;
+  vence: string;
+  r_abre: string;
+  r_color: string;
+  r_nro: string;
+  d_seccion: string;
+  al_talle: number;
+  sc_descripcion: string;
+  deve_codigo: number;
+  cantidadParaCosto: string;
+}
 
 const InformeVentas = () => {
   const [horaDesde, setHoraHasta] = useState<string>("");
   const [horaHasta, setHoraDesde] = useState<string>("");
-  const [fechaDesde, setFechaDesde] = useState<string>("");
+  const [fechaDesde, setFechaDesde] = useState<string>(
+    new Date(new Date().setMonth(new Date().getMonth() - 1))
+      .toISOString()
+      .split("T")[0]
+  );
   const [fechaHasta, setFechaHasta] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
@@ -55,18 +130,18 @@ const InformeVentas = () => {
   const [depositos, setDepositos] = useState<Deposito[]>([]);
   const [depositosSeleccionados, setDepositosSeleccionados] = useState<
     number[] | null
-  >(null);
+  >([]);
 
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [clientesFiltrados, setClientesFiltrados] = useState(clientes);
   const [clienteSeleccionados, setClienteSeleccionados] = useState<
     number[] | null
-  >(null);
+  >([]);
 
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
   const [vendedoresSeleccionados, setVendedoresSeleccionados] = useState<
     number[] | null
-  >(null);
+  >([]);
 
   const [vendedoresFiltrados, setVendedoresFiltrados] = useState(vendedores);
 
@@ -75,38 +150,38 @@ const InformeVentas = () => {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [categoriasSeleccionadas, setCategoriasSeleccionadas] = useState<
     number[] | null
-  >(null);
+  >([]);
 
   const [subcategorias, setSubcategorias] = useState<Subcategoria[]>([]);
   const [subcategoriasSeleccionadas, setSubcategoriasSeleccionadas] = useState<
     number[] | null
-  >(null);
+  >([]);
 
   const [marca, setMarca] = useState<Marca[]>([]);
-  const [marcasSeleccionadas, setMarcasSeleccionadas] = useState<number | null>(
-    null
-  );
+  const [marcasSeleccionadas, setMarcasSeleccionadas] = useState<
+    number[] | null
+  >([]);
 
   const [ciudades, setCiudades] = useState<Ciudad[]>([]);
   const [ciudadesSeleccionadas, setCiudadesSeleccionadas] = useState<
     number[] | null
-  >(null);
+  >([]);
 
   const [condiciones, setCondiciones] = useState<number | null>(null);
 
-  const [situaciones, setSituaciones] = useState<number | null>(null);
+  const [situaciones, setSituaciones] = useState<number | null>(1);
 
   const [tipoMovimiento, setTipoMovimiento] = useState<number | null>(null);
 
   const [secciones, setSecciones] = useState<Seccion[]>([]);
   const [seccionesSeleccionadas, setSeccionesSeleccionadas] = useState<
     number[] | null
-  >(null);
+  >([]);
 
   const [monedas, setMonedas] = useState<Moneda[]>([]);
-  const [monedasSeleccionadas, setMonedasSeleccionadas] = useState<
-    number[] | null
-  >(null);
+  const [monedasSeleccionada, setMonedasSeleccionada] = useState<number | null>(
+    1
+  );
 
   const [articulos, setArticulos] = useState<Articulo[]>([]);
   const [articulosSeleccionados, setArticulosSeleccionados] = useState<
@@ -120,18 +195,29 @@ const InformeVentas = () => {
     setCalculoDesdeInicioParaCostoPromedio,
   ] = useState<number>(0);
   const [ncAplicadoAFechaDeVentas, setNcAplicadoAFechaDeVentas] =
-    useState<number>(0);
+    useState<number>(1);
   const [deducirDescuentoSobreVenta, setDeducirDescuentoSobreVenta] =
-    useState<number>(0);
+    useState<number>(1);
   const [soloResumen, setSoloResumen] = useState<number>(0);
 
-  const [ordenAsc, setOrdenAsc] = useState<boolean>(false);
+  const [ordenAsc, setOrdenAsc] = useState<boolean>(true);
   const [infDesgIVA, setInfDesgIVA] = useState<boolean>(false);
   const [desglosadoXFactura, setDesglosadoXFactura] = useState<boolean>(false);
-  const [totalesDeProd, setTotalesDeProd] = useState<boolean>(false);
+  const [totalesDeProd, setTotalesDeProd] = useState<boolean>(true);
   const [agruparXPeriodo, setAgruparXPeriodo] = useState<boolean>(false);
   const [totalizarArt, setTotalizarArt] = useState<boolean>(false);
   const [informeBonif, setInformeBonif] = useState<boolean>(false);
+  const [mostrarCheckBox, setMostrarCheckBox] = useState<boolean>(false);
+  const [resumen, setResumen] = useState<ResumenItem[]>([]);
+  const [tipoValorizacion, setTipoValorizacion] = useState<number | null>(2);
+
+  const [ventasNC, setVentasNC] = useState<ResumenItem[]>([]);
+
+  const [loading, setLoading] = useState<boolean>(false);
+
+  function toggleMostrarCheckBox() {
+    setMostrarCheckBox(!mostrarCheckBox);
+  }
 
   function toggleFiltros() {
     setMostrarFiltros(!mostrarFiltros);
@@ -206,7 +292,6 @@ const InformeVentas = () => {
   const fetchSucursales = async () => {
     try {
       const response = await axios.get(`${api_url}sucursales/listar`);
-      console.log(response.data.body);
       setSucursales(response.data.body);
     } catch (error) {
       console.error(error);
@@ -216,7 +301,6 @@ const InformeVentas = () => {
   const fetchDepositos = async () => {
     try {
       const response = await axios.get(`${api_url}depositos/`);
-      console.log(response.data.body);
       setDepositos(response.data.body);
     } catch (error) {
       console.error(error);
@@ -226,7 +310,6 @@ const InformeVentas = () => {
   const fetchCategorias = async () => {
     try {
       const response = await axios.get(`${api_url}categorias/`);
-      console.log(response.data.body);
       setCategorias(response.data.body);
     } catch (error) {
       console.error(error);
@@ -377,6 +460,224 @@ const InformeVentas = () => {
         return [...prevSeleccionados, clienteId];
       }
     });
+  };
+
+  const fetchReporteDeVentas = async () => {
+    const filtrosResumen = {
+      fecha_desde: fechaDesde,
+      fecha_hasta: fechaHasta,
+      hora_desde: horaDesde,
+      hora_hasta: horaHasta,
+      tipo_valorizacion: tipoValorizacion,
+      sucursales: sucursalesSeleccionadas,
+      depositos: depositosSeleccionados,
+      marcas: marcasSeleccionadas,
+      categorias: categoriasSeleccionadas,
+      subcategorias: subcategoriasSeleccionadas,
+      moneda: monedasSeleccionada,
+      ciudades: ciudadesSeleccionadas,
+      secciones: seccionesSeleccionadas,
+      articulos: articulosSeleccionados,
+      clientes: clienteSeleccionados,
+      vendedores: vendedoresSeleccionados,
+      orden: ordenAsc ? 1 : null,
+      infDesgIVA: infDesgIVA ? 1 : null,
+      desglosadoXFactura: desglosadoXFactura ? 1 : null,
+      totalesDeProd: totalesDeProd ? 1 : null,
+      agruparXPeriodo: agruparXPeriodo ? 1 : null,
+      totalizarArt: totalizarArt ? 1 : null,
+      condiciones: condiciones === 2 ? null : condiciones,
+      situaciones: situaciones === 2 ? null : situaciones,
+      buscar_codigo: nroVenta,
+      agrupar_fecha: agruparXPeriodo ? 1 : null,
+    };
+
+    try {
+      setLoading(true);
+      const response = await axios.post(
+        `${api_url}venta/resumen`,
+        filtrosResumen
+      );
+      setResumen(response.data.body);
+      console.log(response.data.body);
+
+      const resumenFiltrado = response.data.body
+        .filter((item: ResumenItem) => parseFloat(item.montonc) !== 0)
+        .reduce((unique: ResumenItem[], item: ResumenItem) => {
+          return unique.some((entry) => entry.ve_codigo === item.ve_codigo)
+            ? unique
+            : [...unique, item];
+        }, []);
+
+      setVentasNC(resumenFiltrado);
+
+      setLoading(false);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const eliminarDecimales = (valor: string) => {
+    const valorNumerico = parseFloat(valor);
+    if (isNaN(valorNumerico)) return valor;
+    return Math.floor(valorNumerico).toString();
+  };
+
+  const formatearNumero = (valor: string) => {
+    const valorNumerico = parseFloat(valor);
+    if (isNaN(valorNumerico)) return valor;
+    return Math.floor(valorNumerico).toLocaleString();
+  };
+
+  const totalVentas = () => {
+    return resumen.reduce((total, item) => {
+      if (item.ve_estado === 1) {
+        const veTotalNumerico = parseFloat(item.subtotal);
+        if (!isNaN(veTotalNumerico)) {
+          return total + veTotalNumerico;
+        }
+      }
+      return total;
+    }, 0);
+  };
+
+  const totalNeto = () => {
+    return resumen.reduce((total, item) => {
+      if (item.ve_estado === 1) {
+        const subtotalNumerico = parseFloat(item.subtotal);
+        if (!isNaN(subtotalNumerico)) {
+          return total + subtotalNumerico;
+        }
+      }
+      return total;
+    }, 0);
+  };
+
+  const totalCostos = () => {
+    return resumen.reduce((total, item) => {
+      if (item.ve_estado === 1) {
+        const pcostoNumerico = parseFloat(item.pcosto);
+        const cantidadNumerica = parseFloat(item.cantidadParaCosto);
+        if (!isNaN(pcostoNumerico) && !isNaN(cantidadNumerica)) {
+          return total + pcostoNumerico * cantidadNumerica;
+        }
+      }
+      return total;
+    }, 0);
+  };
+
+  const utilidadEnMonto = () => {
+    return totalNeto() - totalCostos();
+  };
+
+  const totalDescuentoFacturas = () => {
+    return resumen.reduce((total, item) => {
+      const descuentoNumerico = parseFloat(item.ve_descuento);
+      if (!isNaN(descuentoNumerico)) {
+        return total + descuentoNumerico;
+      }
+      return total;
+    }, 0);
+  };
+
+  const totalDescuentoItems = () => {
+    return resumen.reduce((total, item) => {
+      if (item.ve_estado === 1) {
+        const descuentoNumerico = parseFloat(item.deve_descuento);
+        if (!isNaN(descuentoNumerico)) {
+          return total + descuentoNumerico;
+        }
+      }
+      return total;
+    }, 0);
+  };
+
+  const utilidadPorcentajeBruto = () => {
+    return ((totalVentas() - totalCostos()) / totalVentas()) * 100;
+  };
+
+  const utilidadPorcentajeNeto = () => {
+    return (
+      ((totalNetoReal() -
+        totalCostos() -
+        totalDescuentoFacturas() -
+        totalDescuentoItems()) /
+        totalNetoReal()) *
+      100
+    );
+  };
+
+  const totalMontoNc = () => {
+    return ventasNC.reduce((total, item) => {
+      const montoNcNumerico = parseFloat(item.montonc);
+      if (!isNaN(montoNcNumerico)) {
+        return total + montoNcNumerico;
+      }
+      return total;
+    }, 0);
+  };
+
+  const totalNetoReal = () => {
+    return (
+      totalNeto() -
+
+      totalMontoNc()
+    );
+  };
+  const totalUnidadesVendidas = () => {
+    return resumen.reduce((total, item) => {
+      if (item.ve_estado === 1) {
+        const cantidadNumerica = parseFloat(item.cantidad);
+        if (!isNaN(cantidadNumerica)) {
+          return total + cantidadNumerica;
+        }
+      }
+      return total;
+    }, 0);
+  };
+
+  const totalCincos = () => {
+    return resumen.reduce((total, item) => {
+      if (item.ve_estado === 1) {
+        const cincoNumerico = parseFloat(item.cinco);
+        if (!isNaN(cincoNumerico)) {
+          return total + cincoNumerico;
+        }
+      }
+      return total;
+    }, 0);
+  };
+
+  const totalDiez = () => {
+    return resumen.reduce((total, item) => {
+      if (item.ve_estado === 1) {
+        const diezNumerico = parseFloat(item.diez);
+        if (!isNaN(diezNumerico)) {
+          return total + diezNumerico;
+        }
+      }
+      return total;
+    }, 0);
+  };
+
+  const totalExentas = () => {
+    return resumen.reduce((total, item) => {
+      if (item.ve_estado === 1) {
+        const exentasNumerico = parseFloat(item.exentas);
+        if (!isNaN(exentasNumerico)) {
+          return total + exentasNumerico;
+        }
+      }
+      return total;
+    }, 0);
+  };
+
+  const colorClase = (margenString: string): string => {
+    const margen = Number(margenString);
+    if (margen < 0) return "bg-red-200";
+    if (margen < 20) return "bg-gray-200";
+    if (margen <= 70) return "bg-white";
+    return "bg-yellow-200";
   };
 
   return (
@@ -540,8 +841,8 @@ const InformeVentas = () => {
                   value={condiciones ?? ""}
                 >
                   <option value={2}>Todas</option>
-                  <option value={1}>Contado</option>
-                  <option value={0}>Crédito</option>
+                  <option value={0}>Contado</option>
+                  <option value={1}>Crédito</option>
                 </Select>
               </Box>
               <Box>
@@ -560,9 +861,12 @@ const InformeVentas = () => {
               </Box>
               <Box display={"flex"} flexDirection={"column"} flexGrow={1}>
                 <FormLabel>Tipo de costeo:</FormLabel>
-                <Select>
-                  <option value={1}>Precio de costo real</option>
-                  <option value={1}>Precio de costo promedio</option>
+                <Select
+                  onChange={(e) => setTipoValorizacion(+e.target.value)}
+                  value={tipoValorizacion ?? ""}
+                >
+                  <option value={0}>Precio de costo real</option>
+                  <option value={2}>Precio de costo promedio</option>
                   <option value={1}>Ultimo costo</option>
                 </Select>
               </Box>
@@ -666,133 +970,284 @@ const InformeVentas = () => {
                   </Box>
                 </Flex>
               </Flex>
-              <Box
-                display={isMobile ? "grid" : "flex"}
-                gridTemplateColumns={
-                  isMobile ? "repeat(2, 1fr)" : "repeat(3, 1fr)"
-                }
-                gap={4}
-                bg={"green.600"}
-                w={"100%"}
-                borderRadius={"md"}
-                p={2}
-                justifyContent={"space-around"}
-              >
-                <Checkbox
-                  isChecked={ordenAsc}
-                  onChange={() => setOrdenAsc(!ordenAsc)}
-                  color={"white"}
-                  fontWeight={"bold"}
+              {isMobile ? (
+                <Box>
+                  <Button
+                    bg={"white"}
+                    color={"black"}
+                    onClick={toggleMostrarCheckBox}
+                  >
+                    {mostrarCheckBox ? <ChevronUp /> : <ChevronDown />}
+                  </Button>
+                  {mostrarCheckBox && (
+                    <Box
+                      display={isMobile ? "grid" : "flex"}
+                      gridTemplateColumns={
+                        isMobile ? "repeat(2, 1fr)" : "repeat(3, 1fr)"
+                      }
+                      gap={4}
+                      bg={"green.600"}
+                      w={"100%"}
+                      borderRadius={"md"}
+                      p={2}
+                      justifyContent={"space-around"}
+                    >
+                      <Checkbox
+                        isChecked={ordenAsc}
+                        onChange={() => setOrdenAsc(!ordenAsc)}
+                        color={"white"}
+                        fontWeight={"bold"}
+                      >
+                        Orden Asc.
+                      </Checkbox>
+                      <Checkbox
+                        isChecked={infDesgIVA}
+                        onChange={() => setInfDesgIVA(!infDesgIVA)}
+                        color={"white"}
+                        fontWeight={"bold"}
+                      >
+                        Inf. Desg./IVA
+                      </Checkbox>
+                      <Checkbox
+                        isChecked={desglosadoXFactura}
+                        onChange={() =>
+                          setDesglosadoXFactura(!desglosadoXFactura)
+                        }
+                        color={"white"}
+                        fontWeight={"bold"}
+                      >
+                        Desglosado x Factura
+                      </Checkbox>
+                      <Checkbox
+                        isChecked={totalesDeProd}
+                        onChange={() => setTotalesDeProd(!totalesDeProd)}
+                        color={"white"}
+                        fontWeight={"bold"}
+                      >
+                        Totales de Prod.
+                      </Checkbox>
+                      <Checkbox
+                        isChecked={agruparXPeriodo}
+                        onChange={() => setAgruparXPeriodo(!agruparXPeriodo)}
+                        color={"white"}
+                        fontWeight={"bold"}
+                      >
+                        Agrupar x periodo
+                      </Checkbox>
+                      <Checkbox
+                        isChecked={totalizarArt}
+                        onChange={() => setTotalizarArt(!totalizarArt)}
+                        color={"white"}
+                        fontWeight={"bold"}
+                      >
+                        Totalizar Art.
+                      </Checkbox>
+                      <Checkbox
+                        isChecked={informeBonif}
+                        onChange={() => setInformeBonif(!informeBonif)}
+                        color={"white"}
+                        fontWeight={"bold"}
+                      >
+                        Informe Bonif.
+                      </Checkbox>
+                    </Box>
+                  )}
+                </Box>
+              ) : (
+                <Box
+                  display={isMobile ? "grid" : "flex"}
+                  gridTemplateColumns={
+                    isMobile ? "repeat(2, 1fr)" : "repeat(3, 1fr)"
+                  }
+                  gap={4}
+                  bg={"green.600"}
+                  w={"100%"}
+                  borderRadius={"md"}
+                  p={2}
+                  justifyContent={"space-around"}
                 >
-                  Orden Asc.
-                </Checkbox>
-                <Checkbox
-                  isChecked={infDesgIVA}
-                  onChange={() => setInfDesgIVA(!infDesgIVA)}
-                  color={"white"}
-                  fontWeight={"bold"}
-                >
-                  Inf. Desg./IVA
-                </Checkbox>
-                <Checkbox
-                  isChecked={desglosadoXFactura}
-                  onChange={() => setDesglosadoXFactura(!desglosadoXFactura)}
-                  color={"white"}
-                  fontWeight={"bold"}
-                >
-                  Desglosado x Factura
-                </Checkbox>
-                <Checkbox
-                  isChecked={totalesDeProd}
-                  onChange={() => setTotalesDeProd(!totalesDeProd)}
-                  color={"white"}
-                  fontWeight={"bold"}
-                >
-                  Totales de Prod.
-                </Checkbox>
-                <Checkbox
-                  isChecked={agruparXPeriodo}
-                  onChange={() => setAgruparXPeriodo(!agruparXPeriodo)}
-                  color={"white"}
-                  fontWeight={"bold"}
-                >
-                  Agrupar x periodo
-                </Checkbox>
-                <Checkbox
-                  isChecked={totalizarArt}
-                  onChange={() => setTotalizarArt(!totalizarArt)}
-                  color={"white"}
-                  fontWeight={"bold"}
-                >
-                  Totalizar Art.
-                </Checkbox>
-                <Checkbox
-                  isChecked={informeBonif}
-                  onChange={() => setInformeBonif(!informeBonif)}
-                  color={"white"}
-                  fontWeight={"bold"}
-                >
-                  Informe Bonif.
-                </Checkbox>
-              </Box>
+                  <Checkbox
+                    isChecked={ordenAsc}
+                    onChange={() => setOrdenAsc(!ordenAsc)}
+                    color={"white"}
+                    fontWeight={"bold"}
+                  >
+                    Orden Asc.
+                  </Checkbox>
+                  <Checkbox
+                    isChecked={infDesgIVA}
+                    onChange={() => setInfDesgIVA(!infDesgIVA)}
+                    color={"white"}
+                    fontWeight={"bold"}
+                  >
+                    Inf. Desg./IVA
+                  </Checkbox>
+                  <Checkbox
+                    isChecked={desglosadoXFactura}
+                    onChange={() => setDesglosadoXFactura(!desglosadoXFactura)}
+                    color={"white"}
+                    fontWeight={"bold"}
+                  >
+                    Desglosado x Factura
+                  </Checkbox>
+                  <Checkbox
+                    isChecked={totalesDeProd}
+                    onChange={() => setTotalesDeProd(!totalesDeProd)}
+                    color={"white"}
+                    fontWeight={"bold"}
+                  >
+                    Totales de Prod.
+                  </Checkbox>
+                  <Checkbox
+                    isChecked={agruparXPeriodo}
+                    onChange={() => setAgruparXPeriodo(!agruparXPeriodo)}
+                    color={"white"}
+                    fontWeight={"bold"}
+                  >
+                    Agrupar x periodo
+                  </Checkbox>
+                  <Checkbox
+                    isChecked={totalizarArt}
+                    onChange={() => setTotalizarArt(!totalizarArt)}
+                    color={"white"}
+                    fontWeight={"bold"}
+                  >
+                    Totalizar Art.
+                  </Checkbox>
+                  <Checkbox
+                    isChecked={informeBonif}
+                    onChange={() => setInformeBonif(!informeBonif)}
+                    color={"white"}
+                    fontWeight={"bold"}
+                  >
+                    Informe Bonif.
+                  </Checkbox>
+                </Box>
+              )}
             </Flex>
           </Box>
         )}
         <Flex
           border={"1px solid #ccc"}
-          p={2}
+          px={2}
+          mt={2}
           borderRadius={8}
           overflowY={"auto"}
           flexDir={"column"}
-          flexGrow={1}
+          flex={1}
+          overflowX={"auto"}
+          h={isMobile ? "80%" : mostrarFiltros ? "40%" : "70%"}
         >
-          <table className="w-full">
-            <thead>
-              <tr>
-                <th>F. Venta</th>
-                <th>Cod. Barra</th>
-                <th>Descripcion</th>
-                <th>P. Costo</th>
-                <th>P. de Venta</th>
-                <th>Unid. Vendida</th>
-                <th>Exentas</th>
-                <th>IVA 5%</th>
-                <th>IVA 10%</th>
-                <th>% Util. s/Venta</th>
-                <th>Sub-Total</th>
-                <th>V/B</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>01/01/2021</td>
-                <td>123456</td>
-                <td>Producto de prueba</td>
-                <td>1000</td>
-                <td>1500</td>
-                <td>10</td>
-                <td>0</td>
-                <td>0</td>
-                <td>150</td>
-                <td>50%</td>
-                <td>15000</td>
-                <td>1</td>
-              </tr>
+          {loading ? (
+            <Flex justifyContent="center" alignItems="center" height="200px">
+              <Spinner size="xl" />
+            </Flex>
+          ) : (
+            <table
+              className={`${
+                isMobile ? "w-[1920px]" : "w-full"
+              } table-auto border-collapse border border-gray-300`}
+            >
+              <thead className="bg-gray-200 sticky top-0 z-10">
+                <tr>
+                  <th className="border border-gray-300 p-2 w-1/12">
+                    F. Venta
+                  </th>
+                  <th className="border border-gray-300 p-2 w-[200px]">
+                    Cod. Barra
+                  </th>
+                  <th className="border border-gray-300 p-2 w-auto">
+                    Descripcion
+                  </th>
+                  <th className="border border-gray-300 p-1">P. Costo</th>
+                  <th className="border border-gray-300 p-1">P. de Venta</th>
+                  <th className="border border-gray-300 p-1">Unid. Vendida</th>
+                  <th className="border border-gray-300 p-1">Exentas</th>
+                  <th className="border border-gray-300 p-1">IVA 5%</th>
+                  <th className="border border-gray-300 p-1">IVA 10%</th>
+                  <th className="border border-gray-300 p-1">
+                    % Util. s/Venta
+                  </th>
+                  <th className="border border-gray-300 p-1">Sub-Total</th>
+                  <th className="border border-gray-300 p-1">V/B</th>
+                </tr>
+              </thead>
+              <tbody>
+                {resumen.map((item, index) => (
+                  <tr
+                    key={index}
+                    className={colorClase(
+                      item.Utilidad_sobre_PrecioCosto_UltimaCompra_Venta
+                    )}
+                  >
+                    <td className="border border-gray-300 p-0 text-sm font-medium text-gray-700">
+                      {item.ve_fecha}
+                    </td>
+                    <td className="border border-gray-300 p-0 text-sm text-gray-700">
+                      {item.ar_codbarra}
+                    </td>
+                    <td className="border border-gray-300 p-0 text-sm text-gray-700">
+                      {item.ar_descripcion}
+                    </td>
+                    <td className="border border-gray-300 p-0 text-right text-sm text-gray-700">
+                      {formatearNumero(item.pcosto)}
+                    </td>
+                    <td className="border border-gray-300 p-0 text-right text-sm text-gray-700">
+                      {formatearNumero(item.precio)}
+                    </td>
+                    <td className="border border-gray-300 p-0 text-center text-sm text-gray-700">
+                      {eliminarDecimales(item.cantidad)}
+                    </td>
+
+                    <td className="border border-gray-300 p-0 text-right text-sm text-gray-700">
+                      {formatearNumero(item.exentas)}
+                    </td>
+                    <td className="border border-gray-300 p-0 text-right text-sm text-gray-700">
+                      {formatearNumero(item.cinco)}
+                    </td>
+                    <td className="border border-gray-300 p-0 text-right text-sm text-gray-700">
+                      {formatearNumero(item.diez)}
+                    </td>
+                    <td className="border border-gray-300 p-0 text-center text-sm text-gray-700">
+                      {eliminarDecimales(
+                        item.Utilidad_sobre_PrecioCosto_UltimaCompra_Venta
+                      )}
+                    </td>
+                    <td className="border border-gray-300 p-0 text-right text-sm text-gray-700">
+                      {formatearNumero(item.subtotal)}
+                    </td>
+                    <td className="border border-gray-300 p-0 text-center text-sm text-gray-700">
+                      {item.boni === 1 ? "B" : "V"}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
-            <tfoot>
-              <tr>
-                <td colSpan={5}></td>
-                <td>Total Unid. Vendida</td>
-                <td>Total Exentas</td>
-                <td>Total IVA 5%</td>
-                <td>Total IVA 10%</td>
-                <td></td>
-                <td>Total Sub-Total</td>
-                <td></td>
-              </tr>
-            </tfoot>
-          </table>
+              <tfoot className="bg-gray-200 sticky bottom-0 z-10">
+                <tr>
+                  <td colSpan={5} className="border border-gray-300 p-2"></td>
+                  <td className="border border-gray-300 p-2 font-bold">
+                    Total: {formatearNumero(totalUnidadesVendidas().toString())}
+                  </td>
+                  <td className="border font-bold border-gray-300 p-2">
+                    Total: {formatearNumero(totalExentas().toString())}
+                  </td>
+                  <td className="border font-bold border-gray-300 p-2">
+                    Total: {formatearNumero(totalCincos().toString())}
+                  </td>
+                  <td className="border font-bold border-gray-300 p-2">
+                    Total: {formatearNumero(totalDiez().toString())}
+                  </td>
+                  <td className="border font-bold border-gray-300 p-2"></td>
+                  <td className="border font-bold border-gray-300 p-2">
+                    Total: {formatearNumero(totalVentas().toString())}
+                  </td>
+                  <td className="border font-bold border-gray-300 p-2"></td>
+                </tr>
+              </tfoot>
+            </table>
+          )}
         </Flex>
+
         <Flex
           border={"1px solid #ccc"}
           p={2}
@@ -803,14 +1258,15 @@ const InformeVentas = () => {
           <Box
             bg={"green.600"}
             px={4}
-            py={8}
+            py={2}
             borderRadius={4}
             w={isMobile ? "100%" : "80%"}
             color={"white"}
             display={isMobile ? "flex" : "grid"}
             flexDir={"column"}
-            gridTemplateColumns={"repeat(4, 1fr)"}
+            gridTemplateColumns={"repeat(5, 1fr)"}
             gap={2}
+            h={isMobile ? "auto" : 40}
           >
             <Flex
               gap={2}
@@ -820,7 +1276,17 @@ const InformeVentas = () => {
               <Text fontWeight={"bold"} fontSize={isMobile ? "sm" : "lg"}>
                 Neto Venta:
               </Text>
-              <Box bg={"white"} p={4} borderRadius={4} minW={"50%"}></Box>
+              <Box bg={"white"} p={2} borderRadius={4} minW={"50%"}>
+                <Text
+                  fontSize={isMobile ? "sm" : "lg"}
+                  color={"black"}
+                  textAlign={"right"}
+                >
+                  {deducirDescuentoSobreVenta === 1
+                    ? formatearNumero(totalNetoReal().toString())
+                    : formatearNumero(totalNeto().toString())}
+                </Text>
+              </Box>
             </Flex>
             <Flex
               gap={2}
@@ -830,7 +1296,15 @@ const InformeVentas = () => {
               <Text fontWeight={"bold"} fontSize={isMobile ? "sm" : "lg"}>
                 Costos Directo:
               </Text>
-              <Box bg={"white"} p={4} borderRadius={4} minW={"50%"}></Box>
+              <Box bg={"white"} p={2} borderRadius={4} minW={"50%"}>
+                <Text
+                  fontSize={isMobile ? "sm" : "lg"}
+                  color={"black"}
+                  textAlign={"right"}
+                >
+                  {formatearNumero(totalCostos().toString())}
+                </Text>
+              </Box>
             </Flex>
             <Flex
               gap={2}
@@ -840,7 +1314,15 @@ const InformeVentas = () => {
               <Text fontWeight={"bold"} fontSize={isMobile ? "sm" : "lg"}>
                 Total Desc. Factura:
               </Text>
-              <Box bg={"white"} p={4} borderRadius={4} minW={"50%"}></Box>
+              <Box bg={"white"} p={2} borderRadius={4} minW={"50%"}>
+                <Text
+                  fontSize={isMobile ? "sm" : "lg"}
+                  color={"black"}
+                  textAlign={"right"}
+                >
+                  {formatearNumero(totalDescuentoFacturas().toString())}
+                </Text>
+              </Box>
             </Flex>
             <Flex
               gap={2}
@@ -848,9 +1330,17 @@ const InformeVentas = () => {
               justifyContent={"space-between"}
             >
               <Text fontWeight={"bold"} fontSize={isMobile ? "sm" : "lg"}>
-                Margen en % S/V Neta:
+                Margen en % S/V Bruta:
               </Text>
-              <Box bg={"white"} p={4} borderRadius={4} minW={"50%"}></Box>
+              <Box bg={"white"} p={2} borderRadius={4} minW={"50%"}>
+                <Text
+                  fontSize={isMobile ? "sm" : "lg"}
+                  color={"black"}
+                  textAlign={"right"}
+                >
+                  {utilidadPorcentajeNeto().toFixed(2)} %
+                </Text>
+              </Box>
             </Flex>
             <Flex
               gap={2}
@@ -860,7 +1350,15 @@ const InformeVentas = () => {
               <Text fontWeight={"bold"} fontSize={isMobile ? "sm" : "lg"}>
                 Neto NC. Desc./Conc.:
               </Text>
-              <Box bg={"white"} p={4} borderRadius={4} minW={"50%"}></Box>
+              <Box bg={"white"} p={2} borderRadius={4} minW={"50%"}>
+                <Text
+                  fontSize={isMobile ? "sm" : "lg"}
+                  color={"black"}
+                  textAlign={"right"}
+                >
+                  {formatearNumero(totalMontoNc().toString())}
+                </Text>
+              </Box>
             </Flex>
             <Flex
               gap={2}
@@ -870,7 +1368,15 @@ const InformeVentas = () => {
               <Text fontWeight={"bold"} fontSize={isMobile ? "sm" : "lg"}>
                 Util. en Monto:
               </Text>
-              <Box bg={"white"} p={4} borderRadius={4} minW={"50%"}></Box>
+              <Box bg={"white"} p={2} borderRadius={4} minW={"50%"}>
+                <Text
+                  fontSize={isMobile ? "sm" : "lg"}
+                  color={"black"}
+                  textAlign={"right"}
+                >
+                  {formatearNumero(utilidadEnMonto().toString())}
+                </Text>
+              </Box>
             </Flex>
             <Flex
               gap={2}
@@ -880,7 +1386,15 @@ const InformeVentas = () => {
               <Text fontWeight={"bold"} fontSize={isMobile ? "sm" : "lg"}>
                 Total Desc. Items:
               </Text>
-              <Box bg={"white"} p={4} borderRadius={4} minW={"50%"}></Box>
+              <Box bg={"white"} p={2} borderRadius={4} minW={"50%"}>
+                <Text
+                  fontSize={isMobile ? "sm" : "lg"}
+                  color={"black"}
+                  textAlign={"right"}
+                >
+                  {formatearNumero(totalDescuentoItems().toString())}
+                </Text>
+              </Box>
             </Flex>
             <Flex
               gap={2}
@@ -888,64 +1402,79 @@ const InformeVentas = () => {
               justifyContent={"space-between"}
             >
               <Text fontWeight={"bold"} fontSize={isMobile ? "sm" : "lg"}>
-                Margen en % S/V. Bruta:
+                Margen en % S/V. Bruto:
               </Text>
-              <Box bg={"white"} p={4} borderRadius={4} minW={"50%"}></Box>
+              <Box bg={"white"} p={2} borderRadius={4} minW={"50%"}>
+                <Text
+                  fontSize={isMobile ? "sm" : "lg"}
+                  color={"black"}
+                  textAlign={"right"}
+                >
+                  {utilidadPorcentajeBruto().toFixed(2)} %
+                </Text>
+              </Box>
             </Flex>
-            <Flex
-              gap={2}
-              alignItems={"center"}
-              justifyContent={"flex-end"}
-              gridColumn={"span 4"}
-            >
+            <Flex gap={2} alignItems={"center"} justifyContent={"flex-end"}>
               <Text fontWeight={"bold"} fontSize={isMobile ? "sm" : "lg"}>
                 Total Desc.
               </Text>
-              <Box bg={"white"} p={4} borderRadius={4} minW={"12.3%"}></Box>
+              <Box bg={"white"} p={2} borderRadius={4} minW={"50%"}>
+                <Text
+                  fontSize={isMobile ? "sm" : "lg"}
+                  color={"black"}
+                  textAlign={"right"}
+                >
+                  0
+                </Text>
+              </Box>
             </Flex>
           </Box>
           <Box
-            p={2}
+            px={2}
             borderRadius={4}
             w={isMobile ? "100%" : "20%"}
             color={"white"}
           >
             <Box display={"flex"} flexDirection={"column"} gap={1}>
-              <Text
-                fontWeight={"bold"}
-                fontSize={isMobile ? "sm" : "lg"}
-                color={"black"}
-              >
+              <Text fontWeight={"bold"} fontSize={"sm"} color={"black"}>
                 Obs:
               </Text>
               <Flex gap={4}>
-              <Box p={4} borderRadius={"md"} bg={"gray.200"}></Box>
-                <Text fontSize={isMobile ? "sm" : "lg"} color={"black"}>
+                <Box p={3} borderRadius={"md"} bg={"gray.200"}></Box>
+                <Text fontSize={"sm"} color={"black"}>
                   Indica utilidad S/V menor al 20%
                 </Text>
               </Flex>
               <Flex gap={4}>
-                <Box p={4} borderRadius={"md"} bg={"yellow.200"}></Box>
-                <Text fontSize={isMobile ? "sm" : "lg"} color={"black"}>
+                <Box p={3} borderRadius={"md"} bg={"yellow.200"}></Box>
+                <Text fontSize={"sm"} color={"black"}>
                   Indica utilidad S/V mayor al 70%
                 </Text>
               </Flex>
               <Flex gap={4}>
-              <Box p={4} borderRadius={"md"} bg={"red.200"}></Box>
-                <Text fontSize={isMobile ? "sm" : "lg"} color={"black"}>
+                <Box p={3} borderRadius={"sm"} bg={"red.200"}></Box>
+                <Text fontSize={"sm"} color={"black"}>
                   Indica utilidad S/V en pérdida
                 </Text>
               </Flex>
               <Flex gap={4}>
-              <Box p={4} borderRadius={"md"} bg={"blue.200"}></Box>
-                <Text fontSize={isMobile ? "sm" : "lg"} color={"black"}>
+                <Box p={3} borderRadius={"sm"} bg={"blue.200"}></Box>
+                <Text fontSize={"sm"} color={"black"}>
                   Opción utilidad S/V positivo
                 </Text>
               </Flex>
             </Box>
             <Flex gap={2} mt={2}>
-              <Button colorScheme={"blue"} w={'50%'}>Imprimir</Button>
-              <Button colorScheme={"green"} w={'50%'}>Procesar</Button>
+              <Button colorScheme={"blue"} w={"50%"}>
+                Imprimir
+              </Button>
+              <Button
+                colorScheme={"green"}
+                w={"50%"}
+                onClick={fetchReporteDeVentas}
+              >
+                Procesar
+              </Button>
             </Flex>
           </Box>
         </Flex>
@@ -1431,13 +1960,26 @@ const InformeVentas = () => {
                   key={marca.ma_codigo}
                   p={2}
                   bg={
-                    marcasSeleccionadas === marca.ma_codigo
+                    marcasSeleccionadas?.includes(marca.ma_codigo) ?? false
                       ? "blue.100"
                       : "gray.100"
                   }
                   borderRadius={8}
                   cursor={"pointer"}
-                  onClick={() => setMarcasSeleccionadas(marca.ma_codigo)}
+                  onClick={() =>
+                    setMarcasSeleccionadas((prevSeleccionados) => {
+                      if (prevSeleccionados === null) {
+                        return [marca.ma_codigo];
+                      }
+                      if (prevSeleccionados.includes(marca.ma_codigo)) {
+                        return prevSeleccionados.filter(
+                          (id) => id !== marca.ma_codigo
+                        );
+                      } else {
+                        return [...prevSeleccionados, marca.ma_codigo];
+                      }
+                    })
+                  }
                 >
                   {marca.ma_descripcion}
                 </Box>
@@ -1615,26 +2157,13 @@ const InformeVentas = () => {
                   key={moneda.mo_codigo}
                   p={2}
                   bg={
-                    monedasSeleccionadas?.includes(moneda.mo_codigo) ?? false
+                    monedasSeleccionada === moneda.mo_codigo
                       ? "blue.100"
                       : "gray.100"
                   }
                   borderRadius={8}
                   cursor={"pointer"}
-                  onClick={() =>
-                    setMonedasSeleccionadas((prevSeleccionados) => {
-                      if (prevSeleccionados === null) {
-                        return [moneda.mo_codigo];
-                      }
-                      if (prevSeleccionados.includes(moneda.mo_codigo)) {
-                        return prevSeleccionados.filter(
-                          (id) => id !== moneda.mo_codigo
-                        );
-                      } else {
-                        return [...prevSeleccionados, moneda.mo_codigo];
-                      }
-                    })
-                  }
+                  onClick={() => setMonedasSeleccionada(moneda.mo_codigo)}
                 >
                   {moneda.mo_descripcion}
                 </Box>
@@ -1644,7 +2173,7 @@ const InformeVentas = () => {
           <ModalFooter display={"flex"} gap={4}>
             <Button
               colorScheme={"red"}
-              onClick={() => setMonedasSeleccionadas(null)}
+              onClick={() => setMonedasSeleccionada(null)}
             >
               Cancelar
             </Button>
