@@ -20,6 +20,7 @@
     "axios": "^1.7.7",
     "chart.js": "^4.4.4",
     "date-fns": "^4.1.0",
+    "jspdf": "^2.5.2",
     "jwt-decode": "^4.0.0",
     "lightweight-charts": "^4.2.0",
     "lodash": "^4.17.21",

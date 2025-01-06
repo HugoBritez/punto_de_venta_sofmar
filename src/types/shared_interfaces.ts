@@ -305,4 +305,9 @@ export interface Seccion {
   s_descripcion: string;
 }
 
+export interface Configuraciones {
+  id: number;
+  valor: string;
+}
+
 

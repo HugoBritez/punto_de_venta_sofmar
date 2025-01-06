@@ -3,6 +3,7 @@ import {
   Categoria,
   Ciudad,
   Cliente,
+  Configuraciones,
   Deposito,
   Marca,
   Moneda,
@@ -16,6 +17,7 @@ import {
   Box,
   Button,
   Checkbox,
+  Divider,
   Flex,
   FormLabel,
   Heading,
@@ -42,6 +44,9 @@ import {
   FileChartColumnIncreasing,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 interface ResumenItem {
   ar_codbarra: string;
@@ -167,7 +172,7 @@ const InformeVentas = () => {
     number[] | null
   >([]);
 
-  const [condiciones, setCondiciones] = useState<number | null>(null);
+  const [condiciones, setCondiciones] = useState<number | null>(2);
 
   const [situaciones, setSituaciones] = useState<number | null>(1);
 
@@ -214,6 +219,24 @@ const InformeVentas = () => {
   const [ventasNC, setVentasNC] = useState<ResumenItem[]>([]);
 
   const [loading, setLoading] = useState<boolean>(false);
+
+  const [cambiarBusqueda, setCambiarBusqueda] = useState<boolean>(false);
+
+  const [configuracionesEmpresa, setConfiguracionesEmpresa] = useState<Configuraciones[]>([]);
+
+  const fechaCompletaActual = new Date()
+    .toLocaleString("es-PY", {
+      timeZone: "America/Asuncion",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    })
+    .replace(/\//g, "-")
+    .replace(",", "")
+    .slice(0, 16);
 
   function toggleMostrarCheckBox() {
     setMostrarCheckBox(!mostrarCheckBox);
@@ -287,6 +310,12 @@ const InformeVentas = () => {
     onOpen: onMonedaModalOpen,
     onClose: onMonedaModalClose,
     isOpen: isMonedaModalOpen,
+  } = useDisclosure();
+
+  const {
+    onOpen: onPdfModalOpen,
+    onClose: onPdfModalClose,
+    isOpen: isPdfModalOpen,
   } = useDisclosure();
 
   const fetchSucursales = async () => {
@@ -379,6 +408,15 @@ const InformeVentas = () => {
     }
   };
 
+  const fetchConfiguraciones = async () => {
+    try{
+      const response = await axios.get(`${api_url}configuraciones/todos`);
+      setConfiguracionesEmpresa(response.data.body);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
   const buscarArticulos = async (busqueda: string) => {
     if (busqueda.trim() === "" || busqueda.length === 0) {
       setArticulos([]);
@@ -412,7 +450,12 @@ const InformeVentas = () => {
     fetchMonedas();
     fetchClientes();
     fetchVendedores();
+    fetchConfiguraciones();
   }, []);
+
+
+  const nombreEmpresa = configuracionesEmpresa[0]?.valor || "N/A";
+  const rucEmpresa = configuracionesEmpresa[30]?.valor || "N/A";
 
   const filtrarClientesPorNombre = (nombre: string) => {
     if (nombre.trim() === "") {
@@ -490,6 +533,7 @@ const InformeVentas = () => {
       situaciones: situaciones === 2 ? null : situaciones,
       buscar_codigo: nroVenta,
       agrupar_fecha: agruparXPeriodo ? 1 : null,
+      totalizar_grid: totalizarArt ? 1 : null,
     };
 
     try {
@@ -618,11 +662,7 @@ const InformeVentas = () => {
   };
 
   const totalNetoReal = () => {
-    return (
-      totalNeto() -
-
-      totalMontoNc()
-    );
+    return totalNeto() - totalMontoNc();
   };
   const totalUnidadesVendidas = () => {
     return resumen.reduce((total, item) => {
@@ -678,6 +718,166 @@ const InformeVentas = () => {
     if (margen < 20) return "bg-gray-200";
     if (margen <= 70) return "bg-white";
     return "bg-yellow-200";
+  };
+
+  const generarPDF = async () => {
+    const elemento = document.getElementById("reporte");
+    if (!elemento) return;
+
+    // Generar el canvas a partir del elemento
+    const canvas = await html2canvas(elemento, {
+      scrollX: 0,
+      scrollY: 0,
+      windowWidth: elemento.scrollWidth,
+      windowHeight: elemento.scrollHeight,
+    });
+
+    const pdf = new jsPDF("p", "mm", "a4");
+
+    // Dimensiones del PDF
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+
+    // Dimensiones del canvas
+    const canvasWidth = canvas.width;
+    const canvasHeight = canvas.height;
+
+    let yOffset = 0; // Posición vertical para empezar a recortar
+    const marginTop = 8; // Margen superior para las páginas adicionales
+    const marginBottom = 24; // Margen inferior
+    let pageNumber = 1; // Número de página inicial
+
+    while (yOffset < canvasHeight) {
+      // Crear un canvas temporal para la sección de la página actual
+      const pageCanvas = document.createElement("canvas");
+      // Ajustar el tamaño de la página con margen inferior
+      const pageHeight = Math.min(
+        canvasHeight - yOffset,
+        (canvasWidth * (pdfHeight - marginTop - marginBottom)) / pdfWidth
+      );
+
+      pageCanvas.width = canvasWidth;
+      pageCanvas.height = pageHeight;
+
+      const context = pageCanvas.getContext("2d");
+      if (!context) {
+        console.error("No se pudo obtener el contexto 2D del canvas.");
+        return;
+      }
+
+      context.drawImage(
+        canvas,
+        0,
+        yOffset,
+        canvasWidth,
+        pageHeight, // Parte del canvas original
+        0,
+        0,
+        canvasWidth,
+        pageHeight // Dibujo en el nuevo canvas
+      );
+
+      const pageImgData = pageCanvas.toDataURL("image/png");
+      const pageHeightScaled = (pageHeight * pdfWidth) / canvasWidth;
+
+      if (yOffset > 0) {
+        pdf.addPage();
+      }
+
+      // Dibujar líneas y cuadros
+      pdf.setDrawColor(145, 158, 181);
+      pdf.setLineWidth(0.3);
+      pdf.rect(5, marginTop - 5, pdfWidth - 10, 48); // Cuadro principal
+      pdf.line(5, marginTop + 2, pdfWidth - 5, marginTop + 2); // Línea debajo de la cabecera
+      pdf.line(5, marginTop + 38, pdfWidth - 5, marginTop + 38); // Línea debajo de la información adicional
+
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(6);
+      pdf.text(`Empresa: ${nombreEmpresa}`, 15, marginTop);
+      pdf.text(`RUC: ${rucEmpresa}`, pdfWidth / 2, marginTop);
+      pdf.text(`${fechaCompletaActual} - ${localStorage.getItem('user_name')}`, pdfWidth - 40, marginTop);
+
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('REPORTE DE VENTAS Y UTILIDADES', pdfWidth / 2, marginTop + 8, { align: 'center' });
+
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(6);
+      pdf.text(`Fecha desde: ${fechaDesde}`, 10, marginTop + 12);
+      pdf.text(`Fecha hasta: ${fechaHasta}`, 10, marginTop + 16);
+      pdf.text(`Hora: ${horaDesde}-${horaHasta}`, 10, marginTop + 20);
+      pdf.text(`Sucursales: ${sucursalesSeleccionadas &&
+        sucursalesSeleccionadas.length > 0
+        ? sucursalesSeleccionadas.map((suc) => suc).join(", ")
+        : "Ninguna en especifico"}`, 10, marginTop + 24);
+      pdf.text(`Depositos: ${depositosSeleccionados && depositosSeleccionados.length > 0
+        ? depositosSeleccionados.map((dep) => dep).join(", ")
+        : "Ninguno en especifico"}`, 10, marginTop + 28);
+
+      pdf.text(`Clientes: ${clienteSeleccionados && clienteSeleccionados.length > 0
+        ? clienteSeleccionados.map((cli) => cli).join(", ")
+        : "Ninguno en especifico"}`, 10, marginTop + 32);
+
+      pdf.text(`Vendedores: ${vendedoresSeleccionados && vendedoresSeleccionados.length > 0
+        ? vendedoresSeleccionados.map((ven) => ven).join(", ")
+        : "Ninguno en especifico"}`, 10, marginTop + 36);
+
+
+      pdf.text(`Situaciones: ${situaciones === 2 ? "Todas" : situaciones === 1 ? "Activos" : "Anulados"}`, (pdfWidth / 2)-15, marginTop + 12);
+      pdf.text(`Tipo de movimiento: ${tipoMovimiento === 1
+        ? "Solo ventas"
+        : "Ventas y devoluciones"}`, (pdfWidth / 2)-15, marginTop + 16);
+      pdf.text(`Tipo de articulo: ${tipoArticulo === 1 ? "Servicios" : "Mercaderias"}`, (pdfWidth / 2)-15, marginTop + 20);
+      pdf.text(`Categoria: ${categoriasSeleccionadas && categoriasSeleccionadas.length > 0
+        ? categoriasSeleccionadas.map((cat) => cat).join(", ")
+        : "Ninguna en especifico"}`, (pdfWidth / 2)-15, marginTop + 24);
+      pdf.text(`Subcategoria: ${subcategoriasSeleccionadas && subcategoriasSeleccionadas.length > 0
+        ? subcategoriasSeleccionadas.map((sub) => sub).join(", ")
+        : "Ninguna en especifico"}`, (pdfWidth / 2)-15, marginTop + 28);
+
+      pdf.text(`Marca: ${marcasSeleccionadas && marcasSeleccionadas.length > 0
+        ? marcasSeleccionadas.map((mar) => mar).join(", ")
+        : "Ninguna en especifico"}`, (pdfWidth / 2)-15, marginTop + 32);
+
+
+      pdf.text(`Ciudades: ${ciudadesSeleccionadas && ciudadesSeleccionadas.length > 0
+        ? ciudadesSeleccionadas.map((ciu) => ciu).join(", ")
+        : "Ninguna en especifico"}`, pdfWidth -60, marginTop + 12);
+      
+      pdf.text(`Seciones: ${seccionesSeleccionadas && seccionesSeleccionadas.length > 0
+        ? seccionesSeleccionadas.map((sec) => sec).join(", ")
+        : "Ninguna en especifico"}`, pdfWidth -60, marginTop + 16);
+
+      pdf.text(`Tipo de factura: ${condiciones === 2 ? "Todas" : condiciones === 1 ? "Credito" : "Contado"}`, pdfWidth -60, marginTop + 20);
+      pdf.text(`Tipo de valorizacion: ${tipoValorizacion === 2 ? "Costo promedio" : tipoValorizacion ===1 ? 'Ultimo costo' : 'Costo real' }`, pdfWidth -60, marginTop + 24);
+      pdf.text(`Moneda: ${monedasSeleccionada === 1 ? "Guarani" : "Dolar"}`, pdfWidth -60, marginTop + 28);
+      pdf.text(`Articulos: ${articulosSeleccionados && articulosSeleccionados.length > 0
+        ? articulosSeleccionados.map((art) => art).join(", ")
+        : "Ninguno en especifico"}`, pdfWidth -60, marginTop + 32);
+
+        pdf.setFont("helvetica", "bold");
+        pdf.text(
+          `Total de registros: ${resumen.length}`,
+          pdfWidth - 40,
+          marginTop + 42
+        );
+        pdf.text(`Página: ${pageNumber}`, 10, marginTop + 42);
+        pageNumber++;
+
+      // Agregar la imagen de la página
+      pdf.addImage(
+        pageImgData,
+        "PNG",
+        0,
+        marginTop + 44,
+        pdfWidth,
+        pageHeightScaled - marginBottom
+      );
+
+      yOffset += pageHeight;
+    }
+
+    pdf.save(`reporte_ventas_${fechaCompletaActual}.pdf`);
   };
 
   return (
@@ -910,8 +1110,9 @@ const InformeVentas = () => {
                         colorScheme={"blue"}
                         p={2}
                         w={isMobile ? "full" : "200px"}
+                        onClick={() => setCambiarBusqueda(!cambiarBusqueda)}
                       >
-                        Nro. de factura
+                        {cambiarBusqueda ? "Nro. de factura" : "Nro. de venta"}
                       </Button>
                     </Flex>
                   </Box>
@@ -1144,9 +1345,8 @@ const InformeVentas = () => {
             </Flex>
           ) : (
             <table
-              className={`${
-                isMobile ? "w-[1920px]" : "w-full"
-              } table-auto border-collapse border border-gray-300`}
+              className={`${isMobile ? "w-[1920px]" : "w-full"
+                } table-auto border-collapse border border-gray-300`}
             >
               <thead className="bg-gray-200 sticky top-0 z-10">
                 <tr>
@@ -1180,43 +1380,43 @@ const InformeVentas = () => {
                       item.Utilidad_sobre_PrecioCosto_UltimaCompra_Venta
                     )}
                   >
-                    <td className="border border-gray-300 p-0 text-sm font-medium text-gray-700">
+                    <td className="border border-gray-300 p-0 text-md font-medium text-gray-700">
                       {item.ve_fecha}
                     </td>
-                    <td className="border border-gray-300 p-0 text-sm text-gray-700">
+                    <td className="border border-gray-300 p-0 text-md text-gray-700">
                       {item.ar_codbarra}
                     </td>
-                    <td className="border border-gray-300 p-0 text-sm text-gray-700">
+                    <td className="border border-gray-300 p-0 text-md text-gray-700">
                       {item.ar_descripcion}
                     </td>
-                    <td className="border border-gray-300 p-0 text-right text-sm text-gray-700">
+                    <td className="border border-gray-300 p-0 text-right text-md text-gray-700">
                       {formatearNumero(item.pcosto)}
                     </td>
-                    <td className="border border-gray-300 p-0 text-right text-sm text-gray-700">
+                    <td className="border border-gray-300 p-0 text-right text-md text-gray-700">
                       {formatearNumero(item.precio)}
                     </td>
-                    <td className="border border-gray-300 p-0 text-center text-sm text-gray-700">
+                    <td className="border border-gray-300 p-0 text-center text-md text-gray-700">
                       {eliminarDecimales(item.cantidad)}
                     </td>
 
-                    <td className="border border-gray-300 p-0 text-right text-sm text-gray-700">
+                    <td className="border border-gray-300 p-0 text-right text-md text-gray-700">
                       {formatearNumero(item.exentas)}
                     </td>
-                    <td className="border border-gray-300 p-0 text-right text-sm text-gray-700">
+                    <td className="border border-gray-300 p-0 text-right text-md text-gray-700">
                       {formatearNumero(item.cinco)}
                     </td>
-                    <td className="border border-gray-300 p-0 text-right text-sm text-gray-700">
+                    <td className="border border-gray-300 p-0 text-right text-md text-gray-700">
                       {formatearNumero(item.diez)}
                     </td>
-                    <td className="border border-gray-300 p-0 text-center text-sm text-gray-700">
+                    <td className="border border-gray-300 p-0 text-center text-md text-gray-700">
                       {eliminarDecimales(
                         item.Utilidad_sobre_PrecioCosto_UltimaCompra_Venta
                       )}
                     </td>
-                    <td className="border border-gray-300 p-0 text-right text-sm text-gray-700">
+                    <td className="border border-gray-300 p-0 text-right text-md text-gray-700">
                       {formatearNumero(item.subtotal)}
                     </td>
-                    <td className="border border-gray-300 p-0 text-center text-sm text-gray-700">
+                    <td className="border border-gray-300 p-0 text-center text-md text-gray-700">
                       {item.boni === 1 ? "B" : "V"}
                     </td>
                   </tr>
@@ -1465,8 +1665,8 @@ const InformeVentas = () => {
               </Flex>
             </Box>
             <Flex gap={2} mt={2}>
-              <Button colorScheme={"blue"} w={"50%"}>
-                Imprimir
+              <Button colorScheme={"blue"} w={"50%"} onClick={onPdfModalOpen}>
+                Generar PDF
               </Button>
               <Button
                 colorScheme={"green"}
@@ -1757,7 +1957,7 @@ const InformeVentas = () => {
                   p={2}
                   bg={
                     depositosSeleccionados?.includes(deposito.dep_codigo) ??
-                    false
+                      false
                       ? "blue.100"
                       : "gray.100"
                   }
@@ -1826,7 +2026,7 @@ const InformeVentas = () => {
                   p={2}
                   bg={
                     categoriasSeleccionadas?.includes(categoria.ca_codigo) ??
-                    false
+                      false
                       ? "blue.100"
                       : "gray.100"
                   }
@@ -2180,6 +2380,311 @@ const InformeVentas = () => {
             <Button colorScheme={"green"} onClick={onMonedaModalClose}>
               Aceptar
             </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+      <Modal isOpen={isPdfModalOpen} onClose={onPdfModalClose} size={"full"}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Vista Previa informe de ventas</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <div className="flex flex-col gap-4 px-8 h-full mt-2 w-[full] mx-auto border border-gray-300 overflow-y-auto">
+              <div className="flex flex-col w-full border border-gray-300 p-2">
+                <div className="flex justify-between w-full">
+                  <p className="text-md font-bold">RUC: 80026596-3</p>
+                  <p className="text-md font-bold">Gaesa SA</p>
+                  <div>
+                    <p className="text-md font-bold">{fechaCompletaActual}</p>
+                    <p className="text-md font-bold">
+                      {localStorage.getItem("user_name")}
+                    </p>
+                  </div>
+                </div>
+                <Divider />
+                <div className="py-2">
+                  <h1 className="font-bold text-xl text-center">
+                    Resumen de ventas y utilidades
+                  </h1>
+                  <div className="flex flex-row w-full justify-between my-2">
+                    <div>
+                      <p className="text-lg "><strong>Desde:</strong> {fechaDesde}</p>
+                      <p className="text-lg "><strong>Hasta:</strong> {fechaHasta}</p>
+                      <p className="text-lg">
+                        <strong>Hora:</strong>{" "}
+                        {horaDesde && horaHasta
+                          ? `${horaDesde} - ${horaHasta}`
+                          : "Ninguna en especifico"}
+                      </p>
+                      <p className="text-lg ">
+                        <strong>Sucursales:</strong>{" "}
+                        {sucursalesSeleccionadas &&
+                          sucursalesSeleccionadas.length > 0
+                          ? sucursalesSeleccionadas.map((suc) => suc).join(", ")
+                          : "Ninguna en especifico"}
+                      </p>
+                      <p className="text-lg">
+                        <strong>Depositos:</strong>{" "}
+                        {depositosSeleccionados &&
+                          depositosSeleccionados.length > 0
+                          ? depositosSeleccionados?.map((dep) => dep).join(", ")
+                          : "Ninguna en especifico"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-lg">
+                        <strong>Clientes:</strong>{" "}
+                        {clienteSeleccionados && clienteSeleccionados.length > 0
+                          ? clienteSeleccionados?.map((cli) => cli).join(", ")
+                          : "Ninguno en especifico"}
+                      </p>
+                      <p className="text-lg">
+                        <strong>Vendedores:</strong>{" "}
+                        {vendedoresSeleccionados &&
+                          vendedoresSeleccionados.length > 0
+                          ? vendedoresSeleccionados
+                            ?.map((vend) => vend)
+                            .join(", ")
+                          : "Ninguno en especifico"}
+                      </p>
+                      <p className="text-lg">
+                        <strong>Situaciones:</strong>{" "}
+                        {situaciones === 2
+                          ? "Todas"
+                          : situaciones === 1
+                            ? "Activos"
+                            : "Anuladas"}
+                      </p>
+                      <p className="text-lg ">
+                        <strong>Tipo de movimiento:</strong>{" "}
+                        {tipoMovimiento === 1
+                          ? "Solo ventas"
+                          : "Ventas y devoluciones"}
+                      </p>
+                      <p className="text-lg">
+                        <strong>Tipo de articulo:</strong>{" "}
+                        {tipoArticulo === 1 ? "Servicios" : "Mercaderias"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-lg">
+                        <strong>Categorias:</strong>{" "}
+                        {categoriasSeleccionadas &&
+                          categoriasSeleccionadas.length > 0
+                          ? categoriasSeleccionadas
+                            ?.map((cat) => cat)
+                            .join(", ")
+                          : "Ninguna en especifico"}
+                      </p>
+                      <p className="text-lg">
+                        <strong>Subcategorias:</strong>{" "}
+                        {subcategoriasSeleccionadas &&
+                          subcategoriasSeleccionadas.length > 0
+                          ? subcategoriasSeleccionadas
+                            ?.map((sub) => sub)
+                            .join(", ")
+                          : "Ninguna en especifico"}
+                      </p>
+                      <p className="text-lg">
+                        <strong>Marcas:</strong>{" "}
+                        {marcasSeleccionadas && marcasSeleccionadas.length > 0
+                          ? marcasSeleccionadas?.map((mar) => mar).join(", ")
+                          : "Ninguna en especifico"}
+                      </p>
+                      <p className="text-lg">
+                        <strong>Ciudades:</strong>{" "}
+                        {ciudadesSeleccionadas &&
+                          ciudadesSeleccionadas.length > 0
+                          ? ciudadesSeleccionadas?.map((ciu) => ciu).join(", ")
+                          : "Ninguna en especifico"}
+                      </p>
+                      <p className="text-lg">
+                        <strong>Secciones:</strong>{" "}
+                        {seccionesSeleccionadas &&
+                          seccionesSeleccionadas.length > 0
+                          ? seccionesSeleccionadas?.map((sec) => sec).join(", ")
+                          : "Ninguna en especifico"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-lg">
+                        <strong>Tipo de fact.:</strong>{" "}
+                        {condiciones === 2
+                          ? "Todas"
+                          : condiciones === 1
+                            ? "Credito"
+                            : "Contado"}
+                      </p>
+                      <p className="text-lg">
+                        <strong>Moneda:</strong>{" "}
+                        {monedasSeleccionada === 1 ? "Guaranies" : "Dolares"}
+                      </p>
+                      <p className="text-lg">
+                        <strong>Tipo de costeo:</strong>{" "}
+                        {tipoValorizacion === 2
+                          ? "Costo promedio"
+                          : tipoValorizacion === 1
+                            ? "Ultimo costo"
+                            : "Costo real"}
+                      </p>
+                      <p className="text-lg">
+                        <strong>Articulos:</strong>{" "}
+                        {articulosSeleccionados &&
+                          articulosSeleccionados.length > 0
+                          ? articulosSeleccionados?.map((art) => art).join(", ")
+                          : "Ninguno en especifico"}
+                      </p>
+                    </div>
+                  </div>
+                  <Divider />
+                  <div className="flex flex-row justify-between py-2">
+                    <p className="text-lg font-bold">Pagina 1</p>
+                    <p className="text-lg font-bold">
+                      Total de registros: {resumen.length}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div id="reporte" className="w-full px-10">
+              <div >
+                <table
+                  className={`${isMobile ? "w-[1920px]" : "w-full"
+                    } table-auto border-collapse border border-gray-300`}
+                >
+                  <thead className="bg-gray-200 sticky top-0 z-10">
+                    <tr>
+                      <th className="border border-gray-300 p-2 w-1/12">
+                        F. Venta
+                      </th>
+                      <th className="border border-gray-300 p-2 w-[200px]">
+                        Cod. Barra
+                      </th>
+                      <th className="border border-gray-300 p-2 w-auto">
+                        Descripcion
+                      </th>
+                      <th className="border border-gray-300 p-1">P. Costo</th>
+                      <th className="border border-gray-300 p-1">
+                        P. de Venta
+                      </th>
+                      <th className="border border-gray-300 p-1">
+                        Unid. Vendida
+                      </th>
+                      <th className="border border-gray-300 p-1">Exentas</th>
+                      <th className="border border-gray-300 p-1">IVA 5%</th>
+                      <th className="border border-gray-300 p-1">IVA 10%</th>
+                      <th className="border border-gray-300 p-1">
+                        % Util. s/Venta
+                      </th>
+                      <th className="border border-gray-300 p-1">Sub-Total</th>
+                      <th className="border border-gray-300 p-1">V/B</th>
+                    </tr>
+                  </thead>
+                  <tbody >
+                    {resumen.map((item, index) => (
+                      <tr
+                        key={index}
+                      >
+                        <td className="border border-gray-300 p-0 text-lg font-medium text-gray-700">
+                          {item.ve_fecha}
+                        </td>
+                        <td className="border border-gray-300 p-0 text-lg text-gray-700">
+                          {item.ar_codbarra}
+                        </td>
+                        <td className="border border-gray-300 p-0 text-lg text-gray-700">
+                          {item.ar_descripcion}
+                        </td>
+                        <td className="border border-gray-300 p-0 text-right text-lg text-gray-700">
+                          {formatearNumero(item.pcosto)}
+                        </td>
+                        <td className="border border-gray-300 p-0 text-right text-lg text-gray-700">
+                          {formatearNumero(item.precio)}
+                        </td>
+                        <td className="border border-gray-300 p-0 text-center text-lg text-gray-700">
+                          {eliminarDecimales(item.cantidad)}
+                        </td>
+
+                        <td className="border border-gray-300 p-0 text-right text-lg text-gray-700">
+                          {formatearNumero(item.exentas)}
+                        </td>
+                        <td className="border border-gray-300 p-0 text-right text-lg text-gray-700">
+                          {formatearNumero(item.cinco)}
+                        </td>
+                        <td className="border border-gray-300 p-0 text-right text-lg text-gray-700">
+                          {formatearNumero(item.diez)}
+                        </td>
+                        <td className="border border-gray-300 p-0 text-center text-lg text-gray-700">
+                          {eliminarDecimales(
+                            item.Utilidad_sobre_PrecioCosto_UltimaCompra_Venta
+                          )}
+                        </td>
+                        <td className="border border-gray-300 p-0 text-right text-lg text-gray-700">
+                          {formatearNumero(item.subtotal)}
+                        </td>
+                        <td className="border border-gray-300 p-0 text-center text-lg text-gray-700">
+                          {item.boni === 1 ? "B" : "V"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot className="bg-gray-200 sticky bottom-0 z-10">
+                    <tr>
+                      <td
+                        colSpan={5}
+                        className="border border-gray-300 p-2"
+                      ></td>
+                      <td className="border border-gray-300 p-2 font-bold">
+                        Total:{" "}
+                        {formatearNumero(totalUnidadesVendidas().toString())}
+                      </td>
+                      <td className="border font-bold border-gray-300 p-2">
+                        Total: {formatearNumero(totalExentas().toString())}
+                      </td>
+                      <td className="border font-bold border-gray-300 p-2">
+                        Total: {formatearNumero(totalCincos().toString())}
+                      </td>
+                      <td className="border font-bold border-gray-300 p-2">
+                        Total: {formatearNumero(totalDiez().toString())}
+                      </td>
+                      <td className="border font-bold border-gray-300 p-2"></td>
+                      <td className="border font-bold border-gray-300 p-2">
+                        Total: {formatearNumero(totalVentas().toString())}
+                      </td>
+                      <td className="border font-bold border-gray-300 p-2"></td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+              <div className="border border-gray-300 p-2">
+                <h1 className="font-bold text-xl">Resumen:</h1>
+                <div className="w-1/3 gap-4">
+                  <p className="text-lg"><strong>Total ventas sin desc.:</strong> {formatearNumero(totalVentas().toString())}</p>
+                  <div className="flex flex-row  justify-between mt-2">
+                    <p className="text-lg"><strong>Total NC. Desc.:</strong> {formatearNumero(totalMontoNc().toString())}</p>
+                    <p className="text-lg"><strong>Neto venta:</strong> {formatearNumero(totalNetoReal().toString())}</p>
+                  </div>
+                  <div className="flex flex-row  justify-between mt-2 mb-4">
+                    <p className="text-lg"><strong>Total Desc.:</strong> {formatearNumero((totalDescuentoItems() + totalDescuentoFacturas()).toString())}</p>
+                    <p className="text-lg"><strong>Costos directos:</strong> {formatearNumero(totalCostos().toString())}</p>
+                  </div>
+                  <div className="border border-black my-2"></div>
+                  <div className="flex flex-row justify-between">
+                    <p className="text-lg"><strong>Neto venta:</strong> {formatearNumero(totalNetoReal().toString())}</p>
+                    <p className="text-lg"><strong>Utilidad en monto:</strong> {formatearNumero(utilidadEnMonto().toString())}</p>
+                  </div>
+                  <div className="flex flex-row  justify-between mt-2">
+                    <p className="text-lg"><strong>Utilidad Bruta:</strong> {eliminarDecimales(utilidadPorcentajeBruto().toString())}%</p>
+                    <p className="text-lg"><strong>Utilidad Neta: </strong> {eliminarDecimales(utilidadPorcentajeNeto().toString())}%</p>
+                  </div>
+                </div>
+              </div>
+              </div>
+            </div>
+          </ModalBody>
+          <ModalFooter display={"flex"} gap={4}>
+            <Button colorScheme={"red"} onClick={onPdfModalClose}>
+              Cerrar
+            </Button>
+            <Button colorScheme={"green"} onClick={generarPDF}>Descargar</Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
