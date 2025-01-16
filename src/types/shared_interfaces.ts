@@ -310,4 +310,70 @@ export interface Configuraciones {
   valor: string;
 }
 
+export interface Chofer {
+  id: number;
+  nombre: string;
+  ci: number;
+  rol: string;
+}
+
+export interface Camion {
+  id: number;
+  descripcion: string;
+  chapa: string;
+}
+
+export interface Proveedor {
+  pro_codigo: number;
+  pro_razon: string;
+}
+
+export interface Reparto {
+  fecha: string;
+  hora_s: string;
+  hora_l: string;
+  chofer: number;
+  oprador: number;
+  camion: number;
+  sucursal: number;
+  moneda: number;
+  km_actual: number;
+  ult_km: number;
+  estado: number;
+}
+
+export interface DetalleReparto {
+  monto: number;
+  estado: number;
+  obs: string;
+  hora_e: string;
+  hora_s: string;
+  detalle_pedidos?: DetallePedidos;
+  detalle_ventas?: DetalleVenta;
+  detalle_pagos?: number;
+  detalle_cobros?: number;
+}
+
+export interface DetalleEntrega {
+ id: number;
+ fecha: string;
+ factura: string;
+ cliente: string;
+ condicion: string;
+ moneda: string;
+ monto: number;
+ zona: string;
+ observacion: string;
+ vendedor: string;
+}
+
+export interface Entrega {
+  item: number,
+  descripcion: string,
+  cantidad: number,
+  precio: number,
+  descuento: number,
+  total: number,
+
+}
 

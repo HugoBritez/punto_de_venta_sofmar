@@ -1,5 +1,5 @@
-import { LogOut } from "lucide-react";
-import React, { useEffect, useRef } from "react";
+import { ChevronDown, ChevronUp, LogOut } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, useLocation } from "react-router-dom";
 
@@ -34,6 +34,7 @@ const CustomDrawer: React.FC<CustomDrawerProps> = ({
 }) => {
   const drawerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
+  const [expandedItem, setExpandedItem] = useState<string | null>(null);
 
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
@@ -58,29 +59,43 @@ const CustomDrawer: React.FC<CustomDrawerProps> = ({
     <div key={item.name} className="mb-2">
       {item.subItems ? (
         <div>
-          <div className="flex items-center px-4 py-2 text-black hover:bg-blue-100 rounded-lg cursor-pointer">
-            <item.icon className="w-5 h-5 mr-2" />
-            <span>{item.name}</span>
+          <div
+            className="flex items-center justify-between px-4 py-2 text-black hover:bg-blue-100 rounded-lg cursor-pointer"
+            onClick={() =>
+              setExpandedItem(expandedItem === item.name ? null : item.name)
+            }
+          >
+            <div className="flex items-center">
+              <item.icon className="w-5 h-5 mr-2" />
+              <span>{item.name}</span>
+            </div>
+            {expandedItem === item.name ? (
+              <ChevronUp className="w-4 h-4" />
+            ) : (
+              <ChevronDown className="w-4 h-4" />
+            )}
           </div>
-          <div className="ml-4">
-            {item.subItems.map((subItem) => (
-              <Link
-                key={subItem.name}
-                to={subItem.path}
-                onClick={onClose}
-                className={`flex items-center px-4 py-2 text-sm ${
-                  location.pathname === subItem.path
-                    ? "text-blue-500"
-                    : "text-black"
-                } hover:bg-blue-100 rounded-lg ${
-                  subItem.enabled ? "" : "opacity-50 pointer-events-none"
-                }`}
-              >
-                <subItem.icon className="w-4 h-4 mr-2" />
-                <span>{subItem.name}</span>
-              </Link>
-            ))}
-          </div>
+          {expandedItem === item.name && (
+            <div className="ml-4">
+              {item.subItems.map((subItem) => (
+                <Link
+                  key={subItem.name}
+                  to={subItem.path}
+                  onClick={onClose}
+                  className={`flex items-center px-4 py-2 text-sm ${
+                    location.pathname === subItem.path
+                      ? "text-blue-500"
+                      : "text-black"
+                  } hover:bg-blue-100 rounded-lg ${
+                    subItem.enabled ? "" : "opacity-50 pointer-events-none"
+                  }`}
+                >
+                  <subItem.icon className="w-4 h-4 mr-2" />
+                  <span>{subItem.name}</span>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       ) : (
         <Link

@@ -90,6 +90,9 @@ interface Articulo {
   ar_codigo: number;
   ar_descripcion: string;
   ar_pvg: number;
+  ar_pvd: number;
+  ar_pvdcredito: number;
+  ar_pvdmostrador: number;
   ar_pvcredito: number;
   ar_pvmostrador: number;
   ar_codbarra: string;
@@ -455,7 +458,6 @@ export default function PuntoDeVenta() {
     };
 
     // traer depositos
-
     const fetchDepositos = async () => {
       if (!auth) {
         setError("No estás autentificado");
@@ -2529,17 +2531,17 @@ export default function PuntoDeVenta() {
                               <Minus />
                               <Text as="span" color="red.500" fontSize={"14px"}>
                                 Precio Contado:{" "}
-                                {formatCurrency(articulo.ar_pvg)}
+                                {formatCurrency( moneda === 'PYG' ? articulo.ar_pvg : articulo.ar_pvd)}
                               </Text>
                               <Minus />
                               <Text as="span" color="red.500" fontSize={"14px"}>
                                 Precio Credito:{" "}
-                                {formatCurrency(articulo.ar_pvcredito)}
+                                {formatCurrency( moneda === 'PYG' ? articulo.ar_pvg : articulo.ar_pvdcredito)}
                               </Text>
                               <Minus />
                               <Text as="span" color="red.500" fontSize={"14px"}>
                                 Precio Mostrador:{" "}
-                                {formatCurrency(articulo.ar_pvmostrador)}
+                                {formatCurrency( moneda === 'PYG' ? articulo.ar_pvg : articulo.ar_pvdmostrador)}
                               </Text>
                               <Minus />
                               <Text

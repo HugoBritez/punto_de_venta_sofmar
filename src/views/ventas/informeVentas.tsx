@@ -34,6 +34,7 @@ import {
   Text,
   useDisclosure,
   useMediaQuery,
+  useToast,
 } from "@chakra-ui/react";
 import axios from "axios";
 import {
@@ -94,10 +95,7 @@ interface ResumenItem {
   deve_descuento: string;
   cli_razon: string;
   op_nombre: string;
-  ve_factura: {
-    type: string;
-    data: number[];
-  };
+  ve_factura: string;
   descripcion: string;
   desc_articulo: string;
   lote: string;
@@ -110,16 +108,30 @@ interface ResumenItem {
   sc_descripcion: string;
   deve_codigo: number;
   cantidadParaCosto: string;
+  cantidadNC: string;
+  cantidadND: string;
+  [key: string]: any;
+  cotizacion_dolar: number;
+}
+
+interface TablaFiltrosProps<T> {
+  titulo: string;
+  filtroSeleccionado: number[];
+  array: T[];
+  busquedaId: keyof T;
+  busquedaDescripcion: keyof T;
+  parametro: keyof ResumenItem;
 }
 
 const InformeVentas = () => {
   const [horaDesde, setHoraHasta] = useState<string>("");
   const [horaHasta, setHoraDesde] = useState<string>("");
-  const [fechaDesde, setFechaDesde] = useState<string>(
-    new Date(new Date().setMonth(new Date().getMonth() - 1))
-      .toISOString()
-      .split("T")[0]
-  );
+  const [fechaDesde, setFechaDesde] = useState<string>(() => {
+    const now = new Date();
+    const inicioMesActual = new Date(now.getFullYear(), now.getMonth(), 1);
+    return inicioMesActual.toISOString().split("T")[0];
+  });
+
   const [fechaHasta, setFechaHasta] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
@@ -150,7 +162,9 @@ const InformeVentas = () => {
 
   const [vendedoresFiltrados, setVendedoresFiltrados] = useState(vendedores);
 
-  const [tipoArticulo, setTipoArticulo] = useState<number | null>(null);
+
+
+  const [tipoArticulo, setTipoArticulo] = useState<number | null>(0);
 
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [categoriasSeleccionadas, setCategoriasSeleccionadas] = useState<
@@ -200,7 +214,7 @@ const InformeVentas = () => {
     setCalculoDesdeInicioParaCostoPromedio,
   ] = useState<number>(0);
   const [ncAplicadoAFechaDeVentas, setNcAplicadoAFechaDeVentas] =
-    useState<number>(1);
+    useState<number>(0);
   const [deducirDescuentoSobreVenta, setDeducirDescuentoSobreVenta] =
     useState<number>(1);
   const [soloResumen, setSoloResumen] = useState<number>(0);
@@ -222,7 +236,141 @@ const InformeVentas = () => {
 
   const [cambiarBusqueda, setCambiarBusqueda] = useState<boolean>(false);
 
-  const [configuracionesEmpresa, setConfiguracionesEmpresa] = useState<Configuraciones[]>([]);
+  const [configuracionesEmpresa, setConfiguracionesEmpresa] = useState<
+    Configuraciones[]
+  >([]);
+
+  const [indicarUtilidadGris, setUtilidadGris] = useState<boolean>(false);
+  const [indicarUtilidadAmarilla, setUtilidadAmarilla] =
+    useState<boolean>(false);
+  const [indicarUtilidadRoja, setUtilidadRoja] = useState<boolean>(false);
+  const [indicarUtilidadAzul, setUtilidadAzul] = useState<boolean>(false);
+
+  const toast = useToast();
+
+  const [sucursalesFiltradas, setSucursalesFiltradas] =useState(sucursales)
+  const [depositosFiltrados, setDepositosFiltrados] = useState(depositos)
+  const [categoriasFiltradas, setCategoriasFiltradas] = useState(categorias)
+  const [subcategoriasFiltradas, setSubcategoriasFiltradas] = useState(subcategorias)
+  const [marcasFiltradas, setMarcasFiltradas] = useState(marca)
+  const [ciudadesFiltradas, setCiudadesFiltradas] = useState(ciudades)
+  const [seccionesFiltradas, setSeccionesFiltradas] = useState(secciones)
+
+
+    const estadoActivo = (filtro: string) => {
+      switch (true) {
+        case filtro === "Gris":
+          setUtilidadGris(true);
+          setUtilidadAmarilla(false);
+          setUtilidadRoja(false);
+          setUtilidadAzul(false);
+          break;
+        case filtro === "Amarillo":
+          setUtilidadAmarilla(true);
+          setUtilidadGris(false);
+          setUtilidadRoja(false);
+          setUtilidadAzul(false);
+          break;
+        case filtro === "Rojo":
+          setUtilidadRoja(true);
+          setUtilidadGris(false);
+          setUtilidadAmarilla(false);
+          setUtilidadAzul(false);
+          break;
+        case filtro === "Azul":
+          setUtilidadAzul(true);
+          setUtilidadGris(false);
+          setUtilidadAmarilla(false);
+          setUtilidadRoja(false);
+          break;
+        default:
+          break;
+      }
+    }
+
+
+
+  const seleccionarTodasSucursales = () => {
+    if (sucursalesSeleccionadas === null) {
+      setSucursalesSeleccionadas(sucursales.map((sucursal) => sucursal.id));
+    } else {
+      setSucursalesSeleccionadas(null);
+    }
+  };
+
+  const seleccionarTodasDepositos = () => {
+    if (depositosSeleccionados === null) {
+      setDepositosSeleccionados(
+        depositos.map((deposito) => deposito.dep_codigo)
+      );
+    } else {
+      setDepositosSeleccionados(null);
+    }
+  };
+
+  const seleccionarTodasCategorias = () => {
+    if (categoriasSeleccionadas === null) {
+      setCategoriasSeleccionadas(
+        categorias.map((categoria) => categoria.ca_codigo)
+      );
+    } else {
+      setCategoriasSeleccionadas(null);
+    }
+  };
+
+  const seleccionarTodasSubcategorias = () => {
+    if (subcategoriasSeleccionadas === null) {
+      setSubcategoriasSeleccionadas(
+        subcategorias.map((subcategoria) => subcategoria.sc_codigo)
+      );
+    } else {
+      setSubcategoriasSeleccionadas(null);
+    }
+  };
+
+  const seleccionarTodasMarcas = () => {
+    if (marcasSeleccionadas === null) {
+      setMarcasSeleccionadas(marca.map((marca) => marca.ma_codigo));
+    } else {
+      setMarcasSeleccionadas(null);
+    }
+  };
+
+  const seleccionarTodasCiudades = () => {
+    if (ciudadesSeleccionadas === null) {
+      setCiudadesSeleccionadas(ciudades.map((ciudad) => ciudad.ciu_codigo));
+    } else {
+      setCiudadesSeleccionadas(null);
+    }
+  };
+
+  const seleccionarTodasSecciones = () => {
+    if (seccionesSeleccionadas === null) {
+      setSeccionesSeleccionadas(secciones.map((seccion) => seccion.s_codigo));
+    } else {
+      setSeccionesSeleccionadas(null);
+    }
+  };
+
+  const seleccionarTodosLosVendedores = () => {
+    if (vendedoresSeleccionados === null) {
+      setVendedoresSeleccionados(
+        vendedores.map((vendedor) => Number(vendedor.op_codigo))
+      );
+    } else {
+      setVendedoresSeleccionados(null);
+    }
+  };
+
+  const seleccionarTodosLosClientes = () => {
+    if (clienteSeleccionados === null) {
+      setClienteSeleccionados(
+        clientes.map((cliente) => Number(cliente.cli_codigo))
+      );
+    } else {
+      setClienteSeleccionados(null);
+    }
+  };
 
   const fechaCompletaActual = new Date()
     .toLocaleString("es-PY", {
@@ -409,13 +557,13 @@ const InformeVentas = () => {
   };
 
   const fetchConfiguraciones = async () => {
-    try{
+    try {
       const response = await axios.get(`${api_url}configuraciones/todos`);
       setConfiguracionesEmpresa(response.data.body);
     } catch (error) {
       console.error(error);
     }
-  }
+  };
 
   const buscarArticulos = async (busqueda: string) => {
     if (busqueda.trim() === "" || busqueda.length === 0) {
@@ -439,6 +587,7 @@ const InformeVentas = () => {
     }
   };
 
+
   useEffect(() => {
     fetchSucursales();
     fetchDepositos();
@@ -452,7 +601,6 @@ const InformeVentas = () => {
     fetchVendedores();
     fetchConfiguraciones();
   }, []);
-
 
   const nombreEmpresa = configuracionesEmpresa[0]?.valor || "N/A";
   const rucEmpresa = configuracionesEmpresa[30]?.valor || "N/A";
@@ -478,6 +626,69 @@ const InformeVentas = () => {
       setVendedoresFiltrados(filtrados);
     }
   };
+
+const buscarSucursales = (busqueda: string) =>{
+  if(busqueda.trim() === ''){
+    setSucursalesFiltradas(sucursales);
+  } else {
+    const filtrados = sucursales.filter((elemento)=> elemento.descripcion.toLowerCase().includes(busqueda.toLowerCase()));
+    setSucursalesFiltradas(filtrados)
+  }
+}
+
+const buscarDepositos = (busqueda: string) =>{
+  if(busqueda.trim() === ''){
+    setDepositosFiltrados(depositos);
+  } else {
+    const filtrados = depositos.filter((elemento)=> elemento.dep_descripcion.toLowerCase().includes(busqueda.toLowerCase()));
+    setDepositosFiltrados(filtrados)
+  }
+}
+
+const buscarCategorias = (busqueda: string) =>{
+  if(busqueda.trim() === ''){
+    setCategoriasFiltradas(categorias);
+  } else {
+    const filtrados = categorias.filter((elemento)=> elemento.ca_descripcion.toLowerCase().includes(busqueda.toLowerCase()));
+    setCategoriasFiltradas(filtrados)
+  }
+}
+
+const buscarSubcategorias = (busqueda: string) =>{
+  if(busqueda.trim() === ''){
+    setSubcategoriasFiltradas(subcategorias);
+  } else {
+    const filtrados = subcategorias.filter((elemento)=> elemento.sc_descripcion.toLowerCase().includes(busqueda.toLowerCase()));
+    setSubcategoriasFiltradas(filtrados)
+  }
+}
+
+const buscarMarcas = (busqueda: string) =>{
+  if(busqueda.trim() === ''){
+    setMarcasFiltradas(marca);
+  } else {
+    const filtrados = marca.filter((elemento)=> elemento.ma_descripcion.toLowerCase().includes(busqueda.toLowerCase()));
+    setMarcasFiltradas(filtrados)
+  }
+}
+
+const buscarCiudad = (busqueda: string) =>{
+  if(busqueda.trim() === ''){
+    setCiudadesFiltradas(ciudades);
+  } else {
+    const filtrados = ciudades.filter((elemento)=> elemento.ciu_descripcion.toLowerCase().includes(busqueda.toLowerCase()));
+    setCiudadesFiltradas(filtrados)
+  }
+}
+
+const buscarSecciones = (busqueda: string) =>{
+  if(busqueda.trim() === ''){
+    setSeccionesFiltradas(secciones);
+  } else {
+    const filtrados = secciones.filter((elemento)=> elemento.s_descripcion.toLowerCase().includes(busqueda.toLowerCase()));
+    setSeccionesFiltradas(filtrados)
+  }
+}
 
   const toggleVendedorSeleccionado = (vendedorId: number) => {
     setVendedoresSeleccionados((prevSeleccionados) => {
@@ -517,10 +728,11 @@ const InformeVentas = () => {
       marcas: marcasSeleccionadas,
       categorias: categoriasSeleccionadas,
       subcategorias: subcategoriasSeleccionadas,
-      moneda: monedasSeleccionada,
+      moneda: monedasSeleccionada === 1 ? 0 : monedasSeleccionada,
       ciudades: ciudadesSeleccionadas,
       secciones: seccionesSeleccionadas,
       articulos: articulosSeleccionados,
+      tipos_articulo: tipoArticulo === 0 ? [] : tipoArticulo,
       clientes: clienteSeleccionados,
       vendedores: vendedoresSeleccionados,
       orden: ordenAsc ? 1 : null,
@@ -534,7 +746,38 @@ const InformeVentas = () => {
       buscar_codigo: nroVenta,
       agrupar_fecha: agruparXPeriodo ? 1 : null,
       totalizar_grid: totalizarArt ? 1 : null,
+      desglosado_factura: desglosadoXFactura ? 1 : null,
+      desglosado_iva: infDesgIVA ? 1 : null,
+      bonificacion: informeBonif ? 1 : null,
+      ncfechaVentas: ncAplicadoAFechaDeVentas,
+      calculo_promedio: calculoDesdeInicioParaCostoPromedio ? 1 : null,
     };
+
+    if(desglosadoXFactura && clienteSeleccionados?.length === 0){
+      toast(
+        {
+          title: "Error",
+          description: "Debe seleccionar al menos un cliente para desglosar por factura.",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        }
+      )
+      return
+    }
+
+    if(soloResumen=== 1 && (clienteSeleccionados?.length === 0 || sucursalesSeleccionadas?.length === 0 || depositosSeleccionados?.length === 0 || vendedoresSeleccionados?.length === 0 || marcasSeleccionadas?.length === 0 || categoriasSeleccionadas?.length === 0 || subcategoriasSeleccionadas?.length === 0 || ciudadesSeleccionadas?.length === 0 || seccionesSeleccionadas?.length === 0 || articulosSeleccionados?.length === 0)){
+      toast(
+        {
+          title: "Error",
+          description: "Debe seleccionar al menos un filtro para obtener el resumen.",
+          status: "error",
+          duration: 5000,
+          isClosable: true,
+        }
+      )
+      return
+    }
 
     try {
       setLoading(true);
@@ -542,23 +785,35 @@ const InformeVentas = () => {
         `${api_url}venta/resumen`,
         filtrosResumen
       );
-      setResumen(response.data.body);
-      console.log(response.data.body);
+          const dataModificada = response.data.body.map((item: ResumenItem) => {
+            if (item.ve_moneda === 2 && monedasSeleccionada === 1) {
+              return { 
+                ...item, 
+                montonc: (parseFloat(item.montonc) * item.cotizacion_dolar).toString(),
+                pcosto: (parseFloat(item.pcosto) * item.cotizacion_dolar).toString(),
+                precio: (parseFloat(item.precio) * item.cotizacion_dolar).toString(),
+                diez: (parseFloat(item.diez) * item.cotizacion_dolar).toString(),
+                cinco: (parseFloat(item.cinco) * item.cotizacion_dolar).toString(),
+                subtotal: (parseFloat(item.subtotal) * item.cotizacion_dolar).toString(),
+                iva_total: (parseFloat(item.iva_total) * item.cotizacion_dolar).toString(),
+                exentas: (parseFloat(item.exentas) * item.cotizacion_dolar).toString()
+              };
+            }
+            return item;
+          });
+      setResumen(dataModificada);
+      console.log(dataModificada);
 
-      const resumenFiltrado = response.data.body
-        .filter((item: ResumenItem) => parseFloat(item.montonc) !== 0)
-        .reduce((unique: ResumenItem[], item: ResumenItem) => {
-          return unique.some((entry) => entry.ve_codigo === item.ve_codigo)
-            ? unique
-            : [...unique, item];
-        }, []);
+      const resumenFiltrado = dataModificada
+        .filter((item: ResumenItem) => parseFloat(item.montonc) !== 0);
 
       setVentasNC(resumenFiltrado);
+      console.log('resumenFiltrado', resumenFiltrado)
 
       setLoading(false);
     } catch (error) {
       console.error(error);
-    }
+    };
   };
 
   const eliminarDecimales = (valor: string) => {
@@ -573,80 +828,77 @@ const InformeVentas = () => {
     return Math.floor(valorNumerico).toLocaleString();
   };
 
-  const totalVentas = () => {
-    return resumen.reduce((total, item) => {
-      if (item.ve_estado === 1) {
+  const totalVentas = (data = resumen) => {
+    return data.reduce((total, item) => {
         const veTotalNumerico = parseFloat(item.subtotal);
         if (!isNaN(veTotalNumerico)) {
           return total + veTotalNumerico;
         }
-      }
       return total;
     }, 0);
   };
 
-  const totalNeto = () => {
-    return resumen.reduce((total, item) => {
-      if (item.ve_estado === 1) {
+  const totalNeto = ( data = resumen) => {
+    return data.reduce((total, item) => {
         const subtotalNumerico = parseFloat(item.subtotal);
         if (!isNaN(subtotalNumerico)) {
           return total + subtotalNumerico;
         }
-      }
       return total;
     }, 0);
   };
 
-  const totalCostos = () => {
-    return resumen.reduce((total, item) => {
-      if (item.ve_estado === 1) {
+  const totalCostos = ( data = resumen) => {
+    return data.reduce((total, item) => {
         const pcostoNumerico = parseFloat(item.pcosto);
         const cantidadNumerica = parseFloat(item.cantidadParaCosto);
         if (!isNaN(pcostoNumerico) && !isNaN(cantidadNumerica)) {
           return total + pcostoNumerico * cantidadNumerica;
         }
-      }
       return total;
     }, 0);
   };
 
-  const utilidadEnMonto = () => {
-    return totalNeto() - totalCostos();
+  const utilidadEnMonto = ( data = resumen) => {
+    return totalNeto(data) - totalCostos(data);
   };
 
-  const totalDescuentoFacturas = () => {
-    return resumen.reduce((total, item) => {
-      const descuentoNumerico = parseFloat(item.ve_descuento);
-      if (!isNaN(descuentoNumerico)) {
-        return total + descuentoNumerico;
-      }
-      return total;
-    }, 0);
-  };
-
-  const totalDescuentoItems = () => {
-    return resumen.reduce((total, item) => {
-      if (item.ve_estado === 1) {
-        const descuentoNumerico = parseFloat(item.deve_descuento);
+  const totalDescuentoFacturas = (data = resumen) => {
+    const codigosProcesados = new Set<string>();
+    return data.reduce((total, item) => {
+      if (!codigosProcesados.has(item.ve_codigo.toString())) {
+        const descuentoNumerico = parseFloat(item.ve_descuento);
         if (!isNaN(descuentoNumerico)) {
-          return total + descuentoNumerico;
+          total += descuentoNumerico;
+          codigosProcesados.add(item.ve_codigo.toString());
         }
       }
       return total;
     }, 0);
   };
 
-  const utilidadPorcentajeBruto = () => {
-    return ((totalVentas() - totalCostos()) / totalVentas()) * 100;
+  const totalDescuentoItems = (data = resumen) => {
+    return data.reduce((total, item) => {
+        const descuentoNumerico = parseFloat(item.deve_descuento);
+        const cantidadNumerica = parseFloat(item.cantidad);
+        if (!isNaN(descuentoNumerico) && !isNaN(cantidadNumerica)) {
+          return total + descuentoNumerico * cantidadNumerica;
+        }
+      return total;
+    }, 0);
   };
 
-  const utilidadPorcentajeNeto = () => {
+  const utilidadPorcentajeBruto = (data = resumen) => {
+    return ((totalVentas(data) - totalCostos(data)) / totalVentas(data)) * 100;
+  };
+
+  const utilidadPorcentajeNeto = (data = resumen) => {
     return (
-      ((totalNetoReal() -
-        totalCostos() -
-        totalDescuentoFacturas() -
-        totalDescuentoItems()) /
-        totalNetoReal()) *
+      ((totalNetoReal(data) -
+        totalCostos(data) -
+        totalDescuentoFacturas(data) -
+        totalDescuentoItems(data)) /
+        totalNetoReal(data)) *
       100
     );
   };
@@ -654,60 +906,58 @@ const InformeVentas = () => {
   const totalMontoNc = () => {
     return ventasNC.reduce((total, item) => {
       const montoNcNumerico = parseFloat(item.montonc);
-      if (!isNaN(montoNcNumerico)) {
-        return total + montoNcNumerico;
+      const cantidadNumerica = parseFloat(item.cantidad);
+      const cantidadNcNumerica = parseFloat(item.cantidadNC);
+      if (!isNaN(montoNcNumerico) && !isNaN(cantidadNumerica) && !isNaN(cantidadNcNumerica)) {
+        return total + montoNcNumerico * (cantidadNcNumerica);
       }
       return total;
     }, 0);
   };
 
-  const totalNetoReal = () => {
-    return totalNeto() - totalMontoNc();
+  const totalNetoReal =  ( data = resumen) => {
+    return totalNeto(data) - totalMontoNc();
   };
-  const totalUnidadesVendidas = () => {
-    return resumen.reduce((total, item) => {
-      if (item.ve_estado === 1) {
+  const totalUnidadesVendidas = (data = resumen) => {
+    return data.reduce((total, item) => {
         const cantidadNumerica = parseFloat(item.cantidad);
         if (!isNaN(cantidadNumerica)) {
           return total + cantidadNumerica;
         }
-      }
+      
       return total;
     }, 0);
   };
 
-  const totalCincos = () => {
-    return resumen.reduce((total, item) => {
-      if (item.ve_estado === 1) {
+  const totalCincos = (data = resumen) => {
+    return data.reduce((total, item) => {
         const cincoNumerico = parseFloat(item.cinco);
         if (!isNaN(cincoNumerico)) {
           return total + cincoNumerico;
         }
-      }
+      
       return total;
     }, 0);
   };
 
-  const totalDiez = () => {
-    return resumen.reduce((total, item) => {
-      if (item.ve_estado === 1) {
+  const totalDiez = (data = resumen) => {
+    return data.reduce((total, item) => {
         const diezNumerico = parseFloat(item.diez);
         if (!isNaN(diezNumerico)) {
           return total + diezNumerico;
         }
-      }
+      
       return total;
     }, 0);
   };
 
-  const totalExentas = () => {
-    return resumen.reduce((total, item) => {
-      if (item.ve_estado === 1) {
+  const totalExentas = (data = resumen) => {
+    return data.reduce((total, item) => {
         const exentasNumerico = parseFloat(item.exentas);
         if (!isNaN(exentasNumerico)) {
           return total + exentasNumerico;
         }
-      }
+      
       return total;
     }, 0);
   };
@@ -719,6 +969,28 @@ const InformeVentas = () => {
     if (margen <= 70) return "bg-white";
     return "bg-yellow-200";
   };
+
+  const TituloInforme = () => {
+    const filtros = [
+      { seleccionados: depositosSeleccionados, titulo: 'REPORTE DE VENTAS Y UTILIDADES POR DEPOSITO' },
+      { seleccionados: sucursalesSeleccionadas, titulo: 'REPORTE DE VENTAS Y UTILIDADES POR SUCURSAL' },
+      { seleccionados: clienteSeleccionados, titulo: 'REPORTE DE VENTAS Y UTILIDADES POR CLIENTE' },
+      { seleccionados: vendedoresSeleccionados, titulo: 'REPORTE DE VENTAS Y UTILIDADES POR VENDEDOR' },
+      { seleccionados: subcategoriasSeleccionadas, titulo: 'REPORTE DE VENTAS Y UTILIDADES POR SUBCATEGORIA' },
+      { seleccionados: marcasSeleccionadas, titulo: 'REPORTE DE VENTAS Y UTILIDADES POR MARCA' },
+      { seleccionados: ciudadesSeleccionadas, titulo: 'REPORTE DE VENTAS Y UTILIDADES POR CIUDAD' },
+      { seleccionados: seccionesSeleccionadas, titulo: 'REPORTE DE VENTAS Y UTILIDADES POR SECCION' },
+    ];
+
+    for (const filtro of filtros) {
+      if (filtro.seleccionados && filtro.seleccionados.length > 0) {
+        return filtro.titulo;
+      }
+    }
+
+    return 'REPORTE DE VENTAS Y UTILIDADES';
+  }
+
 
   const generarPDF = async () => {
     const elemento = document.getElementById("reporte");
@@ -791,78 +1063,210 @@ const InformeVentas = () => {
       pdf.line(5, marginTop + 2, pdfWidth - 5, marginTop + 2); // Línea debajo de la cabecera
       pdf.line(5, marginTop + 38, pdfWidth - 5, marginTop + 38); // Línea debajo de la información adicional
 
-      pdf.setFont('helvetica', 'bold');
+      pdf.setFont("helvetica", "bold");
       pdf.setFontSize(6);
       pdf.text(`Empresa: ${nombreEmpresa}`, 15, marginTop);
       pdf.text(`RUC: ${rucEmpresa}`, pdfWidth / 2, marginTop);
-      pdf.text(`${fechaCompletaActual} - ${localStorage.getItem('user_name')}`, pdfWidth - 40, marginTop);
+      pdf.text(
+        `${fechaCompletaActual} - ${localStorage.getItem("user_name")}`,
+        pdfWidth - 40,
+        marginTop
+      );
 
       pdf.setFontSize(10);
-      pdf.setFont('helvetica', 'bold');
-      pdf.text('REPORTE DE VENTAS Y UTILIDADES', pdfWidth / 2, marginTop + 8, { align: 'center' });
+      pdf.setFont("helvetica", "bold");
+      pdf.text(TituloInforme(), pdfWidth / 2, marginTop + 8, {
+        align: "center",
+      });
 
-      pdf.setFont('helvetica', 'normal');
+      pdf.setFont("helvetica", "normal");
       pdf.setFontSize(6);
       pdf.text(`Fecha desde: ${fechaDesde}`, 10, marginTop + 12);
       pdf.text(`Fecha hasta: ${fechaHasta}`, 10, marginTop + 16);
       pdf.text(`Hora: ${horaDesde}-${horaHasta}`, 10, marginTop + 20);
-      pdf.text(`Sucursales: ${sucursalesSeleccionadas &&
-        sucursalesSeleccionadas.length > 0
-        ? sucursalesSeleccionadas.map((suc) => suc).join(", ")
-        : "Ninguna en especifico"}`, 10, marginTop + 24);
-      pdf.text(`Depositos: ${depositosSeleccionados && depositosSeleccionados.length > 0
-        ? depositosSeleccionados.map((dep) => dep).join(", ")
-        : "Ninguno en especifico"}`, 10, marginTop + 28);
+      pdf.text(
+        `Sucursales: ${
+          sucursalesSeleccionadas &&
+          sucursalesSeleccionadas.length === sucursales.length
+            ? "Todos"
+            : sucursalesSeleccionadas && sucursalesSeleccionadas?.length > 0
+            ? sucursalesSeleccionadas?.map((dep) => dep).join(", ")
+            : "Ninguno en especifico"
+        }`,
+        10,
+        marginTop + 24
+      );
+      pdf.text(
+        `Depositos: ${
+          depositosSeleccionados &&
+          depositosSeleccionados.length === depositos.length
+            ? "Todos"
+            : depositosSeleccionados && depositosSeleccionados?.length > 0
+            ? depositosSeleccionados?.map((dep) => dep).join(", ")
+            : "Ninguno en especifico"
+        }`,
+        10,
+        marginTop + 28
+      );
 
-      pdf.text(`Clientes: ${clienteSeleccionados && clienteSeleccionados.length > 0
-        ? clienteSeleccionados.map((cli) => cli).join(", ")
-        : "Ninguno en especifico"}`, 10, marginTop + 32);
+      pdf.text(
+        `Clientes: ${
+          clienteSeleccionados &&
+          clienteSeleccionados.length === clientes.length
+            ? "Todos"
+            : clienteSeleccionados && clienteSeleccionados?.length > 0
+            ? clienteSeleccionados?.map((dep) => dep).join(", ")
+            : "Ninguno en especifico"
+        }`,
+        10,
+        marginTop + 32
+      );
 
-      pdf.text(`Vendedores: ${vendedoresSeleccionados && vendedoresSeleccionados.length > 0
-        ? vendedoresSeleccionados.map((ven) => ven).join(", ")
-        : "Ninguno en especifico"}`, 10, marginTop + 36);
+      pdf.text(
+        `Vendedores: ${
+          vendedoresSeleccionados &&
+          vendedoresSeleccionados.length === vendedores.length
+            ? "Todos"
+            : vendedoresSeleccionados && vendedoresSeleccionados?.length > 0
+            ? vendedoresSeleccionados?.map((dep) => dep).join(", ")
+            : "Ninguno en especifico"
+        }`,
+        10,
+        marginTop + 36
+      );
 
+      pdf.text(
+        `Situaciones: ${
+          situaciones === 2
+            ? "Todas"
+            : situaciones === 1
+            ? "Activos"
+            : "Anulados"
+        }`,
+        pdfWidth / 2 - 15,
+        marginTop + 12
+      );
+      pdf.text(
+        `Tipo de movimiento: ${
+          tipoMovimiento === 1 ? "Solo ventas" : "Ninguno en especifico"
+        }`,
+        pdfWidth / 2 - 15,
+        marginTop + 16
+      );
+      pdf.text(
+        `Tipo de articulo: ${tipoArticulo === 1 ? "Servicios" : "Mercaderias"}`,
+        pdfWidth / 2 - 15,
+        marginTop + 20
+      );
+      pdf.text(
+        `Categoria: ${
+          categoriasSeleccionadas &&
+          categoriasSeleccionadas.length === categorias.length
+            ? "Todos"
+            : categoriasSeleccionadas && categoriasSeleccionadas?.length > 0
+            ? categoriasSeleccionadas?.map((dep) => dep).join(", ")
+            : "Ninguno en especifico"
+        }`,
+        pdfWidth / 2 - 15,
+        marginTop + 24
+      );
+      pdf.text(
+        `Subcategoria: ${
+          subcategoriasSeleccionadas &&
+          subcategoriasSeleccionadas.length === subcategorias.length
+            ? "Todos"
+            : subcategoriasSeleccionadas &&
+              subcategoriasSeleccionadas?.length > 0
+            ? subcategoriasSeleccionadas?.map((dep) => dep).join(", ")
+            : "Ninguno en especifico"
+        }`,
+        pdfWidth / 2 - 15,
+        marginTop + 28
+      );
 
-      pdf.text(`Situaciones: ${situaciones === 2 ? "Todas" : situaciones === 1 ? "Activos" : "Anulados"}`, (pdfWidth / 2)-15, marginTop + 12);
-      pdf.text(`Tipo de movimiento: ${tipoMovimiento === 1
-        ? "Solo ventas"
-        : "Ventas y devoluciones"}`, (pdfWidth / 2)-15, marginTop + 16);
-      pdf.text(`Tipo de articulo: ${tipoArticulo === 1 ? "Servicios" : "Mercaderias"}`, (pdfWidth / 2)-15, marginTop + 20);
-      pdf.text(`Categoria: ${categoriasSeleccionadas && categoriasSeleccionadas.length > 0
-        ? categoriasSeleccionadas.map((cat) => cat).join(", ")
-        : "Ninguna en especifico"}`, (pdfWidth / 2)-15, marginTop + 24);
-      pdf.text(`Subcategoria: ${subcategoriasSeleccionadas && subcategoriasSeleccionadas.length > 0
-        ? subcategoriasSeleccionadas.map((sub) => sub).join(", ")
-        : "Ninguna en especifico"}`, (pdfWidth / 2)-15, marginTop + 28);
+      pdf.text(
+        `Marca: ${
+          marcasSeleccionadas && marcasSeleccionadas.length === marca.length
+            ? "Todos"
+            : marcasSeleccionadas && marcasSeleccionadas?.length > 0
+            ? marcasSeleccionadas?.map((dep) => dep).join(", ")
+            : "Ninguno en especifico"
+        }`,
+        pdfWidth / 2 - 15,
+        marginTop + 32
+      );
 
-      pdf.text(`Marca: ${marcasSeleccionadas && marcasSeleccionadas.length > 0
-        ? marcasSeleccionadas.map((mar) => mar).join(", ")
-        : "Ninguna en especifico"}`, (pdfWidth / 2)-15, marginTop + 32);
+      pdf.text(
+        `Ciudades: ${
+          ciudadesSeleccionadas &&
+          ciudadesSeleccionadas.length === ciudades.length
+            ? "Todos"
+            : ciudadesSeleccionadas && ciudadesSeleccionadas?.length > 0
+            ? ciudadesSeleccionadas?.map((dep) => dep).join(", ")
+            : "Ninguno en especifico"
+        }`,
+        pdfWidth - 60,
+        marginTop + 12
+      );
 
+      pdf.text(
+        `Seciones: ${
+          seccionesSeleccionadas &&
+          seccionesSeleccionadas.length === secciones.length
+            ? "Todos"
+            : seccionesSeleccionadas && seccionesSeleccionadas?.length > 0
+            ? seccionesSeleccionadas?.map((dep) => dep).join(", ")
+            : "Ninguno en especifico"
+        }`,
+        pdfWidth - 60,
+        marginTop + 16
+      );
 
-      pdf.text(`Ciudades: ${ciudadesSeleccionadas && ciudadesSeleccionadas.length > 0
-        ? ciudadesSeleccionadas.map((ciu) => ciu).join(", ")
-        : "Ninguna en especifico"}`, pdfWidth -60, marginTop + 12);
-      
-      pdf.text(`Seciones: ${seccionesSeleccionadas && seccionesSeleccionadas.length > 0
-        ? seccionesSeleccionadas.map((sec) => sec).join(", ")
-        : "Ninguna en especifico"}`, pdfWidth -60, marginTop + 16);
+      pdf.text(
+        `Tipo de factura: ${
+          condiciones === 2
+            ? "Todas"
+            : condiciones === 1
+            ? "Credito"
+            : "Contado"
+        }`,
+        pdfWidth - 60,
+        marginTop + 20
+      );
+      pdf.text(
+        `Tipo de valorizacion: ${
+          tipoValorizacion === 2
+            ? "Costo promedio"
+            : tipoValorizacion === 1
+            ? "Ultimo costo"
+            : "Costo real"
+        }`,
+        pdfWidth - 60,
+        marginTop + 24
+      );
+      pdf.text(
+        `Moneda: ${monedasSeleccionada === 1 ? "Guarani" : "Dolar"}`,
+        pdfWidth - 60,
+        marginTop + 28
+      );
+      pdf.text(
+        `Articulos: ${
+          articulosSeleccionados && articulosSeleccionados.length > 0
+            ? articulosSeleccionados.map((art) => art).join(", ")
+            : "Ninguno en especifico"
+        }`,
+        pdfWidth - 60,
+        marginTop + 32
+      );
 
-      pdf.text(`Tipo de factura: ${condiciones === 2 ? "Todas" : condiciones === 1 ? "Credito" : "Contado"}`, pdfWidth -60, marginTop + 20);
-      pdf.text(`Tipo de valorizacion: ${tipoValorizacion === 2 ? "Costo promedio" : tipoValorizacion ===1 ? 'Ultimo costo' : 'Costo real' }`, pdfWidth -60, marginTop + 24);
-      pdf.text(`Moneda: ${monedasSeleccionada === 1 ? "Guarani" : "Dolar"}`, pdfWidth -60, marginTop + 28);
-      pdf.text(`Articulos: ${articulosSeleccionados && articulosSeleccionados.length > 0
-        ? articulosSeleccionados.map((art) => art).join(", ")
-        : "Ninguno en especifico"}`, pdfWidth -60, marginTop + 32);
-
-        pdf.setFont("helvetica", "bold");
-        pdf.text(
-          `Total de registros: ${resumen.length}`,
-          pdfWidth - 40,
-          marginTop + 42
-        );
-        pdf.text(`Página: ${pageNumber}`, 10, marginTop + 42);
-        pageNumber++;
+      pdf.setFont("helvetica", "bold");
+      pdf.text(
+        `Total de registros: ${filtrarPorUtilidad(resumen).length}`,
+        pdfWidth - 40,
+        marginTop + 42
+      );
+      pdf.text(`Página: ${pageNumber}`, 10, marginTop + 42);
+      pageNumber++;
 
       // Agregar la imagen de la página
       pdf.addImage(
@@ -879,6 +1283,417 @@ const InformeVentas = () => {
 
     pdf.save(`reporte_ventas_${fechaCompletaActual}.pdf`);
   };
+
+  const utilidadPorDebajoDel20 = () => {
+    return resumen.reduce((total, item) => {
+      const margen = parseFloat(
+        item.Utilidad_sobre_PrecioCosto_UltimaCompra_Venta
+      );
+      if (margen < 20) {
+        return total + parseFloat(item.subtotal);
+      }
+      return total;
+    }, 0);
+  };
+
+  const obtenerFacturas = () => {
+    return resumen.map(item => Number(item.ve_factura));
+  };
+
+
+  const TablaFiltros = <T,>({
+    filtroSeleccionado,
+    array,
+    busquedaId,
+    busquedaDescripcion,
+    parametro,
+  }: TablaFiltrosProps<T>) => {
+    return (
+      <div>
+        {filtroSeleccionado?.map((filtro, filtroIndex) => {
+          // Primero filtramos por el parámetro principal
+          const itemsFiltrados = resumen.filter(
+            (item) => item[parametro] === filtro
+          );
+
+          function obtenerArrayDeFacturas(itemsFiltrados: any[]) {
+            return [...new Set(itemsFiltrados.map(item => item.ve_factura))]
+          }
+
+          const facturas = obtenerArrayDeFacturas(itemsFiltrados);
+          return (
+            <div key={filtroIndex} className="mb-4">
+              <h2 className="text-lg font-bold mb-2">
+                {
+                  array.find((busqueda) => busqueda[busquedaId] === filtro)?.[
+                    busquedaDescripcion
+                  ] as React.ReactNode
+                }
+              </h2>
+              {desglosadoXFactura &&
+                facturas.map((factura, facturaIndex) => {
+                  return (
+                    <>
+                      <div key={facturaIndex}>
+                        <h3 className="text-lg font-bold mb-2">
+                          Factura Nro: {factura}
+                        </h3>
+                      </div>
+                      <table
+                        className={`${
+                          isMobile ? "w-[1920px]" : "w-full"
+                        } table-auto border-collapse border border-gray-300`}
+                      >
+                        <thead className="bg-gray-200 sticky top-0 z-10">
+                          <tr>
+                            <th className="border border-gray-300 p-2 w-1/12">
+                              F. Venta
+                            </th>
+                            <th className="border border-gray-300 p-2 w-[200px]">
+                              Cod. Barra
+                            </th>
+                            <th className="border border-gray-300 p-2 w-auto">
+                              Descripcion
+                            </th>
+                            <th className="border border-gray-300 p-1">
+                              P. Costo
+                            </th>
+                            <th className="border border-gray-300 p-1">
+                              P. de Venta
+                            </th>
+                            <th className="border border-gray-300 p-1">
+                              Unid. Vendida
+                            </th>
+                            <th className="border border-gray-300 p-1">
+                              Exentas
+                            </th>
+                            <th className="border border-gray-300 p-1">
+                              IVA 5%
+                            </th>
+                            <th className="border border-gray-300 p-1">
+                              IVA 10%
+                            </th>
+                            <th className="border border-gray-300 p-1">
+                              % Util. s/Venta
+                            </th>
+                            <th className="border border-gray-300 p-1">
+                              Sub-Total
+                            </th>
+                            <th className="border border-gray-300 p-1">V/B</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filtrarPorUtilidad(itemsFiltrados)
+                            .filter(
+                              (item) =>
+                                !desglosadoXFactura ||
+                                item.ve_factura === factura
+                            )
+                            .map((item, index) => (
+                              <tr key={index}>
+                                <td className="border border-gray-300 p-0 text-lg font-medium text-gray-700">
+                                  {item.ve_fecha}
+                                </td>
+                                <td className="border border-gray-300 p-0 text-lg text-gray-700">
+                                  {item.ar_codbarra}
+                                </td>
+                                <td className="border border-gray-300 p-0 text-lg text-gray-700">
+                                  {item.ar_descripcion}
+                                </td>
+                                <td className="border border-gray-300 p-0 text-right text-lg text-gray-700">
+                                  {formatearNumero(item.pcosto)}
+                                </td>
+                                <td className="border border-gray-300 p-0 text-right text-lg text-gray-700">
+                                  {formatearNumero(item.precio)}
+                                </td>
+                                <td className="border border-gray-300 p-0 text-center text-lg text-gray-700">
+                                  {eliminarDecimales(item.cantidad)}
+                                </td>
+                                <td className="border border-gray-300 p-0 text-right text-lg text-gray-700">
+                                  {formatearNumero(item.exentas)}
+                                </td>
+                                <td className="border border-gray-300 p-0 text-right text-lg text-gray-700">
+                                  {formatearNumero(item.cinco)}
+                                </td>
+                                <td className="border border-gray-300 p-0 text-right text-lg text-gray-700">
+                                  {formatearNumero(item.diez)}
+                                </td>
+                                <td className="border border-gray-300 p-0 text-center text-lg text-gray-700">
+                                  {eliminarDecimales(
+                                    item.Utilidad_sobre_PrecioCosto_UltimaCompra_Venta
+                                  )}
+                                </td>
+                                <td className="border border-gray-300 p-0 text-right text-lg text-gray-700">
+                                  {formatearNumero(item.subtotal)}
+                                </td>
+                                <td className="border border-gray-300 p-0 text-center text-lg text-gray-700">
+                                  {item.boni === 1 ? "B" : "V"}
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+                        <tfoot className="bg-gray-200 sticky bottom-0 z-10">
+                          <tr>
+                            <td
+                              colSpan={5}
+                              className="border border-gray-300 p-2"
+                            ></td>
+                            <td className="border border-gray-300 p-2 font-bold">
+                              Total:{" "}
+                              {formatearNumero(
+                                totalUnidadesVendidas(
+                                  filtrarPorUtilidad(itemsFiltrados)
+                                ).toString()
+                              )}
+                            </td>
+                            <td className="border font-bold border-gray-300 p-2">
+                              Total:{" "}
+                              {formatearNumero(
+                                totalExentas(
+                                  filtrarPorUtilidad(itemsFiltrados)
+                                ).toString()
+                              )}
+                            </td>
+                            <td className="border font-bold border-gray-300 p-2">
+                              Total:{" "}
+                              {formatearNumero(
+                                totalCincos(
+                                  filtrarPorUtilidad(itemsFiltrados)
+                                ).toString()
+                              )}
+                            </td>
+                            <td className="border font-bold border-gray-300 p-2">
+                              Total:{" "}
+                              {formatearNumero(
+                                totalDiez(
+                                  filtrarPorUtilidad(itemsFiltrados)
+                                ).toString()
+                              )}
+                            </td>
+                            <td className="border font-bold border-gray-300 p-2"></td>
+                            <td className="border font-bold border-gray-300 p-2">
+                              Total:{" "}
+                              {formatearNumero(
+                                totalVentas(
+                                  filtrarPorUtilidad(itemsFiltrados)
+                                ).toString()
+                              )}
+                            </td>
+                            <td className="border font-bold border-gray-300 p-2"></td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </>
+                  );
+                })}
+              {!desglosadoXFactura  && (
+                <>
+                  <table
+                    className={`${
+                      isMobile ? "w-[1920px]" : "w-full"
+                    } table-auto border-collapse border border-gray-300`}
+                  >
+                    <thead className="bg-gray-200 sticky top-0 z-10">
+                      <tr>
+                        <th className="border border-gray-300 p-2 w-1/12">
+                          F. Venta
+                        </th>
+                        <th className="border border-gray-300 p-2 w-[200px]">
+                          Cod. Barra
+                        </th>
+                        <th className="border border-gray-300 p-2 w-auto">
+                          Descripcion
+                        </th>
+                        <th className="border border-gray-300 p-1">P. Costo</th>
+                        <th className="border border-gray-300 p-1">
+                          P. de Venta
+                        </th>
+                        <th className="border border-gray-300 p-1">
+                          Unid. Vendida
+                        </th>
+                        <th className="border border-gray-300 p-1">Exentas</th>
+                        <th className="border border-gray-300 p-1">IVA 5%</th>
+                        <th className="border border-gray-300 p-1">IVA 10%</th>
+                        <th className="border border-gray-300 p-1">
+                          % Util. s/Venta
+                        </th>
+                        <th className="border border-gray-300 p-1">
+                          Sub-Total
+                        </th>
+                        <th className="border border-gray-300 p-1">V/B</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filtrarPorUtilidad(itemsFiltrados)
+                        .map((item, index) => (
+                          <tr key={index}>
+                            <td className="border border-gray-300 p-0 text-lg font-medium text-gray-700">
+                              {item.ve_fecha}
+                            </td>
+                            <td className="border border-gray-300 p-0 text-lg text-gray-700">
+                              {item.ar_codbarra}
+                            </td>
+                            <td className="border border-gray-300 p-0 text-lg text-gray-700">
+                              {item.ar_descripcion}
+                            </td>
+                            <td className="border border-gray-300 p-0 text-right text-lg text-gray-700">
+                              {formatearNumero(item.pcosto)}
+                            </td>
+                            <td className="border border-gray-300 p-0 text-right text-lg text-gray-700">
+                              {formatearNumero(item.precio)}
+                            </td>
+                            <td className="border border-gray-300 p-0 text-center text-lg text-gray-700">
+                              {eliminarDecimales(item.cantidad)}
+                            </td>
+                            <td className="border border-gray-300 p-0 text-right text-lg text-gray-700">
+                              {formatearNumero(item.exentas)}
+                            </td>
+                            <td className="border border-gray-300 p-0 text-right text-lg text-gray-700">
+                              {formatearNumero(item.cinco)}
+                            </td>
+                            <td className="border border-gray-300 p-0 text-right text-lg text-gray-700">
+                              {formatearNumero(item.diez)}
+                            </td>
+                            <td className="border border-gray-300 p-0 text-center text-lg text-gray-700">
+                              {eliminarDecimales(
+                                item.Utilidad_sobre_PrecioCosto_UltimaCompra_Venta
+                              )}
+                            </td>
+                            <td className="border border-gray-300 p-0 text-right text-lg text-gray-700">
+                              {formatearNumero(item.subtotal)}
+                            </td>
+                            <td className="border border-gray-300 p-0 text-center text-lg text-gray-700">
+                              {item.boni === 1 ? "B" : "V"}
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                    <tfoot className="bg-gray-200 sticky bottom-0 z-10">
+                      <tr>
+                        <td
+                          colSpan={5}
+                          className="border border-gray-300 p-2"
+                        ></td>
+                        <td className="border border-gray-300 p-2 font-bold">
+                          Total:{" "}
+                          {formatearNumero(
+                            totalUnidadesVendidas(
+                              filtrarPorUtilidad(itemsFiltrados)
+                            ).toString()
+                          )}
+                        </td>
+                        <td className="border font-bold border-gray-300 p-2">
+                          Total:{" "}
+                          {formatearNumero(
+                            totalExentas(
+                              filtrarPorUtilidad(itemsFiltrados)
+                            ).toString()
+                          )}
+                        </td>
+                        <td className="border font-bold border-gray-300 p-2">
+                          Total:{" "}
+                          {formatearNumero(
+                            totalCincos(
+                              filtrarPorUtilidad(itemsFiltrados)
+                            ).toString()
+                          )}
+                        </td>
+                        <td className="border font-bold border-gray-300 p-2">
+                          Total:{" "}
+                          {formatearNumero(
+                            totalDiez(
+                              filtrarPorUtilidad(itemsFiltrados)
+                            ).toString()
+                          )}
+                        </td>
+                        <td className="border font-bold border-gray-300 p-2"></td>
+                        <td className="border font-bold border-gray-300 p-2">
+                          Total:{" "}
+                          {formatearNumero(
+                            totalVentas(
+                              filtrarPorUtilidad(itemsFiltrados)
+                            ).toString()
+                          )}
+                        </td>
+                        <td className="border font-bold border-gray-300 p-2"></td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const filtrarPorUtilidad = (data: any[]) => {
+    if (
+      !indicarUtilidadGris &&
+      !indicarUtilidadAmarilla &&
+      !indicarUtilidadRoja &&
+      !indicarUtilidadAzul
+    ) {
+      return data;
+    }
+
+    return data.filter((item) => {
+      const utilidad = item.Utilidad_sobre_PrecioCosto_UltimaCompra_Venta;
+
+      if (indicarUtilidadGris && utilidad < 20) {
+        return true;
+      }
+      if (indicarUtilidadAmarilla && utilidad > 70) {
+        return true;
+      }
+      if (indicarUtilidadRoja && utilidad < 0) {
+        return true;
+      }
+      if (indicarUtilidadAzul && utilidad > 0) {
+        return true;
+      }
+      return false;
+    });
+  };
+
+  const cancelarOperacion = () => {
+    setSucursalesSeleccionadas([]),
+    setDepositosSeleccionados([]),
+    setClienteSeleccionados([])
+    setVendedoresSeleccionados([]),
+    setTipoArticulo(null),
+    setCategoriasSeleccionadas([]),
+    setSubcategoriasSeleccionadas([]),
+    setMarcasSeleccionadas([]),
+    setCiudadesSeleccionadas([]),
+    setCondiciones(2)
+    setSituaciones(1)
+    setTipoMovimiento(null)
+    setSeccionesSeleccionadas([])
+    setMonedasSeleccionada(1)
+    setArticulosSeleccionados([])
+    setNroVenta('')
+    setCalculoDesdeInicioParaCostoPromedio(0)
+    setNcAplicadoAFechaDeVentas(0)
+    setDeducirDescuentoSobreVenta(1)
+    setSoloResumen(0)
+    setOrdenAsc(true)
+    setInfDesgIVA(false)
+    setDesglosadoXFactura(false)
+    setTotalesDeProd(true)
+    setAgruparXPeriodo(false)
+    setTotalizarArt(false)
+    setInformeBonif(false)
+    setMostrarCheckBox(false)
+    setTipoValorizacion(2)
+    setUtilidadGris(false)
+    setUtilidadAmarilla(false)
+    setUtilidadRoja(false)
+    setUtilidadAzul(false)
+    setResumen([])
+    setVentasNC([])
+  }
 
   return (
     <Box
@@ -947,21 +1762,23 @@ const InformeVentas = () => {
               <Box>
                 <FormLabel>Sucursales:</FormLabel>
                 <Input
-                  placeholder="Seleccione una sucursal..."
+                  placeholder={sucursalesSeleccionadas && sucursalesSeleccionadas?.length <1 ? "Seleccione una sucursal..." : sucursalesSeleccionadas?.map((suc) => suc).join(", ")}
                   onClick={onSucursalModalOpen}
                 />
               </Box>
               <Box>
                 <FormLabel>Depositos:</FormLabel>
                 <Input
-                  placeholder="Seleccione un deposito..."
+                  placeholder={depositosSeleccionados && depositosSeleccionados.length < 1 ? "Seleccione un deposito..." : depositosSeleccionados?.map((dep) => dep).join(", ")}
                   onClick={onDepositoModalOpen}
                 />
               </Box>
               <Box display={"flex"} flexDirection={"column"} flexGrow={1}>
                 <FormLabel>Clientes:</FormLabel>
                 <Input
-                  placeholder={"Buscar cliente..."}
+                  placeholder={clienteSeleccionados && clienteSeleccionados.length < 1 ?  "Buscar cliente..." :
+                    clienteSeleccionados?.map((cli) => cli).join(", ")
+                  }
                   type="text"
                   onClick={onClienteModalOpen}
                 />
@@ -969,7 +1786,9 @@ const InformeVentas = () => {
               <Box display={"flex"} flexDirection={"column"} flexGrow={1}>
                 <FormLabel>Vendedores:</FormLabel>
                 <Input
-                  placeholder={"Buscar vendedor..."}
+                  placeholder={vendedoresSeleccionados && vendedoresSeleccionados.length < 1 ? "Buscar vendedor..." :
+                    vendedoresSeleccionados?.map((ven) => ven).join(", ")
+                  }
                   type="text"
                   onClick={onVendedorModalOpen}
                 />
@@ -1002,6 +1821,7 @@ const InformeVentas = () => {
                   onChange={(e) => setTipoArticulo(+e.target.value)}
                   value={tipoArticulo ?? ""}
                 >
+                  <option value={0}>Todos</option>
                   <option value={1}>Mercaderias</option>
                   <option value={2}>Servicios</option>
                 </Select>
@@ -1009,28 +1829,36 @@ const InformeVentas = () => {
               <Box>
                 <FormLabel>Categoria:</FormLabel>
                 <Input
-                  placeholder="Seleccione una categoria..."
+                  placeholder={categoriasSeleccionadas && categoriasSeleccionadas.length <1 ?  "Seleccione una categoria..." :
+                    categoriasSeleccionadas?.map((cat)=> cat).join(', ')
+                  }
                   onClick={onCategoriaModalOpen}
                 />
               </Box>
               <Box>
                 <FormLabel>Subcategoria:</FormLabel>
                 <Input
-                  placeholder="Seleccione una subcategoria"
+                  placeholder={subcategoriasSeleccionadas && subcategoriasSeleccionadas.length <1 ?  "Seleccione una subcategoria..." :
+                    subcategoriasSeleccionadas?.map((sub)=> sub).join(', ')
+                  }
                   onClick={onSubcategoriaModalOpen}
                 />
               </Box>
               <Box>
                 <FormLabel>Marca:</FormLabel>
                 <Input
-                  placeholder="Seleccione una marca"
+                  placeholder={marcasSeleccionadas && marcasSeleccionadas.length <1 ? "Seleccione una marca" :
+                    marcasSeleccionadas?.map((mar)=> mar).join(', ')
+                  }
                   onClick={onMarcaModalOpen}
                 />
               </Box>
               <Box>
                 <FormLabel>Ciudades:</FormLabel>
                 <Input
-                  placeholder="Seleccione una ciudad"
+                  placeholder={ciudadesSeleccionadas && ciudadesSeleccionadas.length < 1 ?  "Seleccione una ciudad" :
+                    ciudadesSeleccionadas?.map((ciu)=> ciu).join(', ')
+                  }
                   onClick={onCiudadModalOpen}
                 />
               </Box>
@@ -1048,7 +1876,9 @@ const InformeVentas = () => {
               <Box>
                 <FormLabel>Secciones:</FormLabel>
                 <Input
-                  placeholder="Seleccione una seccion"
+                  placeholder={seccionesSeleccionadas && seccionesSeleccionadas.length <1 ? "Seleccione una seccion"
+                    : seccionesSeleccionadas?.map((sec)=> sec).join(', ')
+                  }
                   onClick={onSeccionModalOpen}
                 />
               </Box>
@@ -1065,9 +1895,9 @@ const InformeVentas = () => {
                   onChange={(e) => setTipoValorizacion(+e.target.value)}
                   value={tipoValorizacion ?? ""}
                 >
-                  <option value={0}>Precio de costo real</option>
+                  <option value={1}>Precio de costo real</option>
                   <option value={2}>Precio de costo promedio</option>
-                  <option value={1}>Ultimo costo</option>
+                  <option value={3}>Ultimo costo</option>
                 </Select>
               </Box>
             </Flex>
@@ -1091,7 +1921,9 @@ const InformeVentas = () => {
                 >
                   <FormLabel>Articulos:</FormLabel>
                   <Input
-                    placeholder={"Buscar articulo..."}
+                    placeholder={articulosSeleccionados && articulosSeleccionados.length <1 ?  "Buscar articulo..." :
+                      articulosSeleccionados?.map((a)=> a).join(', ')
+                    }
                     type="text"
                     onClick={onArticuloModalOpen}
                   />
@@ -1345,8 +2177,9 @@ const InformeVentas = () => {
             </Flex>
           ) : (
             <table
-              className={`${isMobile ? "w-[1920px]" : "w-full"
-                } table-auto border-collapse border border-gray-300`}
+              className={`${
+                isMobile ? "w-[1920px]" : "w-full"
+              } table-auto border-collapse border border-gray-300`}
             >
               <thead className="bg-gray-200 sticky top-0 z-10">
                 <tr>
@@ -1373,7 +2206,7 @@ const InformeVentas = () => {
                 </tr>
               </thead>
               <tbody>
-                {resumen.map((item, index) => (
+                {filtrarPorUtilidad(resumen).map((item, index) => (
                   <tr
                     key={index}
                     className={colorClase(
@@ -1426,20 +2259,20 @@ const InformeVentas = () => {
                 <tr>
                   <td colSpan={5} className="border border-gray-300 p-2"></td>
                   <td className="border border-gray-300 p-2 font-bold">
-                    Total: {formatearNumero(totalUnidadesVendidas().toString())}
+                    Total: {formatearNumero(totalUnidadesVendidas(filtrarPorUtilidad(resumen)).toString())}
                   </td>
                   <td className="border font-bold border-gray-300 p-2">
-                    Total: {formatearNumero(totalExentas().toString())}
+                    Total: {formatearNumero(totalExentas(filtrarPorUtilidad(resumen)).toString())}
                   </td>
                   <td className="border font-bold border-gray-300 p-2">
-                    Total: {formatearNumero(totalCincos().toString())}
+                    Total: {formatearNumero(totalCincos(filtrarPorUtilidad(resumen)).toString())}
                   </td>
                   <td className="border font-bold border-gray-300 p-2">
-                    Total: {formatearNumero(totalDiez().toString())}
+                    Total: {formatearNumero(totalDiez(filtrarPorUtilidad(resumen)).toString())}
                   </td>
                   <td className="border font-bold border-gray-300 p-2"></td>
                   <td className="border font-bold border-gray-300 p-2">
-                    Total: {formatearNumero(totalVentas().toString())}
+                    Total: {formatearNumero(totalVentas(filtrarPorUtilidad(resumen)).toString())}
                   </td>
                   <td className="border font-bold border-gray-300 p-2"></td>
                 </tr>
@@ -1483,8 +2316,8 @@ const InformeVentas = () => {
                   textAlign={"right"}
                 >
                   {deducirDescuentoSobreVenta === 1
-                    ? formatearNumero(totalNetoReal().toString())
-                    : formatearNumero(totalNeto().toString())}
+                    ? formatearNumero(totalNetoReal(filtrarPorUtilidad(resumen)).toString())
+                    : formatearNumero(totalNeto(filtrarPorUtilidad(resumen)).toString())}
                 </Text>
               </Box>
             </Flex>
@@ -1502,7 +2335,7 @@ const InformeVentas = () => {
                   color={"black"}
                   textAlign={"right"}
                 >
-                  {formatearNumero(totalCostos().toString())}
+                  {formatearNumero(totalCostos(filtrarPorUtilidad(resumen)).toString())}
                 </Text>
               </Box>
             </Flex>
@@ -1538,7 +2371,7 @@ const InformeVentas = () => {
                   color={"black"}
                   textAlign={"right"}
                 >
-                  {utilidadPorcentajeNeto().toFixed(2)} %
+                  {utilidadPorcentajeNeto(filtrarPorUtilidad(resumen)).toFixed(2)} %
                 </Text>
               </Box>
             </Flex>
@@ -1574,7 +2407,7 @@ const InformeVentas = () => {
                   color={"black"}
                   textAlign={"right"}
                 >
-                  {formatearNumero(utilidadEnMonto().toString())}
+                  {formatearNumero(utilidadEnMonto(filtrarPorUtilidad(resumen)).toString())}
                 </Text>
               </Box>
             </Flex>
@@ -1592,7 +2425,7 @@ const InformeVentas = () => {
                   color={"black"}
                   textAlign={"right"}
                 >
-                  {formatearNumero(totalDescuentoItems().toString())}
+                  {formatearNumero(totalDescuentoItems(filtrarPorUtilidad(resumen)).toString())}
                 </Text>
               </Box>
             </Flex>
@@ -1610,7 +2443,7 @@ const InformeVentas = () => {
                   color={"black"}
                   textAlign={"right"}
                 >
-                  {utilidadPorcentajeBruto().toFixed(2)} %
+                  {utilidadPorcentajeBruto(filtrarPorUtilidad(resumen)).toFixed(2)} %
                 </Text>
               </Box>
             </Flex>
@@ -1624,7 +2457,7 @@ const InformeVentas = () => {
                   color={"black"}
                   textAlign={"right"}
                 >
-                  0
+                  {formatearNumero((totalDescuentoItems(filtrarPorUtilidad(resumen)) + totalDescuentoFacturas()).toString())}
                 </Text>
               </Box>
             </Flex>
@@ -1639,32 +2472,82 @@ const InformeVentas = () => {
               <Text fontWeight={"bold"} fontSize={"sm"} color={"black"}>
                 Obs:
               </Text>
-              <Flex gap={4}>
+              <Flex
+                gap={4}
+                onClick={() =>{
+                  setUtilidadGris(!indicarUtilidadGris)
+                  estadoActivo('Gris')
+                }}
+                cursor={"pointer"}
+                _hover={{ bg: "gray.200" }}
+              >
                 <Box p={3} borderRadius={"md"} bg={"gray.200"}></Box>
-                <Text fontSize={"sm"} color={"black"}>
+                <Text
+                  fontSize={"sm"}
+                  color={"black"}
+                  fontWeight={indicarUtilidadGris ? "bold" : "normal"}
+                >
                   Indica utilidad S/V menor al 20%
                 </Text>
               </Flex>
-              <Flex gap={4}>
+              <Flex
+                gap={4}
+                onClick={() => {
+                  setUtilidadAmarilla(!indicarUtilidadAmarilla)
+                  estadoActivo('Amarillo')
+                }}
+                cursor={"pointer"}
+                _hover={{ bg: "gray.200" }}
+              >
                 <Box p={3} borderRadius={"md"} bg={"yellow.200"}></Box>
-                <Text fontSize={"sm"} color={"black"}>
+                <Text
+                  fontSize={"sm"}
+                  color={"black"}
+                  fontWeight={indicarUtilidadAmarilla ? "bold" : "normal"}
+                >
                   Indica utilidad S/V mayor al 70%
                 </Text>
               </Flex>
-              <Flex gap={4}>
+              <Flex
+                gap={4}
+                onClick={() => {
+                  setUtilidadRoja(!indicarUtilidadRoja)
+                  estadoActivo('Rojo')
+                }}
+                cursor={"pointer"}
+              >
                 <Box p={3} borderRadius={"sm"} bg={"red.200"}></Box>
-                <Text fontSize={"sm"} color={"black"}>
+                <Text
+                  fontSize={"sm"}
+                  color={"black"}
+                  fontWeight={indicarUtilidadRoja ? "bold" : "normal"}
+                >
                   Indica utilidad S/V en pérdida
                 </Text>
               </Flex>
-              <Flex gap={4}>
+              <Flex
+                gap={4}
+                onClick={() => {
+                  setUtilidadAzul(!indicarUtilidadAzul)
+                  estadoActivo('Azul')
+                }}
+                cursor={"pointer"}
+                _hover={{ bg: "gray.200" }}
+              >
                 <Box p={3} borderRadius={"sm"} bg={"blue.200"}></Box>
-                <Text fontSize={"sm"} color={"black"}>
+                <Text
+                  fontSize={"sm"}
+                  color={"black"}
+                  fontWeight={indicarUtilidadAzul ? "bold" : "normal"}
+                >
                   Opción utilidad S/V positivo
                 </Text>
               </Flex>
             </Box>
             <Flex gap={2} mt={2}>
+            <Button colorScheme={"red"} w={"50%"} onClick={cancelarOperacion}>
+                Cancelar
+              </Button>
               <Button colorScheme={"blue"} w={"50%"} onClick={onPdfModalOpen}>
                 Generar PDF
               </Button>
@@ -1704,7 +2587,7 @@ const InformeVentas = () => {
               gap={2}
               py={4}
             >
-              {clientesFiltrados.map((cliente) => (
+              {(clientesFiltrados.length === 0 ? clientes : clientesFiltrados).map((cliente) => (
                 <Box
                   key={cliente.cli_codigo}
                   p={2}
@@ -1723,6 +2606,14 @@ const InformeVentas = () => {
             </Flex>
           </ModalBody>
           <ModalFooter display={"flex"} gap={4}>
+            <Button
+              colorScheme="blue"
+              onClick={() => seleccionarTodosLosClientes()}
+            >
+              {clienteSeleccionados?.length === clientes.length
+                ? "Des-seleccionar todos"
+                : "Seleccionar todos"}
+            </Button>
             <Button
               colorScheme={"red"}
               onClick={() => setClienteSeleccionados(null)}
@@ -1759,7 +2650,7 @@ const InformeVentas = () => {
               gap={2}
               py={4}
             >
-              {vendedoresFiltrados.map((vendedor) => (
+              {(vendedoresFiltrados.length === 0 ? vendedores : vendedoresFiltrados).map((vendedor) => (
                 <Box
                   key={vendedor.id}
                   p={2}
@@ -1782,6 +2673,14 @@ const InformeVentas = () => {
             </Flex>
           </ModalBody>
           <ModalFooter display={"flex"} gap={4}>
+            <Button
+              colorScheme="blue"
+              onClick={() => seleccionarTodosLosVendedores()}
+            >
+              {vendedoresSeleccionados?.length === vendedores.length
+                ? "Des-seleccionar todos"
+                : "Seleccionar todos"}
+            </Button>
             <Button
               colorScheme={"red"}
               onClick={() => setVendedoresSeleccionados(null)}
@@ -1831,7 +2730,7 @@ const InformeVentas = () => {
                   cursor={"pointer"}
                   onClick={() =>
                     setArticulosSeleccionados((prevSeleccionados) => {
-                      if (prevSeleccionados.includes(articulo.al_codigo)) {
+                      if (prevSeleccionados.includes(articulo.ar_codigo)) {
                         return prevSeleccionados.filter(
                           (id) => id !== articulo.ar_codigo
                         );
@@ -1846,8 +2745,7 @@ const InformeVentas = () => {
               ))}
             </Flex>
           </ModalBody>
-        </ModalContent>
-        <ModalFooter display={"flex"} gap={4}>
+          <ModalFooter display={"flex"} gap={4}>
           <Button
             colorScheme={"red"}
             onClick={() => setArticulosSeleccionados([])}
@@ -1858,6 +2756,8 @@ const InformeVentas = () => {
             Aceptar
           </Button>
         </ModalFooter>
+        </ModalContent>
+        
       </Modal>
       <Modal
         isOpen={isSucursalModalOpen}
@@ -1873,7 +2773,7 @@ const InformeVentas = () => {
               <Input
                 placeholder={"Buscar articulo..."}
                 type="text"
-                onChange={(e) => buscarArticulos(e.target.value)}
+                onChange={(e) => buscarSucursales(e.target.value)}
               />
             </Box>
             <Flex
@@ -1883,7 +2783,7 @@ const InformeVentas = () => {
               gap={2}
               py={4}
             >
-              {sucursales.map((sucursal) => (
+              {(sucursalesFiltradas.length === 0 ? sucursales : sucursalesFiltradas).map((sucursal) => (
                 <Box
                   key={sucursal.id}
                   p={2}
@@ -1916,6 +2816,14 @@ const InformeVentas = () => {
           </ModalBody>
           <ModalFooter display={"flex"} gap={4}>
             <Button
+              colorScheme="blue"
+              onClick={() => seleccionarTodasSucursales()}
+            >
+              {sucursalesSeleccionadas?.length === sucursales.length
+                ? "Des-seleccionar todos"
+                : "Seleccionar todos"}
+            </Button>
+            <Button
               colorScheme={"red"}
               onClick={() => setSucursalesSeleccionadas(null)}
             >
@@ -1941,7 +2849,7 @@ const InformeVentas = () => {
               <Input
                 placeholder={"Buscar deposito..."}
                 type="text"
-                onChange={(e) => buscarArticulos(e.target.value)}
+                onChange={(e) => buscarDepositos(e.target.value)}
               />
             </Box>
             <Flex
@@ -1951,13 +2859,13 @@ const InformeVentas = () => {
               gap={2}
               py={4}
             >
-              {depositos.map((deposito) => (
+              {(depositosFiltrados.length === 0 ? depositos : depositosFiltrados).map((deposito) => (
                 <Box
                   key={deposito.dep_codigo}
                   p={2}
                   bg={
                     depositosSeleccionados?.includes(deposito.dep_codigo) ??
-                      false
+                    false
                       ? "blue.100"
                       : "gray.100"
                   }
@@ -1985,6 +2893,14 @@ const InformeVentas = () => {
           </ModalBody>
           <ModalFooter display={"flex"} gap={4}>
             <Button
+              colorScheme="blue"
+              onClick={() => seleccionarTodasDepositos()}
+            >
+              {depositosSeleccionados?.length === depositos.length
+                ? "Des-seleccionar todos"
+                : "Seleccionar todos"}
+            </Button>
+            <Button
               colorScheme={"red"}
               onClick={() => setDepositosSeleccionados(null)}
             >
@@ -2010,7 +2926,7 @@ const InformeVentas = () => {
               <Input
                 placeholder={"Buscar categoria..."}
                 type="text"
-                onChange={(e) => buscarArticulos(e.target.value)}
+                onChange={(e) => buscarCategorias(e.target.value)}
               />
             </Box>
             <Flex
@@ -2020,13 +2936,13 @@ const InformeVentas = () => {
               gap={2}
               py={4}
             >
-              {categorias.map((categoria) => (
+              {(categoriasFiltradas.length === 0 ? categorias : categoriasFiltradas).map((categoria) => (
                 <Box
                   key={categoria.ca_codigo}
                   p={2}
                   bg={
                     categoriasSeleccionadas?.includes(categoria.ca_codigo) ??
-                      false
+                    false
                       ? "blue.100"
                       : "gray.100"
                   }
@@ -2054,6 +2970,14 @@ const InformeVentas = () => {
           </ModalBody>
           <ModalFooter display={"flex"} gap={4}>
             <Button
+              colorScheme="blue"
+              onClick={() => seleccionarTodasCategorias()}
+            >
+              {categoriasSeleccionadas?.length === categorias.length
+                ? "Des-seleccionar todos"
+                : "Seleccionar todos"}
+            </Button>
+            <Button
               colorScheme={"red"}
               onClick={() => setCategoriasSeleccionadas(null)}
             >
@@ -2079,7 +3003,7 @@ const InformeVentas = () => {
               <Input
                 placeholder={"Buscar subcategoria..."}
                 type="text"
-                onChange={(e) => buscarArticulos(e.target.value)}
+                onChange={(e) => buscarSubcategorias(e.target.value)}
               />
             </Box>
             <Flex
@@ -2089,7 +3013,7 @@ const InformeVentas = () => {
               gap={2}
               py={4}
             >
-              {subcategorias.map((subcategoria) => (
+              {(subcategoriasFiltradas.length === 0 ? subcategorias : subcategoriasFiltradas).map((subcategoria) => (
                 <Box
                   key={subcategoria.sc_codigo}
                   p={2}
@@ -2124,6 +3048,14 @@ const InformeVentas = () => {
           </ModalBody>
           <ModalFooter display={"flex"} gap={4}>
             <Button
+              colorScheme="blue"
+              onClick={() => seleccionarTodasSubcategorias()}
+            >
+              {subcategoriasSeleccionadas?.length === subcategorias.length
+                ? "Des-seleccionar todos"
+                : "Seleccionar todos"}
+            </Button>
+            <Button
               colorScheme={"red"}
               onClick={() => setSubcategoriasSeleccionadas(null)}
             >
@@ -2145,7 +3077,7 @@ const InformeVentas = () => {
               <Input
                 placeholder={"Buscar marca..."}
                 type="text"
-                onChange={(e) => buscarArticulos(e.target.value)}
+                onChange={(e) => buscarMarcas(e.target.value)}
               />
             </Box>
             <Flex
@@ -2155,7 +3087,7 @@ const InformeVentas = () => {
               gap={2}
               py={4}
             >
-              {marca.map((marca) => (
+              {(marcasFiltradas.length === 0 ? marca : marcasFiltradas).map((marca) => (
                 <Box
                   key={marca.ma_codigo}
                   p={2}
@@ -2187,6 +3119,11 @@ const InformeVentas = () => {
             </Flex>
           </ModalBody>
           <ModalFooter display={"flex"} gap={4}>
+            <Button colorScheme="blue" onClick={() => seleccionarTodasMarcas()}>
+              {marcasSeleccionadas?.length === marca.length
+                ? "Des-seleccionar todos"
+                : "Seleccionar todos"}
+            </Button>
             <Button
               colorScheme={"red"}
               onClick={() => setMarcasSeleccionadas(null)}
@@ -2213,7 +3150,7 @@ const InformeVentas = () => {
               <Input
                 placeholder={"Buscar ciudad..."}
                 type="text"
-                onChange={(e) => buscarArticulos(e.target.value)}
+                onChange={(e) => buscarCiudad(e.target.value)}
               />
             </Box>
             <Flex
@@ -2223,7 +3160,7 @@ const InformeVentas = () => {
               gap={2}
               py={4}
             >
-              {ciudades.map((ciudad) => (
+              {(ciudadesFiltradas.length === 0 ? ciudades : ciudadesFiltradas).map((ciudad) => (
                 <Box
                   key={ciudad.ciu_codigo}
                   p={2}
@@ -2256,6 +3193,14 @@ const InformeVentas = () => {
           </ModalBody>
           <ModalFooter display={"flex"} gap={4}>
             <Button
+              colorScheme="blue"
+              onClick={() => seleccionarTodasCiudades()}
+            >
+              {ciudadesSeleccionadas?.length === ciudades.length
+                ? "Des-seleccionar todos"
+                : "Seleccionar todos"}
+            </Button>
+            <Button
               colorScheme={"red"}
               onClick={() => setCiudadesSeleccionadas(null)}
             >
@@ -2281,7 +3226,7 @@ const InformeVentas = () => {
               <Input
                 placeholder={"Buscar seccion..."}
                 type="text"
-                onChange={(e) => buscarArticulos(e.target.value)}
+                onChange={(e) => buscarSecciones(e.target.value)}
               />
             </Box>
             <Flex
@@ -2291,7 +3236,7 @@ const InformeVentas = () => {
               gap={2}
               py={4}
             >
-              {secciones.map((seccion) => (
+              {(seccionesFiltradas.length === 0 ? secciones : seccionesFiltradas).map((seccion) => (
                 <Box
                   key={seccion.s_codigo}
                   p={2}
@@ -2323,6 +3268,14 @@ const InformeVentas = () => {
             </Flex>
           </ModalBody>
           <ModalFooter display={"flex"} gap={4}>
+            <Button
+              colorScheme="blue"
+              onClick={() => seleccionarTodasSecciones()}
+            >
+              {seccionesSeleccionadas?.length === secciones.length
+                ? "Des-seleccionar todos"
+                : "Seleccionar todos"}
+            </Button>
             <Button
               colorScheme={"red"}
               onClick={() => setSeccionesSeleccionadas(null)}
@@ -2389,11 +3342,15 @@ const InformeVentas = () => {
           <ModalHeader>Vista Previa informe de ventas</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <div className="flex flex-col gap-4 px-8 h-full mt-2 w-[full] mx-auto border border-gray-300 overflow-y-auto">
+            <div
+              className={`${
+                isMobile ? "w-[1920px]" : "w-full"
+              } flex flex-col gap-4 px-8 h-full mt-2  mx-auto border border-gray-300 overflow-x-auto overflow-y-auto`}
+            >
               <div className="flex flex-col w-full border border-gray-300 p-2">
                 <div className="flex justify-between w-full">
-                  <p className="text-md font-bold">RUC: 80026596-3</p>
-                  <p className="text-md font-bold">Gaesa SA</p>
+                  <p className="text-md font-bold">RUC: {rucEmpresa}</p>
+                  <p className="text-md font-bold">{nombreEmpresa}</p>
                   <div>
                     <p className="text-md font-bold">{fechaCompletaActual}</p>
                     <p className="text-md font-bold">
@@ -2404,12 +3361,16 @@ const InformeVentas = () => {
                 <Divider />
                 <div className="py-2">
                   <h1 className="font-bold text-xl text-center">
-                    Resumen de ventas y utilidades
+                    {TituloInforme()}
                   </h1>
                   <div className="flex flex-row w-full justify-between my-2">
                     <div>
-                      <p className="text-lg "><strong>Desde:</strong> {fechaDesde}</p>
-                      <p className="text-lg "><strong>Hasta:</strong> {fechaHasta}</p>
+                      <p className="text-lg ">
+                        <strong>Desde:</strong> {fechaDesde}
+                      </p>
+                      <p className="text-lg ">
+                        <strong>Hasta:</strong> {fechaHasta}
+                      </p>
                       <p className="text-lg">
                         <strong>Hora:</strong>{" "}
                         {horaDesde && horaHasta
@@ -2419,32 +3380,47 @@ const InformeVentas = () => {
                       <p className="text-lg ">
                         <strong>Sucursales:</strong>{" "}
                         {sucursalesSeleccionadas &&
-                          sucursalesSeleccionadas.length > 0
-                          ? sucursalesSeleccionadas.map((suc) => suc).join(", ")
-                          : "Ninguna en especifico"}
+                        sucursalesSeleccionadas.length === sucursales.length
+                          ? "Todos"
+                          : sucursalesSeleccionadas &&
+                            sucursalesSeleccionadas?.length > 0
+                          ? sucursalesSeleccionadas
+                              ?.map((dep) => dep)
+                              .join(", ")
+                          : "Ninguno en especifico"}
                       </p>
                       <p className="text-lg">
                         <strong>Depositos:</strong>{" "}
                         {depositosSeleccionados &&
-                          depositosSeleccionados.length > 0
+                        depositosSeleccionados.length === depositos.length
+                          ? "Todos"
+                          : depositosSeleccionados &&
+                            depositosSeleccionados?.length > 0
                           ? depositosSeleccionados?.map((dep) => dep).join(", ")
-                          : "Ninguna en especifico"}
+                          : "Ninguno en especifico"}
                       </p>
                     </div>
                     <div>
                       <p className="text-lg">
                         <strong>Clientes:</strong>{" "}
-                        {clienteSeleccionados && clienteSeleccionados.length > 0
-                          ? clienteSeleccionados?.map((cli) => cli).join(", ")
+                        {clienteSeleccionados &&
+                        clienteSeleccionados.length === clientes.length
+                          ? "Todos"
+                          : clienteSeleccionados &&
+                            clienteSeleccionados?.length > 0
+                          ? clienteSeleccionados?.map((dep) => dep).join(", ")
                           : "Ninguno en especifico"}
                       </p>
                       <p className="text-lg">
                         <strong>Vendedores:</strong>{" "}
                         {vendedoresSeleccionados &&
-                          vendedoresSeleccionados.length > 0
+                        vendedoresSeleccionados.length === vendedores.length
+                          ? "Todos"
+                          : vendedoresSeleccionados &&
+                            vendedoresSeleccionados?.length > 0
                           ? vendedoresSeleccionados
-                            ?.map((vend) => vend)
-                            .join(", ")
+                              ?.map((dep) => dep)
+                              .join(", ")
                           : "Ninguno en especifico"}
                       </p>
                       <p className="text-lg">
@@ -2452,14 +3428,14 @@ const InformeVentas = () => {
                         {situaciones === 2
                           ? "Todas"
                           : situaciones === 1
-                            ? "Activos"
-                            : "Anuladas"}
+                          ? "Activos"
+                          : "Anuladas"}
                       </p>
                       <p className="text-lg ">
                         <strong>Tipo de movimiento:</strong>{" "}
                         {tipoMovimiento === 1
                           ? "Solo ventas"
-                          : "Ventas y devoluciones"}
+                          : "Ninguno en especifico"}
                       </p>
                       <p className="text-lg">
                         <strong>Tipo de articulo:</strong>{" "}
@@ -2470,40 +3446,57 @@ const InformeVentas = () => {
                       <p className="text-lg">
                         <strong>Categorias:</strong>{" "}
                         {categoriasSeleccionadas &&
-                          categoriasSeleccionadas.length > 0
+                        categoriasSeleccionadas.length === categorias.length
+                          ? "Todos"
+                          : categoriasSeleccionadas &&
+                            categoriasSeleccionadas?.length > 0
                           ? categoriasSeleccionadas
-                            ?.map((cat) => cat)
-                            .join(", ")
-                          : "Ninguna en especifico"}
+                              ?.map((dep) => dep)
+                              .join(", ")
+                          : "Ninguno en especifico"}
                       </p>
                       <p className="text-lg">
                         <strong>Subcategorias:</strong>{" "}
                         {subcategoriasSeleccionadas &&
-                          subcategoriasSeleccionadas.length > 0
+                        subcategoriasSeleccionadas.length ===
+                          subcategorias.length
+                          ? "Todos"
+                          : subcategoriasSeleccionadas &&
+                            subcategoriasSeleccionadas?.length > 0
                           ? subcategoriasSeleccionadas
-                            ?.map((sub) => sub)
-                            .join(", ")
-                          : "Ninguna en especifico"}
+                              ?.map((dep) => dep)
+                              .join(", ")
+                          : "Ninguno en especifico"}
                       </p>
                       <p className="text-lg">
                         <strong>Marcas:</strong>{" "}
-                        {marcasSeleccionadas && marcasSeleccionadas.length > 0
-                          ? marcasSeleccionadas?.map((mar) => mar).join(", ")
-                          : "Ninguna en especifico"}
+                        {marcasSeleccionadas &&
+                        marcasSeleccionadas.length === marca.length
+                          ? "Todos"
+                          : marcasSeleccionadas &&
+                            marcasSeleccionadas?.length > 0
+                          ? marcasSeleccionadas?.map((dep) => dep).join(", ")
+                          : "Ninguno en especifico"}
                       </p>
                       <p className="text-lg">
                         <strong>Ciudades:</strong>{" "}
                         {ciudadesSeleccionadas &&
-                          ciudadesSeleccionadas.length > 0
-                          ? ciudadesSeleccionadas?.map((ciu) => ciu).join(", ")
-                          : "Ninguna en especifico"}
+                        ciudadesSeleccionadas.length === ciudades.length
+                          ? "Todos"
+                          : ciudadesSeleccionadas &&
+                            ciudadesSeleccionadas?.length > 0
+                          ? ciudadesSeleccionadas?.map((dep) => dep).join(", ")
+                          : "Ninguno en especifico"}
                       </p>
                       <p className="text-lg">
                         <strong>Secciones:</strong>{" "}
                         {seccionesSeleccionadas &&
-                          seccionesSeleccionadas.length > 0
-                          ? seccionesSeleccionadas?.map((sec) => sec).join(", ")
-                          : "Ninguna en especifico"}
+                        seccionesSeleccionadas.length === secciones.length
+                          ? "Todos"
+                          : seccionesSeleccionadas &&
+                            seccionesSeleccionadas?.length > 0
+                          ? seccionesSeleccionadas?.map((dep) => dep).join(", ")
+                          : "Ninguno en especifico"}
                       </p>
                     </div>
                     <div>
@@ -2512,8 +3505,8 @@ const InformeVentas = () => {
                         {condiciones === 2
                           ? "Todas"
                           : condiciones === 1
-                            ? "Credito"
-                            : "Contado"}
+                          ? "Credito"
+                          : "Contado"}
                       </p>
                       <p className="text-lg">
                         <strong>Moneda:</strong>{" "}
@@ -2524,13 +3517,13 @@ const InformeVentas = () => {
                         {tipoValorizacion === 2
                           ? "Costo promedio"
                           : tipoValorizacion === 1
-                            ? "Ultimo costo"
-                            : "Costo real"}
+                          ? "Ultimo costo"
+                          : "Costo real"}
                       </p>
                       <p className="text-lg">
                         <strong>Articulos:</strong>{" "}
                         {articulosSeleccionados &&
-                          articulosSeleccionados.length > 0
+                        articulosSeleccionados.length > 0
                           ? articulosSeleccionados?.map((art) => art).join(", ")
                           : "Ninguno en especifico"}
                       </p>
@@ -2540,143 +3533,350 @@ const InformeVentas = () => {
                   <div className="flex flex-row justify-between py-2">
                     <p className="text-lg font-bold">Pagina 1</p>
                     <p className="text-lg font-bold">
-                      Total de registros: {resumen.length}
+                      Total de registros: {filtrarPorUtilidad(resumen).length}
                     </p>
                   </div>
                 </div>
               </div>
               <div id="reporte" className="w-full px-10">
-              <div >
-                <table
-                  className={`${isMobile ? "w-[1920px]" : "w-full"
-                    } table-auto border-collapse border border-gray-300`}
-                >
-                  <thead className="bg-gray-200 sticky top-0 z-10">
-                    <tr>
-                      <th className="border border-gray-300 p-2 w-1/12">
-                        F. Venta
-                      </th>
-                      <th className="border border-gray-300 p-2 w-[200px]">
-                        Cod. Barra
-                      </th>
-                      <th className="border border-gray-300 p-2 w-auto">
-                        Descripcion
-                      </th>
-                      <th className="border border-gray-300 p-1">P. Costo</th>
-                      <th className="border border-gray-300 p-1">
-                        P. de Venta
-                      </th>
-                      <th className="border border-gray-300 p-1">
-                        Unid. Vendida
-                      </th>
-                      <th className="border border-gray-300 p-1">Exentas</th>
-                      <th className="border border-gray-300 p-1">IVA 5%</th>
-                      <th className="border border-gray-300 p-1">IVA 10%</th>
-                      <th className="border border-gray-300 p-1">
-                        % Util. s/Venta
-                      </th>
-                      <th className="border border-gray-300 p-1">Sub-Total</th>
-                      <th className="border border-gray-300 p-1">V/B</th>
-                    </tr>
-                  </thead>
-                  <tbody >
-                    {resumen.map((item, index) => (
-                      <tr
-                        key={index}
-                      >
-                        <td className="border border-gray-300 p-0 text-lg font-medium text-gray-700">
-                          {item.ve_fecha}
-                        </td>
-                        <td className="border border-gray-300 p-0 text-lg text-gray-700">
-                          {item.ar_codbarra}
-                        </td>
-                        <td className="border border-gray-300 p-0 text-lg text-gray-700">
-                          {item.ar_descripcion}
-                        </td>
-                        <td className="border border-gray-300 p-0 text-right text-lg text-gray-700">
-                          {formatearNumero(item.pcosto)}
-                        </td>
-                        <td className="border border-gray-300 p-0 text-right text-lg text-gray-700">
-                          {formatearNumero(item.precio)}
-                        </td>
-                        <td className="border border-gray-300 p-0 text-center text-lg text-gray-700">
-                          {eliminarDecimales(item.cantidad)}
-                        </td>
+                {(() => {
+                  if (
+                    sucursalesSeleccionadas &&
+                    sucursalesSeleccionadas.length > 0
+                  ) {
+                    return (
+                      <TablaFiltros
+                        titulo="Sucursales"
+                        filtroSeleccionado={sucursalesSeleccionadas}
+                        array={sucursales}
+                        busquedaId="id"
+                        busquedaDescripcion="descripcion"
+                        parametro="ve_sucursal"
+                      />
+                    );
+                  }
+                  if (
+                    depositosSeleccionados &&
+                    depositosSeleccionados.length > 0
+                  ) {
+                    return (
+                      <TablaFiltros
+                        titulo="Depositos"
+                        filtroSeleccionado={depositosSeleccionados}
+                        array={depositos}
+                        busquedaId="dep_codigo"
+                        busquedaDescripcion="dep_descripcion"
+                        parametro="ve_deposito"
+                      />
+                    );
+                  }
+                  if (clienteSeleccionados && clienteSeleccionados.length > 0 ) {
+                    return (
+                      <TablaFiltros
+                        titulo="Clientes"
+                        filtroSeleccionado={clienteSeleccionados}
+                        array={clientes}
+                        busquedaId="cli_codigo"
+                        busquedaDescripcion="cli_razon"
+                        parametro="ve_cliente"
+                      />
+                    );
+                  }
+                  if (
+                    vendedoresSeleccionados &&
+                    vendedoresSeleccionados.length > 0
+                  ) {
+                    return (
+                      <TablaFiltros
+                        titulo="Vendedores"
+                        filtroSeleccionado={vendedoresSeleccionados}
+                        array={vendedores}
+                        busquedaId="op_codigo"
+                        busquedaDescripcion="op_nombre"
+                        parametro="ve_operador"
+                      />
+                    );
+                  }
+                  if (
+                    subcategoriasSeleccionadas &&
+                    subcategoriasSeleccionadas.length > 0
+                  ) {
+                    return (
+                      <TablaFiltros
+                        titulo="Subcategorias"
+                        filtroSeleccionado={subcategoriasSeleccionadas}
+                        array={subcategorias}
+                        busquedaId="sc_codigo"
+                        busquedaDescripcion="sc_descripcion"
+                        parametro="ar_subcategoria"
+                      />
+                    );
+                  }
+                  if (marcasSeleccionadas && marcasSeleccionadas.length > 0) {
+                    return (
+                      <TablaFiltros
+                        titulo="Marcas"
+                        filtroSeleccionado={marcasSeleccionadas}
+                        array={marca}
+                        busquedaId="ma_codigo"
+                        busquedaDescripcion="ma_descripcion"
+                        parametro="ar_marca"
+                      />
+                    );
+                  }
+                  if (
+                    ciudadesSeleccionadas &&
+                    ciudadesSeleccionadas.length > 0
+                  ) {
+                    return (
+                      <TablaFiltros
+                        titulo="Ciudades"
+                        filtroSeleccionado={ciudadesSeleccionadas}
+                        array={ciudades}
+                        busquedaId="ciu_codigo"
+                        busquedaDescripcion="ciu_descripcion"
+                        parametro="cli_ciudad"
+                      />
+                    );
+                  }
+                  if (
+                    seccionesSeleccionadas &&
+                    seccionesSeleccionadas.length > 0
+                  ) {
+                    return (
+                      <TablaFiltros
+                        titulo="Secciones"
+                        filtroSeleccionado={seccionesSeleccionadas}
+                        array={secciones}
+                        busquedaId="s_codigo"
+                        busquedaDescripcion="s_descripcion"
+                        parametro="d_seccion"
+                      />
+                    );
+                  }
+                  if (
+                    articulosSeleccionados &&
+                    articulosSeleccionados.length > 0
+                  ) {
+                    return (
+                      <TablaFiltros
+                        titulo="Articulos"
+                        filtroSeleccionado={articulosSeleccionados}
+                        array={articulos}
+                        busquedaId="ar_codigo"
+                        busquedaDescripcion="ar_descripcion"
+                        parametro="deve_articulo"
+                      />
+                    );
+                  }
 
-                        <td className="border border-gray-300 p-0 text-right text-lg text-gray-700">
-                          {formatearNumero(item.exentas)}
-                        </td>
-                        <td className="border border-gray-300 p-0 text-right text-lg text-gray-700">
-                          {formatearNumero(item.cinco)}
-                        </td>
-                        <td className="border border-gray-300 p-0 text-right text-lg text-gray-700">
-                          {formatearNumero(item.diez)}
-                        </td>
-                        <td className="border border-gray-300 p-0 text-center text-lg text-gray-700">
-                          {eliminarDecimales(
-                            item.Utilidad_sobre_PrecioCosto_UltimaCompra_Venta
-                          )}
-                        </td>
-                        <td className="border border-gray-300 p-0 text-right text-lg text-gray-700">
-                          {formatearNumero(item.subtotal)}
-                        </td>
-                        <td className="border border-gray-300 p-0 text-center text-lg text-gray-700">
-                          {item.boni === 1 ? "B" : "V"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot className="bg-gray-200 sticky bottom-0 z-10">
-                    <tr>
-                      <td
-                        colSpan={5}
-                        className="border border-gray-300 p-2"
-                      ></td>
-                      <td className="border border-gray-300 p-2 font-bold">
-                        Total:{" "}
-                        {formatearNumero(totalUnidadesVendidas().toString())}
-                      </td>
-                      <td className="border font-bold border-gray-300 p-2">
-                        Total: {formatearNumero(totalExentas().toString())}
-                      </td>
-                      <td className="border font-bold border-gray-300 p-2">
-                        Total: {formatearNumero(totalCincos().toString())}
-                      </td>
-                      <td className="border font-bold border-gray-300 p-2">
-                        Total: {formatearNumero(totalDiez().toString())}
-                      </td>
-                      <td className="border font-bold border-gray-300 p-2"></td>
-                      <td className="border font-bold border-gray-300 p-2">
-                        Total: {formatearNumero(totalVentas().toString())}
-                      </td>
-                      <td className="border font-bold border-gray-300 p-2"></td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-              <div className="border border-gray-300 p-2">
-                <h1 className="font-bold text-xl">Resumen:</h1>
-                <div className="w-1/3 gap-4">
-                  <p className="text-lg"><strong>Total ventas sin desc.:</strong> {formatearNumero(totalVentas().toString())}</p>
-                  <div className="flex flex-row  justify-between mt-2">
-                    <p className="text-lg"><strong>Total NC. Desc.:</strong> {formatearNumero(totalMontoNc().toString())}</p>
-                    <p className="text-lg"><strong>Neto venta:</strong> {formatearNumero(totalNetoReal().toString())}</p>
-                  </div>
-                  <div className="flex flex-row  justify-between mt-2 mb-4">
-                    <p className="text-lg"><strong>Total Desc.:</strong> {formatearNumero((totalDescuentoItems() + totalDescuentoFacturas()).toString())}</p>
-                    <p className="text-lg"><strong>Costos directos:</strong> {formatearNumero(totalCostos().toString())}</p>
-                  </div>
-                  <div className="border border-black my-2"></div>
-                  <div className="flex flex-row justify-between">
-                    <p className="text-lg"><strong>Neto venta:</strong> {formatearNumero(totalNetoReal().toString())}</p>
-                    <p className="text-lg"><strong>Utilidad en monto:</strong> {formatearNumero(utilidadEnMonto().toString())}</p>
-                  </div>
-                  <div className="flex flex-row  justify-between mt-2">
-                    <p className="text-lg"><strong>Utilidad Bruta:</strong> {eliminarDecimales(utilidadPorcentajeBruto().toString())}%</p>
-                    <p className="text-lg"><strong>Utilidad Neta: </strong> {eliminarDecimales(utilidadPorcentajeNeto().toString())}%</p>
+                  if (
+                    desglosadoXFactura === true
+                  ) {
+                    return (
+                      <TablaFiltros
+                        titulo="Facturas"
+                        filtroSeleccionado={obtenerFacturas()}
+                        array={resumen}
+                        busquedaId="ve_factura"
+                        busquedaDescripcion="ve_facura"
+                        parametro="ve_factura"
+                      />
+                    );
+                  }
+
+                  return (
+                    <div>
+                      <table
+                        className={`${
+                          isMobile ? "w-[1920px]" : "w-full"
+                        } table-auto border-collapse border border-gray-300`}
+                      >
+                        <thead className="bg-gray-200 sticky top-0 z-10">
+                          <tr>
+                            <th className="border border-gray-300 p-2 w-1/12">
+                              F. Venta
+                            </th>
+                            <th className="border border-gray-300 p-2 w-[200px]">
+                              Cod. Barra
+                            </th>
+                            <th className="border border-gray-300 p-2 w-auto">
+                              Descripcion
+                            </th>
+                            <th className="border border-gray-300 p-1">
+                              P. Costo
+                            </th>
+                            <th className="border border-gray-300 p-1">
+                              P. de Venta
+                            </th>
+                            <th className="border border-gray-300 p-1">
+                              Unid. Vendida
+                            </th>
+                            <th className="border border-gray-300 p-1">
+                              Exentas
+                            </th>
+                            <th className="border border-gray-300 p-1">
+                              IVA 5%
+                            </th>
+                            <th className="border border-gray-300 p-1">
+                              IVA 10%
+                            </th>
+                            <th className="border border-gray-300 p-1">
+                              % Util. s/Venta
+                            </th>
+                            <th className="border border-gray-300 p-1">
+                              Sub-Total
+                            </th>
+                            <th className="border border-gray-300 p-1">V/B</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filtrarPorUtilidad(resumen).map((item, index) => (
+                            <tr key={index}>
+                              <td className="border border-gray-300 p-0 text-lg font-medium text-gray-700">
+                                {item.ve_fecha}
+                              </td>
+                              <td className="border border-gray-300 p-0 text-lg text-gray-700">
+                                {item.ar_codbarra}
+                              </td>
+                              <td className="border border-gray-300 p-0 text-lg text-gray-700">
+                                {item.ar_descripcion}
+                              </td>
+                              <td className="border border-gray-300 p-0 text-right text-lg text-gray-700">
+                                {formatearNumero(item.pcosto)}
+                              </td>
+                              <td className="border border-gray-300 p-0 text-right text-lg text-gray-700">
+                                {formatearNumero(item.precio)}
+                              </td>
+                              <td className="border border-gray-300 p-0 text-center text-lg text-gray-700">
+                                {eliminarDecimales(item.cantidad)}
+                              </td>
+                              <td className="border border-gray-300 p-0 text-right text-lg text-gray-700">
+                                {formatearNumero(item.exentas)}
+                              </td>
+                              <td className="border border-gray-300 p-0 text-right text-lg text-gray-700">
+                                {formatearNumero(item.cinco)}
+                              </td>
+                              <td className="border border-gray-300 p-0 text-right text-lg text-gray-700">
+                                {formatearNumero(item.diez)}
+                              </td>
+                              <td className="border border-gray-300 p-0 text-center text-lg text-gray-700">
+                                {eliminarDecimales(
+                                  item.Utilidad_sobre_PrecioCosto_UltimaCompra_Venta
+                                )}
+                              </td>
+                              <td className="border border-gray-300 p-0 text-right text-lg text-gray-700">
+                                {formatearNumero(item.subtotal)}
+                              </td>
+                              <td className="border border-gray-300 p-0 text-center text-lg text-gray-700">
+                                {item.boni === 1 ? "B" : "V"}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot className="bg-gray-200 sticky bottom-0 z-10">
+                          <tr>
+                            <td
+                              colSpan={5}
+                              className="border border-gray-300 p-2"
+                            ></td>
+                            <td className="border border-gray-300 p-2 font-bold">
+                              Total:{" "}
+                              {formatearNumero(
+                                totalUnidadesVendidas(filtrarPorUtilidad(resumen)).toString()
+                              )}
+                            </td>
+                            <td className="border font-bold border-gray-300 p-2">
+                              Total:{" "}
+                              {formatearNumero(totalExentas(filtrarPorUtilidad(resumen)).toString())}
+                            </td>
+                            <td className="border font-bold border-gray-300 p-2">
+                              Total: {formatearNumero(totalCincos(filtrarPorUtilidad(resumen)).toString())}
+                            </td>
+                            <td className="border font-bold border-gray-300 p-2">
+                              Total: {formatearNumero(totalDiez(filtrarPorUtilidad(resumen)).toString())}
+                            </td>
+                            <td className="border font-bold border-gray-300 p-2"></td>
+                            <td className="border font-bold border-gray-300 p-2">
+                              Total: {formatearNumero(totalVentas(filtrarPorUtilidad(resumen)).toString())}
+                            </td>
+                            <td className="border font-bold border-gray-300 p-2"></td>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  );
+                })()}
+                <div className="border border-gray-300 p-2">
+                  <h1 className="font-bold text-2xl">Resumen:</h1>
+                  <div className="w-1/2 gap-4">
+                    <p className="text-2xl">
+                      <strong>Total ventas sin desc.:</strong>{" "}
+                      {formatearNumero(
+                        (
+                          totalVentas(filtrarPorUtilidad(resumen)) +
+                          totalDescuentoFacturas(filtrarPorUtilidad(resumen)) +
+                          totalDescuentoItems(filtrarPorUtilidad(resumen))
+                        ).toString()
+                      )}
+                    </p>
+                    <div className="flex flex-row justify-between mt-2">
+                      <p className="text-2xl">
+                        <strong>Total NC. Desc.:</strong>{" "}
+                        {formatearNumero(totalMontoNc().toString())}
+                      </p>
+                      <p className="text-2xl">
+                        <strong>Neto venta:</strong>{" "}
+                        {formatearNumero(totalNetoReal(filtrarPorUtilidad(resumen)).toString())}
+                      </p>
+                    </div>
+                    <div className="flex flex-row justify-between mt-2 mb-4">
+                      <p className="text-2xl">
+                        <strong>Total Desc.:</strong>{" "}
+                        {formatearNumero(
+                          (
+                            totalDescuentoItems(filtrarPorUtilidad(resumen)) + totalDescuentoFacturas(filtrarPorUtilidad(resumen))
+                          ).toString()
+                        )}
+                      </p>
+                      <p className="text-2xl">
+                        <strong>Costos directos:</strong>{" "}
+                        {formatearNumero(totalCostos(filtrarPorUtilidad(resumen)).toString())}
+                      </p>
+                    </div>
+                    <div className="border border-black my-2"></div>
+                    <div className="flex flex-row justify-between">
+                      <p className="text-2xl">
+                        <strong>Neto venta:</strong>{" "}
+                        {formatearNumero(totalNetoReal(filtrarPorUtilidad(resumen)).toString())}
+                      </p>
+                      <p className="text-2xl">
+                        <strong>Utilidad en monto:</strong>{" "}
+                        {formatearNumero(utilidadEnMonto(filtrarPorUtilidad(resumen)).toString())}
+                      </p>
+                    </div>
+                    <div className="flex flex-row justify-between mt-2">
+                      <p className="text-2xl">
+                        <strong>Utilidad Bruta:</strong>{" "}
+                        {eliminarDecimales(
+                          utilidadPorcentajeBruto(filtrarPorUtilidad(resumen)).toString()
+                        )}
+                        %
+                      </p>
+                      <p className="text-2xl">
+                        <strong>Utilidad Neta: </strong>{" "}
+                        {eliminarDecimales(utilidadPorcentajeNeto(filtrarPorUtilidad(resumen)).toString())}
+                        %
+                      </p>
+                    </div>
+                    <div className="flex flex-row justify-between mt-2">
+                      <p className="text-2xl">
+                        <strong>Ut. por debajo del 20 %:</strong>{" "}
+                        {formatearNumero(utilidadPorDebajoDel20().toString())}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
               </div>
             </div>
           </ModalBody>
@@ -2684,7 +3884,9 @@ const InformeVentas = () => {
             <Button colorScheme={"red"} onClick={onPdfModalClose}>
               Cerrar
             </Button>
-            <Button colorScheme={"green"} onClick={generarPDF}>Descargar</Button>
+            <Button colorScheme={"green"} onClick={generarPDF}>
+              Descargar
+            </Button>
           </ModalFooter>
         </ModalContent>
       </Modal>

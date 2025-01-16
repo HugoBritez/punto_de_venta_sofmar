@@ -30,6 +30,9 @@ import {
   Receipt,
   SmartphoneNfc,
   FileChartColumnIncreasing,
+  Bus,
+  Newspaper,
+  Forklift,
 } from "lucide-react";
 import { useAuth } from "@/services/AuthContext";
 import { db, fechaRelease, userName, version } from "@/utils";
@@ -101,27 +104,9 @@ const Sidebar = () => {
           enabled: true,
         },
         {
-          name: "Consulta de Ventas",
-          icon: HandCoins,
-          path: "/consulta-de-ventas",
-          enabled: true,
-        },
-        {
-          name: "Informe de Ventas",
-          icon: FileChartColumnIncreasing,
-          path: "/informe-de-ventas",
-          enabled: true,
-        },
-        {
           name: "Reg. de Pedidos",
           icon: Handshake,
           path: "/registrar-pedido",
-          enabled: true,
-        },
-        {
-          name: "Consulta de Pedidos",
-          icon: Handshake,
-          path: "/consultar-pedidos",
           enabled: true,
         },
         {
@@ -130,10 +115,45 @@ const Sidebar = () => {
           path: "/presupuestos",
           enabled: true,
         },
+      ],
+    },
+    {
+      name: "Modulo Consultas",
+      icon: Newspaper,
+      path: "/ventas-y-egresos",
+      enabled: true,
+      subItems: [
+        {
+          name: "Consulta de Ventas",
+          icon: HandCoins,
+          path: "/consulta-de-ventas",
+          enabled: true,
+        },
+
+        {
+          name: "Consulta de Pedidos",
+          icon: Handshake,
+          path: "/consultar-pedidos",
+          enabled: true,
+        },
         {
           name: "Consulta de Presupuestos",
           icon: FilePen,
           path: "/consulta-de-presupuestos",
+          enabled: true,
+        },
+      ],
+    },
+    {
+      name: "Modulo Informes",
+      icon: NotebookPen,
+      path: "/ventas-y-egresos",
+      enabled: true,
+      subItems: [
+        {
+          name: "Informe de Ventas",
+          icon: FileChartColumnIncreasing,
+          path: "/informe-de-ventas",
           enabled: true,
         },
       ],
@@ -160,7 +180,7 @@ const Sidebar = () => {
     },
     {
       name: "Modulo Ruteamientos",
-      icon: NotebookPen,
+      icon: Bus,
       path: "/ruteamientos",
       enabled: true,
       subItems: [
@@ -175,6 +195,26 @@ const Sidebar = () => {
           name: "Dashboard Ruteamientos",
           icon: Truck,
           path: "/rutas-dashboard",
+          enabled: true,
+        },
+      ],
+    },
+    {
+      name: "Modulo Entregas",
+      icon: Forklift,
+      path: "/ruteamientos",
+      enabled: true,
+      subItems: [
+        {
+          name: "Rutas de pedidos",
+          icon: Truck,
+          path: "/entrega-de-pedidos",
+          enabled: true,
+        },
+        {
+          name: "Ruteamiento de pedidos",
+          icon: Truck,
+          path: "/ruteamiento-de-pedidos",
           enabled: true,
         },
       ],
@@ -254,11 +294,15 @@ const Sidebar = () => {
             )}
           </Flex>
           {expandedItem === item.name && (
-            <Box ml={isLargerThan768 && isExpanded ? 4 : 0}>
+            <Box
+              ml={isLargerThan768 && isExpanded ? 4 : 0}
+              transition="all 0.3s"
+            >
               {item.subItems.map((subItem) => (
                 <Link
                   key={subItem.name}
                   to={subItem.path}
+                  onClick={onClose}
                   style={{
                     width: "100%",
                     height: "100%",

@@ -77,6 +77,9 @@ interface Articulo {
   ar_pvg: number;
   ar_pvcredito: number;
   ar_pvmostrador: number;
+  ar_pvd: number;
+  ar_pvdcredito: number;
+  ar_pvdmostrador: number;
   ar_codbarra: string;
   ar_iva: number;
   al_cantidad: number;
@@ -1507,17 +1510,17 @@ export default function Pedidos() {
                               <Minus />
                               <Text as="span" color="red.500" fontSize={"14px"}>
                                 Precio Contado:{" "}
-                                {formatCurrency(articulo.ar_pvg)}
+                                {formatCurrency(moneda === 'PYG' ? articulo.ar_pvg : articulo.ar_pvd)}
                               </Text>
                               <Minus />
                               <Text as="span" color="red.500" fontSize={"14px"}>
                                 Precio Credito:{" "}
-                                {formatCurrency(articulo.ar_pvcredito)}
+                                {formatCurrency(moneda === 'PYG' ? articulo.ar_pvg : articulo.ar_pvdcredito)}
                               </Text>
                               <Minus />
                               <Text as="span" color="red.500" fontSize={"14px"}>
                                 Precio Mostrador:{" "}
-                                {formatCurrency(articulo.ar_pvmostrador)}
+                                {formatCurrency(moneda === 'PYG' ? articulo.ar_pvg : articulo.ar_pvdmostrador)}
                               </Text>
                               <Minus />
                               <Text

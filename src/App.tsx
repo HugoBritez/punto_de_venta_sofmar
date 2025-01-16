@@ -35,9 +35,12 @@ import TomaDeInventario from "./views/inventario/toma-de-inventario";
 import CobrosDiarios from "./views/cobros/CobrosDiarios";
 import VentaRapida from "./views/puntodeventa/VentaRapida";
 import InformeVentas from "./views/ventas/informeVentas";
+import RuteamientoPedidos from "./views/entregas/ruteamientopedidos";
+import Entregas from "./views/entregas/entregas";
 
 const ProtectedLayout: React.FC = () => {
   const { auth, isLoading } = useAuth();
+
   const [isLargerThan768] = useMediaQuery("(min-width: 768px)");
 
   if (isLoading) {
@@ -76,10 +79,16 @@ function App() {
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route element={<ProtectedLayout />}>
+                <Route
+                  path="/ruteamiento-de-pedidos"
+                  element={<RuteamientoPedidos />}
+                />
+                <Route path="/entrega-de-pedidos" element={<Entregas />} />
                 <Route path="/cobros" element={<CobrosDiarios />} />
                 <Route path="/venta-balcon" element={<VentaBalcon />} />
                 <Route path="/punto-de-venta" element={<PuntoDeVenta />} />
                 <Route path="/venta-rapida" element={<VentaRapida />} />
+
                 <Route path="/consulta-de-ventas" element={<ResumenVentas />} />
                 <Route path="/informe-de-ventas" element={<InformeVentas />} />
                 <Route path="/inventario" element={<GestionInventario />} />
@@ -109,6 +118,7 @@ function App() {
                 path="/"
                 element={<Navigate to="/punto-de-venta" replace />}
               />
+
               <Route path="/404" element={<NoExiste />} />
             </Routes>
           </Router>

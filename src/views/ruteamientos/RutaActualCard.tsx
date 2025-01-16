@@ -374,7 +374,6 @@ const RutaActualCard = ({
         
         setPedidos(responsePedidos.data.body);
         
-        // Luego cargamos los detalles de cada pedido
         for (const pedido of responsePedidos.data.body) {
           const responseDetalles = await axios.get(
             `${api_url}pedidos/detalles?cod=${pedido.codigo}`
@@ -405,7 +404,7 @@ const RutaActualCard = ({
         const responseVentas = await axios.post(`${api_url}venta/consultas`, {
           cliente: clienteId,
           vendedor: Number(localStorage.getItem("user_id")),
-          limit: 5,
+          limit: 2,
         });
         
         setVentas(responseVentas.data.body);
@@ -443,8 +442,6 @@ const RutaActualCard = ({
     }).format(value);
   };
 
- 
-  
   return (
     <>
       <Card variant={"outline"}>
