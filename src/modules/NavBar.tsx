@@ -33,6 +33,7 @@ import {
   Bus,
   Newspaper,
   Forklift,
+  FileBox,
 } from "lucide-react";
 import { useAuth } from "@/services/AuthContext";
 import { db, fechaRelease, userName, version } from "@/utils";
@@ -215,6 +216,12 @@ const Sidebar = () => {
           name: "Ruteamiento de pedidos",
           icon: Truck,
           path: "/ruteamiento-de-pedidos",
+          enabled: true,
+        },
+        {
+          name: "Informe de entregas",
+          icon: FileBox,
+          path: "/informe-de-entregas",
           enabled: true,
         },
       ],

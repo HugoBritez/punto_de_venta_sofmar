@@ -1,5 +1,5 @@
 import Auditar from "@/services/AuditoriaHook";
-import { DetalleVenta, Nota, Venta } from "@/types/shared_interfaces";
+import {  Nota } from "@/types/shared_interfaces";
 import { api_url } from "@/utils";
 import {
   Box,
@@ -43,11 +43,11 @@ import {
   SquarePen,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Pedidos, DetallePedidos } from "@/types/shared_interfaces";
 
 interface RutaActualCardProps {
   clienteNombre?: string;
   clienteId?: number;
+  vendedorId?: number;
   clienteTelefono?: string;
   observacion?: string;
   fecha?: string;
@@ -65,9 +65,40 @@ interface RutaActualCardProps {
   onFinalizarVisita: () => void;
 }
 
+interface VentaAgenda {
+  id_venta: number;
+  fecha_venta: string;
+  total_venta: number;
+  cliente: string;
+  vendedor: string;
+  detalles: {
+    id_detalle: number;
+    id_producto: number;
+    producto: string;
+    cantidad: number;
+    precio: number;
+  }[];
+}
+
+interface PedidoAgenda {
+  id_pedido: number;
+  fecha_pedido: string;
+  cliente: string;
+  vendedor: string;
+  total_pedido: number;
+  detalles: {
+    id_detalle: number;
+    id_producto: number;
+    producto: string;
+    cantidad: number;
+    precio: number;
+  }[];
+}
+
 const RutaActualCard = ({
   clienteNombre = "Cliente sin nombre",
   clienteId,
+  vendedorId,
   clienteTelefono,
   fecha = "19/10/1998",
   hora = "",
@@ -94,11 +125,10 @@ const RutaActualCard = ({
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [fechaProxima, setFechaProxima] = useState<string>("");
   const [horaProxima, setHoraProxima] = useState<string>("");
-  const [pedidos, setPedidos] = useState<Pedidos[]>([]);
-  const [detallesPedidos, setDetallesPedidos] = useState<{ [key: number]: DetallePedidos[] }>({});
+  const [pedidos, setPedidos] = useState<PedidoAgenda[]>([]);
   const [editarPedido, ] = useState<boolean>(false);
-  const [ventas, setVentas] = useState<Venta[]>([]);
-  const [detallesVentas, setDetallesVentas] = useState<{ [key: number]: DetalleVenta[] }>({});
+  const [ventas, setVentas] = useState<VentaAgenda[]>([]);
+
 
 
   const agregarNota = async () => {
@@ -367,22 +397,12 @@ const RutaActualCard = ({
     const cargarPedidosYDetalles = async () => {
       try {
         // Primero cargamos los pedidos
-        const responsePedidos = await axios.post(`${api_url}pedidos/consultas`, {
+        const responsePedidos = await axios.post(`${api_url}agendas/consultar-pedidos-y-detalles`, {
           cliente: clienteId,
-          limit: 3,
         });
-        
+        console.log(responsePedidos.data.body);
         setPedidos(responsePedidos.data.body);
-        
-        for (const pedido of responsePedidos.data.body) {
-          const responseDetalles = await axios.get(
-            `${api_url}pedidos/detalles?cod=${pedido.codigo}`
-          );
-          setDetallesPedidos(prev => ({
-            ...prev,
-            [pedido.codigo]: responseDetalles.data.body
-          }));
-        }
+
       } catch (error) {
         toast({
           title: "Error al cargar los pedidos y detalles",
@@ -401,24 +421,16 @@ const RutaActualCard = ({
     const cargarVentasYDetalles = async () => {
       try {
         // Primero cargamos las ventas
-        const responseVentas = await axios.post(`${api_url}venta/consultas`, {
-          cliente: clienteId,
-          vendedor: Number(localStorage.getItem("user_id")),
-          limit: 2,
-        });
-        
+        const responseVentas = await axios.post(
+          `${api_url}agendas/consultar-ventas-y-detalles`,
+          {
+            cliente: clienteId,
+          }
+        );
+        console.log(responseVentas.data.body);
         setVentas(responseVentas.data.body);
         
-        // Luego cargamos los detalles de cada venta
-        for (const venta of responseVentas.data.body) {
-          const responseDetalles = await axios.get(
-            `${api_url}venta/detalles?cod=${venta.codigo}`
-          );
-          setDetallesVentas(prev => ({
-            ...prev,
-            [venta.codigo]: responseDetalles.data.body
-          }));
-        }
+
       } catch (error) {
         toast({
           title: "Error al cargar las ventas y detalles",
@@ -590,7 +602,7 @@ const RutaActualCard = ({
             <VStack spacing={4} w="100%">
               {ventas.map((venta) => (
                 <Box
-                  key={venta.codigo}
+                  key={venta.id_venta}
                   w="100%"
                   borderRadius="lg"
                   bg="gray.50"
@@ -599,27 +611,29 @@ const RutaActualCard = ({
                   borderColor={"green.600"}
                 >
                   <Flex justify="space-between" align="center" mb={4}>
-                    <Heading size="md">Venta #{venta.codigo}</Heading>
+                    <Heading size="md">Venta #{venta.id_venta}</Heading>
                     <Badge colorScheme="green" fontSize="sm" p={2} variant="solid">
-                      {venta.fecha}
+                      {venta.fecha_venta}
                     </Badge>
+
                   </Flex>
 
                   <Box maxH="300px" overflowY="auto">
-                    {detallesVentas[venta.codigo]?.map((detalle, idx) => (
+                    {venta.detalles?.map((detalle, idx) => (
                       <Flex
                         key={idx}
                         justify="space-between"
                         bg="white"
                         p={4}
                         mb={2}
+
                         borderRadius="md"
                         boxShadow="sm"
                         _hover={{ boxShadow: "md" }}
                         transition="all 0.2s"
                       >
                         <VStack align="start" spacing={1}>
-                          <Heading size="sm">{detalle.descripcion}</Heading>
+                          <Heading size="sm">{detalle.producto}</Heading>
                           <Text color="gray.600" fontSize="sm">
                             Cantidad: {detalle.cantidad}
                           </Text>
@@ -637,7 +651,7 @@ const RutaActualCard = ({
                   </Box>
 
                   <Flex justify="flex-end" bg="white" p={2} mt={2} borderRadius="md">
-                    <Heading size="sm">Total: {formatCurrency(venta.total)}</Heading>
+                    <Heading size="sm">Total: {formatCurrency(venta.total_venta)}</Heading>
                   </Flex>
                 </Box>
               ))}
@@ -669,7 +683,7 @@ const RutaActualCard = ({
               <VStack spacing={4} w="100%">
                 {pedidos.map((pedido) => (
                   <Box
-                    key={pedido.codigo}
+                    key={pedido.id_pedido}
                     w="100%"
                     borderRadius="lg"
                     bg="gray.50"
@@ -678,10 +692,11 @@ const RutaActualCard = ({
                     borderColor={"blue.600"}
                   >
                     <Flex justify="space-between" align="center" mb={4}>
-                      <Heading size="md">Pedido #{pedido.codigo}</Heading>
+                      <Heading size="md">Pedido #{pedido.id_pedido}</Heading>
                       <Badge colorScheme="blue" fontSize="sm" p={2} variant="solid">
-                        {pedido.fecha}
+                        {pedido.fecha_pedido}
                       </Badge>
+
                     </Flex>
 
                     <Box
@@ -700,23 +715,25 @@ const RutaActualCard = ({
                         },
                       }}
                     >
-                      {detallesPedidos[pedido.codigo]?.map((detalle, idx) => (
+                      {pedido.detalles?.map((detalle, idx) => (
                         <Flex
                           key={idx}
                           justify="space-between"
                           bg="white"
                           p={4}
                           mb={2}
+
                           borderRadius="md"
                           boxShadow="sm"
                           _hover={{ boxShadow: "md" }}
                           transition="all 0.2s"
                         >
                           <VStack align="start" spacing={1}>
-                            <Heading size="sm">{detalle.descripcion}</Heading>
+                            <Heading size="sm">{detalle.producto}</Heading>
                             <Text color="gray.600" fontSize="sm">
                               Cantidad: {detalle.cantidad}
                             </Text>
+
                           </VStack>
                           <VStack align="end" spacing={1}>
                             <Heading size="sm" color="blue.600">
@@ -741,7 +758,7 @@ const RutaActualCard = ({
                       borderRadius="md"
                     >
                       <Heading size="sm">
-                        Total: {formatCurrency(pedido.total)}
+                        Total: {formatCurrency(pedido.total_pedido)}
                       </Heading>
                     </Flex>
                   </Box>

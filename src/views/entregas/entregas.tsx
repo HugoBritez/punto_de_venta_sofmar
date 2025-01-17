@@ -62,7 +62,7 @@ interface EntregaDetalle {
 
 const Entregas = () => {
   const isMobile = useMediaQuery("(max-width: 768px)");
-  // const usuarioId = localStorage.getItem("user_id");
+  const usuarioId = localStorage.getItem("user_id");
   const [isLoading, setIsLoading] = useState(false);
   const [entregas, setEntregas] = useState<Entrega[]>([]);
   const fechaHoy = new Date().toISOString().split("T")[0];
@@ -74,7 +74,6 @@ const Entregas = () => {
   const toast = useToast();
   const [entregaSeleccionada, setEntregaSeleccionada] = useState<
     Entrega[] | null
-
   >([]);
   const [rutaIniciada, setRutaIniciada] = useState<boolean>(false);
   const [entregaDetalle, setEntregaDetalle] = useState<EntregaDetalle[] | null>(
@@ -151,47 +150,45 @@ const Entregas = () => {
       const response = await axios.get(
         `${api_url}reparto/marcar-llegada-ruta`,
 
-          {
-            params: {
-              id: entregaSeleccionada?.[0]?.id,
-              km: kilometrajeFinal,
-            },
-          }
-        );
-        console.log(response.data);
-        listarEntregas();
-        onCloseConfirmarModal();
+        {
+          params: {
+            id: entregaSeleccionada?.[0]?.id,
+            km: kilometrajeFinal,
+          },
+        }
+      );
+      console.log(response.data);
+      listarEntregas();
+      onCloseConfirmarModal();
 
-        toast({
-          title: "Ruta marcada como en completada",
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-        });
-      } catch (error) {
-        console.log(error);
-      }
-    };
-  
-    const handleMarcarLlegada = async () => {
-      if (entregaSeleccionada?.[0]?.id && kilometrajeFinal) {
-        await marcarLlegadaRuta();
-        onCloseConfirmarModalLlegada();
-        listarEntregas();
-        setRutaIniciada(false);
-        setKilometrajeFinal(null);
-      }
-      else {
-        toast({
-          title: "Error",
-          description: "Por favor ingresa el kilometraje final",
-          status: "error",
-        });
-      }
+      toast({
+        title: "Ruta marcada como en completada",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      console.log(error);
     }
+  };
+
+  const handleMarcarLlegada = async () => {
+    if (entregaSeleccionada?.[0]?.id && kilometrajeFinal) {
+      await marcarLlegadaRuta();
+      onCloseConfirmarModalLlegada();
+      listarEntregas();
+      setRutaIniciada(false);
+      setKilometrajeFinal(null);
+    } else {
+      toast({
+        title: "Error",
+        description: "Por favor ingresa el kilometraje final",
+        status: "error",
+      });
+    }
+  };
   const marcarLLegadaEntrega = async () => {
     try {
-
       await axios.get(`${api_url}reparto/marcar-llegada-entrega`, {
         params: {
           id: entregaDetalleSeleccionado?.id,
@@ -224,12 +221,12 @@ const Entregas = () => {
     }
   };
 
-  // const isMine = (id: string) => {
-  //   if (id === usuarioId) {
-  //     return true;
-  //   }
-  //   return false;
-  // };
+  const isMine = (id: number) => {
+    if (id === Number(usuarioId)) {
+      return true;
+    }
+    return false;
+  };
 
   const {
     isOpen: isOpenConfirmarModal,
@@ -281,86 +278,101 @@ const Entregas = () => {
               return 0;
             })
             .map((entrega) => (
-            <div
-              key={entrega.id}
-              onClick={() => {
-                if (entrega.estado === "Completado") {
-                  toast({
-                    title: "La entrega ya ha sido completada",
-                    status: "error",
-                    duration: 3000,
-                    isClosable: true,
-                  });
-                } else {
-                  handleEntregaSeleccionada(entrega);
-                }
-              }}
-              className={`w-full my-2 border border-l-gray-200 p-2 rounded-md bg-white ${
-                entrega.estado === "En camino"
-                  ? "border-t-yellow-500"
-                  : entrega.estado === "Completado"
-                  ? "border-t-green-500"
-                  : "border-t-red-500"
-              } ${
-                entrega.estado === "En camino"
-                  ? "border-b-yellow-500"
-                  : entrega.estado === "Completado"
-                  ? "border-b-green-500"
-                  : "border-b-red-500"
-              } `}
-            >
-              <div className="flex flex-row w-full mb-2 justify-between">
-                <div className="flex flex-row">
-                  <div className="bg-white rounded-full p-2">
-                    <BoxIcon size={32} />
+              <div
+                key={entrega.id}
+                onClick={() => {
+                  if (entrega.estado === "Completado") {
+                    toast({
+                      title: "La entrega ya ha sido completada",
+                      status: "error",
+                      duration: 3000,
+                      isClosable: true,
+                    });
+                  } else {
+                    if (isMine(entrega.chofer_id)) {
+                      handleEntregaSeleccionada(entrega);
+                    } else {
+                      toast({
+                        title: "No puedes seleccionar esta entrega",
+                        status: "error",
+                        duration: 3000,
+                        isClosable: true,
+                      });
+                    }
+                  }
+                }}
+                className={`w-full my-2 border border-l-gray-200 p-2 rounded-md bg-white ${
+                  isMine(entrega.chofer_id)
+                    ? entrega.estado === "En camino"
+                      ? "border-t-yellow-500"
+                      : entrega.estado === "Completado"
+                      ? "border-t-green-500"
+                      : "border-t-red-500"
+                    : "border-t-gray-500"
+                } ${
+                  isMine(entrega.chofer_id)
+                    ? entrega.estado === "En camino"
+                      ? "border-b-yellow-500"
+                      : entrega.estado === "Completado"
+                      ? "border-b-green-500"
+                      : "border-b-red-500"
+                    : "border-b-gray-500"
+                } `}
+              >
+                <div className="flex flex-row w-full mb-2 justify-between">
+                  <div className="flex flex-row">
+                    <div className="bg-white rounded-full p-2">
+                      <BoxIcon size={32} />
+                    </div>
+                    <div className="flex flex-col ml-2">
+                      <p className="text-gray-500 font-thin text-sm">Ruta #</p>
+                      <p className="text-gray-500 font-semibold text-lg">
+                        {entrega.id}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex flex-col ml-2">
-                    <p className="text-gray-500 font-thin text-sm">Ruta #</p>
+                  <div className="flex flex-row items-center">
+                    <p className="text-gray-500 font-semibold text-sm mr-2">
+                      {entrega.cliente_actual}
+                    </p>
+
+                    <div
+                      className={`px-2 py-1 rounded-md text-md ${
+                        isMine(entrega.chofer_id)
+                          ? entrega.estado === "En camino"
+                            ? "bg-yellow-400 text-black"
+                            : entrega.estado === "Completado"
+                            ? "bg-green-600 text-black"
+                            : "bg-red-600 text-black"
+                          : "bg-gray-400 text-black"
+                      }`}
+                    >
+                      {entrega.estado}
+                    </div>
+                  </div>
+                </div>
+                <Divider borderColor={"gray.200"} />
+                <div className="flex flex-row justify-between">
+                  <div className="flex flex-col">
                     <p className="text-gray-500 font-semibold text-lg">
-                      {entrega.id}
+                      {entrega.chofer}
+                    </p>
+                    <p className="text-gray-500 font-semibold text-lg">
+                      {entrega.camion} - {entrega.camion_chapa}
                     </p>
                   </div>
                 </div>
-                <div className="flex flex-row items-center">
-                  <p className="text-gray-500 font-semibold text-sm mr-2">
-                    {entrega.cliente_actual}
-                  </p>
-
-                  <div className={`px-2 py-1 rounded-md text-md ${
-                    entrega.estado === "En camino" 
-                      ? "bg-yellow-400 text-black"
-
-                      : entrega.estado === "Completado"
-                      ? "bg-green-600 text-black" 
-                      : "bg-red-600 text-black"
-                  }`}>
-                    {entrega.estado}
-                  </div>
-                </div>
-              </div>
-              <Divider borderColor={"gray.200"} />
-              <div className="flex flex-row justify-between">
-
-                <div className="flex flex-col">
+                <Divider borderColor={"gray.200"} />
+                <div className="flex flex-row justify-between">
                   <p className="text-gray-500 font-semibold text-lg">
-                    {entrega.chofer}
+                    Salida: {entrega.hora_salida}
                   </p>
                   <p className="text-gray-500 font-semibold text-lg">
-                    {entrega.camion} - {entrega.camion_chapa}
+                    Llegada: {entrega.hora_llegada}
                   </p>
                 </div>
               </div>
-              <Divider borderColor={"gray.200"} />
-              <div className="flex flex-row justify-between">
-                <p className="text-gray-500 font-semibold text-lg">
-                  Salida: {entrega.hora_salida}
-                </p>
-                <p className="text-gray-500 font-semibold text-lg">
-                  Llegada: {entrega.hora_llegada}
-                </p>
-              </div>
-            </div>
-          ))
+            ))
         )}
       </Flex>
     );
@@ -408,13 +420,15 @@ const Entregas = () => {
               </div>
             </div>
             <div className="flex w-full ">
-              <button className="bg-blue-500 text-white p-2 rounded-md w-full mt-2" onClick={() => {
-                onOpenConfirmarModalLlegada();
-              }}>
+              <button
+                className="bg-blue-500 text-white p-2 rounded-md w-full mt-2"
+                onClick={() => {
+                  onOpenConfirmarModalLlegada();
+                }}
+              >
                 Marcar llegada
               </button>
             </div>
-
           </div>
         ) : (
           entregaDetalle?.map((entrega) => (
@@ -514,10 +528,8 @@ const Entregas = () => {
                       marcarLLegadaEntrega();
                       setMostrarBotones(false);
                     }
-
                   }}
                 >
-
                   {entrega.hora_entrada ? "M. Salida" : "M. Entrada"}
                 </Button>
               </div>
@@ -538,22 +550,22 @@ const Entregas = () => {
     >
       <HeaderComponent titulo="Entregas" Icono={Truck} />
       {rutaIniciada ? <DetalleRutas /> : <ListaDeRutas />}
-      <IconButton aria-label="Cerrar" icon={<X />}
-      position={"absolute"}
-      top={5}
-      right={5}
-      onClick={() => {
+      <IconButton
+        aria-label="Cerrar"
+        icon={<X />}
+        position={"absolute"}
+        top={5}
+        right={5}
+        onClick={() => {
           setRutaIniciada(false);
           listarEntregas();
           setEntregaSeleccionada(null);
           setEntregaDetalle(null);
           setEntregaDetalleSeleccionado(null);
           setMostrarBotones(false);
-      }}
+        }}
       />
       <Modal
-
-
         isOpen={isOpenConfirmarModal}
         onClose={onCloseConfirmarModal}
         isCentered

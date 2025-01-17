@@ -7,7 +7,15 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:acricolor": "node scripts/updateConfig.js acricolor && npm run build",
+    "build:lobeck": "node scripts/updateConfig.js lobeck && npm run build",
+    "build:distriwembe": "node scripts/updateConfig.js distriwembe && npm run build",
+    "build:concrecar": "node scripts/updateConfig.js concrecar && npm run build",
+    "build:bodega": "node scripts/updateConfig.js bodega && npm run build",
+    "build:truckdiesel": "node scripts/updateConfig.js truckdiesel && npm run build",
+    "build:campomax": "node scripts/updateConfig.js campomax && npm run build",
+    "build:gaesa": "node scripts/updateConfig.js gaesa && npm run build"
   },
   "dependencies": {
     "@chakra-ui/icons": "^2.1.1",

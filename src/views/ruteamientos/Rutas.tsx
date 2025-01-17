@@ -169,6 +169,7 @@ const Rutas = () => {
             <RutaActualCard
               clienteNombre={rutaActual?.cliente}
               clienteId={rutaActual?.cliente ? clienteId(rutaActual.cliente) : undefined}
+              vendedorId={rutaActual?.vendcod ? Number(rutaActual.vendcod) : undefined}
               clienteTelefono={rutaActual?.cli_tel}
               observacion={rutaActual?.a_obs}
               fecha={rutaActual?.fecha}

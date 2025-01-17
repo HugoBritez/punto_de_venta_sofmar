@@ -34,6 +34,7 @@ export interface Agenda {
     a_planificacion: number;
     a_prioridad: number;
     vendedor: string;
+    vendcod: number;
     cliente: string;
     visitado: string;
     cli_tel: string;
