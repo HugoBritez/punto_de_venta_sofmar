@@ -1,0 +1,24 @@
+.custom-scrollbar {
+  scrollbar-width: auto;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 20px;  /* Aumentado a 20px */
+  background-color: #F5F5F5;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background-color: transparent;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #A0AEC0;
+  border: 3px solid transparent;  /* Reducido a 3px para hacer el thumb más grande */
+  background-clip: padding-box;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #8898AA;
+}

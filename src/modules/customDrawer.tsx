@@ -142,7 +142,7 @@ const CustomDrawer: React.FC<CustomDrawerProps> = ({
             <p className="text-md font-bold">Bienvenido, {userName}</p>
           </div>
 
-          <nav className="flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+          <nav className="flex-1 overflow-y-auto p-4 scrollbar scrollbar-thumb-gray-400 scrollbar-track-transparent">
             {navItems.map(renderNavItem)}
           </nav>
 

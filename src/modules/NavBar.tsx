@@ -40,6 +40,7 @@ import { db, fechaRelease, userName, version } from "@/utils";
 import CustomDrawer from "./customDrawer";
 
 interface NavItem {
+  id?: number;
   name: string;
   icon: React.ElementType;
   path: string;
@@ -57,9 +58,10 @@ const Sidebar = () => {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const permisos_menu_local = JSON.parse(localStorage.getItem('permisos_menu') || '[]');
 
   const NAV_ITEMS: NavItem[] = [
-    { name: "Dashboard", icon: ChartSpline, path: "/dashboard", enabled: true },
+    {id:249,  name: "Dashboard", icon: ChartSpline, path: "/dashboard", enabled: true },
     {
       name: "Módulo Financiero",
       icon: Receipt,
@@ -67,13 +69,15 @@ const Sidebar = () => {
       enabled: true,
       subItems: [
         {
+          id: 142,
           name: "Op. Caja Diaria",
           icon: SmartphoneNfc,
           path: "/cobros",
-          enabled: true,
+          enabled: true, 
         },
         {
-          name: "Op. caja",
+          id: 146,
+          name: "Op. Caja Financiero",
           icon: HandCoins,
           path: "/consulta-de-cobros",
           enabled: true,
@@ -87,30 +91,35 @@ const Sidebar = () => {
       enabled: true,
       subItems: [
         {
+          id: 47,
           name: "Venta Rápida",
           icon: SmartphoneNfc,
           path: "/venta-rapida",
           enabled: true,
         },
         {
+          id: 421,
           name: "Punto de Venta",
           icon: ShoppingBasket,
           path: "/punto-de-venta",
           enabled: true,
         },
         {
+          id: 429,
           name: "Venta Balcon",
           icon: ShoppingCart,
           path: "/venta-balcon",
           enabled: true,
         },
         {
+          id: 401,
           name: "Reg. de Pedidos",
           icon: Handshake,
           path: "/registrar-pedido",
           enabled: true,
         },
         {
+          id: 51,
           name: "Reg. Presupuesto",
           icon: SquareChartGantt,
           path: "/presupuestos",
@@ -125,6 +134,7 @@ const Sidebar = () => {
       enabled: true,
       subItems: [
         {
+          id: 462,
           name: "Consulta de Ventas",
           icon: HandCoins,
           path: "/consulta-de-ventas",
@@ -132,12 +142,14 @@ const Sidebar = () => {
         },
 
         {
+          id: 462,
           name: "Consulta de Pedidos",
           icon: Handshake,
           path: "/consultar-pedidos",
           enabled: true,
         },
         {
+          id: 462,
           name: "Consulta de Presupuestos",
           icon: FilePen,
           path: "/consulta-de-presupuestos",
@@ -152,6 +164,7 @@ const Sidebar = () => {
       enabled: true,
       subItems: [
         {
+          id: 74,
           name: "Informe de Ventas",
           icon: FileChartColumnIncreasing,
           path: "/informe-de-ventas",
@@ -166,12 +179,14 @@ const Sidebar = () => {
       enabled: true,
       subItems: [
         {
+          id: 1,
           name: "Consulta de Artículos",
           icon: Archive,
           path: "/inventario",
           enabled: true,
         },
         {
+          id: 14,
           name: "Toma de inventario",
           icon: ArchiveRestore,
           path: "/toma-de-inventario",
@@ -185,14 +200,16 @@ const Sidebar = () => {
       path: "/ruteamientos",
       enabled: true,
       subItems: [
-        { name: "Rutas", icon: Truck, path: "/rutas", enabled: true },
         {
-          name: "Consulta de Ruteamientos",
+          id: 68,
+          name: "Ingreso de planificación",
           icon: Truck,
           path: "/ruteamientos",
           enabled: true,
         },
+        {id: 56, name: "Iniciar Rutas", icon: Truck, path: "/rutas", enabled: true },
         {
+          id: 69,
           name: "Dashboard Ruteamientos",
           icon: Truck,
           path: "/rutas-dashboard",
@@ -207,18 +224,21 @@ const Sidebar = () => {
       enabled: true,
       subItems: [
         {
-          name: "Rutas de pedidos",
-          icon: Truck,
-          path: "/entrega-de-pedidos",
-          enabled: true,
-        },
-        {
+          id: 56,
           name: "Ruteamiento de pedidos",
           icon: Truck,
           path: "/ruteamiento-de-pedidos",
           enabled: true,
         },
         {
+          id: 56,
+          name: "Rutas de pedidos",
+          icon: Truck,
+          path: "/entrega-de-pedidos",
+          enabled: true,
+        },
+        {
+          id: 69,
           name: "Informe de entregas",
           icon: FileBox,
           path: "/informe-de-entregas",
@@ -227,6 +247,27 @@ const Sidebar = () => {
       ],
     },
   ];
+
+  const [menuItems, setMenuItems] = useState(NAV_ITEMS);
+    useEffect(() => {
+      const tienePermiso = (menuId: number | undefined) => {
+        if (!menuId) return true; 
+        return permisos_menu_local.some(
+          (permiso: any) => permiso.menu_id === menuId && permiso.acceso === 1
+        );
+      };
+      const menuConPermisos = NAV_ITEMS.map((item) => ({
+        ...item,
+        enabled: tienePermiso(item.id),
+        subItems: item.subItems?.map((subItem) => ({
+          ...subItem,
+          enabled: tienePermiso(subItem.id),
+        })),
+      }));
+
+      setMenuItems(menuConPermisos);
+    }, []);
+
 
   const handleMouseEnter = () => {
     if (isLargerThan768) {
@@ -266,6 +307,7 @@ const Sidebar = () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
 
   const renderNavItem = (item: NavItem) => (
     <GridItem key={item.name} borderTopLeftRadius="15px">
@@ -420,7 +462,7 @@ const Sidebar = () => {
         <CustomDrawer
           isOpen={isOpen}
           onClose={onClose}
-          navItems={NAV_ITEMS}
+          navItems={menuItems}
           userName={userName || ""}
           version={version}
           fechaRelease={fechaRelease}
@@ -461,7 +503,7 @@ const Sidebar = () => {
         boxShadow="lg"
         sx={{
           "&::-webkit-scrollbar": {
-            width: "4px",
+            width: "12px",
           },
           "&::-webkit-scrollbar-track": {
             background: "transparent",
@@ -488,7 +530,7 @@ const Sidebar = () => {
             </Flex>
           )}
 
-          {NAV_ITEMS.map(renderNavItem)}
+          {menuItems.map(renderNavItem)}
           <Box mt="auto">
             <Flex
               align="center"

@@ -357,7 +357,7 @@ const InformeEntregas = () => {
       yOffset += pageHeight;
     }
 
-    pdf.save(`reporte_ventas_${fechaCompletaActual}.pdf`);
+    pdf.save(`reporte_entregas_${fechaCompletaActual}.pdf`);
   };
 
   return (

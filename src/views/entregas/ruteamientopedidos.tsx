@@ -1043,10 +1043,17 @@ const deseleccionarItem = (id: number | undefined) => {
                   cursor={"pointer"}
                   _hover={{ bg: "gray.200" }}
                 >
-                  <Text>{camion.descripcion}</Text>
+                  <Flex alignItems={'center'} gap={2}>
+                    <Text>{camion.descripcion}</Text>
+                    <p className="text-sm font-bold text-gray-500">- {camion.chapa}</p>
+                  </Flex>
+
                 </Box>
+
+
               ))}
             </Flex>
+
           </ModalBody>
           <ModalFooter justifyContent={"space-between"}>
             <Button

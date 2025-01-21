@@ -282,6 +282,9 @@ export default function VentaBalcon() {
     useState(false);
 
   const operadorActual = localStorage.getItem("user_id");
+
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+
   // Funciones y Effects para traer los datos//
 
   const cobrarEnBalconParsed = JSON.parse(cobrarEnBalcon || "{}");
@@ -297,7 +300,9 @@ export default function VentaBalcon() {
   const [cotizacionDolar, setCotizacionDolar] = useState<number>(7770);
   const [cotizacionReal, setCotizacionReal] = useState<number>(1200);
   const [cotizacionPeso, setCotizacionPeso] = useState<number>(5);
-  const operadorMovimiento = Number(localStorage.getItem("operador_movimiento"));
+  const operadorMovimiento = Number(
+    localStorage.getItem("operador_movimiento")
+  );
 
   async function traerUltimaVentaId() {
     try {
@@ -459,7 +464,11 @@ export default function VentaBalcon() {
         return;
       }
       try {
-        const response = await axios.get(operadorMovimiento ===1 ? `${api_url}clientes?vendedor=${operadorActual}` : `${api_url}clientes`);
+        const response = await axios.get(
+          operadorMovimiento === 1
+            ? `${api_url}clientes?vendedor=${operadorActual}`
+            : `${api_url}clientes`
+        );
         console.log(response.data.body);
         setClientes(response.data.body);
       } catch (err) {
@@ -555,39 +564,40 @@ export default function VentaBalcon() {
       .replace(moneda, currencySymbol[moneda]);
   };
 
-  const agregarItem = () => {
-    if (selectedItem) {
+  // Hacer que articulo sea opcional
+  const agregarItem = (articulo?: Articulo) => {
+    // Usar el artículo proporcionado o selectedItem
+    const item = articulo || selectedItem;
+
+    if (item) {
       let precioSeleccionado;
       switch (listaPrecio) {
         case "2": // Crédito
-          precioSeleccionado = selectedItem.ar_pvcredito;
+          precioSeleccionado = item.ar_pvcredito;
           break;
         case "3": // Mostrador
-          precioSeleccionado = selectedItem.ar_pvmostrador;
+          precioSeleccionado = item.ar_pvmostrador;
           break;
         case "1": // Contado
         default:
-          precioSeleccionado = selectedItem.ar_pvg;
+          precioSeleccionado = item.ar_pvg;
           break;
       }
       const precioEnMonedaActual = precioSeleccionado * tasasDeCambio[moneda];
-      const impuestos = calcularImpuesto(
-        selectedItem.ar_pvg,
-        selectedItem.ar_iva
-      );
+      const impuestos = calcularImpuesto(item.ar_pvg, item.ar_iva);
       const nuevoItem = {
-        id: selectedItem.ar_codigo,
-        nombre: selectedItem.ar_descripcion,
+        id: item.ar_codigo,
+        nombre: item.ar_descripcion,
         precioOriginal: precioSeleccionado,
         precioUnitario: precioEnMonedaActual,
         cantidad: cantidad,
-        impuesto: selectedItem.ar_iva,
+        impuesto: item.ar_iva,
         impuesto5: impuestos.impuesto5,
         impuesto10: impuestos.impuesto10,
         exentas: impuestos.exentas,
         subtotal: precioEnMonedaActual * cantidad,
         descuentoIndividual: 0,
-        ar_editar_desc: selectedItem.ar_editar_desc,
+        ar_editar_desc: item.ar_editar_desc,
       };
       const newItems = [...items, nuevoItem];
       setItems(newItems);
@@ -595,6 +605,7 @@ export default function VentaBalcon() {
       setArticuloBusqueda("");
       setCantidad(1);
       setSelectedItem(null);
+      setRecomendaciones([]);
     } else {
       toast({
         title: "Artículo no seleccionado",
@@ -1305,6 +1316,24 @@ export default function VentaBalcon() {
     }
   };
 
+  const handleArrowUp = (e: React.KeyboardEvent<HTMLElement>) => {
+    if (e.key === "ArrowUp" && recomendaciones.length > 0) {
+      e.preventDefault();
+      setSelectedIndex((prev) =>
+        prev <= 0 ? recomendaciones.length - 1 : prev - 1
+      );
+    }
+  };
+
+  const handleArrowDown = (e: React.KeyboardEvent<HTMLElement>) => {
+    if (e.key === "ArrowDown" && recomendaciones.length > 0) {
+      e.preventDefault();
+      setSelectedIndex((prev) =>
+        prev >= recomendaciones.length - 1 ? 0 : prev + 1
+      );
+    }
+  };
+
   const selectFirstVendedor = () => {
     if (!recomedacionesVendedores || recomedacionesVendedores.length === 0)
       return false;
@@ -1325,14 +1354,6 @@ export default function VentaBalcon() {
     );
   };
 
-  const selectFirstArticulo = () => {
-    return selectFirstRecommendation(
-      recomendaciones,
-      setSelectedItem,
-      () => setRecomendaciones([]),
-      setArticuloBusqueda
-    );
-  };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
@@ -1806,10 +1827,12 @@ export default function VentaBalcon() {
       .replace(/\s/g, "");
   };
 
-  const totalDolares = (parseFloat((calcularTotal() / cotizacionDolar).toFixed(2)));
+  const totalDolares = parseFloat(
+    (calcularTotal() / cotizacionDolar).toFixed(2)
+  );
 
   const totalPesos = parseFloat((calcularTotal() / cotizacionPeso).toFixed(2));
-  
+
   const totalReales = parseFloat((calcularTotal() / cotizacionReal).toFixed(2));
 
   return (
@@ -2251,9 +2274,69 @@ export default function VentaBalcon() {
                       value={articuloBusqueda}
                       onChange={handleBusqueda}
                       ref={articuloRef}
-                      onKeyDown={(e) =>
-                        handleEnterKey(e, cantidadRef, selectFirstArticulo)
-                      }
+                      onKeyDown={async (e) => {
+                        handleArrowUp(e);
+                        handleArrowDown(e);
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+
+                          // Si es selección manual con flechas
+                          if (selectedIndex >= 0) {
+                            const articulo = recomendaciones[selectedIndex];
+                            agregarItem(articulo);
+                            articuloRef.current?.focus();
+                            setRecomendaciones([]);
+                            return;
+                          }
+
+                          // Si es scanner
+                          const codigo = articuloBusqueda.trim();
+                          if (codigo) {
+                            try {
+                              const response = await axios.get(
+                                `${api_url}articulos/`,
+                                {
+                                  params: {
+                                    buscar: codigo,
+                                    id_deposito: parseInt(depositoId),
+                                    stock: buscarSoloConStock ? true : false,
+                                  },
+                                }
+                              );
+                              console.log(
+                                "Articulos encontrados:",
+                                response.data.body
+                              );
+
+                              const articulos = response.data.body;
+                              const articuloExacto = articulos.find(
+                                (art: Articulo) => art.ar_codbarra === codigo
+                              );
+
+                              if (articuloExacto) {
+                                agregarItem(articuloExacto);
+                                setArticuloBusqueda("");
+                                setRecomendaciones([]);
+                              } else {
+                                toast({
+                                  title: "No encontrado",
+                                  description: "Artículo no encontrado.",
+                                  status: "warning",
+                                  duration: 2000,
+                                });
+                              }
+                            } catch (error) {
+                              console.error("Error al buscar artículo:", error);
+                              toast({
+                                title: "Error",
+                                description: "Error al buscar artículo.",
+                                status: "error",
+                                duration: 2000,
+                              });
+                            }
+                          }
+                        }
+                      }}
                     />
                     {recomendaciones.length > 0 && (
                       <Box
@@ -2269,12 +2352,14 @@ export default function VentaBalcon() {
                         maxHeight={"600px"}
                         overflowY={"auto"}
                       >
-                        {recomendaciones.map((articulo) => (
+                        {recomendaciones.map((articulo, index) => (
                           <Box
                             key={articulo.ar_codigo}
                             p={2}
+                            bg={index === selectedIndex ? "gray.100" : "white"}
                             _hover={{ bg: "gray.100" }}
                             onClick={() => {
+
                               setArticuloBusqueda(articulo.ar_descripcion);
                               setSelectedItem(articulo);
                               setRecomendaciones([]);
@@ -2293,17 +2378,29 @@ export default function VentaBalcon() {
                               <Minus />
                               <Text as="span" color="red.500" fontSize={"14px"}>
                                 Precio Contado:{" "}
-                                {formatCurrency(moneda === 'PYG' ? articulo.ar_pvg : articulo.ar_pvd)}
+                                {formatCurrency(
+                                  moneda === "PYG"
+                                    ? articulo.ar_pvg
+                                    : articulo.ar_pvd
+                                )}
                               </Text>
                               <Minus />
                               <Text as="span" color="red.500" fontSize={"14px"}>
                                 Precio Credito:{" "}
-                                {formatCurrency(moneda === 'PYG' ? articulo.ar_pvg : articulo.ar_pvdcredito)}
+                                {formatCurrency(
+                                  moneda === "PYG"
+                                    ? articulo.ar_pvg
+                                    : articulo.ar_pvdcredito
+                                )}
                               </Text>
                               <Minus />
                               <Text as="span" color="red.500" fontSize={"14px"}>
                                 Precio Mostrador:{" "}
-                                {formatCurrency(moneda === 'PYG' ? articulo.ar_pvg : articulo.ar_pvdmostrador)}
+                                {formatCurrency(
+                                  moneda === "PYG"
+                                    ? articulo.ar_pvg
+                                    : articulo.ar_pvdmostrador
+                                )}
                               </Text>
                               <Minus />
                               <Text
@@ -2367,7 +2464,7 @@ export default function VentaBalcon() {
                     </Select>
                     <Button
                       colorScheme="green"
-                      onClick={agregarItem}
+                      onClick={() => agregarItem()}
                       flexGrow={1}
                     >
                       +
@@ -2527,22 +2624,28 @@ export default function VentaBalcon() {
                 justifyContent={"space-between"}
                 alignItems={"center"}
               >
-                <Flex gap={4} flexDirection={isMobile? 'column' : 'row'} >
+                <Flex gap={4} flexDirection={isMobile ? "column" : "row"}>
                   <Flex
-                    flexDirection={isMobile? 'column' : 'row'}
+                    flexDirection={isMobile ? "column" : "row"}
                     px={4}
                     gap={4}
                   ></Flex>
                   <Flex
                     gap={2}
-                    flexDirection={'column'}
+                    flexDirection={"column"}
                     alignItems={"start"}
-                    justifyContent={'start'}
+                    justifyContent={"start"}
                   >
-                    <Text fontSize={isMobile? 'large' :  "xx-large"} fontWeight={"bold"}>
-                    Total items: {items.length}
-                  </Text>
-                    <Text fontSize={isMobile? 'large' :  "x-large"} fontWeight={"semibold"}>
+                    <Text
+                      fontSize={isMobile ? "large" : "xx-large"}
+                      fontWeight={"bold"}
+                    >
+                      Total items: {items.length}
+                    </Text>
+                    <Text
+                      fontSize={isMobile ? "large" : "x-large"}
+                      fontWeight={"semibold"}
+                    >
                       Descuento
                     </Text>
                     <Flex>
@@ -2573,7 +2676,10 @@ export default function VentaBalcon() {
                   </Flex>
 
                   <Box pt={2}>
-                    <Text fontSize={isMobile? 'large' :  "x-large"} fontWeight="bold">
+                    <Text
+                      fontSize={isMobile ? "large" : "x-large"}
+                      fontWeight="bold"
+                    >
                       Total Exentas: {formatCurrency(calcularTotalExcentas())}
                     </Text>
                     <Divider
@@ -2581,7 +2687,10 @@ export default function VentaBalcon() {
                       borderColor={"blue.500"}
                       my={1}
                     />
-                    <Text fontSize={isMobile? 'large' :  "x-large"} fontWeight="bold">
+                    <Text
+                      fontSize={isMobile ? "large" : "x-large"}
+                      fontWeight="bold"
+                    >
                       Total IVA 5%: {formatCurrency(calcularTotal5())}
                     </Text>
                     <Divider
@@ -2589,7 +2698,10 @@ export default function VentaBalcon() {
                       borderColor={"blue.500"}
                       my={1}
                     />
-                    <Text fontSize={isMobile? 'large' :  "x-large"} fontWeight="bold">
+                    <Text
+                      fontSize={isMobile ? "large" : "x-large"}
+                      fontWeight="bold"
+                    >
                       Total IVA 10%: {formatCurrency(calcularTotal10())}
                     </Text>
                     <Divider
@@ -2597,97 +2709,145 @@ export default function VentaBalcon() {
                       borderColor={"blue.500"}
                       my={1}
                     />
-                    <Text fontSize={isMobile? 'large' :  "x-large"} fontWeight="bold">
+                    <Text
+                      fontSize={isMobile ? "large" : "x-large"}
+                      fontWeight="bold"
+                    >
                       Total Impuestos:{" "}
                       {formatCurrency(calcularTotalImpuestos())}
                     </Text>
                   </Box>
                 </Flex>
-                <Flex
-                  flexDir={'column'}
-                  gap={4}
-                >
-                <Box
-                  display={"flex"}
-                  justifyContent={"center"}
-                  flexDir={isMobile? 'column' : 'row'}
-                  textAlign={"center"}
-                  mt={isMobile ? 2 : 0}
-                  gap={8}
-                >
-                  {" "}
-                  <Text fontSize={isMobile? 'large' : 'xx-large'} fontWeight="bold">
-                    Subtotal:{" "}
-                    {formatCurrency(
-                      items.reduce((acc, item) => acc + item.subtotal, 0)
-                    )}
-                  </Text>
-                  <Text fontSize={isMobile? 'large' : 'xx-large'} fontWeight="bold">
-                    Descuento General:{" "}
-                    {descuentoTipo === "porcentaje"
-                      ? `${descuentoValor}%`
-                      : formatCurrency(descuentoValor * tasasDeCambio[moneda])}
-                  </Text>
-                  <Text fontSize={isMobile? 'large' : 'xx-large'} fontWeight="bold">
-                    Total Neto: {formatCurrency(calcularTotal())}
-                  </Text>
-                </Box>
-                <Flex
-                  position="relative"
-                  flexDirection={isMobile ? "column" : "row"}
-                  px={4}
-                  gap={4}
-                  border={"1px solid #E2E8F0"}
-                  h={"120px"}
-                  borderRadius={"md"}
-                  alignItems={"center"}
-                  justifyContent={"center"}
-                  flexGrow={1}
-                  bg={'green.800'}
-                >
+                <Flex flexDir={"column"} gap={4}>
                   <Box
-                    position="absolute"
-                    top="-10px"
-                    left="20px"
-                    bg="gray.50"
-                    px={2}
-                    fontSize="sm"
-                    fontWeight="bold"
-                    color="gray.600"
+                    display={"flex"}
+                    justifyContent={"center"}
+                    flexDir={isMobile ? "column" : "row"}
+                    textAlign={"center"}
+                    mt={isMobile ? 2 : 0}
+                    gap={8}
                   >
+                    {" "}
+                    <Text
+                      fontSize={isMobile ? "large" : "xx-large"}
+                      fontWeight="bold"
+                    >
+                      Subtotal:{" "}
+                      {formatCurrency(
+                        items.reduce((acc, item) => acc + item.subtotal, 0)
+                      )}
+                    </Text>
+                    <Text
+                      fontSize={isMobile ? "large" : "xx-large"}
+                      fontWeight="bold"
+                    >
+                      Descuento General:{" "}
+                      {descuentoTipo === "porcentaje"
+                        ? `${descuentoValor}%`
+                        : formatCurrency(
+                            descuentoValor * tasasDeCambio[moneda]
+                          )}
+                    </Text>
+                    <Text
+                      fontSize={isMobile ? "large" : "xx-large"}
+                      fontWeight="bold"
+                    >
+                      Total Neto: {formatCurrency(calcularTotal())}
+                    </Text>
                   </Box>
                   <Flex
+                    position="relative"
+                    flexDirection={isMobile ? "column" : "row"}
+                    px={4}
                     gap={4}
-                    justifyContent={'space-between'}
+                    border={"1px solid #E2E8F0"}
+                    h={"120px"}
+                    borderRadius={"md"}
+                    alignItems={"center"}
+                    justifyContent={"center"}
+                    flexGrow={1}
+                    bg={"green.800"}
                   >
-                    <Box>
-                      <FormLabel color={'white'} fontWeight={'bold'} fontSize={'large'}> 
-                        Total USD:
-                      </FormLabel>
-                      <Input type="text" value={formatNumber(totalDolares)}  h='48px' bg={'white'} fontSize={'x-large'} fontWeight={'bold'}/>
-                    </Box>
-                    <Box>
-                      <FormLabel color={'white'} fontWeight={'bold'} fontSize={'large'}>
-                        Total BRL:
-                      </FormLabel>
-                      <Input type="text" value={formatNumber(totalReales)}  bg={'white'} h='48px' fontSize={'x-large'} fontWeight={'bold'}/>
-                    </Box>
-                    <Box>
-                      <FormLabel color={'white'} fontWeight={'bold'} fontSize={'large'}>
-                        Total ARS:
-                      </FormLabel>
-                      <Input type="text" value={formatNumber(totalPesos)}  bg={'white'}  h='48px' fontSize={'x-large'} fontWeight={'bold'}/>
-                    </Box>
+                    <Box
+                      position="absolute"
+                      top="-10px"
+                      left="20px"
+                      bg="gray.50"
+                      px={2}
+                      fontSize="sm"
+                      fontWeight="bold"
+                      color="gray.600"
+                    ></Box>
+                    <Flex gap={4} justifyContent={"space-between"}>
+                      <Box>
+                        <FormLabel
+                          color={"white"}
+                          fontWeight={"bold"}
+                          fontSize={"large"}
+                        >
+                          Total USD:
+                        </FormLabel>
+                        <Input
+                          type="text"
+                          value={formatNumber(totalDolares)}
+                          h="48px"
+                          bg={"white"}
+                          fontSize={"x-large"}
+                          fontWeight={"bold"}
+                        />
+                      </Box>
+                      <Box>
+                        <FormLabel
+                          color={"white"}
+                          fontWeight={"bold"}
+                          fontSize={"large"}
+                        >
+                          Total BRL:
+                        </FormLabel>
+                        <Input
+                          type="text"
+                          value={formatNumber(totalReales)}
+                          bg={"white"}
+                          h="48px"
+                          fontSize={"x-large"}
+                          fontWeight={"bold"}
+                        />
+                      </Box>
+                      <Box>
+                        <FormLabel
+                          color={"white"}
+                          fontWeight={"bold"}
+                          fontSize={"large"}
+                        >
+                          Total ARS:
+                        </FormLabel>
+                        <Input
+                          type="text"
+                          value={formatNumber(totalPesos)}
+                          bg={"white"}
+                          h="48px"
+                          fontSize={"x-large"}
+                          fontWeight={"bold"}
+                        />
+                      </Box>
+                    </Flex>
                   </Flex>
                 </Flex>
-                </Flex>
-                <Box display={'flex'} flexDir={'column'}  textAlign={"right"} mt={isMobile ? 2 : 0}>
-
-                  <Flex gap={4} flexDir={isMobile? 'row' : 'column'} justifyContent={'center'} alignItems={'center'}>
+                <Box
+                  display={"flex"}
+                  flexDir={"column"}
+                  textAlign={"right"}
+                  mt={isMobile ? 2 : 0}
+                >
+                  <Flex
+                    gap={4}
+                    flexDir={isMobile ? "row" : "column"}
+                    justifyContent={"center"}
+                    alignItems={"center"}
+                  >
                     <Button
                       colorScheme="red"
-
-                      width={'full'}
+                      width={"full"}
                       onClick={cancelarVenta}
                     >
                       Cancelar Venta

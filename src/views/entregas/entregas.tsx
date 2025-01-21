@@ -289,7 +289,7 @@ const Entregas = () => {
                       isClosable: true,
                     });
                   } else {
-                    if (isMine(entrega.chofer_id)) {
+                    if (1 === 1) {
                       handleEntregaSeleccionada(entrega);
                     } else {
                       toast({

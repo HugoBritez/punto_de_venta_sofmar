@@ -100,7 +100,7 @@ interface Articulo {
   al_cantidad: number;
   al_vencimiento: string;
   ar_editar_desc: number;
-  ar_vencimiento: number
+  ar_vencimiento: number;
 }
 
 interface Presupuesto {
@@ -224,7 +224,9 @@ export default function PuntoDeVenta() {
       exentas: number;
       precioOriginal: number;
       descuentoIndividual: number;
-      ar_editar_desc: number;
+      ar_editar_desc?: number;
+      al_codigo?: number;
+      al_vencimiento?: string;
     }[]
   >(loadItemsFromLocalStorage());
   const [selectedItem, setSelectedItem] = useState<
@@ -293,7 +295,9 @@ export default function PuntoDeVenta() {
 
   const operadorActual = localStorage.getItem("user_id");
 
-  const operadorMovimiento = Number(localStorage.getItem("operador_movimiento"));
+  const operadorMovimiento = Number(
+    localStorage.getItem("operador_movimiento")
+  );
 
   // Funciones y Effects para traer los datos//
 
@@ -316,9 +320,9 @@ export default function PuntoDeVenta() {
   const [facturaData, setFacturaData] = useState<Factura[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const [ultimaVentaId, setUltimaVentaId] = useState<number>(0);
-  const [cotizacionDolar, setCotizacionDolar]= useState<number>(7770)
-  const [cotizacionReal, setCotizacionReal] = useState<number>(1200)
-  const [cotizacionPeso, setCotizacionPeso] = useState<number>(5)
+  const [cotizacionDolar, setCotizacionDolar] = useState<number>(7770);
+  const [cotizacionReal, setCotizacionReal] = useState<number>(1200);
+  const [cotizacionPeso, setCotizacionPeso] = useState<number>(5);
 
   async function traerUltimaVentaId() {
     try {
@@ -400,18 +404,17 @@ export default function PuntoDeVenta() {
     }
   }
 
-
   const fetchCotizaciones = async () => {
     try {
       const response = await axios.get(`${api_url}cotizaciones/`);
-      console.log('Cotizaciones',response.data.body)
-      setCotizacionDolar(response.data.body[0].usd_venta)
-      setCotizacionPeso(response.data.body[0].ars_venta)
-      setCotizacionReal(response.data.body[0].brl_venta)
-    } catch(err) {
-      console.log(err)
+      console.log("Cotizaciones", response.data.body);
+      setCotizacionDolar(response.data.body[0].usd_venta);
+      setCotizacionPeso(response.data.body[0].ars_venta);
+      setCotizacionReal(response.data.body[0].brl_venta);
+    } catch (err) {
+      console.log(err);
     }
-  }
+  };
 
   useEffect(() => {
     // traerListaPrecios
@@ -496,8 +499,12 @@ export default function PuntoDeVenta() {
         return;
       }
       try {
-         const response = await axios.get(operadorMovimiento ===1 ? `${api_url}clientes?vendedor=${operadorActual}` : `${api_url}clientes`);
-        console.log( 'CLientes',response.data.body)
+        const response = await axios.get(
+          operadorMovimiento === 1
+            ? `${api_url}clientes?vendedor=${operadorActual}`
+            : `${api_url}clientes`
+        );
+        console.log("CLientes", response.data.body);
         setClientes(response.data.body);
         setClienteSeleccionado(response.data.body[0]);
         setClienteBusqueda(response.data.body[0].cli_razon);
@@ -612,7 +619,6 @@ export default function PuntoDeVenta() {
       .replace(/\s/g, "");
   };
 
-
   // Hacer que articulo sea opcional
   const agregarItem = (articulo?: Articulo) => {
     // Usar el artículo proporcionado o selectedItem
@@ -647,8 +653,16 @@ export default function PuntoDeVenta() {
         subtotal: precioEnMonedaActual * cantidad,
         descuentoIndividual: 0,
         ar_editar_desc: item.ar_editar_desc,
+        al_codigo: item.al_codigo,
+        al_vencimiento: item.al_vencimiento,
       };
-      const newItems = [...items, nuevoItem];
+      const newItems = [
+        ...items,
+        {
+          ...nuevoItem,
+          al_vencimiento: nuevoItem.al_vencimiento?.toString(),
+        },
+      ];
       setItems(newItems);
       saveItemsToLocalStorage(newItems);
       setArticuloBusqueda("");
@@ -1154,7 +1168,7 @@ export default function PuntoDeVenta() {
       };
     }),
   };
-  const insertarOperacion = async (operacionData:OperacionData) => {
+  const insertarOperacion = async (operacionData: OperacionData) => {
     // Validación del ventaId
     if (!operacionData.ventaId) {
       toast({
@@ -1211,6 +1225,13 @@ export default function PuntoDeVenta() {
       setCondicionVenta(0);
       setNotaFiscal(0);
       setNumeroFactura("");
+      setArticuloBusqueda("");
+      setSelectedItem(null);
+      setRecomendaciones([]);
+      setRecomendacionesClientes([]);
+      setRecomendacionesVendedores([]);
+      setArticuloBusqueda("");
+      setSelectedItem(null);
       return;
     }
     if (!cajaAbierta) {
@@ -1299,7 +1320,7 @@ export default function PuntoDeVenta() {
           await traerDetalleVentaId(newSaleID);
 
           const operacionData = {
-            ventaId: newSaleID ,
+            ventaId: newSaleID,
             caja: cajaId,
             cuenta: 1,
             fecha: fecha,
@@ -1319,16 +1340,15 @@ export default function PuntoDeVenta() {
 
           const operacionDataCompleta = {
             ...operacionData,
-            tipomovimiento: 1, 
-            codigotarjeta: 0, 
-            tipotarjeta: 0, 
+            tipomovimiento: 1,
+            codigotarjeta: 0,
+            tipotarjeta: 0,
           };
           insertarOperacion(operacionDataCompleta);
         }
         setVentaFinalizada(localVentaData.venta);
         setDetalleVentaFinalizada(localVentaData.detalle_ventas);
         setClienteInfo(clienteSeleccionado);
-
         setSucursalInfo(sucursales.find((s) => s.id.toString() === sucursal));
         setVendedorInfo(vendedores.find((v) => v.op_codigo === operador));
         setIsModalOpen(true);
@@ -1345,6 +1365,7 @@ export default function PuntoDeVenta() {
           facturaData[0].d_codigo
         );
         handleOpenFinalizarVentaModal();
+        handleCloseFinalizarVentaModal();
         Auditar(
           5,
           8,
@@ -1959,13 +1980,13 @@ export default function PuntoDeVenta() {
     }
   }
 
-  const totalDolares = (parseFloat((calcularTotal() / cotizacionDolar).toFixed(2)));
+  const totalDolares = parseFloat(
+    (calcularTotal() / cotizacionDolar).toFixed(2)
+  );
 
   const totalPesos = parseFloat((calcularTotal() / cotizacionPeso).toFixed(2));
-  
+
   const totalReales = parseFloat((calcularTotal() / cotizacionReal).toFixed(2));
-
-
 
   // if (loading) {
   //   return <Flex>Loading...</Flex>;
@@ -1979,7 +2000,7 @@ export default function PuntoDeVenta() {
   return (
     <div>
       <ChakraProvider>
-        <Box bg={"gray.100"} h={"100vh"} w={"100%"} p={2} >
+        <Box bg={"gray.100"} h={"100vh"} w={"100%"} p={2}>
           <Box
             w="100%"
             h={"100%"}
@@ -2048,377 +2069,394 @@ export default function PuntoDeVenta() {
                 </Flex>
               )}
             </Flex>
-            <Flex flexDirection={'column'} w={'100%'}>
-              <Box p={isMobile ? 2 : 4}  w={'100%'}>
-              <Flex
-                alignItems={isMobile? undefined : 'center'}
-                gap={4}
-                flexDir={isMobile? 'column' : 'row'}
-                w={'100%'}
-              >
-                <Grid
-                  templateColumns={
-                    isMobile ? "repeat(1, 1fr)" : "repeat(3, 1fr)"
-                  }
-                  gap={3}
-                  mb={4}                >
-                  <Box>
-                    <FormLabel>Sucursal</FormLabel>
-                    <Select
-                      isDisabled={true}
-                      placeholder="Seleccionar sucursal"
-                      value={sucursal}
-                      onChange={(e) => setSucursal(e.target.value)}
-                    >
-                      {sucursales.map((sucursal) => (
-                        <option
-                          key={sucursal.id}
-                          value={sucursal.id.toString()}
-                        >
-                          {sucursal.descripcion}
-                        </option>
-                      ))}
-                    </Select>
-                  </Box>
-                  <Box>
-                    <FormLabel>Depósito</FormLabel>
-                    <Select
-                      isDisabled={true}
-                      placeholder="Seleccionar depósito"
-                      value={depositoId}
-                      onChange={handleDepositoChange}
-                    >
-                      {depositos.map((deposito) => (
-                        <option
-                          key={deposito.dep_codigo}
-                          value={deposito.dep_codigo.toString()}
-                        >
-                          {deposito.dep_descripcion}
-                        </option>
-                      ))}
-                    </Select>
-                  </Box>
-                  <Box position={"relative"}>
-                    <FormLabel>Cajero</FormLabel>
-                    <Input
-                      isDisabled={true}
-                      id="vendedor-search"
-                      placeholder={
-                        localStorage.getItem("userName") || "Cajero actual"
-                      }
-                      value={buscarVendedor}
-                      onChange={handleBusquedaVendedor}
-                      onFocus={() => {
-                        if (vendedor) {
-                          setBuscarVendedor("");
-                          setRecomendacionesVendedores([]);
+            <Flex flexDirection={"column"} w={"100%"}>
+              <Box p={isMobile ? 2 : 4} w={"100%"}>
+                <Flex
+                  alignItems={isMobile ? undefined : "center"}
+                  gap={4}
+                  flexDir={isMobile ? "column" : "row"}
+                  w={"100%"}
+                >
+                  <Grid
+                    templateColumns={
+                      isMobile ? "repeat(1, 1fr)" : "repeat(3, 1fr)"
+                    }
+                    gap={3}
+                    mb={4}
+                  >
+                    <Box>
+                      <FormLabel>Sucursal</FormLabel>
+                      <Select
+                        isDisabled={true}
+                        placeholder="Seleccionar sucursal"
+                        value={sucursal}
+                        onChange={(e) => setSucursal(e.target.value)}
+                      >
+                        {sucursales.map((sucursal) => (
+                          <option
+                            key={sucursal.id}
+                            value={sucursal.id.toString()}
+                          >
+                            {sucursal.descripcion}
+                          </option>
+                        ))}
+                      </Select>
+                    </Box>
+                    <Box>
+                      <FormLabel>Depósito</FormLabel>
+                      <Select
+                        isDisabled={true}
+                        placeholder="Seleccionar depósito"
+                        value={depositoId}
+                        onChange={handleDepositoChange}
+                      >
+                        {depositos.map((deposito) => (
+                          <option
+                            key={deposito.dep_codigo}
+                            value={deposito.dep_codigo.toString()}
+                          >
+                            {deposito.dep_descripcion}
+                          </option>
+                        ))}
+                      </Select>
+                    </Box>
+                    <Box position={"relative"}>
+                      <FormLabel>Cajero</FormLabel>
+                      <Input
+                        isDisabled={true}
+                        id="vendedor-search"
+                        placeholder={
+                          localStorage.getItem("userName") || "Cajero actual"
                         }
-                      }}
-                      aria-autocomplete="list"
-                      aria-controls="vendedor-recommendations"
-                      ref={vendedorRef}
-                      onKeyDown={(e) =>
-                        handleEnterKey(e, clienteRef, selectFirstVendedor)
-                      }
-                    />
-                    {vendedor && (
-                      <Text mt={2} fontWeight="bold" color="green.500">
-                        Vendedor seleccionado: {vendedor}
-                      </Text>
-                    )}
-                    {recomedacionesVendedores.length === 0 &&
-                      buscarVendedor.length > 0 &&
-                      !vendedor && (
-                        <Text color="red.500" mt={2}>
-                          No se encontró vendedor con ese código
+                        value={buscarVendedor}
+                        onChange={handleBusquedaVendedor}
+                        onFocus={() => {
+                          if (vendedor) {
+                            setBuscarVendedor("");
+                            setRecomendacionesVendedores([]);
+                          }
+                        }}
+                        aria-autocomplete="list"
+                        aria-controls="vendedor-recommendations"
+                        ref={vendedorRef}
+                        onKeyDown={(e) =>
+                          handleEnterKey(e, clienteRef, selectFirstVendedor)
+                        }
+                      />
+                      {vendedor && (
+                        <Text mt={2} fontWeight="bold" color="green.500">
+                          Vendedor seleccionado: {vendedor}
                         </Text>
                       )}
-                    {recomedacionesVendedores.length > 0 && (
-                      <Box
-                        id="vendedor-recommendations"
-                        position="absolute"
-                        top="100%"
-                        left={0}
-                        right={0}
-                        zIndex={20}
-                        bg="white"
-                        boxShadow="md"
-                        borderRadius="md"
-                        mt={1}
-                        className="recomendaciones-menu"
-                        maxH="200px"
-                        overflowY="auto"
-                      >
-                        {recomedacionesVendedores.map((vendedor) => (
-                          <Box
-                            key={vendedor.op_codigo}
-                            p={2}
-                            _hover={{ bg: "gray.100" }}
-                            cursor="pointer"
-                            onClick={() => {
-                              setBuscarVendedor(vendedor.op_codigo);
-                              setVendedor(vendedor.op_nombre);
-                              setOperador(vendedor.op_codigo);
-                              setRecomendacionesVendedores([]);
-                            }}
-                          >
-                            <Text fontWeight="bold">{vendedor.op_nombre}</Text>
-                            <Text as="span" color="gray.500" fontSize="sm">
-                              Código: {vendedor.op_codigo}
-                            </Text>
-                          </Box>
-                        ))}
-                      </Box>
-                    )}
-                  </Box>
-
-                  <Flex gap={4}>
-                    <Box flexGrow={1}>
-                      <FormLabel>Moneda</FormLabel>
-                      <Select
-                        placeholder="Seleccionar moneda"
-                        value={moneda}
-                        onChange={(e) => setMoneda(e.target.value)}
-                      >
-                        <option value="USD">USD</option>
-                        <option value="PYG">PYG</option>
-                      </Select>
-                    </Box>
-                    <Box flexGrow={1}>
-                      <FormLabel>Lista de Precios</FormLabel>
-                      <Select
-                        placeholder="Seleccionar..."
-                        value={listaPrecio}
-                        onChange={(e) => setListaPrecio(e.target.value)}
-                      >
-                        {listaPrecios.map(
-                          (listaPrecio: {
-                            lp_codigo: React.Key | null | undefined;
-                            lp_descripcion:
-                              | string
-                              | number
-                              | boolean
-                              | React.ReactElement<
-                                  any,
-                                  string | React.JSXElementConstructor<any>
-                                >
-                              | Iterable<React.ReactNode>
-                              | React.ReactPortal
-                              | null
-                              | undefined;
-                          }) => (
-                            <option
-                              key={listaPrecio.lp_codigo}
-                              value={listaPrecio.lp_codigo?.toString()}
-                            >
-                              {listaPrecio.lp_descripcion}
-                            </option>
-                          )
+                      {recomedacionesVendedores.length === 0 &&
+                        buscarVendedor.length > 0 &&
+                        !vendedor && (
+                          <Text color="red.500" mt={2}>
+                            No se encontró vendedor con ese código
+                          </Text>
                         )}
-                      </Select>
-                    </Box>
-                  </Flex>
-                  <Box>
-                    <FormLabel>Fecha</FormLabel>
-                    <Input
-                      type="date"
-                      value={fecha}
-                      onChange={(e) => setFecha(e.target.value)}
-                    />
-                  </Box>
-
-                  <Box position="relative">
-                    <FormLabel htmlFor="cliente-search">Cliente</FormLabel>
-                    <Input
-                      id="cliente-search"
-                      placeholder="Buscar cliente por nombre o RUC"
-                      value={clienteBusqueda}
-                      onChange={handleBusquedaCliente}
-                      aria-autocomplete="list"
-                      aria-controls="cliente-recommendations"
-                      ref={clienteRef}
-                      onKeyDown={(e) =>
-                        handleEnterKey(e, articuloRef, selectFirstCliente)
-                      }
-                    />
-                    {clienteSeleccionado?.cli_acuerdo === 1 ? (
-                      <Box
-                        display={"flex"}
-                        gap={2}
-                        alignItems={"center"}
-                        mt={2}
-                      >
-                        <Checkbox
-                          isChecked={acuerdoCliente === 1}
-                          value={acuerdoCliente}
-                          onChange={() =>
-                            setAcuerdoCliente(acuerdoCliente ? 0 : 1)
-                          }
-                        ></Checkbox>
-                        <Text fontWeight="bold" color="red.500">
-                          Cliente con acuerdo de crédito.
-                        </Text>
-                      </Box>
-                    ) : null}
-                    {recomendacionesClientes.length > 0 && (
-                      <Box
-                        id="cliente-recommendations"
-                        position="absolute"
-                        top="100%"
-                        left={0}
-                        right={0}
-                        zIndex={10}
-                        bg="white"
-                        boxShadow="md"
-                        borderRadius="md"
-                        mt={1}
-                        className="recomendaciones-menu"
-                        maxH="200px"
-                        overflowY="auto"
-                      >
-                        {recomendacionesClientes.map((cliente) => {
-                          const credit = Number(cliente.cli_limitecredito) || 0;
-                          const creditColor = getCreditColor(credit);
-
-                          return (
+                      {recomedacionesVendedores.length > 0 && (
+                        <Box
+                          id="vendedor-recommendations"
+                          position="absolute"
+                          top="100%"
+                          left={0}
+                          right={0}
+                          zIndex={20}
+                          bg="white"
+                          boxShadow="md"
+                          borderRadius="md"
+                          mt={1}
+                          className="recomendaciones-menu"
+                          maxH="200px"
+                          overflowY="auto"
+                        >
+                          {recomedacionesVendedores.map((vendedor) => (
                             <Box
-                              key={cliente.cli_codigo}
+                              key={vendedor.op_codigo}
                               p={2}
                               _hover={{ bg: "gray.100" }}
                               cursor="pointer"
                               onClick={() => {
-                                setClienteBusqueda(cliente.cli_razon);
-                                setClienteSeleccionado(cliente);
-                                setRecomendacionesClientes([]);
+                                setBuscarVendedor(vendedor.op_codigo);
+                                setVendedor(vendedor.op_nombre);
+                                setOperador(vendedor.op_codigo);
+                                setRecomendacionesVendedores([]);
                               }}
                             >
-                              <Text fontWeight="bold">{cliente.cli_razon}</Text>
-                              <Text as="span" color="gray.500" fontSize="sm">
-                                RUC: {cliente.cli_ruc}
+                              <Text fontWeight="bold">
+                                {vendedor.op_nombre}
                               </Text>
-                              <Text
-                                as="span"
-                                color={creditColor}
-                                fontSize="sm"
-                                ml={2}
-                              >
-                                Línea de crédito: {formatCurrency(credit)}
+                              <Text as="span" color="gray.500" fontSize="sm">
+                                Código: {vendedor.op_codigo}
                               </Text>
                             </Box>
-                          );
-                        })}
-                      </Box>
-                    )}
-                  </Box>
-                  {isMobile ? (
+                          ))}
+                        </Box>
+                      )}
+                    </Box>
+
                     <Flex gap={4}>
-                      <Select
-                        bg={"white"}
-                        color={"black"}
-                        value={consultaExterna}
-                        onChange={(e) => {
-                          setConsultaExterna(Number(e.target.value));
-                        }}
-                      >
-                        <option value={2}>Venta Balcon</option>
-                        <option value={1}>Presupuestos</option>
-                        <option value={0}>Pedidos</option>
-                      </Select>
-                      <Button
-                        leftIcon={<FileText />}
-                        onClick={() => {
-                          if (consultaExterna === 0) {
-                            handleOpenPedidoModal();
-                          } else if (consultaExterna === 1) {
-                            handleOpenPresupuestoModal();
-                          } else if (consultaExterna === 2) {
-                            onVentaOpen();
-                          }
-                        }}
-                        w={"200px"}
-                      >
-                        Consultar
-                      </Button>
+                      <Box flexGrow={1}>
+                        <FormLabel>Moneda</FormLabel>
+                        <Select
+                          placeholder="Seleccionar moneda"
+                          value={moneda}
+                          onChange={(e) => setMoneda(e.target.value)}
+                        >
+                          <option value="USD">USD</option>
+                          <option value="PYG">PYG</option>
+                        </Select>
+                      </Box>
+                      <Box flexGrow={1}>
+                        <FormLabel>Lista de Precios</FormLabel>
+                        <Select
+                          placeholder="Seleccionar..."
+                          value={listaPrecio}
+                          onChange={(e) => setListaPrecio(e.target.value)}
+                        >
+                          {listaPrecios.map(
+                            (listaPrecio: {
+                              lp_codigo: React.Key | null | undefined;
+                              lp_descripcion:
+                                | string
+                                | number
+                                | boolean
+                                | React.ReactElement<
+                                    any,
+                                    string | React.JSXElementConstructor<any>
+                                  >
+                                | Iterable<React.ReactNode>
+                                | React.ReactPortal
+                                | null
+                                | undefined;
+                            }) => (
+                              <option
+                                key={listaPrecio.lp_codigo}
+                                value={listaPrecio.lp_codigo?.toString()}
+                              >
+                                {listaPrecio.lp_descripcion}
+                              </option>
+                            )
+                          )}
+                        </Select>
+                      </Box>
                     </Flex>
-                  ) : null}
-                  
-                </Grid>
-                <Flex
-                  position="relative"
-                  flexDirection={isMobile ? "column" : "row"}
-                  px={4}
-                  gap={4}
-                  border={"1px solid #E2E8F0"}
-                  h={"120px"}
-                  borderRadius={"md"}
-                  alignItems={"center"}
-                  justifyContent={"center"}
-                >
-                  <Box
-                    position="absolute"
-                    top="-10px"
-                    left="20px"
-                    bg="white"
-                    px={2}
-                    fontSize="sm"
-                    fontWeight="bold"
-                    color="gray.600"
-                  >
-                    Caja recaudacion
-                  </Box>
-                  <Heading>
-                    {newSaleID ? `Venta #${newSaleID + 1}` : `Venta #${ultimaVentaId}` }
-                  </Heading>
-                </Flex>
-                <Flex
-                  position="relative"
-                  flexDirection={isMobile ? "column" : "row"}
-                  px={4}
-                  mb={4}
-                  gap={4}
-                  border={"1px solid #E2E8F0"}
-                  h={"120px"}
-                  borderRadius={"md"}
-                  alignItems={"center"}
-                  justifyContent={"center"}
-                  flexGrow={1}
-                  bg={'blue.100'}
-                >
-                  <Box
-                    position="absolute"
-                    top="-10px"
-                    left="20px"
-                    bg="gray.50"
-                    px={2}
-                    fontSize="sm"
-                    fontWeight="bold"
-                    color="gray.600"
-                  >
-                    Cotizacion del día
-                  </Box>
+                    <Box>
+                      <FormLabel>Fecha</FormLabel>
+                      <Input
+                        type="date"
+                        value={fecha}
+                        onChange={(e) => setFecha(e.target.value)}
+                      />
+                    </Box>
+
+                    <Box position="relative">
+                      <FormLabel htmlFor="cliente-search">Cliente</FormLabel>
+                      <Input
+                        id="cliente-search"
+                        placeholder="Buscar cliente por nombre o RUC"
+                        value={clienteBusqueda}
+                        onChange={handleBusquedaCliente}
+                        aria-autocomplete="list"
+                        aria-controls="cliente-recommendations"
+                        ref={clienteRef}
+                        onKeyDown={(e) =>
+                          handleEnterKey(e, articuloRef, selectFirstCliente)
+                        }
+                      />
+                      {clienteSeleccionado?.cli_acuerdo === 1 ? (
+                        <Box
+                          display={"flex"}
+                          gap={2}
+                          alignItems={"center"}
+                          mt={2}
+                        >
+                          <Checkbox
+                            isChecked={acuerdoCliente === 1}
+                            value={acuerdoCliente}
+                            onChange={() =>
+                              setAcuerdoCliente(acuerdoCliente ? 0 : 1)
+                            }
+                          ></Checkbox>
+                          <Text fontWeight="bold" color="red.500">
+                            Cliente con acuerdo de crédito.
+                          </Text>
+                        </Box>
+                      ) : null}
+                      {recomendacionesClientes.length > 0 && (
+                        <Box
+                          id="cliente-recommendations"
+                          position="absolute"
+                          top="100%"
+                          left={0}
+                          right={0}
+                          zIndex={10}
+                          bg="white"
+                          boxShadow="md"
+                          borderRadius="md"
+                          mt={1}
+                          className="recomendaciones-menu"
+                          maxH="200px"
+                          overflowY="auto"
+                        >
+                          {recomendacionesClientes.map((cliente) => {
+                            const credit =
+                              Number(cliente.cli_limitecredito) || 0;
+                            const creditColor = getCreditColor(credit);
+
+                            return (
+                              <Box
+                                key={cliente.cli_codigo}
+                                p={2}
+                                _hover={{ bg: "gray.100" }}
+                                cursor="pointer"
+                                onClick={() => {
+                                  setClienteBusqueda(cliente.cli_razon);
+                                  setClienteSeleccionado(cliente);
+                                  setRecomendacionesClientes([]);
+                                }}
+                              >
+                                <Text fontWeight="bold">
+                                  {cliente.cli_razon}
+                                </Text>
+                                <Text as="span" color="gray.500" fontSize="sm">
+                                  RUC: {cliente.cli_ruc}
+                                </Text>
+                                <Text
+                                  as="span"
+                                  color={creditColor}
+                                  fontSize="sm"
+                                  ml={2}
+                                >
+                                  Línea de crédito: {formatCurrency(credit)}
+                                </Text>
+                              </Box>
+                            );
+                          })}
+                        </Box>
+                      )}
+                    </Box>
+                    {isMobile ? (
+                      <Flex gap={4}>
+                        <Select
+                          bg={"white"}
+                          color={"black"}
+                          value={consultaExterna}
+                          onChange={(e) => {
+                            setConsultaExterna(Number(e.target.value));
+                          }}
+                        >
+                          <option value={2}>Venta Balcon</option>
+                          <option value={1}>Presupuestos</option>
+                          <option value={0}>Pedidos</option>
+                        </Select>
+                        <Button
+                          leftIcon={<FileText />}
+                          onClick={() => {
+                            if (consultaExterna === 0) {
+                              handleOpenPedidoModal();
+                            } else if (consultaExterna === 1) {
+                              handleOpenPresupuestoModal();
+                            } else if (consultaExterna === 2) {
+                              onVentaOpen();
+                            }
+                          }}
+                          w={"200px"}
+                        >
+                          Consultar
+                        </Button>
+                      </Flex>
+                    ) : null}
+                  </Grid>
                   <Flex
-                    gap={2}
+                    position="relative"
+                    flexDirection={isMobile ? "column" : "row"}
+                    px={4}
+                    gap={4}
+                    border={"1px solid #E2E8F0"}
+                    h={"120px"}
+                    borderRadius={"md"}
+                    alignItems={"center"}
+                    justifyContent={"center"}
                   >
-                    <Box>
-                      <FormLabel>
-                        USD:
-                      </FormLabel>
-                      <Input type="number" value={cotizacionDolar} width={'85px'} bg={'white'}  fontWeight={'bold'}/>
+                    <Box
+                      position="absolute"
+                      top="-10px"
+                      left="20px"
+                      bg="white"
+                      px={2}
+                      fontSize="sm"
+                      fontWeight="bold"
+                      color="gray.600"
+                    >
+                      Caja recaudacion
                     </Box>
-                    <Box>
-                      <FormLabel>
-                        BRL:
-                      </FormLabel>
-                      <Input type="number" value={cotizacionReal} width={'85px'} bg={'white'} fontWeight={'bold'}/>
-                    </Box>
-                    <Box>
-                      <FormLabel>
-                        ARS:
-                      </FormLabel>
-                      <Input type="number" value={cotizacionPeso} width={'85px'} bg={'white'}  fontWeight={'bold'}/>
-                    </Box>
+                    <Heading>
+                      {newSaleID
+                        ? `Venta #${newSaleID + 1}`
+                        : `Venta #${ultimaVentaId}`}
+                    </Heading>
                   </Flex>
-                </Flex>
+                  <Flex
+                    position="relative"
+                    flexDirection={isMobile ? "column" : "row"}
+                    px={4}
+                    mb={4}
+                    gap={4}
+                    border={"1px solid #E2E8F0"}
+                    h={"120px"}
+                    borderRadius={"md"}
+                    alignItems={"center"}
+                    justifyContent={"center"}
+                    flexGrow={1}
+                    bg={"blue.100"}
+                  >
+                    <Box
+                      position="absolute"
+                      top="-10px"
+                      left="20px"
+                      bg="gray.50"
+                      px={2}
+                      fontSize="sm"
+                      fontWeight="bold"
+                      color="gray.600"
+                    >
+                      Cotizacion del día
+                    </Box>
+                    <Flex gap={2}>
+                      <Box>
+                        <FormLabel>USD:</FormLabel>
+                        <Input
+                          type="number"
+                          value={cotizacionDolar}
+                          width={"85px"}
+                          bg={"white"}
+                          fontWeight={"bold"}
+                        />
+                      </Box>
+                      <Box>
+                        <FormLabel>BRL:</FormLabel>
+                        <Input
+                          type="number"
+                          value={cotizacionReal}
+                          width={"85px"}
+                          bg={"white"}
+                          fontWeight={"bold"}
+                        />
+                      </Box>
+                      <Box>
+                        <FormLabel>ARS:</FormLabel>
+                        <Input
+                          type="number"
+                          value={cotizacionPeso}
+                          width={"85px"}
+                          bg={"white"}
+                          fontWeight={"bold"}
+                        />
+                      </Box>
+                    </Flex>
+                  </Flex>
                 </Flex>
                 <Flex
                   gap={4}
@@ -2460,7 +2498,10 @@ export default function PuntoDeVenta() {
                                   },
                                 }
                               );
-                              console.log("Articulos encontrados:", response.data.body);
+                              console.log(
+                                "Articulos encontrados:",
+                                response.data.body
+                              );
 
                               const articulos = response.data.body;
                               const articuloExacto = articulos.find(
@@ -2531,17 +2572,29 @@ export default function PuntoDeVenta() {
                               <Minus />
                               <Text as="span" color="red.500" fontSize={"14px"}>
                                 Precio Contado:{" "}
-                                {formatCurrency( moneda === 'PYG' ? articulo.ar_pvg : articulo.ar_pvd)}
+                                {formatCurrency(
+                                  moneda === "PYG"
+                                    ? articulo.ar_pvg
+                                    : articulo.ar_pvd
+                                )}
                               </Text>
                               <Minus />
                               <Text as="span" color="red.500" fontSize={"14px"}>
                                 Precio Credito:{" "}
-                                {formatCurrency( moneda === 'PYG' ? articulo.ar_pvg : articulo.ar_pvdcredito)}
+                                {formatCurrency(
+                                  moneda === "PYG"
+                                    ? articulo.ar_pvg
+                                    : articulo.ar_pvdcredito
+                                )}
                               </Text>
                               <Minus />
                               <Text as="span" color="red.500" fontSize={"14px"}>
                                 Precio Mostrador:{" "}
-                                {formatCurrency( moneda === 'PYG' ? articulo.ar_pvg : articulo.ar_pvdmostrador)}
+                                {formatCurrency(
+                                  moneda === "PYG"
+                                    ? articulo.ar_pvg
+                                    : articulo.ar_pvdmostrador
+                                )}
                               </Text>
                               <Minus />
                               <Text
@@ -2552,19 +2605,16 @@ export default function PuntoDeVenta() {
                                 Stock {articulo.al_cantidad}
                               </Text>
                               <Minus />
-                              {
-                              articulo.ar_vencimiento === 1 ?
-                              (<Text
-                                as="span"
-                                color="gray.500"
-                                fontSize={"14px"}
-                              >
-                                Vencimiento:{" "}
-                                {articulo.al_vencimiento.substring(0, 10)}
-                              </Text>)
-                              : null
-                                
-                            }
+                              {articulo.ar_vencimiento === 1 ? (
+                                <Text
+                                  as="span"
+                                  color="gray.500"
+                                  fontSize={"14px"}
+                                >
+                                  Vencimiento:{" "}
+                                  {articulo.al_vencimiento.substring(0, 10)}
+                                </Text>
+                              ) : null}
                               {/*que enter cambie los inputs, y agregar cierre de sesion resaltar color del articulo agregar mas recomendaciones*/}
                             </Flex>
                             {/*/condicionar vencimiento*/}
@@ -2574,62 +2624,69 @@ export default function PuntoDeVenta() {
                     )}
                   </Box>
                   <Flex gap={4}>
-                  <Input
-                    type="number"
-                    placeholder="Cantidad"
-                    value={cantidad}
-                    onChange={(e) => setCantidad(parseInt(e.target.value))}
-                    width={"60px"}
-                    min={1}
-                    ref={cantidadRef}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        agregarItem();
-                        articuloRef.current?.focus();
-                      }
-                    }}
-                  />
-                  <Button
-                    colorScheme="green"
-                    onClick={() => agregarItem()}
-                    flexGrow={1}
-                  >
-                    +
-                  </Button>
+                    <Input
+                      type="number"
+                      placeholder="Cantidad"
+                      value={cantidad}
+                      onChange={(e) => setCantidad(parseInt(e.target.value))}
+                      width={"60px"}
+                      min={1}
+                      ref={cantidadRef}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          agregarItem();
+                          articuloRef.current?.focus();
+                        }
+                      }}
+                    />
+                    <Button
+                      colorScheme="green"
+                      onClick={() => agregarItem()}
+                      flexGrow={1}
+                    >
+                      +
+                    </Button>
                   </Flex>
                 </Flex>
-                <Box
-                  overflowX={"auto"}
-                  height={"300px"}
-                  width={"100%"}
-                  
-                >
+                <Box overflowX={"auto"} height={"300px"} width={"1920px"}>
                   <Table variant="striped" size={"sm"}>
                     <Thead position="sticky" top={0} bg="white" zIndex={0}>
                       <Tr>
-                        <Th width="100px">Código</Th>
-                        <Th width="20%">Nombre</Th>
-                        <Th width="150px" isNumeric>
+                        <Th width="100px" border={"1px solid #E2E8F0"}>
+                          Código
+                        </Th>
+                        <Th width="100px" border={"1px solid #E2E8F0"}>
+                          Nombre
+                        </Th>
+                        <Th width="10%" isNumeric border={"1px solid #E2E8F0"}>
+                          Vencimiento
+                        </Th>
+                        <Th width="10%" border={"1px solid #E2E8F0"}>
+                          Lote
+                        </Th>
+                        <Th width="10%" isNumeric border={"1px solid #E2E8F0"}>
                           Precio Unitario
                         </Th>
-                        <Th width="100px" isNumeric>
+
+                        <Th width="10%" isNumeric border={"1px solid #E2E8F0"}>
                           Cantidad
                         </Th>
-                        <Th width="120px" isNumeric>
+                        <Th width="10%" isNumeric border={"1px solid #E2E8F0"}>
                           Descuento (%)
                         </Th>
-                        <Th width="120px" isNumeric>
+                        <Th width="10%" isNumeric border={"1px solid #E2E8F0"}>
                           Subtotal
                         </Th>
-                        <Th width="50px"></Th>
+
+                        <Th width="5%" border={"1px solid #E2E8F0"}></Th>
                       </Tr>
                     </Thead>
                     <Tbody>
                       {items.map((item, index) => (
                         <Tr key={index}>
-                          <Td width="100px">{item.id}</Td>
-                          <Td width="20%">
+                          <Td width="10%">{item.id}</Td>
+                          <Td width="100px">
                             {item.ar_editar_desc === 0 ? (
                               item.nombre
                             ) : (
@@ -2646,14 +2703,26 @@ export default function PuntoDeVenta() {
                               />
                             )}
                           </Td>
-                          <Td width="150px">
+                          <Td>
+                            {item.al_vencimiento
+                              ? new Date(
+                                  item.al_vencimiento
+                                ).toLocaleDateString("es-ES", {
+                                  day: "2-digit",
+                                  month: "2-digit",
+                                  year: "numeric",
+                                })
+                              : ""}
+                          </Td>
+                          <Td>{item.al_codigo}</Td>
+                          <Td width="120px">
                             <Flex justify="flex-end">
                               <NumberInput
                                 value={item.precioUnitario}
                                 bg={"white"}
                                 min={0}
                                 step={1000}
-                                w="140px"
+                                w="120px"
                                 precision={2}
                                 onChange={(valueString) =>
                                   actualizarPrecioUnitario(
@@ -2670,14 +2739,14 @@ export default function PuntoDeVenta() {
                               </NumberInput>
                             </Flex>
                           </Td>
-                          <Td width="100px">
+                          <Td width="10%">
                             <Flex justify="flex-end">
                               <NumberInput
                                 value={item.cantidad}
                                 bg={"white"}
                                 min={1}
                                 max={1000}
-                                w="90px"
+                                w="120px"
                                 onChange={(valueString) =>
                                   actualizarCantidadItem(
                                     index,
@@ -2693,7 +2762,7 @@ export default function PuntoDeVenta() {
                               </NumberInput>
                             </Flex>
                           </Td>
-                          <Td width="120px">
+                          <Td width="10%">
                             <Flex justify="flex-end">
                               <NumberInput
                                 isDisabled={true}
@@ -2701,7 +2770,7 @@ export default function PuntoDeVenta() {
                                 bg={"white"}
                                 min={0}
                                 max={100}
-                                w="90px"
+                                w="120px"
                                 onChange={(valueString) =>
                                   actualizarDescuentoIndividual(
                                     index,
@@ -2717,13 +2786,13 @@ export default function PuntoDeVenta() {
                               </NumberInput>
                             </Flex>
                           </Td>
-                          <Td width="120px" isNumeric>
+                          <Td width="10%" isNumeric>
                             {formatCurrency(
                               item.subtotal *
                                 (1 - item.descuentoIndividual / 100)
                             )}
                           </Td>
-                          <Td width="50px">
+                          <Td width="5%">
                             <Button
                               size="xs"
                               colorScheme="red"
@@ -2740,160 +2809,223 @@ export default function PuntoDeVenta() {
                 <Divider borderWidth={"2px"} borderColor={"gray.600"} my={2} />
               </Box>
               <Flex
-                w={'100%'}
+                w={"100%"}
                 p={isMobile ? 2 : 4}
                 rounded="lg"
-                flexDirection={isMobile? 'column' : 'row'}
+                flexDirection={isMobile ? "column" : "row"}
                 gap={4}
                 flexGrow={1}
-                justifyContent={'space-between'}
-                alignItems={'center'}              >
+                justifyContent={"space-between"}
+                alignItems={"center"}
+              >
                 <Flex gap={4}>
-                <Flex
-                  gap={2}
-                  flexDirection={'column'}
-                  alignItems={"start"}
-                  justifyContent={isMobile? 'space-between' : 'start'}
-                >
-                  <Text fontSize={isMobile? 'large' :  "xx-large"} fontWeight={"bold"}>
-                    Total items: {items.length}
-                  </Text>
-                  <Text fontSize={isMobile? 'large' :  "x-large"} fontWeight={"semibold"}>
-                    Descuento
-                  </Text>
-                  <Flex flexDir={'column'} justifyContent={'start'} gap={4}>
-                    <Select
-                      value={descuentoTipo}
-                      onChange={(e) => {
-                        setDescuentoTipo(
-                          e.target.value as "porcentaje" | "valor"
-                        );
-                        setDescuentoValor(0);
-                      }}
-                      width={"full"}
-                    >
-                      <option value="porcentaje">Porcentaje</option>
-                      <option value="monto">Monto</option>
-                    </Select>
-                    <Input
-                      type="number"
-                      placeholder="Descuento"
-                      value={descuentoValor}
-                      onChange={(e) =>
-                        setDescuentoValor(parseInt(e.target.value))
-                      }
-                      width={"full"}
-                    />
-                  </Flex>
-                </Flex>
-
-                <Box pt={2} >
-                  <Text fontSize={isMobile? 'large' :  "x-large"} fontWeight="bold">
-                    Total Exentas: {formatCurrency(calcularTotalExcentas())}
-                  </Text>
-                  <Divider
-                    borderWidth={"2px"}
-                    borderColor={"blue.500"}
-                    my={1}
-                  />
-                  <Text fontSize={isMobile? 'large' :  "x-large"} fontWeight="bold">
-                    Total IVA 5%: {formatCurrency(calcularTotal5())}
-                  </Text>
-                  <Divider
-                    borderWidth={"2px"}
-                    borderColor={"blue.500"}
-                    my={1}
-                  />
-                  <Text fontSize={isMobile? 'large' :  "x-large"} fontWeight="bold">
-                    Total IVA 10%: {formatCurrency(calcularTotal10())}
-                  </Text>
-                  <Divider
-                    borderWidth={"2px"}
-                    borderColor={"blue.500"}
-                    my={1}
-                  />
-                  <Text fontSize={isMobile? 'large' :  "x-large"} fontWeight="bold">
-                    Total Impuestos: {formatCurrency(calcularTotalImpuestos())}
-                  </Text>
-                </Box>
-                </Flex>
-                <Flex
-                  flexDir={'column'}
-                  gap={4}
-                >
-                  <Box display={'flex'} justifyContent={'center'} flexDir={isMobile? 'column' : 'row'}  textAlign={"center"} mt={isMobile ? 2 : 0} gap={8}>
-                  <Text fontSize="xx-large" fontWeight="bold">
-                    Subtotal:{" "}
-                    {formatCurrency(
-                      items.reduce((acc, item) => acc + item.subtotal, 0)
-                    )}
-                  </Text>
-                  <Text fontSize="xx-large" fontWeight="bold">
-                    Descuento :{" "}
-                    {descuentoTipo === "porcentaje"
-                      ? `${descuentoValor}%`
-                      : formatCurrency(descuentoValor * tasasDeCambio[moneda])}
-                  </Text>
-                  <Text fontSize="xx-large" fontWeight="bold">
-                    Neto a pagar: {formatCurrency(calcularTotal())}
-                  </Text>
-                </Box>
-                <Flex
-                  position="relative"
-                  flexDirection={isMobile ? "column" : "row"}
-                  px={4}
-                  gap={4}
-                  border={"1px solid #E2E8F0"}
-                  h={"120px"}
-                  borderRadius={"md"}
-                  alignItems={"center"}
-                  justifyContent={"center"}
-                  flexGrow={1}
-                  bg={'green.800'}
-                >
-                  <Box
-                    position="absolute"
-                    top="-10px"
-                    left="20px"
-                    bg="gray.50"
-                    px={2}
-                    fontSize="sm"
-                    fontWeight="bold"
-                    color="gray.600"
+                  <Flex
+                    gap={2}
+                    flexDirection={"column"}
+                    alignItems={"start"}
+                    justifyContent={isMobile ? "space-between" : "start"}
                   >
+                    <Text
+                      fontSize={isMobile ? "large" : "xx-large"}
+                      fontWeight={"bold"}
+                    >
+                      Total items: {items.length}
+                    </Text>
+                    <Text
+                      fontSize={isMobile ? "large" : "x-large"}
+                      fontWeight={"semibold"}
+                    >
+                      Descuento
+                    </Text>
+                    <Flex flexDir={"column"} justifyContent={"start"} gap={4}>
+                      <Select
+                        value={descuentoTipo}
+                        onChange={(e) => {
+                          setDescuentoTipo(
+                            e.target.value as "porcentaje" | "valor"
+                          );
+                          setDescuentoValor(0);
+                        }}
+                        width={"full"}
+                      >
+                        <option value="porcentaje">Porcentaje</option>
+                        <option value="monto">Monto</option>
+                      </Select>
+                      <Input
+                        type="number"
+                        placeholder="Descuento"
+                        value={descuentoValor}
+                        onChange={(e) =>
+                          setDescuentoValor(parseInt(e.target.value))
+                        }
+                        width={"full"}
+                      />
+                    </Flex>
+                  </Flex>
+
+                  <Box pt={2}>
+                    <Text
+                      fontSize={isMobile ? "large" : "x-large"}
+                      fontWeight="bold"
+                    >
+                      Total Exentas: {formatCurrency(calcularTotalExcentas())}
+                    </Text>
+                    <Divider
+                      borderWidth={"2px"}
+                      borderColor={"blue.500"}
+                      my={1}
+                    />
+                    <Text
+                      fontSize={isMobile ? "large" : "x-large"}
+                      fontWeight="bold"
+                    >
+                      Total IVA 5%: {formatCurrency(calcularTotal5())}
+                    </Text>
+                    <Divider
+                      borderWidth={"2px"}
+                      borderColor={"blue.500"}
+                      my={1}
+                    />
+                    <Text
+                      fontSize={isMobile ? "large" : "x-large"}
+                      fontWeight="bold"
+                    >
+                      Total IVA 10%: {formatCurrency(calcularTotal10())}
+                    </Text>
+                    <Divider
+                      borderWidth={"2px"}
+                      borderColor={"blue.500"}
+                      my={1}
+                    />
+                    <Text
+                      fontSize={isMobile ? "large" : "x-large"}
+                      fontWeight="bold"
+                    >
+                      Total Impuestos:{" "}
+                      {formatCurrency(calcularTotalImpuestos())}
+                    </Text>
+                  </Box>
+                </Flex>
+                <Flex flexDir={"column"} gap={4}>
+                  <Box
+                    display={"flex"}
+                    justifyContent={"center"}
+                    flexDir={isMobile ? "column" : "row"}
+                    textAlign={"center"}
+                    mt={isMobile ? 2 : 0}
+                    gap={8}
+                  >
+                    <Text fontSize="xx-large" fontWeight="bold">
+                      Subtotal:{" "}
+                      {formatCurrency(
+                        items.reduce((acc, item) => acc + item.subtotal, 0)
+                      )}
+                    </Text>
+                    <Text fontSize="xx-large" fontWeight="bold">
+                      Descuento :{" "}
+                      {descuentoTipo === "porcentaje"
+                        ? `${descuentoValor}%`
+                        : formatCurrency(
+                            descuentoValor * tasasDeCambio[moneda]
+                          )}
+                    </Text>
+                    <Text fontSize="xx-large" fontWeight="bold">
+                      Neto a pagar: {formatCurrency(calcularTotal())}
+                    </Text>
                   </Box>
                   <Flex
+                    position="relative"
+                    flexDirection={isMobile ? "column" : "row"}
+                    px={4}
                     gap={4}
-                    justifyContent={'space-between'}
+                    border={"1px solid #E2E8F0"}
+                    h={"120px"}
+                    borderRadius={"md"}
+                    alignItems={"center"}
+                    justifyContent={"center"}
+                    flexGrow={1}
+                    bg={"green.800"}
                   >
-                    <Box>
-                      <FormLabel color={'white'} fontWeight={'bold'} fontSize={'large'}> 
-                        Total USD:
-                      </FormLabel>
-                      <Input type="text" value={formatNumber(totalDolares)}  h='48px' bg={'white'} fontSize={'x-large'} fontWeight={'bold'}/>
-                    </Box>
-                    <Box>
-                      <FormLabel color={'white'} fontWeight={'bold'} fontSize={'large'}>
-                        Total BRL:
-                      </FormLabel>
-                      <Input type="text" value={formatNumber(totalReales)}  bg={'white'} h='48px' fontSize={'x-large'} fontWeight={'bold'}/>
-                    </Box>
-                    <Box>
-                      <FormLabel color={'white'} fontWeight={'bold'} fontSize={'large'}>
-                        Total ARS:
-                      </FormLabel>
-                      <Input type="text" value={formatNumber(totalPesos)}  bg={'white'}  h='48px' fontSize={'x-large'} fontWeight={'bold'}/>
-                    </Box>
+                    <Box
+                      position="absolute"
+                      top="-10px"
+                      left="20px"
+                      bg="gray.50"
+                      px={2}
+                      fontSize="sm"
+                      fontWeight="bold"
+                      color="gray.600"
+                    ></Box>
+                    <Flex gap={4} justifyContent={"space-between"}>
+                      <Box>
+                        <FormLabel
+                          color={"white"}
+                          fontWeight={"bold"}
+                          fontSize={"large"}
+                        >
+                          Total USD:
+                        </FormLabel>
+                        <Input
+                          type="text"
+                          value={formatNumber(totalDolares)}
+                          h="48px"
+                          bg={"white"}
+                          fontSize={"x-large"}
+                          fontWeight={"bold"}
+                        />
+                      </Box>
+                      <Box>
+                        <FormLabel
+                          color={"white"}
+                          fontWeight={"bold"}
+                          fontSize={"large"}
+                        >
+                          Total BRL:
+                        </FormLabel>
+                        <Input
+                          type="text"
+                          value={formatNumber(totalReales)}
+                          bg={"white"}
+                          h="48px"
+                          fontSize={"x-large"}
+                          fontWeight={"bold"}
+                        />
+                      </Box>
+                      <Box>
+                        <FormLabel
+                          color={"white"}
+                          fontWeight={"bold"}
+                          fontSize={"large"}
+                        >
+                          Total ARS:
+                        </FormLabel>
+                        <Input
+                          type="text"
+                          value={formatNumber(totalPesos)}
+                          bg={"white"}
+                          h="48px"
+                          fontSize={"x-large"}
+                          fontWeight={"bold"}
+                        />
+                      </Box>
+                    </Flex>
                   </Flex>
                 </Flex>
-                </Flex>
-                <Box display={'flex'} flexDir={'column'}  textAlign={"right"} mt={isMobile ? 2 : 0}>
-
-                  <Flex gap={4} flexDir={isMobile? 'row' : 'column'} justifyContent={'center'} alignItems={'center'}>
+                <Box
+                  display={"flex"}
+                  flexDir={"column"}
+                  textAlign={"right"}
+                  mt={isMobile ? 2 : 0}
+                >
+                  <Flex
+                    gap={4}
+                    flexDir={isMobile ? "row" : "column"}
+                    justifyContent={"center"}
+                    alignItems={"center"}
+                  >
                     <Button
                       colorScheme="red"
-
-                      width={'full'}
+                      width={"full"}
                       onClick={cancelarVenta}
                     >
                       Cancelar Venta

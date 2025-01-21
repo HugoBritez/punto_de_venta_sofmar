@@ -22,6 +22,6 @@ export const version = '0.9.7'
 
 
 
-export const fechaRelease = '16/01/2025'
+export const fechaRelease = '18/01/2025'
 export const db = 'gaesa'
 export const userName = localStorage.getItem('userName')

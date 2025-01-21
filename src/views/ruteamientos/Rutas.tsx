@@ -70,8 +70,23 @@ const Rutas = () => {
       });
       setRutas(response.data.body);
       setRutaActual(response.data.body[0]);
+      if (response.data.body){
+        const rutaEnCurso = response.data.body.find((ruta: Agenda) => ruta.visitado === 'Sí');
+        if (rutaEnCurso) {
+          setInicioRuta(true);
+          localStorage.setItem("inicioRuta", "true");
+          setRutaActual(rutaEnCurso);
+        }
+      }
     } catch (error) {
       console.error("Error al traer las rutas:", error);
+      toast({
+        title: "Error",
+        description: "Hubo un problema al traer las rutas.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
     }
   };
 
@@ -106,14 +121,11 @@ const Rutas = () => {
 
   const handleFinalizarVisita = () => {
     if (rutas.length > 0) {
-      console.log('Finalizando visita')
-      console.log(rutaActual?.a_codigo)
       const updatedRutas = rutas.filter(ruta => ruta.a_codigo !== rutaActual?.a_codigo)
       setRutas(updatedRutas)
     
       if (updatedRutas.length > 0) {
         setRutaActual(updatedRutas[0])
-        console.log(updatedRutas[0])
       } else {
         setRutaActual(null)
         setInicioRuta(false)
@@ -136,28 +148,42 @@ const Rutas = () => {
     return clienteEncontrado?.cli_codigo;
   };
 
-
   return (
     <>
       <Box bg={"gray.100"} h={"100vh"} w={"100%"} p={2}>
-      <VStack spacing={4} align="stretch" bg={'white'} p={2} borderRadius={'md'} boxShadow={'sm'} h={'100%'}> 
+        <VStack
+          spacing={4}
+          align="stretch"
+          bg={"white"}
+          p={2}
+          borderRadius={"md"}
+          boxShadow={"sm"}
+          h={"100%"}
+        >
           <HeaderComponent titulo={"Rutas"} Icono={Truck} />
-          {inicioRuta? <Text fontSize="md" fontWeight="bold" color="red.500" align={'center'}>Ruta en curso</Text>: 
-          (
-            <Flex
-            bg={"green.500"}
-            h={20}
-            borderRadius={"md"}
-            p={4}
-            alignItems={"center"}
-            justify={"center"}
-          >
-            <Text fontSize={20} color={"white"} fontWeight={"bold"}>
-              Bienvenido, {operadorActualNombre}
+          {inicioRuta ? (
+            <Text
+              fontSize="md"
+              fontWeight="bold"
+              color="red.500"
+              align={"center"}
+            >
+              Ruta en curso
             </Text>
-          </Flex>
-          )
-          }
+          ) : (
+            <Flex
+              bg={"green.500"}
+              h={20}
+              borderRadius={"md"}
+              p={4}
+              alignItems={"center"}
+              justify={"center"}
+            >
+              <Text fontSize={20} color={"white"} fontWeight={"bold"}>
+                Bienvenido, {operadorActualNombre}
+              </Text>
+            </Flex>
+          )}
           <Flex justify={"space-between"} alignItems={"center"} gap={4}>
             <Divider colorScheme="blue"></Divider>
             <Text fontSize={"medium"} fontWeight={"bold"}>
@@ -168,8 +194,10 @@ const Rutas = () => {
           {inicioRuta ? (
             <RutaActualCard
               clienteNombre={rutaActual?.cliente}
-              clienteId={rutaActual?.cliente ? clienteId(rutaActual.cliente) : undefined}
-              vendedorId={rutaActual?.vendcod ? Number(rutaActual.vendcod) : undefined}
+              clienteId={rutaActual?.cliente_id}
+              vendedorId={
+                rutaActual?.vendcod ? Number(rutaActual.vendcod) : undefined
+              }
               clienteTelefono={rutaActual?.cli_tel}
               observacion={rutaActual?.a_obs}
               fecha={rutaActual?.fecha}
@@ -185,7 +213,9 @@ const Rutas = () => {
               longitud={rutaActual?.a_longitud}
               fetchRuteamientos={() => fetchRuteamientos(operadorActual)}
               onFinalizarVisita={handleFinalizarVisita}
+              visita_en_curso={rutaActual?.visita_en_curso}
             />
+
           ) : (
             <Grid
               width={"100%"}
@@ -229,7 +259,9 @@ const Rutas = () => {
           borderRadius="md"
           h="3rem"
           p={4}
-          colorScheme={rutas.length === 0 ? "gray" : (inicioRuta ? "red" : "green")}
+          colorScheme={
+            rutas.length === 0 ? "gray" : inicioRuta ? "red" : "green"
+          }
           boxShadow="lg"
           onClick={inicioRuta ? handlePararRuta : handleInicioRuta}
         >

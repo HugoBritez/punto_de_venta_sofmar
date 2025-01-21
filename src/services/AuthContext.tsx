@@ -8,10 +8,18 @@ interface AuthState {
   userSuc: string;
   permisosAutorizarPedido: number;
   permisoVerUtilidad: number;
+  permisoVerProveedor: number;
   tokenExpiration: number
   rol: number
   movimiento: number
+  permisos_menu: {
+    acceso: number;
+    menu_id: number;
+    menu_descripcion: string;
+  }[]
+
 }
+
 
 interface LoginData {
   token: string;
@@ -21,8 +29,14 @@ interface LoginData {
     op_sucursal: string;
     op_autorizar: number;
     op_ver_utilidad: number;
+    op_ver_proveedor: number;
     op_movimiento: number;
     rol: number
+    permisos_menu: {
+      acceso: number;
+      menu_id: number;
+      menu_descripcion: string;
+    }[]
   }];
 }
 
@@ -50,14 +64,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const userSuc = localStorage.getItem('user_suc');
       const permisosAutorizarPedido = Number(localStorage.getItem('permisos_autorizar_pedido'));
       const permisoVerUtilidad = Number(localStorage.getItem('permiso_ver_utilidad'));
+      const permisoVerProveedor = Number(localStorage.getItem('permiso_ver_proveedor'));
       const tokenExpiration = Number(localStorage.getItem('token_expiration'));
       const rol = Number(localStorage.getItem('rol'));
 
+
       if (token && userId && userName && userSuc) {
-        setAuth({ token, userId, userName, userSuc, permisosAutorizarPedido, permisoVerUtilidad, tokenExpiration, rol, movimiento: Number(movimiento) });
+        setAuth({ token, userId, userName, userSuc, permisosAutorizarPedido, permisoVerUtilidad, permisoVerProveedor, tokenExpiration, rol, movimiento: Number(movimiento), permisos_menu: [] });
         axios.defaults.headers.common['Authorization'] = token;
       }
       setIsLoading(false);
+
+
     };
 
     loadAuthState();
@@ -98,7 +116,6 @@ useEffect(() => {
   const login = (data: LoginData) => {
     const expirationTime = new Date().getTime() + (30 * 60 * 1000);
 
-    console.log('Datos del login recibidos' ,data);
 
     const authData: AuthState = {
       token: `Bearer ${data.token}`,
@@ -107,13 +124,14 @@ useEffect(() => {
       userSuc: data.usuario[0].op_sucursal,
       permisosAutorizarPedido: data.usuario[0].op_autorizar,
       permisoVerUtilidad: data.usuario[0].op_ver_utilidad,
+      permisoVerProveedor: data.usuario[0].op_ver_proveedor,
       tokenExpiration: expirationTime,
       rol: data.usuario[0].rol,
-      movimiento: data.usuario[0].op_movimiento
+      movimiento: data.usuario[0].op_movimiento,
+      permisos_menu: data.usuario[0].permisos_menu
+
     };
 
-
-    console.log('Datos del login a guardar en el localstorage' ,authData);
 
     localStorage.setItem('token', authData.token);
     localStorage.setItem('user_id', authData.userId);
@@ -123,8 +141,10 @@ useEffect(() => {
     localStorage.setItem('operador_movimiento', authData.userId);
 
     localStorage.setItem('permiso_ver_utilidad', authData.permisoVerUtilidad.toString());
+    localStorage.setItem('permiso_ver_proveedor', authData.permisoVerProveedor.toString());
     localStorage.setItem('token_expiration', expirationTime.toString()); 
     localStorage.setItem('rol', authData.rol?  authData.rol.toString() : '7');
+    localStorage.setItem('permisos_menu', JSON.stringify(authData.permisos_menu));
     
     setAuth(authData);
 
@@ -138,11 +158,17 @@ useEffect(() => {
     localStorage.removeItem('user_suc');
     localStorage.removeItem('permisos_autorizar_pedido');
     localStorage.removeItem('permiso_ver_utilidad');
+    localStorage.removeItem('permiso_ver_proveedor');
     localStorage.removeItem('operador_movimiento');
     setAuth(null);
     localStorage.removeItem('token_expiration'); 
+    localStorage.removeItem('permisos_menu');
+    localStorage.removeItem('rol');
+
     delete axios.defaults.headers.common['Authorization'];
   };
+
+
 
   return (
     <AuthContext.Provider value={{ auth, login, logout, isLoading }}>

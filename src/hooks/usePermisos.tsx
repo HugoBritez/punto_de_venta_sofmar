@@ -23,7 +23,6 @@ const usePermisos = (menuId: number) => {
                 setLoading(false);
             }
         };
-
         traerPermisos();
     }, [menuId, navigate]);
 

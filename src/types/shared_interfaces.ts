@@ -48,7 +48,11 @@ export interface Agenda {
     l_latitud: string;
     a_prox_llamada: string;
     a_prox_acti: string;
+    deudas_cliente: number;
+    cliente_id: number;
+    visita_en_curso: number;
 }
+
 
 export interface Localizacion {
     fecha: string;
@@ -376,5 +380,24 @@ export interface Entrega {
   descuento: number,
   total: number,
 
+}
+
+export interface Ubicacion {
+  ub_codigo: number;
+  ub_descripcion: string;
+}
+
+export interface Marca {
+  ma_codigo: number
+  ma_descripcion: string
+}
+export interface Subcategoria {
+  sc_codigo: number
+  sc_descripcion: string
+}
+
+export interface UnidadMedida {
+  um_codigo: number
+  um_descripcion: string
 }
 

@@ -63,7 +63,10 @@ interface RutaActualCardProps {
   ruteamientoId?: number;
   fetchRuteamientos?: () => void;
   onFinalizarVisita: () => void;
+  visita_en_curso?: number;
 }
+
+
 
 interface VentaAgenda {
   id_venta: number;
@@ -98,7 +101,6 @@ interface PedidoAgenda {
 const RutaActualCard = ({
   clienteNombre = "Cliente sin nombre",
   clienteId,
-  vendedorId,
   clienteTelefono,
   fecha = "19/10/1998",
   hora = "",
@@ -106,9 +108,12 @@ const RutaActualCard = ({
   ruteamientoId = 0,
   fetchRuteamientos,
   onFinalizarVisita,
+  visita_en_curso
 }: RutaActualCardProps) => {
   const [nota, setNota] = useState<string>("");
   const [notasRuteamiento, setNotasRuteamiento] = useState<Nota[]>([]);
+
+
   const toast = useToast();
   const [llegadaMarcada, setLlegadaMarcada] = useState<boolean>(false);
   const {
@@ -204,10 +209,12 @@ const RutaActualCard = ({
             await axios.post(`${api_url}agendas/registrar-llegada`, {
               l_agenda: ruteamientoId,
               l_fecha: new Date().toISOString().split("T")[0],
-              l_hora_inicio: new Date()
-                .toISOString()
-                .split("T")[1]
-                .split(".")[0],
+              l_hora_inicio: new Date().toLocaleTimeString('es-PY', {
+                hour: '2-digit', 
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+              }),
               l_obs: "Llegada del vendedor",
               l_cliente: clienteId,
               l_operador: localStorage.getItem("user_id"),
@@ -382,7 +389,6 @@ const RutaActualCard = ({
 
   useEffect(() => {
     fetchNotasRuteamiento(ruteamientoId);
-
     const llegadaMarcadaStatus = localStorage.getItem(
       `llegadaMarcada_${ruteamientoId}`
     );
@@ -396,13 +402,10 @@ const RutaActualCard = ({
   useEffect(() => {
     const cargarPedidosYDetalles = async () => {
       try {
-        // Primero cargamos los pedidos
         const responsePedidos = await axios.post(`${api_url}agendas/consultar-pedidos-y-detalles`, {
           cliente: clienteId,
         });
-        console.log(responsePedidos.data.body);
         setPedidos(responsePedidos.data.body);
-
       } catch (error) {
         toast({
           title: "Error al cargar los pedidos y detalles",
@@ -413,7 +416,6 @@ const RutaActualCard = ({
         });
       }
     };
-
     cargarPedidosYDetalles();
   }, [clienteId]);
 
@@ -427,10 +429,7 @@ const RutaActualCard = ({
             cliente: clienteId,
           }
         );
-        console.log(responseVentas.data.body);
         setVentas(responseVentas.data.body);
-        
-
       } catch (error) {
         toast({
           title: "Error al cargar las ventas y detalles",
@@ -445,8 +444,20 @@ const RutaActualCard = ({
     cargarVentasYDetalles();
   }, [clienteId]);
 
+  useEffect(() => {
+    console.log('Props del padre', {
+      visita_en_curso,
+      llegadaMarcada,
+      onOpen,
+      onClose,
+      onCloseVenta,
+      onClosePedido,
+    })
+  }, [])
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("es-PY", {
+
       style: "currency",
       currency: "PYG",
       minimumFractionDigits: 0,
@@ -488,22 +499,30 @@ const RutaActualCard = ({
               </Flex>
             </Box>
             <Button
-              colorScheme={llegadaMarcada ? "red" : "green"}
+              colorScheme={visita_en_curso === 1 ? "red" : (llegadaMarcada ? "red" : "green")}
               w={"100%"}
               h={16}
+
               onClick={
-                llegadaMarcada
-                  ? () => {
-                      onOpen();
-                      marcarSalida();
-                    }
-                  : marcarLLegada
+                visita_en_curso === 1 ? () => {
+                  onOpen()
+                  marcarSalida()
+                }
+                 : (
+                    llegadaMarcada
+                   ? () => {
+                       onOpen();
+                       marcarSalida();
+                     }
+                   : marcarLLegada
+                )
               }
             >
-              <Text>{llegadaMarcada ? "Marcar Salida" : "Marcar LLegada"}</Text>{" "}
-              {llegadaMarcada ? <MapPinCheckInside /> : <MapPinPlus />}
+              <Text>{visita_en_curso === 1 ? "Marcar Salida" : (llegadaMarcada ? "Marcar Salida" : "Marcar LLegada")}</Text>{" "}
+              {visita_en_curso === 1 ? <MapPinCheckInside /> : (llegadaMarcada ? <MapPinCheckInside /> : <MapPinPlus />)}
             </Button>
             <Tabs align="end" variant="soft-rounded" colorScheme="green">
+
               <TabList mb="1em">
                 <Tab>
                   <SquarePen />
@@ -600,61 +619,61 @@ const RutaActualCard = ({
           <ModalCloseButton />
           <ModalBody>
             <VStack spacing={4} w="100%">
-              {ventas.map((venta) => (
-                <Box
-                  key={venta.id_venta}
-                  w="100%"
-                  borderRadius="lg"
-                  bg="gray.50"
-                  p={4}
-                  border={"1px solid"}
-                  borderColor={"green.600"}
-                >
-                  <Flex justify="space-between" align="center" mb={4}>
-                    <Heading size="md">Venta #{venta.id_venta}</Heading>
-                    <Badge colorScheme="green" fontSize="sm" p={2} variant="solid">
-                      {venta.fecha_venta}
-                    </Badge>
+              {ventas.length > 0 ? (  
+                ventas.map((venta) => (
+                  <Box
+                    key={venta.id_venta}
+                    w="100%"
+                    borderRadius="lg"
+                    bg="gray.50"
+                    p={4}
+                    border={"1px solid"}
+                    borderColor={"green.600"}
+                  >
+                    <Flex justify="space-between" align="center" mb={4}>
+                      <Heading size="md">Venta #{venta.id_venta}</Heading>
+                      <Badge colorScheme="green" fontSize="sm" p={2} variant="solid">
+                        {venta.fecha_venta}
+                      </Badge>
+                    </Flex>
 
-                  </Flex>
-
-                  <Box maxH="300px" overflowY="auto">
-                    {venta.detalles?.map((detalle, idx) => (
-                      <Flex
-                        key={idx}
-                        justify="space-between"
-                        bg="white"
-                        p={4}
-                        mb={2}
-
-                        borderRadius="md"
-                        boxShadow="sm"
-                        _hover={{ boxShadow: "md" }}
-                        transition="all 0.2s"
-                      >
-                        <VStack align="start" spacing={1}>
-                          <Heading size="sm">{detalle.producto}</Heading>
-                          <Text color="gray.600" fontSize="sm">
-                            Cantidad: {detalle.cantidad}
-                          </Text>
-                        </VStack>
-                        <VStack align="end" spacing={1}>
-                          <Heading size="sm" color="green.600">
-                            {formatCurrency(detalle.precio * detalle.cantidad)}
-                          </Heading>
-                          <Text fontSize="xs" color="gray.500">
-                            {formatCurrency(detalle.precio)} c/u
-                          </Text>
-                        </VStack>
-                      </Flex>
-                    ))}
+                    <Box maxH="300px" overflowY="auto">
+                      {venta.detalles?.map((detalle, idx) => (
+                        <Flex
+                          key={idx}
+                          justify="space-between"
+                          bg="white"
+                          p={4}
+                          mb={2}
+                          borderRadius="md"
+                          boxShadow="sm"
+                          _hover={{ boxShadow: "md" }}
+                          transition="all 0.2s"
+                        >
+                          <VStack align="start" spacing={1}>
+                            <Heading size="sm">{detalle.producto}</Heading>
+                            <Text color="gray.600" fontSize="sm">
+                              Cantidad: {detalle.cantidad}
+                            </Text>
+                          </VStack>
+                          <VStack align="end" spacing={1}>
+                            <Heading size="sm" color="green.600">
+                              {formatCurrency(detalle.precio * detalle.cantidad)}
+                            </Heading>
+                            <Text fontSize="xs" color="gray.500">
+                              {formatCurrency(detalle.precio)} c/u
+                            </Text>
+                          </VStack>
+                        </Flex>
+                      ))}
+                    </Box>
+                    <Flex justify="flex-end" bg="white" p={2} mt={2} borderRadius="md">
+                      <Heading size="sm">Total: {formatCurrency(venta.total_venta)}</Heading>
+                    </Flex>
                   </Box>
-
-                  <Flex justify="flex-end" bg="white" p={2} mt={2} borderRadius="md">
-                    <Heading size="sm">Total: {formatCurrency(venta.total_venta)}</Heading>
-                  </Flex>
-                </Box>
-              ))}
+                ))) : (
+                <Text>No hay ventas para mostrar</Text>
+              )}
             </VStack>
           </ModalBody>
         </ModalContent>
@@ -669,7 +688,7 @@ const RutaActualCard = ({
         <ModalContent>
           <ModalHeader>
             <VStack align="stretch" spacing={2}>
-              <Text fontWeight="bold">Últimos pedidos de {clienteNombre}</Text>
+              <Text fontWeight="semibold" fontSize={"lg"}>Últimos pedidos de {clienteNombre}</Text>
               <Divider />
             </VStack>
           </ModalHeader>
@@ -681,13 +700,15 @@ const RutaActualCard = ({
               </Flex>
             ) : (
               <VStack spacing={4} w="100%">
-                {pedidos.map((pedido) => (
-                  <Box
-                    key={pedido.id_pedido}
-                    w="100%"
-                    borderRadius="lg"
-                    bg="gray.50"
-                    p={4}
+                {pedidos.length > 0 ? (
+                  pedidos.map((pedido) => (
+                    <Box
+                      key={pedido.id_pedido}
+                      w="100%"
+                      borderRadius="lg"
+                      bg="gray.50"
+                      p={4}
+
                     border={"1px solid"}
                     borderColor={"blue.600"}
                   >
@@ -762,7 +783,9 @@ const RutaActualCard = ({
                       </Heading>
                     </Flex>
                   </Box>
-                ))}
+                ))) : (
+                  <p className="text-center font-bold text-gray-500 mb-8">No hay pedidos para mostrar</p>
+                )}
               </VStack>
             )}
           </ModalBody>

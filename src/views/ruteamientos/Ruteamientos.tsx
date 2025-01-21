@@ -4,7 +4,6 @@ import {
   Flex,
   FormLabel,
   Input,
-  InputGroup,
   Select,
   useMediaQuery,
   VStack,
@@ -53,6 +52,7 @@ import { es } from "date-fns/locale";
 import { useAuth } from "@/services/AuthContext";
 import Auditar from "@/services/AuditoriaHook";
 import { usePDF } from "react-to-pdf";
+import { ModalMultiselector } from "@/modules/ModalMultiselector";
 
 const periodos = [
   { label: "Hoy", value: "hoy" },
@@ -71,8 +71,6 @@ const Ruteamientos = () => {
     format(new Date(), "yyyy-MM-dd")
   );
   const [periodoSeleccionado, setPeriodoSeleccionado] = useState(0);
-  const [vendedorFiltro] = useState("");
-  const [clienteFiltro, setClienteFiltro] = useState("");
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
   const [isMobile] = useMediaQuery("(max-width: 768px)");
   const [ruteamientos, setRuteamientos] = useState<Agenda[]>([]);
@@ -97,9 +95,12 @@ const Ruteamientos = () => {
   const [horaProxima, setHoraProxima] = useState("");
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
+  const [clientesSeleccionadoParaFiltro, setClientesSeleccionadoParaFiltro] = useState<number[] > ([])
+  const [vendedoresSeleccionadosParaFiltro, setVendedorSeleccionadoParaFiltro] = useState<number[] > ([])
   const [vendedorBusqueda, setVendedorBusqueda] = useState("");
   const [clienteBusqueda, setClienteBusqueda] = useState("");
   const [recomendacionesClientes, setRecomendacionesClientes] = useState<
+
     typeof clientes
   >([]);
   const [recomendacionesVendedores, setRecomendacionesVendedores] = useState<
@@ -110,7 +111,6 @@ const Ruteamientos = () => {
   >(null);
   const [, setError] = useState<string | null>(null);
   const { auth } = useAuth();
-
   const vendedorActual = Number(localStorage.getItem("user_id"));
   const operadorNombre = localStorage.getItem("user_name");
   const handlePeriodoChange = (index: number) => {
@@ -230,14 +230,14 @@ const Ruteamientos = () => {
       const response = await axios.post(`${api_url}agendas/`, {
         fecha_desde: fechaDesde,
         fecha_hasta: fechaHasta,
-        cliente: clienteFiltro,
-        vendedor: vendedorFiltro,
+        cliente: clientesSeleccionadoParaFiltro,
+        vendedor: vendedoresSeleccionadosParaFiltro,
         visitado: filtroCondicion,
         estado: filtroEstado,
         planificacion: filtroPlanificacion,
         orden: filtroOrden,
       });
-      console.log(response.data.body);
+
       setRuteamientos(response.data.body);
     } catch (error) {
       toast({
@@ -353,6 +353,8 @@ const Ruteamientos = () => {
 
   useEffect(() => {
     fetchRuteamientos();
+    fetchClientes();
+    fetchVendedores();
   }, [
     fechaDesde,
     fechaHasta,
@@ -363,6 +365,18 @@ const Ruteamientos = () => {
     filtroPlanificacion,
     filtroOrden,
   ]);
+
+  const {
+    onOpen: onClienteOpen,
+    onClose: onClienteClose,
+    isOpen: isClienteOpen,
+  } = useDisclosure();
+
+  const {
+    onOpen: onVendedorOpen,
+    onClose: onVendedorClose,
+    isOpen: isVendedorOpen,
+  } = useDisclosure();
 
   const cancelarAgenda = () => {
     setFechaAgendamiento("");
@@ -398,13 +412,7 @@ const Ruteamientos = () => {
                 onChange={(e) => setVendedorFiltro(e.target.value)}
               />
             </InputGroup> */}
-            <InputGroup>
-              <Input
-                placeholder="Filtrar por cliente"
-                value={clienteFiltro}
-                onChange={(e) => setClienteFiltro(e.target.value)}
-              />
-            </InputGroup>
+
             <IconButton
               icon={<Pencil />}
               onClick={() => {
@@ -442,6 +450,22 @@ const Ruteamientos = () => {
                 type="date"
                 value={fechaHasta}
                 onChange={(e) => setFechaHasta(e.target.value)}
+              />
+            </Box>
+            <Box flex={1}>
+              <FormLabel>Filtrar por cliente:</FormLabel>
+              <Input
+                readOnly
+                placeholder="Buscar cliente"
+                onClick={() => onClienteOpen()}
+              />
+            </Box>
+            <Box flex={1}>
+              <FormLabel>Filtrar por vendedor:</FormLabel>
+              <Input
+                readOnly
+                placeholder="Buscar vendedor"
+                onClick={() => onVendedorOpen()}
               />
             </Box>
             <Box flex={1}>
@@ -880,6 +904,92 @@ const Ruteamientos = () => {
           </ModalFooter>
         </ModalContent>
       </Modal>
+      <ModalMultiselector
+        isOpen={isClienteOpen}
+        onClose={onClienteClose}
+        title="Filtrar por cliente"
+        items={clientes}
+        onSearch={(busquedaCliente) => {
+          if (busquedaCliente.length > 0) {
+            const filteredClientes = clientes.filter(
+              (cliente) =>
+                cliente.cli_razon
+                  .toLowerCase()
+                  .includes(busquedaCliente.toLowerCase()) ||
+                cliente.cli_ruc.includes(busquedaCliente) ||
+                cliente.cli_interno.toString().includes(busquedaCliente)
+            );
+            return filteredClientes;
+          }
+          return clientes;
+        }}
+        onSelect={(item) => {
+          setClientesSeleccionadoParaFiltro((prev) => {
+            if (!prev) return [item.cli_codigo];
+            const exists = prev.includes(item.cli_codigo);
+            if (exists) {
+              return prev.filter((codigo) => codigo !== item.cli_codigo);
+            }
+            return [...prev, item.cli_codigo];
+          });
+        }}
+        onConfirm={() => {
+          onClienteClose();
+          fetchRuteamientos();
+        }}
+        idField="cli_codigo"
+        displayField="cli_razon"
+
+        selectedItems={clientesSeleccionadoParaFiltro?.map((codigo) => {
+          const cliente = clientes.find((c) => c.cli_codigo === codigo);
+          return cliente || { cli_codigo: codigo, cli_razon: "" };
+        })}
+        searchPlaceholder="Buscar cliente por nombre"
+      />
+      <ModalMultiselector
+        isOpen={isVendedorOpen}
+        onClose={onVendedorClose}
+        title="Filtrar por vendedores"
+        items={vendedores}
+        onSearch={(busquedaVendedor) => {
+          if (busquedaVendedor.length > 0) {
+            const filteredVendedores = vendedores.filter(
+              (vendedor) =>
+                vendedor.op_nombre
+                  .toLowerCase()
+                  .includes(busquedaVendedor.toLowerCase()) ||
+                vendedor.op_codigo.includes(busquedaVendedor) ||
+                vendedor.op_codigo.toString().includes(busquedaVendedor)
+            );
+            return filteredVendedores;
+          }
+          return vendedores;
+        }}
+        onSelect={(item) => {
+          setVendedorSeleccionadoParaFiltro((prev) => {
+            if (!prev) return [Number(item.op_codigo)];
+            const exists = prev.includes(Number(item.op_codigo));
+            if (exists) {
+              return prev.filter((codigo) => codigo !== Number(item.op_codigo));
+            }
+            return [...prev, Number(item.op_codigo)];
+          });
+        }}
+        onConfirm={() => {
+          onVendedorClose();
+          fetchRuteamientos();
+        }}
+        idField="op_codigo"
+        displayField="op_nombre"
+        searchPlaceholder="Buscar vendedor por nombre"
+
+        selectedItems={vendedoresSeleccionadosParaFiltro?.map((codigo) => {
+          const vendedor = vendedores.find(
+            (v) => v.op_codigo === String(codigo)
+          );
+          return vendedor || { op_codigo: String(codigo), op_nombre: "" };
+        })}
+      />
     </Box>
   );
 };
