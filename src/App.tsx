@@ -38,7 +38,7 @@ import InformeVentas from "./views/ventas/informeVentas";
 import RuteamientoPedidos from "./views/entregas/ruteamientopedidos";
 import Entregas from "./views/entregas/entregas";
 import InformeEntregas from "./views/entregas/informeEntregas";
-
+import Home from "./views/home/home";
 
 const ProtectedLayout: React.FC = () => {
   const { auth, isLoading } = useAuth();
@@ -81,9 +81,11 @@ function App() {
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route element={<ProtectedLayout />}>
+                <Route path="/home" element={<Home />} />
                 <Route
                   path="/ruteamiento-de-pedidos"
                   element={<RuteamientoPedidos />}
+
                 />
                 <Route path="/entrega-de-pedidos" element={<Entregas />} />
                 <Route path="/informe-de-entregas" element={<InformeEntregas />} />

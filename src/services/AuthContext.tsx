@@ -149,7 +149,10 @@ useEffect(() => {
     setAuth(authData);
 
     axios.defaults.headers.common['Authorization'] = authData.token;
+
+    console.log(authData);
   };
+
 
   const logout = () => {
     localStorage.removeItem('token');

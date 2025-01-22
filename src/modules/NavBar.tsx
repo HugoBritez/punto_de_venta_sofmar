@@ -34,6 +34,7 @@ import {
   Newspaper,
   Forklift,
   FileBox,
+  Home,
 } from "lucide-react";
 import { useAuth } from "@/services/AuthContext";
 import { db, fechaRelease, userName, version } from "@/utils";
@@ -58,10 +59,34 @@ const Sidebar = () => {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const permisos_menu_local = JSON.parse(localStorage.getItem('permisos_menu') || '[]');
+  const permisos_menu_local = (() => {
+    try {
+      const stored = localStorage.getItem("permisos_menu");
+      if (!stored) return [];
+      const parsed = JSON.parse(stored);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      console.warn("Error parsing permisos_menu:", error);
+      return [];
+    }
+  })();
 
+  
   const NAV_ITEMS: NavItem[] = [
-    {id:249,  name: "Dashboard", icon: ChartSpline, path: "/dashboard", enabled: true },
+    {
+      id: 0, // ID 0 para indicar que es accesible para todos
+      name: "Inicio",
+      icon: Home,
+      path: "/home",
+      enabled: true,
+    },
+    {
+      id: 249,
+      name: "Dashboard",
+      icon: ChartSpline,
+      path: "/dashboard",
+      enabled: true,
+    },
     {
       name: "Módulo Financiero",
       icon: Receipt,
@@ -73,7 +98,7 @@ const Sidebar = () => {
           name: "Op. Caja Diaria",
           icon: SmartphoneNfc,
           path: "/cobros",
-          enabled: true, 
+          enabled: true,
         },
         {
           id: 146,
@@ -207,7 +232,13 @@ const Sidebar = () => {
           path: "/ruteamientos",
           enabled: true,
         },
-        {id: 56, name: "Iniciar Rutas", icon: Truck, path: "/rutas", enabled: true },
+        {
+          id: 56,
+          name: "Iniciar Rutas",
+          icon: Truck,
+          path: "/rutas",
+          enabled: true,
+        },
         {
           id: 69,
           name: "Dashboard Ruteamientos",
@@ -249,25 +280,24 @@ const Sidebar = () => {
   ];
 
   const [menuItems, setMenuItems] = useState(NAV_ITEMS);
-    useEffect(() => {
-      const tienePermiso = (menuId: number | undefined) => {
-        if (!menuId) return true; 
-        return permisos_menu_local.some(
-          (permiso: any) => permiso.menu_id === menuId && permiso.acceso === 1
-        );
-      };
-      const menuConPermisos = NAV_ITEMS.map((item) => ({
-        ...item,
-        enabled: tienePermiso(item.id),
-        subItems: item.subItems?.map((subItem) => ({
-          ...subItem,
-          enabled: tienePermiso(subItem.id),
-        })),
-      }));
+  useEffect(() => {
+    const tienePermiso = (menuId: number | undefined) => {
+      if (menuId === 0 || !menuId) return true;
+      return permisos_menu_local?.some?.(
+        (permiso: any) => permiso.menu_id === menuId && permiso.acceso === 1
+      );
+    };
+    const menuConPermisos = NAV_ITEMS.map((item) => ({
+      ...item,
+      enabled: tienePermiso(item.id),
+      subItems: item.subItems?.map((subItem) => ({
+        ...subItem,
+        enabled: tienePermiso(subItem.id),
+      })),
+    }));
 
-      setMenuItems(menuConPermisos);
-    }, []);
-
+    setMenuItems(menuConPermisos);
+  }, []);
 
   const handleMouseEnter = () => {
     if (isLargerThan768) {
@@ -307,7 +337,6 @@ const Sidebar = () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
-
 
   const renderNavItem = (item: NavItem) => (
     <GridItem key={item.name} borderTopLeftRadius="15px">

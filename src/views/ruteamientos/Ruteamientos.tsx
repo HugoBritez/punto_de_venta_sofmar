@@ -53,6 +53,7 @@ import { useAuth } from "@/services/AuthContext";
 import Auditar from "@/services/AuditoriaHook";
 import { usePDF } from "react-to-pdf";
 import { ModalMultiselector } from "@/modules/ModalMultiselector";
+import { debounce } from "lodash";
 
 const periodos = [
   { label: "Hoy", value: "hoy" },
@@ -99,10 +100,7 @@ const Ruteamientos = () => {
   const [vendedoresSeleccionadosParaFiltro, setVendedorSeleccionadoParaFiltro] = useState<number[] > ([])
   const [vendedorBusqueda, setVendedorBusqueda] = useState("");
   const [clienteBusqueda, setClienteBusqueda] = useState("");
-  const [recomendacionesClientes, setRecomendacionesClientes] = useState<
 
-    typeof clientes
-  >([]);
   const [recomendacionesVendedores, setRecomendacionesVendedores] = useState<
     typeof vendedores
   >([]);
@@ -118,7 +116,6 @@ const Ruteamientos = () => {
     const hoy = new Date();
     let nuevaFechaDesde = hoy;
     let nuevaFechaHasta = hoy;
-
     switch (periodos[index].value) {
       case "hoy":
         nuevaFechaDesde = hoy;
@@ -146,11 +143,8 @@ const Ruteamientos = () => {
     setFechaHasta(format(nuevaFechaHasta, "yyyy-MM-dd"));
   };
 
-  const operadorMovimiento = Number(
-    localStorage.getItem("operador_movimiento")
-  );
 
-  const operadorActual = Number(localStorage.getItem("user_id"));
+
 
   const agregarRuteamiento = () => {
     if (!clienteSeleccionado) {
@@ -251,42 +245,22 @@ const Ruteamientos = () => {
     }
   };
 
-  const fetchVendedores = async () => {
+  const fetchVendedores = async (busqueda: string = "") => {
     if (!auth) {
       setError("No estás autentificado");
       return;
-    }
-    try {
-      const response = await axios.get(`${api_url}usuarios`);
-      setVendedores(response.data.body);
-    } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError("Error desconocido");
-      }
-      toast({
-        title: "Error",
-        description: "Hubo un problema al traer los artículos.",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
-    }
-  };
 
-  const fetchClientes = async () => {
-    if (!auth) {
-      setError("No estás autentificado");
-      return;
     }
     try {
-      const response = await axios.get(
-        operadorMovimiento === 1
-          ? `${api_url}clientes?vendedor=${operadorActual}`
-          : `${api_url}clientes`
+      const response = await axios.get(`${api_url}usuarios`,
+        {
+          params: {
+            buscar: busqueda,
+          },
+        }
       );
-      setClientes(response.data.body);
+      setVendedores(response.data.body);
+
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
@@ -303,25 +277,39 @@ const Ruteamientos = () => {
     }
   };
 
-  const handleBusquedaCliente = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const busquedaCliente = e.target.value;
-    setClienteBusqueda(busquedaCliente);
-    if (busquedaCliente.length > 0) {
-      const filteredRecomendacionesClientes = clientes
-        .filter(
-          (cliente) =>
-            cliente.cli_razon
-              .toLowerCase()
-              .includes(busquedaCliente.toLowerCase()) ||
-            cliente.cli_ruc.includes(busquedaCliente) ||
-            cliente.cli_interno.toString().includes(busquedaCliente)
-        )
-        .slice(0, 5);
-      setRecomendacionesClientes(filteredRecomendacionesClientes);
-    } else {
-      setRecomendacionesClientes([]);
+  const fetchClientes = async (busqueda: string = "") => {
+    if (!auth) {
+      setError("No estás autentificado");
+      return;
     }
+
+    const debouncedFetch = debounce(async (busqueda: string = "") => {
+      try {
+        const response = await axios.get(`${api_url}clientes`, {
+          params: {
+            buscar: busqueda,
+          },
+        });
+        setClientes(response.data.body);
+      } catch (err) {
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError("Error desconocido");
+        }
+        toast({
+          title: "Error",
+          description: "Hubo un problema al traer los artículos.",
+          status: "error", 
+          duration: 5000,
+          isClosable: true,
+        });
+      }
+    }, 2000);
+
+    debouncedFetch(busqueda);
   };
+
 
   const handleBusquedaVendedor = (e: React.ChangeEvent<HTMLInputElement>) => {
     const busquedaVendedor = e.target.value;
@@ -353,8 +341,8 @@ const Ruteamientos = () => {
 
   useEffect(() => {
     fetchRuteamientos();
-    fetchClientes();
     fetchVendedores();
+    fetchClientes();
   }, [
     fechaDesde,
     fechaHasta,
@@ -601,12 +589,15 @@ const Ruteamientos = () => {
                     id="cliente-search"
                     placeholder="Buscar cliente por nombre o RUC"
                     value={clienteBusqueda}
-                    onChange={handleBusquedaCliente}
+                    onChange={(e) => {
+                      setClienteBusqueda(e.target.value);
+                      fetchClientes(e.target.value);
+                    }}
                     aria-autocomplete="list"
                     aria-controls="cliente-recommendations"
                     mb={4}
                   />
-                  {recomendacionesClientes.length > 0 && (
+                  {clientes.length > 0 && clienteBusqueda && (
                     <Box
                       id="cliente-recommendations"
                       position="relative"
@@ -622,26 +613,24 @@ const Ruteamientos = () => {
                       maxH="200px"
                       overflowY="auto"
                     >
-                      {recomendacionesClientes.map((cliente) => {
-                        return (
-                          <Box
-                            key={cliente.cli_codigo}
-                            p={2}
-                            _hover={{ bg: "gray.100" }}
-                            cursor="pointer"
-                            onClick={() => {
-                              setClienteBusqueda(cliente.cli_razon);
-                              setClienteSeleccionado(cliente);
-                              setRecomendacionesClientes([]);
-                            }}
-                          >
-                            <Text fontWeight="bold">{cliente.cli_razon}</Text>
-                            <Text as="span" color="gray.500" fontSize="sm">
-                              RUC: {cliente.cli_ruc}
-                            </Text>
-                          </Box>
-                        );
-                      })}
+                      {clientes.slice(0, 5).map((cliente) => (
+                        <Box
+                          key={cliente.cli_codigo}
+                          p={2}
+                          _hover={{ bg: "gray.100" }}
+                          cursor="pointer"
+                          onClick={() => {
+                            setClienteBusqueda(cliente.cli_razon);
+                            setClienteSeleccionado(cliente);
+                            setClientes([]);
+                          }}
+                        >
+                          <Text fontWeight="bold">{cliente.cli_razon}</Text>
+                          <Text as="span" color="gray.500" fontSize="sm">
+                            RUC: {cliente.cli_ruc}
+                          </Text>
+                        </Box>
+                      ))}
                     </Box>
                   )}
                   <Input
@@ -909,23 +898,11 @@ const Ruteamientos = () => {
         onClose={onClienteClose}
         title="Filtrar por cliente"
         items={clientes}
-        onSearch={(busquedaCliente) => {
-          if (busquedaCliente.length > 0) {
-            const filteredClientes = clientes.filter(
-              (cliente) =>
-                cliente.cli_razon
-                  .toLowerCase()
-                  .includes(busquedaCliente.toLowerCase()) ||
-                cliente.cli_ruc.includes(busquedaCliente) ||
-                cliente.cli_interno.toString().includes(busquedaCliente)
-            );
-            return filteredClientes;
-          }
-          return clientes;
-        }}
+        onSearch={(busquedaCliente) => fetchClientes(busquedaCliente)}
         onSelect={(item) => {
           setClientesSeleccionadoParaFiltro((prev) => {
             if (!prev) return [item.cli_codigo];
+
             const exists = prev.includes(item.cli_codigo);
             if (exists) {
               return prev.filter((codigo) => codigo !== item.cli_codigo);
@@ -939,7 +916,6 @@ const Ruteamientos = () => {
         }}
         idField="cli_codigo"
         displayField="cli_razon"
-
         selectedItems={clientesSeleccionadoParaFiltro?.map((codigo) => {
           const cliente = clientes.find((c) => c.cli_codigo === codigo);
           return cliente || { cli_codigo: codigo, cli_razon: "" };
@@ -951,20 +927,7 @@ const Ruteamientos = () => {
         onClose={onVendedorClose}
         title="Filtrar por vendedores"
         items={vendedores}
-        onSearch={(busquedaVendedor) => {
-          if (busquedaVendedor.length > 0) {
-            const filteredVendedores = vendedores.filter(
-              (vendedor) =>
-                vendedor.op_nombre
-                  .toLowerCase()
-                  .includes(busquedaVendedor.toLowerCase()) ||
-                vendedor.op_codigo.includes(busquedaVendedor) ||
-                vendedor.op_codigo.toString().includes(busquedaVendedor)
-            );
-            return filteredVendedores;
-          }
-          return vendedores;
-        }}
+        onSearch={(busquedaVendedor) => fetchVendedores(busquedaVendedor)}
         onSelect={(item) => {
           setVendedorSeleccionadoParaFiltro((prev) => {
             if (!prev) return [Number(item.op_codigo)];
@@ -982,7 +945,6 @@ const Ruteamientos = () => {
         idField="op_codigo"
         displayField="op_nombre"
         searchPlaceholder="Buscar vendedor por nombre"
-
         selectedItems={vendedoresSeleccionadosParaFiltro?.map((codigo) => {
           const vendedor = vendedores.find(
             (v) => v.op_codigo === String(codigo)

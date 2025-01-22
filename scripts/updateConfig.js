@@ -58,7 +58,7 @@ const configs = {
     title: "Campomax",
   },
   gaesa: {
-    api_url: "https://node.sofmar.com.py:4024/api/",
+    api_url: "https://node.gaesa.com.py:8080/api/",
     db: "gaesa",
     version: "0.9.7",
     title: "Gaesa",

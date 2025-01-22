@@ -46,7 +46,7 @@ const Login: React.FC = () => {
 
       login(response.data.body);
       localStorage.setItem('permiso_graficos', response.data.body.usuario[0].op_graficos);
-      navigate('/dashboard');
+      navigate('/home');
       Auditar(10, 4, userID, 0, 'Inicio de Sesión desde la web');
       // traerConfiguraciones()
     } catch (error) {
