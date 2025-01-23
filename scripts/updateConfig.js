@@ -60,7 +60,7 @@ const configs = {
   gaesa: {
     api_url: "https://node.gaesa.com.py:8080/api/",
     db: "gaesa",
-    version: "0.9.7",
+    version: "0.9.9",
     title: "Gaesa",
   },
   lamberty: {
@@ -68,6 +68,18 @@ const configs = {
     db: "lamberty",
     version: "0.9.7",
     title: "Lamberty",
+  },
+  local: {
+    api_url: "https://localhost:4000/api/",
+    db: "local",
+    version: "0.9.7",
+    title: "Sofmar",
+  },
+  rustimemo: {
+    api_url: "https://node.sofmar.com.py:4026/api/",
+    db: "rustimemo",
+    version: "0.9.9",
+    title: "Rustimemo",
   },
 };
 

@@ -70,6 +70,7 @@ interface RuteamientoCardProps {
   l_longitud?: string;
   fetchRuteamientos: () => void;
   clienteId: number;
+  deudas_cliente: number;
 }
 
 const RuteamientoCard = ({
@@ -93,6 +94,7 @@ const RuteamientoCard = ({
 }: RuteamientoCardProps) => {
   const [tapCount, setTapCount] = useState(0);
   const isMobile = useMediaQuery("(max-width: 768px)");
+
   const isCompleted = visitado === 1;
   const [notasRuteamiento, setNotasRuteamiento] = useState<Nota[]>([]);
   const toast = useToast();

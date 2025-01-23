@@ -214,7 +214,9 @@ const Rutas = () => {
               fetchRuteamientos={() => fetchRuteamientos(operadorActual)}
               onFinalizarVisita={handleFinalizarVisita}
               visita_en_curso={rutaActual?.visita_en_curso}
+              deudas_cliente={rutaActual?.deudas_cliente}
             />
+
           ) : (
             <Grid
               width={"100%"}
@@ -244,9 +246,11 @@ const Rutas = () => {
                   l_latitud={ruteamiento.l_latitud}
                   fetchRuteamientos={() => fetchRuteamientos(operadorActual)}
                   clienteId={clienteId(ruteamiento.cliente) ?? 0}
+                  deudas_cliente={ruteamiento.deudas_cliente}
                 />
               ))}
             </Grid>
+
           )}
         </VStack>
         {/* FAB Button */}

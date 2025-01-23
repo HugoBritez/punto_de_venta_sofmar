@@ -31,7 +31,6 @@ import ConsultaPedidos from "./views/pedidos/ConsultaPedidos";
 import NoExiste from "./views/404";
 import VentaBalcon from "./views/puntodeventa/venta-balcon";
 import PuntoDeVenta from "./views/puntodeventa/punto-de-venta";
-import TomaDeInventario from "./views/inventario/toma-de-inventario";
 import CobrosDiarios from "./views/cobros/CobrosDiarios";
 import VentaRapida from "./views/puntodeventa/VentaRapida";
 import InformeVentas from "./views/ventas/informeVentas";
@@ -39,11 +38,15 @@ import RuteamientoPedidos from "./views/entregas/ruteamientopedidos";
 import Entregas from "./views/entregas/entregas";
 import InformeEntregas from "./views/entregas/informeEntregas";
 import Home from "./views/home/home";
+import InventarioScanner from "./views/scanner/Reconteo";
+import ReconteoInventarioScanner from "./views/scanner/Inventario";
+import ReporteInventarioScanner from "./views/scanner/ReporteReconteo";
+import NuevaTomaInventario from "./views/inventario/nueva-toma-inventario";
 
 const ProtectedLayout: React.FC = () => {
   const { auth, isLoading } = useAuth();
-
   const [isLargerThan768] = useMediaQuery("(min-width: 768px)");
+
 
   if (isLoading) {
     return (
@@ -85,10 +88,12 @@ function App() {
                 <Route
                   path="/ruteamiento-de-pedidos"
                   element={<RuteamientoPedidos />}
-
                 />
                 <Route path="/entrega-de-pedidos" element={<Entregas />} />
-                <Route path="/informe-de-entregas" element={<InformeEntregas />} />
+                <Route
+                  path="/informe-de-entregas"
+                  element={<InformeEntregas />}
+                />
                 <Route path="/cobros" element={<CobrosDiarios />} />
                 <Route path="/venta-balcon" element={<VentaBalcon />} />
                 <Route path="/punto-de-venta" element={<PuntoDeVenta />} />
@@ -99,12 +104,29 @@ function App() {
                 <Route path="/informe-de-ventas" element={<InformeVentas />} />
                 <Route path="/inventario" element={<GestionInventario />} />
                 <Route
+                  path="/inventario-scanner"
+                  element={<InventarioScanner />}
+                />
+                <Route
+                  path="/reconteo-scanner"
+                  element={<ReconteoInventarioScanner />}
+                />
+                <Route
+                  path="/reporte-scanner"
+                  element={<ReporteInventarioScanner />}
+                />
+                {/* <Route
                   path="/toma-de-inventario"
                   element={<TomaDeInventario />}
+                /> */}
+                <Route
+                  path="/toma-de-inventario"
+                  element={<NuevaTomaInventario />}
                 />
                 <Route path="/dashboard" element={<VentasDashboard />} />
                 <Route path="/presupuestos" element={<Presupuestos />} />
                 <Route
+
                   path="/consulta-de-presupuestos"
                   element={<ConsultaPresupuestos />}
                 />
@@ -120,10 +142,7 @@ function App() {
                   element={<ConsultaPedidos />}
                 />
               </Route>
-              <Route
-                path="/"
-                element={<Navigate to="/home" replace />}
-              />
+              <Route path="/" element={<Navigate to="/home" replace />} />
               <Route path="/404" element={<NoExiste />} />
             </Routes>
           </Router>

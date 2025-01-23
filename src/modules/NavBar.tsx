@@ -35,6 +35,7 @@ import {
   Forklift,
   FileBox,
   Home,
+  ScanQrCode,
 } from "lucide-react";
 import { useAuth } from "@/services/AuthContext";
 import { db, fechaRelease, version } from "@/utils";
@@ -202,7 +203,7 @@ const Sidebar = () => {
           enabled: true,
         },
         {
-          grupo:2 ,
+          grupo: 2,
           orden: 13,
           id: 51,
           name: "Reg. Presupuesto",
@@ -227,7 +228,6 @@ const Sidebar = () => {
           path: "/consulta-de-ventas",
           enabled: true,
         },
-
         {
           grupo: 2,
           orden: 106,
@@ -282,13 +282,31 @@ const Sidebar = () => {
         },
         {
           grupo: 1,
-          orden: 15,
+          orden: 1,
+          id: 14,
+          name: "Inventario por scanner",
+          icon: ScanQrCode,
+          path: "/inventario-scanner",
+          enabled: true,
+        },
+        {
+          grupo: 1,
+          orden: 1,
           id: 14,
           name: "Toma de inventario",
           icon: ArchiveRestore,
           path: "/toma-de-inventario",
           enabled: true,
         },
+        // {
+        //   grupo: 1,
+        //   orden: 15,
+        //   id: 14,
+        //   name: "Toma de inventario",
+        //   icon: ArchiveRestore,
+        //   path: "/toma-de-inventario",
+        //   enabled: true,
+        // },
       ],
     },
     {
@@ -364,12 +382,12 @@ const Sidebar = () => {
   ];
 
 const [menuItems, setMenuItems] = useState(NAV_ITEMS);
+
 useEffect(() => {
   const tienePermiso = (
     grupo: number | undefined,
     orden: number | undefined
   ) => {
-    // Si no hay grupo u orden definidos, no permitir acceso
     if (!grupo || !orden) return false;
 
     return permisos_menu_local?.some?.(

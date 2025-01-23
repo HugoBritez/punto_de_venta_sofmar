@@ -271,11 +271,12 @@ const RuteamientoPedidos = () => {
 
   const fetchVentas = async () => {
     try {
-      const response = await fetchVentasAPI(fecha_desde, fecha_hasta);
+      const response = await fetchVentasAPI(fecha_desde, fecha_hasta, clienteSeleccionadoParaFiltro);
       setVentas(response);
     } catch (error) {
       console.error("Error al obtener ventas:", error);
     }
+
   };
 
   const fetchDetalleVentas = async (id: number) => {
@@ -298,17 +299,19 @@ const RuteamientoPedidos = () => {
 
   const fetchPedidos = async () => {
     try {
-      const response = await fetchPedidosAPI(fecha_desde, fecha_hasta);
+      const response = await fetchPedidosAPI(fecha_desde, fecha_hasta, clienteSeleccionadoParaFiltro);
       setPedidos(response);
     } catch (error) {
       console.error("Error al obtener pedidos:", error);
     }
+
   };
 
-  const fetchClientes = async () => {
+  const fetchClientes = async (busqueda: string = '') => {
     try {
-      const response = await fetchClientesAPI();
+      const response = await fetchClientesAPI(busqueda);
       setClientes(response);
+
     } catch (error) {
       console.error("Error al obtener clientes:", error);
     }
@@ -328,7 +331,6 @@ const RuteamientoPedidos = () => {
     fetchCamiones();
     fetchChoferes();
     fetchMonedas();
-    fetchClientes();
     fetchProveedores();
   }, []);
 
@@ -579,11 +581,6 @@ const RuteamientoPedidos = () => {
         detalle.detalle_ventas?.venta === item.id
     );
   };
-  function buscarCliente(searchTerm: string) {
-    return clientes.filter((cliente) =>
-      cliente.cli_razon.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }
 
   function buscarProveedor(searchTerm: string) {
     return proveedores.filter((proveedor) => 
@@ -766,7 +763,6 @@ const deseleccionarItem = (id: number | undefined) => {
             />
           </Box>
           <Box
-
             justifyContent={"center"}
             alignItems={isMobile ? "center" : "end"}
             display={"flex"}
@@ -845,34 +841,40 @@ const deseleccionarItem = (id: number | undefined) => {
             </Flex>
           )}
           {[
-            ...[...pedidos, ...ventas].map(
-              (item): ItemTabla => ({
-                tipo: pedidos.includes(item) ? "Pedido" : "Venta",
-                id: item.id,
-                fecha: item.fecha,
-                factura: item.factura,
-                cliente: item.cliente,
-                condicion: item.condicion,
-                monto: item.monto,
-                vendedor: item.vendedor,
-                observacion: item.observacion,
-                color: pedidos.includes(item) ? "blue" : "green",
-                onClick: () => {
-                  if (estaSeleccionado(item)) {
-                    deseleccionarItem(item.id);
-                  } else {
-                    setItemSeleccionado(item);
-                    if (pedidos.includes(item)) {
-                      fetchDetallePedidos(item.id);
-                      onDetallePedidoOpen();
-                    } else {
-                      fetchDetalleVentas(item.id);
-                      onDetalleVentaOpen();
-                    }
-                  }
-                },
+            ...[...ventas, ...pedidos] 
+              .sort((a, b) => {
+                if (a.factura && !b.factura) return -1;
+                if (!a.factura && b.factura) return 1;
+                return 0;
               })
-            ),
+              .map(
+                (item): ItemTabla => ({
+                  tipo: pedidos.includes(item) ? "Pedido" : "Venta",
+                  id: item.id,
+                  fecha: item.fecha,
+                  factura: item.factura,
+                  cliente: item.cliente,
+                  condicion: item.condicion,
+                  monto: item.monto,
+                  vendedor: item.vendedor,
+                  observacion: item.observacion,
+                  color: pedidos.includes(item) ? "blue" : "green",
+                  onClick: () => {
+                    if (estaSeleccionado(item)) {
+                      deseleccionarItem(item.id);
+                    } else {
+                      setItemSeleccionado(item);
+                      if (pedidos.includes(item)) {
+                        fetchDetallePedidos(item.id);
+                        onDetallePedidoOpen();
+                      } else {
+                        fetchDetalleVentas(item.id);
+                        onDetalleVentaOpen();
+                      }
+                    }
+                  },
+                })
+              ),
             ...detalleRuteoSeleccionado
 
               .filter(
@@ -1137,8 +1139,9 @@ const deseleccionarItem = (id: number | undefined) => {
                   cursor={"pointer"}
                   _hover={{ bg: "gray.200" }}
                 >
-                  <Text>{chofer.nombre}</Text>
+                  <Text>{chofer.nombre} - {chofer.rol}</Text>
                 </Box>
+
               ))}
             </Flex>
           </ModalBody>
@@ -1167,7 +1170,7 @@ const deseleccionarItem = (id: number | undefined) => {
           <ModalBody gap={4}>
             <Input
               placeholder="Buscar cliente"
-              onChange={(e) => setClientes(buscarCliente(e.target.value))}
+              onChange={(e) => fetchClientes(e.target.value)}
             />
             <Flex
               flexDirection={"column"}
@@ -1211,6 +1214,7 @@ const deseleccionarItem = (id: number | undefined) => {
               placeholder="Buscar proveedor"
               onChange={(e) => setProveedores(buscarProveedor(e.target.value))}
             />
+
             <Flex
               flexDirection={"column"}
               gap={2}
@@ -1342,8 +1346,31 @@ const deseleccionarItem = (id: number | undefined) => {
           <ModalBody>
             <Input
               placeholder="Buscar cliente"
-              onChange={(e) => setClientes(buscarCliente(e.target.value))}
+              onChange={(e) => fetchClientes(e.target.value)}
             />
+            <Flex
+              flexDirection={"column"}
+              gap={2}
+              overflowY={"auto"}
+              h={"500px"}
+            >
+              {clientes.map((cliente) => (
+                <Box
+                  key={cliente.cli_codigo}
+                  p={2}
+                  rounded={"md"}
+                  bg={"gray.100"}
+                  cursor={"pointer"}
+                  _hover={{ bg: "gray.200" }}
+                  onClick={() => {
+                    setClienteSeleccionadoParaFiltro(cliente.cli_codigo);
+                    onClienteModalClose();
+                  }}
+                >
+                  <Text>{cliente.cli_razon}</Text>
+                </Box>
+              ))}
+            </Flex>
           </ModalBody>
         </ModalContent>
       </Modal>

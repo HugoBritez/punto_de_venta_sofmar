@@ -21,11 +21,12 @@ const fetchMonedas = async () => {
     return response.data.body;
 }
 
-const fetchVentas = async (fecha_desde: string, fecha_hasta: string) => {
+const fetchVentas = async (fecha_desde: string, fecha_hasta: string, cliente: number | null = null) => {
     const response = await axios.get(`${api_url}reparto/fetch-ventas`, {
         params: {
             fecha_desde,
-            fecha_hasta
+            fecha_hasta,
+            cliente
         }
     });
     return response.data.body;
@@ -49,20 +50,26 @@ const fetchDetallePedidos = async (id: number) => {
     return response.data.body;
 }
 
-const fetchPedidos = async (fecha_desde: string, fecha_hasta: string) => {
+const fetchPedidos = async (fecha_desde: string, fecha_hasta: string, cliente: number | null = null) => {
     const response = await axios.get(`${api_url}reparto/fetch-pedidos`, {
         params: {
             fecha_desde,
-            fecha_hasta
+            fecha_hasta,
+            cliente
         }
     });
     return response.data.body;
 }
 
-const fetchClientes = async () => {
-    const response = await axios.get(`${api_url}clientes/`);
+const fetchClientes = async (busqueda: string = '') => {
+    const response = await axios.get(`${api_url}clientes/`, {
+        params: {
+            buscar: busqueda
+        }
+    });
     return response.data.body;
 }
+
 
 const fetchProveedores = async () => {
     const response = await axios.get(`${api_url}proveedores/`);

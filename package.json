@@ -16,8 +16,11 @@
     "build:truckdiesel": "node scripts/updateConfig.js truckdiesel && npm run build",
     "build:campomax": "node scripts/updateConfig.js campomax && npm run build",
     "build:gaesa": "node scripts/updateConfig.js gaesa && npm run build",
-    "build:lamberty": "node scripts/updateConfig.js lamberty && npm run build"
+    "build:lamberty": "node scripts/updateConfig.js lamberty && npm run build",
+    "build:local": "node scripts/updateConfig.js local && npm run build",
+    "build:rustimemo": "node scripts/updateConfig.js rustimemo && npm run build"
   },
+
   "dependencies": {
     "@chakra-ui/icons": "^2.1.1",
     "@chakra-ui/react": "^2.8.2",

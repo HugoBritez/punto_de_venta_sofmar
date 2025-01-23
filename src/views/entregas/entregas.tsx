@@ -72,6 +72,7 @@ const Entregas = () => {
   );
   const [kilometrajeFinal, setKilometrajeFinal] = useState<number | null>(null);
 
+  
   const toast = useToast();
   const [entregaSeleccionada, setEntregaSeleccionada] = useState<
     Entrega[] | null
@@ -80,7 +81,6 @@ const Entregas = () => {
   const [entregaDetalle, setEntregaDetalle] = useState<EntregaDetalle[] | null>(
     []
   );
-
 
   const [entregaDetalleSeleccionado, setEntregaDetalleSeleccionado] =
     useState<EntregaDetalle | null>(null);
@@ -92,9 +92,26 @@ const Entregas = () => {
     sessionStorage.getItem("permisos_menu") || "[]"
   );
 
-  const tienePermiso = (menuId: number | undefined) => {
-    if (!menuId) return false;
-    return permisosMenu.some((permiso: any) => permiso.menu_id === menuId);
+  const tienePermiso = (
+    menuGrupo: number | undefined,
+    menuOrden: number | undefined
+  ) => {
+    console.log(permisosMenu);
+    if (!menuGrupo || !menuOrden) return false;
+    console.log(
+      permisosMenu.some(
+        (permiso: any) =>
+          permiso.menu_grupo === menuGrupo &&
+          permiso.menu_orden === menuOrden &&
+          permiso.acceso === 1
+      )
+    );
+    return permisosMenu.some(
+      (permiso: any) =>
+        permiso.menu_grupo === menuGrupo &&
+        permiso.menu_orden === menuOrden &&
+        permiso.acceso === 1
+    );
   };
 
   const listarEntregas = async () => {
@@ -105,17 +122,16 @@ const Entregas = () => {
       const response = await axios.get(`${api_url}reparto/listar-rutas`, {
         params: {
           fecha: fechaHoy,
-          vendedor: tienePermiso(14) ? undefined : usuarioId,
+          vendedor: tienePermiso(2 , 31) ? undefined : usuarioId,
         },
       });
       console.log(response.data);
 
-      if (tienePermiso(14)) {
+      if (tienePermiso(1 , 15)) {
         console.log("Tiene permiso");
         console.log(response.config.params);
       }
       setEntregas(response.data.body);
-
 
     } catch (error) {
       console.log(error);

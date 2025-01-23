@@ -1,5 +1,5 @@
 import Auditar from "@/services/AuditoriaHook";
-import {  Nota } from "@/types/shared_interfaces";
+import {   Nota } from "@/types/shared_interfaces";
 import { api_url } from "@/utils";
 import {
   Box,
@@ -64,7 +64,9 @@ interface RutaActualCardProps {
   fetchRuteamientos?: () => void;
   onFinalizarVisita: () => void;
   visita_en_curso?: number;
+  deudas_cliente?: number;
 }
+
 
 
 
@@ -98,6 +100,29 @@ interface PedidoAgenda {
   }[];
 }
 
+interface Articulo {
+  codigo_articulo: number;
+  codigo_barra: string;
+  descripcion_articulo: string;
+  precio_compra: number;
+  precio_venta: number;
+  precio_venta_credito: number;
+  precio_venta_mostrador: number;
+  precio_venta_4: number;
+  proveedor: number;
+  marca: number;
+  categoria: number;
+  subcategoria: number;
+  ubicacion: number;
+  moneda: number;
+  unidad_medida: number;
+  stock_actual: number;
+  stock_minimo: number;
+  deposito: string;
+  lote: number;
+  vencimiento: string;
+}
+
 const RutaActualCard = ({
   clienteNombre = "Cliente sin nombre",
   clienteId,
@@ -108,10 +133,12 @@ const RutaActualCard = ({
   ruteamientoId = 0,
   fetchRuteamientos,
   onFinalizarVisita,
-  visita_en_curso
+  visita_en_curso,
+  deudas_cliente
 }: RutaActualCardProps) => {
   const [nota, setNota] = useState<string>("");
   const [notasRuteamiento, setNotasRuteamiento] = useState<Nota[]>([]);
+
 
 
   const toast = useToast();
@@ -127,13 +154,53 @@ const RutaActualCard = ({
     onOpen: onOpenVenta,
     onClose: onCloseVenta,
   } = useDisclosure();
+
+  const {
+    isOpen: isOpenArticulos,
+    onOpen: onOpenArticulos,
+    onClose: onCloseArticulos,
+  } = useDisclosure();
+
+
+
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [fechaProxima, setFechaProxima] = useState<string>("");
   const [horaProxima, setHoraProxima] = useState<string>("");
   const [pedidos, setPedidos] = useState<PedidoAgenda[]>([]);
   const [editarPedido, ] = useState<boolean>(false);
+
   const [ventas, setVentas] = useState<VentaAgenda[]>([]);
 
+  const [articulos, setArticulos] = useState<Articulo[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [busquedaArticulos, setBusquedaArticulos] = useState<string>("");
+
+    const fetchArticulos = async (busqueda: string | null = null) => {
+      setIsLoading(true);
+      try {
+        const response = await axios.get(
+          `${api_url}articulos/todos`,
+          {
+            params: {
+              busqueda: busqueda,
+              stock: 1,
+            },
+          }
+        );
+
+        setArticulos(response.data.body.datos);
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Error al cargar los artículos",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
 
   const agregarNota = async () => {
@@ -479,13 +546,19 @@ const RutaActualCard = ({
               flexDir={"column"}
               gap={2}
             >
-              <Flex gap={2}>
+              <Flex gap={2} alignItems={"center"}>
                 <CircleUserRound color="white" />
                 <Text color={"white"} fontWeight={"bold"}>
                   {clienteNombre}
                 </Text>
+                {deudas_cliente !== undefined && deudas_cliente > 0 && (
+                  <Text color={"white"} fontSize="sm" p={2} variant="solid">
+                    Deuda: {formatCurrency(deudas_cliente)}
+                  </Text>
+                )}
               </Flex>
               <Flex gap={2}>
+
                 <CalendarFold color="white" />
                 <Text color={"white"} fontWeight={"bold"}>
                   {dia} {fecha} {hora}
@@ -499,30 +572,41 @@ const RutaActualCard = ({
               </Flex>
             </Box>
             <Button
-              colorScheme={visita_en_curso === 1 ? "red" : (llegadaMarcada ? "red" : "green")}
+              colorScheme={
+                visita_en_curso === 1 ? "red" : llegadaMarcada ? "red" : "green"
+              }
               w={"100%"}
               h={16}
-
               onClick={
-                visita_en_curso === 1 ? () => {
-                  onOpen()
-                  marcarSalida()
-                }
-                 : (
-                    llegadaMarcada
-                   ? () => {
-                       onOpen();
-                       marcarSalida();
-                     }
-                   : marcarLLegada
-                )
+                visita_en_curso === 1
+                  ? () => {
+                      onOpen();
+                      marcarSalida();
+                    }
+                  : llegadaMarcada
+                  ? () => {
+                      onOpen();
+                      marcarSalida();
+                    }
+                  : marcarLLegada
               }
             >
-              <Text>{visita_en_curso === 1 ? "Marcar Salida" : (llegadaMarcada ? "Marcar Salida" : "Marcar LLegada")}</Text>{" "}
-              {visita_en_curso === 1 ? <MapPinCheckInside /> : (llegadaMarcada ? <MapPinCheckInside /> : <MapPinPlus />)}
+              <Text>
+                {visita_en_curso === 1
+                  ? "Marcar Salida"
+                  : llegadaMarcada
+                  ? "Marcar Salida"
+                  : "Marcar LLegada"}
+              </Text>{" "}
+              {visita_en_curso === 1 ? (
+                <MapPinCheckInside />
+              ) : llegadaMarcada ? (
+                <MapPinCheckInside />
+              ) : (
+                <MapPinPlus />
+              )}
             </Button>
             <Tabs align="end" variant="soft-rounded" colorScheme="green">
-
               <TabList mb="1em">
                 <Tab>
                   <SquarePen />
@@ -543,7 +627,17 @@ const RutaActualCard = ({
                       value={nota}
                       onChange={(e) => setNota(e.target.value)}
                     ></Textarea>
-                    <Flex mt={4} w={"100%"} justify={"flex-end"}>
+                    <Flex mt={4} w={"100%"} justify={"flex-end"} gap={2}>
+                      <Button
+                        colorScheme={"blue"}
+                        variant={"outline"}
+                        onClick={() => {
+                          onOpenArticulos();
+                        }}
+                      >
+                        Consultar articulos
+                      </Button>
+
                       <Button colorScheme={"green"} onClick={agregarNota}>
                         Agregar Nota
                       </Button>
@@ -619,7 +713,7 @@ const RutaActualCard = ({
           <ModalCloseButton />
           <ModalBody>
             <VStack spacing={4} w="100%">
-              {ventas.length > 0 ? (  
+              {ventas.length > 0 ? (
                 ventas.map((venta) => (
                   <Box
                     key={venta.id_venta}
@@ -632,7 +726,12 @@ const RutaActualCard = ({
                   >
                     <Flex justify="space-between" align="center" mb={4}>
                       <Heading size="md">Venta #{venta.id_venta}</Heading>
-                      <Badge colorScheme="green" fontSize="sm" p={2} variant="solid">
+                      <Badge
+                        colorScheme="green"
+                        fontSize="sm"
+                        p={2}
+                        variant="solid"
+                      >
                         {venta.fecha_venta}
                       </Badge>
                     </Flex>
@@ -658,7 +757,9 @@ const RutaActualCard = ({
                           </VStack>
                           <VStack align="end" spacing={1}>
                             <Heading size="sm" color="green.600">
-                              {formatCurrency(detalle.precio * detalle.cantidad)}
+                              {formatCurrency(
+                                detalle.precio * detalle.cantidad
+                              )}
                             </Heading>
                             <Text fontSize="xs" color="gray.500">
                               {formatCurrency(detalle.precio)} c/u
@@ -667,11 +768,20 @@ const RutaActualCard = ({
                         </Flex>
                       ))}
                     </Box>
-                    <Flex justify="flex-end" bg="white" p={2} mt={2} borderRadius="md">
-                      <Heading size="sm">Total: {formatCurrency(venta.total_venta)}</Heading>
+                    <Flex
+                      justify="flex-end"
+                      bg="white"
+                      p={2}
+                      mt={2}
+                      borderRadius="md"
+                    >
+                      <Heading size="sm">
+                        Total: {formatCurrency(venta.total_venta)}
+                      </Heading>
                     </Flex>
                   </Box>
-                ))) : (
+                ))
+              ) : (
                 <Text>No hay ventas para mostrar</Text>
               )}
             </VStack>
@@ -688,7 +798,9 @@ const RutaActualCard = ({
         <ModalContent>
           <ModalHeader>
             <VStack align="stretch" spacing={2}>
-              <Text fontWeight="semibold" fontSize={"lg"}>Últimos pedidos de {clienteNombre}</Text>
+              <Text fontWeight="semibold" fontSize={"lg"}>
+                Últimos pedidos de {clienteNombre}
+              </Text>
               <Divider />
             </VStack>
           </ModalHeader>
@@ -708,83 +820,87 @@ const RutaActualCard = ({
                       borderRadius="lg"
                       bg="gray.50"
                       p={4}
-
-                    border={"1px solid"}
-                    borderColor={"blue.600"}
-                  >
-                    <Flex justify="space-between" align="center" mb={4}>
-                      <Heading size="md">Pedido #{pedido.id_pedido}</Heading>
-                      <Badge colorScheme="blue" fontSize="sm" p={2} variant="solid">
-                        {pedido.fecha_pedido}
-                      </Badge>
-
-                    </Flex>
-
-                    <Box
-                      maxH="300px"
-                      overflowY="auto"
-                      css={{
-                        "&::-webkit-scrollbar": {
-                          width: "4px",
-                        },
-                        "&::-webkit-scrollbar-track": {
-                          width: "6px",
-                        },
-                        "&::-webkit-scrollbar-thumb": {
-                          background: "gray.200",
-                          borderRadius: "24px",
-                        },
-                      }}
+                      border={"1px solid"}
+                      borderColor={"blue.600"}
                     >
-                      {pedido.detalles?.map((detalle, idx) => (
-                        <Flex
-                          key={idx}
-                          justify="space-between"
-                          bg="white"
-                          p={4}
-                          mb={2}
-
-                          borderRadius="md"
-                          boxShadow="sm"
-                          _hover={{ boxShadow: "md" }}
-                          transition="all 0.2s"
+                      <Flex justify="space-between" align="center" mb={4}>
+                        <Heading size="md">Pedido #{pedido.id_pedido}</Heading>
+                        <Badge
+                          colorScheme="blue"
+                          fontSize="sm"
+                          p={2}
+                          variant="solid"
                         >
-                          <VStack align="start" spacing={1}>
-                            <Heading size="sm">{detalle.producto}</Heading>
-                            <Text color="gray.600" fontSize="sm">
-                              Cantidad: {detalle.cantidad}
-                            </Text>
+                          {pedido.fecha_pedido}
+                        </Badge>
+                      </Flex>
 
-                          </VStack>
-                          <VStack align="end" spacing={1}>
-                            <Heading size="sm" color="blue.600">
-                              {formatCurrency(
-                                detalle.precio * detalle.cantidad
-                              )}
-                            </Heading>
-                            <Text fontSize="xs" color="gray.500">
-                              {formatCurrency(detalle.precio)} c/u
-                            </Text>
-                          </VStack>
-                        </Flex>
-                      ))}
+                      <Box
+                        maxH="300px"
+                        overflowY="auto"
+                        css={{
+                          "&::-webkit-scrollbar": {
+                            width: "4px",
+                          },
+                          "&::-webkit-scrollbar-track": {
+                            width: "6px",
+                          },
+                          "&::-webkit-scrollbar-thumb": {
+                            background: "gray.200",
+                            borderRadius: "24px",
+                          },
+                        }}
+                      >
+                        {pedido.detalles?.map((detalle, idx) => (
+                          <Flex
+                            key={idx}
+                            justify="space-between"
+                            bg="white"
+                            p={4}
+                            mb={2}
+                            borderRadius="md"
+                            boxShadow="sm"
+                            _hover={{ boxShadow: "md" }}
+                            transition="all 0.2s"
+                          >
+                            <VStack align="start" spacing={1}>
+                              <Heading size="sm">{detalle.producto}</Heading>
+                              <Text color="gray.600" fontSize="sm">
+                                Cantidad: {detalle.cantidad}
+                              </Text>
+                            </VStack>
+                            <VStack align="end" spacing={1}>
+                              <Heading size="sm" color="blue.600">
+                                {formatCurrency(
+                                  detalle.precio * detalle.cantidad
+                                )}
+                              </Heading>
+                              <Text fontSize="xs" color="gray.500">
+                                {formatCurrency(detalle.precio)} c/u
+                              </Text>
+                            </VStack>
+                          </Flex>
+                        ))}
+                      </Box>
+
+                      <Flex
+                        justify="flex-end"
+                        align="center"
+                        bg="white"
+                        p={2}
+                        mt={2}
+                        borderRadius="md"
+                      >
+                        <Heading size="sm">
+                          Total: {formatCurrency(pedido.total_pedido)}
+                        </Heading>
+                      </Flex>
                     </Box>
-
-                    <Flex
-                      justify="flex-end"
-                      align="center"
-                      bg="white"
-                      p={2}
-                      mt={2}
-                      borderRadius="md"
-                    >
-                      <Heading size="sm">
-                        Total: {formatCurrency(pedido.total_pedido)}
-                      </Heading>
-                    </Flex>
-                  </Box>
-                ))) : (
-                  <p className="text-center font-bold text-gray-500 mb-8">No hay pedidos para mostrar</p>
+                  ))
+                ) : (
+                  <p className="text-center font-bold text-gray-500 mb-8">
+                    No hay pedidos para mostrar
+                  </p>
                 )}
               </VStack>
             )}
@@ -837,6 +953,98 @@ const RutaActualCard = ({
               }}
             >
               Ok
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+      <Modal
+        isOpen={isOpenArticulos}
+        onClose={onCloseArticulos}
+        size={"lg"}
+        isCentered
+      >
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>
+            <VStack align="stretch" spacing={2}>
+              <Text fontWeight="bold">Articulos</Text>
+              <Divider />
+            </VStack>
+          </ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Flex flexDir={"column"} gap={2}>
+              <Flex gap={2}>
+                <Input placeholder="Buscar articulo" onChange={(e) => setBusquedaArticulos(e.target.value)} />
+                <Button colorScheme="green" onClick={() => fetchArticulos(busquedaArticulos)}>
+                  <Search />
+                </Button>
+
+              </Flex>
+              <Flex overflowX={"auto"} minH={"150px"} maxH={"300px"}>
+                <table className="w-[800px] border-collapse">
+                  <thead>
+                    <tr className="bg-gray-300 text-black">
+                      <th className="border border-gray-300 px-2 py-1">
+                        Código
+                      </th>
+                      <th className="border border-gray-300 px-2 py-1">
+                        Cód. Barra
+                      </th>
+                      <th className="border border-gray-300 px-2 py-1">
+                        Descripción
+                      </th>
+                      <th className="border border-gray-300 px-2 py-1">
+                        Cant.
+                      </th>
+                      <th className="border border-gray-300 px-2 py-1">
+                        Precio
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {isLoading ? (
+                      <tr>
+                        <td colSpan={5} className="text-center py-4 text-gray-500 font-bold">
+                          Cargando artículos...
+                        </td>
+                      </tr>
+                    ) : articulos.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="text-center py-4 text-gray-500 font-bold">
+                          No hay artículos para mostrar
+                        </td>
+                      </tr>
+                    ) : (
+                      articulos.map((articulo) => (
+                        <tr className="hover:bg-gray-100">
+                          <td className="border border-gray-300 px-2 py-1 text-center">
+                            {articulo.codigo_articulo}
+                          </td>
+                          <td className="border border-gray-300 px-2 py-1 text-center">
+                            {articulo.codigo_barra}
+
+                          </td>
+                          <td className="border border-gray-300 px-2 py-1">
+                            {articulo.descripcion_articulo}
+                          </td>
+                          <td className="border border-gray-300 px-2 py-1 text-center">
+                            {articulo.stock_actual}
+                          </td>
+                          <td className="border border-gray-300 px-2 py-1 text-right">
+                            {articulo.precio_venta}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </Flex>
+            </Flex>
+          </ModalBody>
+          <ModalFooter>
+            <Button colorScheme="blue" onClick={onCloseArticulos}>
+              Cerrar
             </Button>
           </ModalFooter>
         </ModalContent>

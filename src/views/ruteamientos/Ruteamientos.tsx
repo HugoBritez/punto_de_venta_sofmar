@@ -64,6 +64,8 @@ const periodos = [
 ];
 
 const Ruteamientos = () => {
+  const vendedorActual = Number(sessionStorage.getItem("user_id"));
+
   const { toPDF, targetRef } = usePDF({ filename: `informeRuteamiento.pdf` });
   const [fechaDesde, setFechaDesde] = useState(
     format(new Date(), "yyyy-MM-dd")
@@ -96,11 +98,12 @@ const Ruteamientos = () => {
   const [horaProxima, setHoraProxima] = useState("");
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
-  const [clientesSeleccionadoParaFiltro, setClientesSeleccionadoParaFiltro] = useState<number[] > ([])
-  const [vendedoresSeleccionadosParaFiltro, setVendedorSeleccionadoParaFiltro] = useState<number[] > ([])
+  const [clientesSeleccionadoParaFiltro, setClientesSeleccionadoParaFiltro] =
+    useState<number[]>([]);
+  const [vendedoresSeleccionadosParaFiltro, setVendedorSeleccionadoParaFiltro] =
+    useState<number[]>([]);
   const [vendedorBusqueda, setVendedorBusqueda] = useState("");
   const [clienteBusqueda, setClienteBusqueda] = useState("");
-
   const [recomendacionesVendedores, setRecomendacionesVendedores] = useState<
     typeof vendedores
   >([]);
@@ -109,8 +112,29 @@ const Ruteamientos = () => {
   >(null);
   const [, setError] = useState<string | null>(null);
   const { auth } = useAuth();
-  const vendedorActual = Number(sessionStorage.getItem("user_id"));
   const operadorNombre = sessionStorage.getItem("user_name");
+
+  const permisosMenu = JSON.parse(
+    sessionStorage.getItem("permisos_menu") || "[]"
+  );
+
+  
+  const tienePermiso = (menuGrupo: number | undefined, menuOrden: number | undefined) => {
+    console.log(permisosMenu);
+    if (!menuGrupo || !menuOrden) return false;
+    console.log(permisosMenu.some((permiso: any) => 
+      permiso.menu_grupo === menuGrupo && 
+      permiso.menu_orden === menuOrden &&
+      permiso.acceso === 1
+    ));
+    return permisosMenu.some((permiso: any) => 
+      permiso.menu_grupo === menuGrupo && 
+      permiso.menu_orden === menuOrden &&
+      permiso.acceso === 1
+    );
+  };
+
+
   const handlePeriodoChange = (index: number) => {
     setPeriodoSeleccionado(index);
     const hoy = new Date();
@@ -142,9 +166,6 @@ const Ruteamientos = () => {
     setFechaDesde(format(nuevaFechaDesde, "yyyy-MM-dd"));
     setFechaHasta(format(nuevaFechaHasta, "yyyy-MM-dd"));
   };
-
-
-
 
   const agregarRuteamiento = () => {
     if (!clienteSeleccionado) {
@@ -225,7 +246,7 @@ const Ruteamientos = () => {
         fecha_desde: fechaDesde,
         fecha_hasta: fechaHasta,
         cliente: clientesSeleccionadoParaFiltro,
-        vendedor: vendedoresSeleccionadosParaFiltro,
+        vendedor: tienePermiso(2 , 31) ? vendedoresSeleccionadosParaFiltro : vendedorActual,
         visitado: filtroCondicion,
         estado: filtroEstado,
         planificacion: filtroPlanificacion,
@@ -249,18 +270,14 @@ const Ruteamientos = () => {
     if (!auth) {
       setError("No estás autentificado");
       return;
-
     }
     try {
-      const response = await axios.get(`${api_url}usuarios`,
-        {
-          params: {
-            buscar: busqueda,
-          },
-        }
-      );
+      const response = await axios.get(`${api_url}usuarios`, {
+        params: {
+          buscar: busqueda,
+        },
+      });
       setVendedores(response.data.body);
-
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message);
@@ -300,7 +317,7 @@ const Ruteamientos = () => {
         toast({
           title: "Error",
           description: "Hubo un problema al traer los artículos.",
-          status: "error", 
+          status: "error",
           duration: 5000,
           isClosable: true,
         });
@@ -309,7 +326,6 @@ const Ruteamientos = () => {
 
     debouncedFetch(busqueda);
   };
-
 
   const handleBusquedaVendedor = (e: React.ChangeEvent<HTMLInputElement>) => {
     const busquedaVendedor = e.target.value;
@@ -570,9 +586,11 @@ const Ruteamientos = () => {
                 l_latitud={ruteamiento.l_latitud}
                 fetchRuteamientos={fetchRuteamientos}
                 clienteId={clientId}
+                deudas_cliente={ruteamiento.deudas_cliente}
               />
             );
           })}
+
         </Grid>
       </VStack>
       <Modal isOpen={isOpen} onClose={onClose}>

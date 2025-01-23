@@ -24,7 +24,11 @@ import {
   Button,
   ModalFooter,
   Divider,
+  Checkbox,
+  Text,
 } from "@chakra-ui/react";
+import { find } from "lodash";
+
 
 interface ResumenEntregas {
   camion: string;
@@ -86,6 +90,9 @@ const InformeEntregas = () => {
     []
   );
   const [resumenEntregas, setResumenEntregas] = useState<ResumenEntregas[]>([]);
+
+  const [traerUltimaEntrega, setTraerUltimaEntrega] = useState<boolean>(true);
+
 
   const tipoReparto = [
     {
@@ -187,6 +194,7 @@ const InformeEntregas = () => {
           choferes: choferesSeleccionados,
           camiones: camionesSeleccionados,
           tipos: tipoRepartoSeleccionado,
+          traer_ultima_entrega: traerUltimaEntrega,
         },
       });
       console.log(response.data.body);
@@ -432,8 +440,19 @@ const InformeEntregas = () => {
             }
             onClick={onOpenTipoReparto}
           />
+          <Checkbox
+            isChecked={traerUltimaEntrega}
+            onChange={(e) => setTraerUltimaEntrega(e.target.checked)}
+            colorScheme="green"
+          />
+          <Flex flexDir={"row"} alignItems={"center"} w={"100%"}>
+            <Text fontSize={"sm"} w={"100%"}  fontWeight={"bold"} textAlign={"left"}>
+              Traer ultima entrega
+            </Text>
+          </Flex>
           <Flex flexDir={"row"} gap={2}>
             <Button
+
               colorScheme="red"
               onClick={() => {
                 setSucursalesSeleccionadas([]);
@@ -645,9 +664,17 @@ const InformeEntregas = () => {
                     .........................................................................
                   </p>
                   <p className="text-center font-bold my-2">
-                    {sessionStorage.getItem("user_name")}
+                    {choferesSeleccionados.length > 0
+                      ? choferesSeleccionados
+                          .map(
+                            (choferId) =>
+                              find(choferes, { id: choferId })?.nombre || "N/A"
+                          )
+                          .join(", ")
+                      : "Chofer:"}
                   </p>
                 </div>
+
                 <div>
                   <p>
                     .........................................................................
