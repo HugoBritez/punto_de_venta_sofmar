@@ -104,7 +104,7 @@ const RuteamientosDashboard = () => {
     const monthAgo = new Date(today.setMonth(today.getMonth() - 1));
     return monthAgo;
   });
-  const vendedorActual = localStorage.getItem("user_id");
+  const vendedorActual = sessionStorage.getItem("user_id");
   const [vendedor, setVendedor] = useState(vendedorActual);
   const [tiempopromedio, setTiempoPromedio] = useState<tiempoPromedio[]>([]);
   const [conteoVisitas, setConteoVisitas] = useState<ConteoGeneral[]>([]);
@@ -121,9 +121,9 @@ const RuteamientosDashboard = () => {
   const visitados = Number(conteoVisitas[0]?.visitados);
   const noVisitados = Number(conteoVisitas[0]?.no_visitados);
   const anulados = Number(conteoVisitas[0]?.anulados);
-  const verGrafico = localStorage.getItem("permiso_graficos") === "1";
+  const verGrafico = sessionStorage.getItem("permiso_graficos") === "1";
   const isMobile = useMediaQuery("(max-width: 768px)")[0];
-  const permisoGrafico = localStorage.getItem("permiso_graficos");
+  const permisoGrafico = sessionStorage.getItem("permiso_graficos");
 
   const fetchDatosGraficoGeneral = async () => {
     try {

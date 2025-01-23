@@ -160,7 +160,7 @@ const RutaActualCard = ({
           125,
           1,
           ruteamientoId,
-          Number(localStorage.getItem("user_id")),
+          Number(sessionStorage.getItem("user_id")),
           `Se agregó una nota al ruteamiento #${ruteamientoId}`
         );
         }
@@ -217,7 +217,7 @@ const RutaActualCard = ({
               }),
               l_obs: "Llegada del vendedor",
               l_cliente: clienteId,
-              l_operador: localStorage.getItem("user_id"),
+              l_operador: sessionStorage.getItem("user_id"),
               l_longitud: position.coords.longitude.toString(),
               l_latitud: position.coords.latitude.toString(),
               l_acuracia: 1,
@@ -236,13 +236,13 @@ const RutaActualCard = ({
               125,
               1,
               ruteamientoId,
-              Number(localStorage.getItem("user_id")),
-              `El operador #${localStorage.getItem(
+              Number(sessionStorage.getItem("user_id")),
+              `El operador #${sessionStorage.getItem(
                 "user_id"
               )} llego a su destino en la visita #${ruteamientoId}`
             );
 
-            localStorage.setItem(`llegadaMarcada_${ruteamientoId}`, "true");
+            sessionStorage.setItem(`llegadaMarcada_${ruteamientoId}`, "true");
           } catch (error) {
             toast({
               title: "Error al marcar la llegada",
@@ -285,8 +285,8 @@ const RutaActualCard = ({
         125,
         1,
         ruteamientoId,
-        Number(localStorage.getItem("user_id")),
-        `El operador #${localStorage.getItem(
+        Number(sessionStorage.getItem("user_id")),
+        `El operador #${sessionStorage.getItem(
           "user_id"
         )} salio de su destino en la visita #${ruteamientoId}`
       );
@@ -313,7 +313,7 @@ const RutaActualCard = ({
         125,
         2,
         ruteamientoId,
-        Number(localStorage.getItem("user_id")),
+        Number(sessionStorage.getItem("user_id")),
         `Se reagendo una visita del ruteamiento #${ruteamientoId}`
       );
     } catch (error) {
@@ -352,7 +352,7 @@ const RutaActualCard = ({
               125,
               1,
               ruteamientoId,
-              Number(localStorage.getItem("user_id")),
+              Number(sessionStorage.getItem("user_id")),
               `Se finalizó la visita #${ruteamientoId}`
             );
           } catch (error) {
@@ -389,7 +389,7 @@ const RutaActualCard = ({
 
   useEffect(() => {
     fetchNotasRuteamiento(ruteamientoId);
-    const llegadaMarcadaStatus = localStorage.getItem(
+    const llegadaMarcadaStatus = sessionStorage.getItem(
       `llegadaMarcada_${ruteamientoId}`
     );
     if (llegadaMarcadaStatus === "false") {

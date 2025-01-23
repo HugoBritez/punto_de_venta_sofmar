@@ -144,7 +144,7 @@ const TomaDeInventario = () => {
     Articulo[]
   >([]);
   const [codigoBarra, setCodigoBarra] = useState<string>("");
-  const operadorActual = Number(localStorage.getItem("user_id"));
+  const operadorActual = Number(sessionStorage.getItem("user_id"));
   const [codigoArticuloSeleccionado, setCodigoArticuloSeleccionado] = useState<
     number | null
   >(null);

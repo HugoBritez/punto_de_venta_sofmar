@@ -63,6 +63,12 @@ const configs = {
     version: "0.9.7",
     title: "Gaesa",
   },
+  lamberty: {
+    api_url: "https://node.sofmar.com.py:4025/api/",
+    db: "lamberty",
+    version: "0.9.7",
+    title: "Lamberty",
+  },
 };
 
 function updateConfig(empresa) {

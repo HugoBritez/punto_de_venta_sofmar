@@ -93,15 +93,15 @@ const tasasDeCambio: { [key: string]: number } = {
 };
 
 {
-  /* guardar items en el localstorage para evitar perder articulos por si se actualiza la pagina*/
+  /* guardar items en el sessionStorage para evitar perder articulos por si se actualiza la pagina*/
 }
 
-const saveItemsToLocalStorage = (items: any[]) => {
-  localStorage.setItem("cartItems", JSON.stringify(items));
+const saveItemsTosessionStorage = (items: any[]) => {
+  sessionStorage.setItem("cartItems", JSON.stringify(items));
 };
 
-const loadItemsFromLocalStorage = (): any[] => {
-  const savedItems = localStorage.getItem("cartItems");
+const loadItemsFromsessionStorage = (): any[] => {
+  const savedItems = sessionStorage.getItem("cartItems");
   return savedItems ? JSON.parse(savedItems) : [];
 };
 
@@ -142,7 +142,7 @@ export default function Presupuestos() {
       descuentoIndividual?: number;
       editarDescripcion?: number;
     }[]
-  >(loadItemsFromLocalStorage());
+  >(loadItemsFromsessionStorage());
   const [selectedItem, setSelectedItem] = useState<
     (typeof articulos)[0] | null
   >(null);
@@ -183,8 +183,8 @@ export default function Presupuestos() {
   const [tipoFlete, setTipoFlete] = useState("");
   const [observaciones, setObservaciones] = useState("");
   const { isSwitchOn } = useSwitch();
-  const operadorActual = localStorage.getItem("user_id");
-  const operadorMovimiento = Number(localStorage.getItem("operador_movimiento"));
+  const operadorActual = sessionStorage.getItem("user_id");
+  const operadorMovimiento = Number(sessionStorage.getItem("operador_movimiento"));
 
   useEffect(() => {
 
@@ -421,7 +421,7 @@ export default function Presupuestos() {
       };
       const newItems = [...items, nuevoItem];
       setItems(newItems);
-      saveItemsToLocalStorage(newItems);
+      saveItemsTosessionStorage(newItems);
       setArticuloBusqueda("");
       setCantidad(1);
       setSelectedItem(null);
@@ -438,7 +438,7 @@ export default function Presupuestos() {
   const eliminarItem = (index: number) => {
     const newItems = items.filter((_, i) => i !== index);
     setItems(newItems);
-    saveItemsToLocalStorage(newItems);
+    saveItemsTosessionStorage(newItems);
   };
 
   const calcularTotalConDescuentos = () => {
@@ -513,7 +513,7 @@ export default function Presupuestos() {
   }, []);
 
   useEffect(() => {
-    saveItemsToLocalStorage(items);
+    saveItemsTosessionStorage(items);
   }, [items]);
 
   const handleDepositoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -775,7 +775,7 @@ export default function Presupuestos() {
         setVendedorInfo(vendedores.find((v) => v.op_codigo === operador));
         setIsModalOpen(true);
         setItems([]);
-        saveItemsToLocalStorage([]);
+        saveItemsTosessionStorage([]);
         setClienteSeleccionado(null);
         setClienteBusqueda("");
         setDescuentoValor(0);
@@ -813,7 +813,7 @@ export default function Presupuestos() {
 
   const cancelarPresupuesto = async () => {
     setItems([]);
-    saveItemsToLocalStorage([]);
+    saveItemsTosessionStorage([]);
     setClienteSeleccionado(null);
     setClienteBusqueda("");
     setDescuentoValor(0);
@@ -924,7 +924,7 @@ export default function Presupuestos() {
     item.exentas = nuevosImpuestos.exentas;
 
     setItems(newItems);
-    saveItemsToLocalStorage(newItems);
+    saveItemsTosessionStorage(newItems);
   };
 
   const actualizarCantidadItem = (index: number, nuevaCantidad: number) => {
@@ -932,7 +932,7 @@ export default function Presupuestos() {
     newItems[index].cantidad = nuevaCantidad;
     newItems[index].subtotal = newItems[index].precioUnitario * nuevaCantidad;
     setItems(newItems);
-    saveItemsToLocalStorage(newItems);
+    saveItemsTosessionStorage(newItems);
   };
 
   const actualizarDescuentoIndividual = (
@@ -942,7 +942,7 @@ export default function Presupuestos() {
     const newItems = [...items];
     newItems[index].descuentoIndividual = nuevoDescuento;
     setItems(newItems);
-    saveItemsToLocalStorage(newItems);
+    saveItemsTosessionStorage(newItems);
   };
 
   const actualizarDescripcionArticulo = (
@@ -953,7 +953,7 @@ export default function Presupuestos() {
     const item = newItems[index];
     item.nombre = nuevaDescripcion;
     setItems(newItems);
-    saveItemsToLocalStorage(newItems);
+    saveItemsTosessionStorage(newItems);
   };
 
   return (

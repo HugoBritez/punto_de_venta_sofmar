@@ -122,7 +122,7 @@ function App() {
               </Route>
               <Route
                 path="/"
-                element={<Navigate to="/punto-de-venta" replace />}
+                element={<Navigate to="/home" replace />}
               />
               <Route path="/404" element={<NoExiste />} />
             </Routes>

@@ -10,9 +10,9 @@ export async function traerConfiguraciones() {
         
         const elementoEspecifico = response.data.body.find((item: { id: number; }) => item.id === 55);
         
-        // Guardar el elemento específico en localStorage
+        // Guardar el elemento específico en sessionStorage
         if (elementoEspecifico) {
-            localStorage.setItem('cobrarEnBalcon', JSON.stringify(elementoEspecifico));
+            sessionStorage.setItem('cobrarEnBalcon', JSON.stringify(elementoEspecifico));
             console.log(elementoEspecifico)
         } else {
             console.log('Elemento con id 55 no encontrado');

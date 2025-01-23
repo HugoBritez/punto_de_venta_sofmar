@@ -132,8 +132,8 @@ const RuteamientoPedidos = () => {
     new Date().toISOString().split("T")[0]
   );
 
-  const operadorActual = localStorage.getItem("user_id");
-  const operadorNombre = localStorage.getItem("user_name");
+  const operadorActual = sessionStorage.getItem("user_id");
+  const operadorNombre = sessionStorage.getItem("user_name");
 
 
   const [choferes, setChoferes] = useState<Chofer[]>([]);
@@ -179,11 +179,12 @@ const RuteamientoPedidos = () => {
 
 
   const [clientes, setClientes] = useState<Cliente[]>([]);
+
+  const [clienteSeleccionadoParaFiltro, setClienteSeleccionadoParaFiltro] = useState<number | null>(null);
+
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
 
-
   //funciones y metodos
-
 
   const {
     isOpen: isCamionesModalOpen,
@@ -221,7 +222,15 @@ const RuteamientoPedidos = () => {
     onClose: onPagoModalClose,
   } = useDisclosure();
 
+  const {
+    isOpen: isClienteModalOpen,
+    onOpen: onClienteModalOpen,
+    onClose: onClienteModalClose,
+  } = useDisclosure();
+
+
   const toast = useToast();
+
 
   const fetchSucursales = async () => {
     try {
@@ -617,7 +626,6 @@ const deseleccionarItem = (id: number | undefined) => {
         bg={"white"}
         p={2}
         borderRadius={"md"}
-
         boxShadow={"sm"}
         h={"100%"}
         overflowY={"auto"}
@@ -730,7 +738,6 @@ const deseleccionarItem = (id: number | undefined) => {
           border={"1px #bfc6d3 solid"}
           p={2}
           rounded={"md"}
-
         >
           <Box>
             <FormLabel>Fecha desde:</FormLabel>
@@ -748,9 +755,20 @@ const deseleccionarItem = (id: number | undefined) => {
               onChange={(e) => setFechaHasta(e.target.value)}
             />
           </Box>
+          <Box>
+            <FormLabel>Filtrar por cliente:</FormLabel>
+            <Input
+              type="text"
+              placeholder="Seleccionar cliente"
+              value={clienteSeleccionadoParaFiltro || ""}
+              readOnly
+              onClick={onClienteModalOpen}
+            />
+          </Box>
           <Box
+
             justifyContent={"center"}
-            alignItems={isMobile? 'center' : "end"}
+            alignItems={isMobile ? "center" : "end"}
             display={"flex"}
             flexDirection={isMobile ? "column" : "row"}
             gap={2}
@@ -774,7 +792,6 @@ const deseleccionarItem = (id: number | undefined) => {
               w={isMobile ? "100%" : "auto"}
             >
               Agregar cliente
-
             </Button>
             <Button
               colorScheme="orange"
@@ -828,53 +845,64 @@ const deseleccionarItem = (id: number | undefined) => {
             </Flex>
           )}
           {[
-            ...[...pedidos, ...ventas].map((item): ItemTabla => ({
-              tipo: pedidos.includes(item) ? "Pedido" : "Venta",
-              id: item.id,
-              fecha: item.fecha,
-              factura: item.factura,
-              cliente: item.cliente,
-              condicion: item.condicion,
-              monto: item.monto,
-              vendedor: item.vendedor,
-              observacion: item.observacion,
-              color: pedidos.includes(item) ? "blue" : "green",
-              onClick: () => {
-                if (estaSeleccionado(item)) {
-                  deseleccionarItem(item.id);
-                } else {
-                  setItemSeleccionado(item);
-                  if (pedidos.includes(item)) {
-                    fetchDetallePedidos(item.id);
-                    onDetallePedidoOpen();
+            ...[...pedidos, ...ventas].map(
+              (item): ItemTabla => ({
+                tipo: pedidos.includes(item) ? "Pedido" : "Venta",
+                id: item.id,
+                fecha: item.fecha,
+                factura: item.factura,
+                cliente: item.cliente,
+                condicion: item.condicion,
+                monto: item.monto,
+                vendedor: item.vendedor,
+                observacion: item.observacion,
+                color: pedidos.includes(item) ? "blue" : "green",
+                onClick: () => {
+                  if (estaSeleccionado(item)) {
+                    deseleccionarItem(item.id);
                   } else {
-                    fetchDetalleVentas(item.id);
-                    onDetalleVentaOpen();
+                    setItemSeleccionado(item);
+                    if (pedidos.includes(item)) {
+                      fetchDetallePedidos(item.id);
+                      onDetallePedidoOpen();
+                    } else {
+                      fetchDetalleVentas(item.id);
+                      onDetalleVentaOpen();
+                    }
                   }
-                }
-              },
-            })),
+                },
+              })
+            ),
             ...detalleRuteoSeleccionado
 
               .filter(
                 (detalle) => detalle.detalle_pagos || detalle.detalle_cobros
               )
-              .map((detalle): ItemTabla => ({
-                tipo: detalle.detalle_pagos ? "Pago" : "Cobro",
-                id:
-                  detalle.detalle_pagos?.pago || detalle.detalle_cobros?.cobro,
-                fecha: "-",
-                factura: "-",
-                cliente: detalle.detalle_pagos 
-                  ? "Pagar a: " + obtenerNombreProveedorPorId(detalle.detalle_pagos?.pago || 0)
-                  : "Cobrar a: " + obtenerNombreClientePorId(detalle.detalle_cobros?.cobro || 0),
-                condicion: "-",
-                monto: detalle.monto,
-                vendedor: "-",
-                observacion: detalle.obs,
-                color: detalle.detalle_pagos ? "orange" : "purple",
-              })),
-          ].map((item) => (
+              .map(
+                (detalle): ItemTabla => ({
+                  tipo: detalle.detalle_pagos ? "Pago" : "Cobro",
+                  id:
+                    detalle.detalle_pagos?.pago ||
+                    detalle.detalle_cobros?.cobro,
+                  fecha: "-",
+                  factura: "-",
+                  cliente: detalle.detalle_pagos
+                    ? "Pagar a: " +
+                      obtenerNombreProveedorPorId(
+                        detalle.detalle_pagos?.pago || 0
+                      )
+                    : "Cobrar a: " +
+                      obtenerNombreClientePorId(
+                        detalle.detalle_cobros?.cobro || 0
+                      ),
+                  condicion: "-",
+                  monto: detalle.monto,
+                  vendedor: "-",
+                  observacion: detalle.obs,
+                  color: detalle.detalle_pagos ? "orange" : "purple",
+                })
+              ),
+          ].map((item) =>
             isMobile ? (
               <Box
                 key={`${item.tipo}-${item.id}`}
@@ -907,10 +935,20 @@ const deseleccionarItem = (id: number | undefined) => {
                   </Box>
                 )}
                 <VStack align="stretch" spacing={2}>
-                  <Badge colorScheme={item.color === "blue" ? "blue" : 
-                                   item.color === "green" ? "green" :
-                                   item.color === "orange" ? "orange" : "purple"} 
-                         px={2} py={1} w="fit-content">
+                  <Badge
+                    colorScheme={
+                      item.color === "blue"
+                        ? "blue"
+                        : item.color === "green"
+                        ? "green"
+                        : item.color === "orange"
+                        ? "orange"
+                        : "purple"
+                    }
+                    px={2}
+                    py={1}
+                    w="fit-content"
+                  >
                     {item.tipo}
                   </Badge>
                   <Flex justify="space-between">
@@ -995,14 +1033,14 @@ const deseleccionarItem = (id: number | undefined) => {
                 <Text flex={1}>{item.observacion}</Text>
               </Flex>
             )
-          ))}
+          )}
         </Flex>
         <Flex
           gap={2}
           justifyContent={"flex-end"}
-          position={isMobile? 'relative' :"fixed"}
-          bottom={isMobile? 0 : 4}
-          right={isMobile? 0 : 4}
+          position={isMobile ? "relative" : "fixed"}
+          bottom={isMobile ? 0 : 4}
+          right={isMobile ? 0 : 4}
           zIndex={10}
           bg={"gray.100"}
           p={2}
@@ -1043,17 +1081,15 @@ const deseleccionarItem = (id: number | undefined) => {
                   cursor={"pointer"}
                   _hover={{ bg: "gray.200" }}
                 >
-                  <Flex alignItems={'center'} gap={2}>
+                  <Flex alignItems={"center"} gap={2}>
                     <Text>{camion.descripcion}</Text>
-                    <p className="text-sm font-bold text-gray-500">- {camion.chapa}</p>
+                    <p className="text-sm font-bold text-gray-500">
+                      - {camion.chapa}
+                    </p>
                   </Flex>
-
                 </Box>
-
-
               ))}
             </Flex>
-
           </ModalBody>
           <ModalFooter justifyContent={"space-between"}>
             <Button
@@ -1101,7 +1137,6 @@ const deseleccionarItem = (id: number | undefined) => {
                   cursor={"pointer"}
                   _hover={{ bg: "gray.200" }}
                 >
-
                   <Text>{chofer.nombre}</Text>
                 </Box>
               ))}
@@ -1298,8 +1333,23 @@ const deseleccionarItem = (id: number | undefined) => {
           </ModalFooter>
         </ModalContent>
       </Modal>
+      <Modal isOpen={isClienteModalOpen} onClose={onClienteModalClose}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>
+            <Heading size={"md"}>Seleccionar cliente</Heading>
+          </ModalHeader>
+          <ModalBody>
+            <Input
+              placeholder="Buscar cliente"
+              onChange={(e) => setClientes(buscarCliente(e.target.value))}
+            />
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </Box>
   );
 };
+
 
 export default RuteamientoPedidos;

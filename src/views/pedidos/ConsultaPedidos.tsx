@@ -129,15 +129,15 @@ export default function ConsultaPedidos({
   const [pedidoId, setPedidoId] = useState<number | null>(null);
   const { isSwitchOn } = useSwitch();
   const permisoDeAutorizacion = Number(
-    localStorage.getItem("permisos_autorizar_pedido")
+    sessionStorage.getItem("permisos_autorizar_pedido")
   );
 
-  const verUtilidad = Number(localStorage.getItem("permiso_ver_utilidad"));
+  const verUtilidad = Number(sessionStorage.getItem("permiso_ver_utilidad"));
   const [verUltimoCosto, setVerUltimoCosto] = useState(0);
 
   useEffect(() => {
     fetchPedidos();
-    console.log(localStorage.getItem("user_id"));
+    console.log(sessionStorage.getItem("user_id"));
     console.log(permisoDeAutorizacion);
     console.log(verUtilidad);
   }, [fechaDesde, fechaHasta]);

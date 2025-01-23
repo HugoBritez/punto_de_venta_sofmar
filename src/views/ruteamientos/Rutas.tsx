@@ -23,8 +23,8 @@ const fechaDesde = new Date().toISOString().split("T")[0];
 const fechaHasta = new Date().toISOString().split("T")[0];
 
 const Rutas = () => {
-  const operadorActual = Number(localStorage.getItem("user_id"));
-  const operadorActualNombre = localStorage.getItem("user_name");
+  const operadorActual = Number(sessionStorage.getItem("user_id"));
+  const operadorActualNombre = sessionStorage.getItem("user_name");
   const [rutas, setRutas] = useState<Agenda[]>([]);
   const [rutaActual, setRutaActual] = useState<Agenda | null>(null);
   const toast = useToast();
@@ -32,7 +32,7 @@ const Rutas = () => {
   const { auth } = useAuth();
   const [, setError] = useState<string | null>(null);
   const [inicioRuta, setInicioRuta] = useState<boolean>(false);
-  const operadorMovimiento = Number(localStorage.getItem('operador_movimiento'));
+  const operadorMovimiento = Number(sessionStorage.getItem('operador_movimiento'));
 
   const handleInicioRuta = () => {
     if (rutas.length === 0) {
@@ -45,15 +45,15 @@ const Rutas = () => {
       });
       return;
     }
-    Auditar(125, 1, operadorActual, Number(localStorage.getItem('user_id')), `Se inicio una nueva ruta de visitas por ${operadorActualNombre}`);
+    Auditar(125, 1, operadorActual, Number(sessionStorage.getItem('user_id')), `Se inicio una nueva ruta de visitas por ${operadorActualNombre}`);
     setInicioRuta(true);
-    localStorage.setItem("inicioRuta", "true");
+    sessionStorage.setItem("inicioRuta", "true");
   };
 
   const handlePararRuta = () => {
-    Auditar(125, 1, operadorActual, Number(localStorage.getItem('user_id')), `Se detvo la ruta de visitas por ${operadorActualNombre}`);
+    Auditar(125, 1, operadorActual, Number(sessionStorage.getItem('user_id')), `Se detvo la ruta de visitas por ${operadorActualNombre}`);
     setInicioRuta(false);
-    localStorage.setItem("inicioRuta", "false");
+    sessionStorage.setItem("inicioRuta", "false");
   };
 
   const fetchRuteamientos = async (vendedor: number) => {
@@ -74,7 +74,7 @@ const Rutas = () => {
         const rutaEnCurso = response.data.body.find((ruta: Agenda) => ruta.visitado === 'Sí');
         if (rutaEnCurso) {
           setInicioRuta(true);
-          localStorage.setItem("inicioRuta", "true");
+          sessionStorage.setItem("inicioRuta", "true");
           setRutaActual(rutaEnCurso);
         }
       }
@@ -129,7 +129,7 @@ const Rutas = () => {
       } else {
         setRutaActual(null)
         setInicioRuta(false)
-        localStorage.setItem("inicioRuta", "false")
+        sessionStorage.setItem("inicioRuta", "false")
         toast({
           title: "Ruta finalizada",
           description: "Has completado todas las visitas programadas.",
@@ -215,7 +215,6 @@ const Rutas = () => {
               onFinalizarVisita={handleFinalizarVisita}
               visita_en_curso={rutaActual?.visita_en_curso}
             />
-
           ) : (
             <Grid
               width={"100%"}
@@ -250,7 +249,6 @@ const Rutas = () => {
             </Grid>
           )}
         </VStack>
-
         {/* FAB Button */}
         <Button
           position="fixed"

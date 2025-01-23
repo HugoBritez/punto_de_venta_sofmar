@@ -114,12 +114,12 @@ interface DescripcionEditada {
   ar_descripcion: string;
 }
 
-const saveItemsToLocalStorage = (items: any[]) => {
-  localStorage.setItem("cartItems", JSON.stringify(items));
+const saveItemsTosessionStorage = (items: any[]) => {
+  sessionStorage.setItem("cartItems", JSON.stringify(items));
 };
 
-const loadItemsFromLocalStorage = (): any[] => {
-  const savedItems = localStorage.getItem("cartItems");
+const loadItemsFromsessionStorage = (): any[] => {
+  const savedItems = sessionStorage.getItem("cartItems");
   return savedItems ? JSON.parse(savedItems) : [];
 };
 
@@ -161,7 +161,7 @@ export default function VentaRapida() {
       descuentoIndividual: number;
       ar_editar_desc: number;
     }[]
-  >(loadItemsFromLocalStorage());
+  >(loadItemsFromsessionStorage());
   const [selectedItem, setSelectedItem] = useState<
     (typeof articulos)[0] | null
   >(null);
@@ -198,12 +198,12 @@ export default function VentaRapida() {
   const [, setClienteInfo] = useState<any>(null);
   const [, setSucursalInfo] = useState<any>(null);
   const [, setVendedorInfo] = useState<any>(null);
-  const cobrarEnBalcon = localStorage.getItem("cobrarEnBalcon");
+  const cobrarEnBalcon = sessionStorage.getItem("cobrarEnBalcon");
 
   const [isFinalizarVentaModalOpen, setIsFinalizarVentaModalOpen] =
     useState(false);
 
-  const operadorActual = localStorage.getItem("user_id");
+  const operadorActual = sessionStorage.getItem("user_id");
   // Funciones y Effects para traer los datos//
 
   const cobrarEnBalconParsed = JSON.parse(cobrarEnBalcon || "{}");
@@ -217,7 +217,7 @@ export default function VentaRapida() {
   const [ultimaVentaId, setUltimaVentaId] = useState<number>(0);
   const [vendedor] = useState(operadorActual);
   const [clienteCasual, setClienteCasual] = useState<Cliente | null>(null);
-  const operadorMovimiento = Number(localStorage.getItem("operador_movimiento"));
+  const operadorMovimiento = Number(sessionStorage.getItem("operador_movimiento"));
 
   async function traerUltimaVentaId() {
     try {
@@ -482,7 +482,7 @@ export default function VentaRapida() {
       };
       const newItems = [...items, nuevoItem];
       setItems(newItems);
-      saveItemsToLocalStorage(newItems);
+      saveItemsTosessionStorage(newItems);
       setArticuloBusqueda("");
       setCantidad(1);
       setSelectedItem(null);
@@ -499,7 +499,7 @@ export default function VentaRapida() {
   const eliminarItem = (index: number) => {
     const newItems = items.filter((_, i) => i !== index);
     setItems(newItems);
-    saveItemsToLocalStorage(newItems);
+    saveItemsTosessionStorage(newItems);
   };
 
   const calcularTotal = () => {
@@ -517,7 +517,7 @@ export default function VentaRapida() {
     newItems[index].cantidad = nuevaCantidad;
     newItems[index].subtotal = newItems[index].precioUnitario * nuevaCantidad;
     setItems(newItems);
-    saveItemsToLocalStorage(newItems);
+    saveItemsTosessionStorage(newItems);
   };
 
   const actualizarDescuentoIndividual = (
@@ -527,7 +527,7 @@ export default function VentaRapida() {
     const newItems = [...items];
     newItems[index].descuentoIndividual = nuevoDescuento;
     setItems(newItems);
-    saveItemsToLocalStorage(newItems);
+    saveItemsTosessionStorage(newItems);
   };
 
   const actualizarPrecioUnitario = (index: number, nuevoPrecio: number) => {
@@ -543,7 +543,7 @@ export default function VentaRapida() {
     item.exentas = nuevosImpuestos.exentas;
 
     setItems(newItems);
-    saveItemsToLocalStorage(newItems);
+    saveItemsTosessionStorage(newItems);
   };
 
   const actualizarDescripcionArticulo = (
@@ -554,7 +554,7 @@ export default function VentaRapida() {
     const item = newItems[index];
     item.nombre = nuevaDescripcion;
     setItems(newItems);
-    saveItemsToLocalStorage(newItems);
+    saveItemsTosessionStorage(newItems);
 
     const nuevosItemsEditados = [...itemsEditados];
     const itemEditado = {
@@ -711,7 +711,7 @@ export default function VentaRapida() {
   }, []);
 
   useEffect(() => {
-    saveItemsToLocalStorage(items);
+    saveItemsTosessionStorage(items);
   }, [items]);
 
   const handleDepositoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -1029,7 +1029,7 @@ export default function VentaRapida() {
         setVentaFinalizada(localVentaData.venta);
         setDetalleVentaFinalizada(localVentaData.detalle_ventas);
         setItems([]);
-        saveItemsToLocalStorage([]);
+        saveItemsTosessionStorage([]);
         setDescuentoValor(0);
         setCondicionVenta(0);
         setNotaFiscal(0);
@@ -1071,7 +1071,7 @@ export default function VentaRapida() {
 
   const cancelarVenta = async () => {
     setItems([]);
-    saveItemsToLocalStorage([]);
+    saveItemsTosessionStorage([]);
     setClienteBusqueda("");
     setDescuentoValor(0);
     setCondicionVenta(0);

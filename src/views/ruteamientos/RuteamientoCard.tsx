@@ -150,7 +150,7 @@ const RuteamientoCard = ({
           125,
           1,
           ruteamientoId,
-          Number(localStorage.getItem("user_id")),
+          Number(sessionStorage.getItem("user_id")),
           `Se agregó una nota al ruteamiento #${ruteamientoId}`
         );
         setNotaNueva("");
@@ -214,7 +214,7 @@ const RuteamientoCard = ({
         125,
         2,
         ruteamientoId,
-        Number(localStorage.getItem("user_id")),
+        Number(sessionStorage.getItem("user_id")),
         `Se reagendo una visita del ruteamiento #${ruteamientoId}`
       );
     } catch (error) {
@@ -245,7 +245,7 @@ const RuteamientoCard = ({
         125,
         3,
         ruteamientoId,
-        Number(localStorage.getItem("user_id")),
+        Number(sessionStorage.getItem("user_id")),
         `Se anuló el ruteamiento #${ruteamientoId}`
       );
       fetchRuteamientos();

@@ -31,7 +31,7 @@ const Login: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
-  const userID = parseInt(localStorage.getItem('user_id') || '0');
+  const userID = parseInt(sessionStorage.getItem('user_id') || '0');
   const [isMobile] = useMediaQuery('(max-width: 768px)');
 
   const ingresar = async () => {
@@ -45,7 +45,7 @@ const Login: React.FC = () => {
       // setPermisos(permisosData);
 
       login(response.data.body);
-      localStorage.setItem('permiso_graficos', response.data.body.usuario[0].op_graficos);
+      sessionStorage.setItem('permiso_graficos', response.data.body.usuario[0].op_graficos);
       navigate('/home');
       Auditar(10, 4, userID, 0, 'Inicio de Sesión desde la web');
       // traerConfiguraciones()

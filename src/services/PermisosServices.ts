@@ -4,7 +4,7 @@ import axios from "axios";
 async function getPermisos(menuId: number) {
     try {
         const response = await axios.post(`${api_url}permisos/permitir`, {
-            userId: Number(localStorage.getItem('user_id')),
+            userId: Number(sessionStorage.getItem('user_id')),
             menuId: menuId
         });
         return response.data.body;

@@ -169,12 +169,12 @@ interface DescripcionEditada {
   ar_descripcion: string;
 }
 
-const saveItemsToLocalStorage = (items: any[]) => {
-  localStorage.setItem("cartItems", JSON.stringify(items));
+const saveItemsTosessionStorage = (items: any[]) => {
+  sessionStorage.setItem("cartItems", JSON.stringify(items));
 };
 
-const loadItemsFromLocalStorage = (): any[] => {
-  const savedItems = localStorage.getItem("cartItems");
+const loadItemsFromsessionStorage = (): any[] => {
+  const savedItems = sessionStorage.getItem("cartItems");
   return savedItems ? JSON.parse(savedItems) : [];
 };
 
@@ -217,7 +217,7 @@ export default function VentaBalcon() {
       descuentoIndividual: number;
       ar_editar_desc: number;
     }[]
-  >(loadItemsFromLocalStorage());
+  >(loadItemsFromsessionStorage());
   const [selectedItem, setSelectedItem] = useState<
     (typeof articulos)[0] | null
   >(null);
@@ -262,7 +262,7 @@ export default function VentaBalcon() {
   const [, setClienteInfo] = useState<any>(null);
   const [, setSucursalInfo] = useState<any>(null);
   const [, setVendedorInfo] = useState<any>(null);
-  const cobrarEnBalcon = localStorage.getItem("cobrarEnBalcon");
+  const cobrarEnBalcon = sessionStorage.getItem("cobrarEnBalcon");
   const [isPresupuestoModalOpen, setIsPresupuestoModalOpen] = useState(false);
   const [isPedidoModalOpen, setIsPedidoModalOpen] = useState(false);
   const [pedidoSeleccionado, setPedidoSeleccionado] = useState<Pedidos | null>(
@@ -281,7 +281,7 @@ export default function VentaBalcon() {
   const [isFinalizarVentaModalOpen, setIsFinalizarVentaModalOpen] =
     useState(false);
 
-  const operadorActual = localStorage.getItem("user_id");
+  const operadorActual = sessionStorage.getItem("user_id");
 
   const [selectedIndex, setSelectedIndex] = useState(-1);
 
@@ -301,7 +301,7 @@ export default function VentaBalcon() {
   const [cotizacionReal, setCotizacionReal] = useState<number>(1200);
   const [cotizacionPeso, setCotizacionPeso] = useState<number>(5);
   const operadorMovimiento = Number(
-    localStorage.getItem("operador_movimiento")
+    sessionStorage.getItem("operador_movimiento")
   );
 
   async function traerUltimaVentaId() {
@@ -601,7 +601,7 @@ export default function VentaBalcon() {
       };
       const newItems = [...items, nuevoItem];
       setItems(newItems);
-      saveItemsToLocalStorage(newItems);
+      saveItemsTosessionStorage(newItems);
       setArticuloBusqueda("");
       setCantidad(1);
       setSelectedItem(null);
@@ -619,7 +619,7 @@ export default function VentaBalcon() {
   const eliminarItem = (index: number) => {
     const newItems = items.filter((_, i) => i !== index);
     setItems(newItems);
-    saveItemsToLocalStorage(newItems);
+    saveItemsTosessionStorage(newItems);
   };
 
   const calcularTotal = () => {
@@ -637,7 +637,7 @@ export default function VentaBalcon() {
     newItems[index].cantidad = nuevaCantidad;
     newItems[index].subtotal = newItems[index].precioUnitario * nuevaCantidad;
     setItems(newItems);
-    saveItemsToLocalStorage(newItems);
+    saveItemsTosessionStorage(newItems);
   };
 
   const actualizarDescuentoIndividual = (
@@ -647,7 +647,7 @@ export default function VentaBalcon() {
     const newItems = [...items];
     newItems[index].descuentoIndividual = nuevoDescuento;
     setItems(newItems);
-    saveItemsToLocalStorage(newItems);
+    saveItemsTosessionStorage(newItems);
   };
 
   const actualizarPrecioUnitario = (index: number, nuevoPrecio: number) => {
@@ -663,7 +663,7 @@ export default function VentaBalcon() {
     item.exentas = nuevosImpuestos.exentas;
 
     setItems(newItems);
-    saveItemsToLocalStorage(newItems);
+    saveItemsTosessionStorage(newItems);
   };
 
   const actualizarDescripcionArticulo = (
@@ -674,7 +674,7 @@ export default function VentaBalcon() {
     const item = newItems[index];
     item.nombre = nuevaDescripcion;
     setItems(newItems);
-    saveItemsToLocalStorage(newItems);
+    saveItemsTosessionStorage(newItems);
 
     const nuevosItemsEditados = [...itemsEditados];
     const itemEditado = {
@@ -828,7 +828,7 @@ export default function VentaBalcon() {
   }, []);
 
   useEffect(() => {
-    saveItemsToLocalStorage(items);
+    saveItemsTosessionStorage(items);
   }, [items]);
 
   const handleDepositoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -1188,7 +1188,7 @@ export default function VentaBalcon() {
         setVendedorInfo(vendedores.find((v) => v.op_codigo === operador));
         setIsModalOpen(true);
         setItems([]);
-        saveItemsToLocalStorage([]);
+        saveItemsTosessionStorage([]);
         setClienteSeleccionado(null);
         setClienteBusqueda("");
         setDescuentoValor(0);
@@ -1260,7 +1260,7 @@ export default function VentaBalcon() {
 
   const cancelarVenta = async () => {
     setItems([]);
-    saveItemsToLocalStorage([]);
+    saveItemsTosessionStorage([]);
     setClienteSeleccionado(null);
     setClienteBusqueda("");
     setDescuentoValor(0);
@@ -1519,7 +1519,7 @@ export default function VentaBalcon() {
 
       setItems(newItems);
 
-      saveItemsToLocalStorage(newItems);
+      saveItemsTosessionStorage(newItems);
 
       setDescuentoTipo(pedido.descuento > 0 ? "valor" : "porcentaje");
 
@@ -1593,7 +1593,7 @@ export default function VentaBalcon() {
 
       setItems(newItems);
 
-      saveItemsToLocalStorage(newItems);
+      saveItemsTosessionStorage(newItems);
 
       setDescuentoTipo(presupuesto.descuento > 0 ? "valor" : "porcentaje");
       setDescuentoValor(presupuesto.descuento);

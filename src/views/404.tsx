@@ -8,7 +8,7 @@ const NoExiste = () => {
 const navigate = useNavigate();
 
     const handleBack = () => {
-        navigate('/punto-de-venta');
+        navigate('/home');
     }
   return (
     <Flex justifyContent="center" alignItems="center" h="100vh" flexDir={'column'} gap={8}>

@@ -114,12 +114,12 @@ interface ItemEditado {
   nombre_editado: string;
 }
 
-const saveItemsToLocalStorage = (items: any[]) => {
-  localStorage.setItem("cartItems", JSON.stringify(items));
+const saveItemsTosessionStorage = (items: any[]) => {
+  sessionStorage.setItem("cartItems", JSON.stringify(items));
 };
 
-const loadItemsFromLocalStorage = (): any[] => {
-  const savedItems = localStorage.getItem("cartItems");
+const loadItemsFromsessionStorage = (): any[] => {
+  const savedItems = sessionStorage.getItem("cartItems");
   return savedItems ? JSON.parse(savedItems) : [];
 };
 
@@ -160,7 +160,7 @@ export default function Pedidos() {
       descuentoIndividual: number;
       editarDescripcion?: number;
     }[]
-  >(loadItemsFromLocalStorage());
+  >(loadItemsFromsessionStorage());
   const [selectedItem, setSelectedItem] = useState<
     (typeof articulos)[0] | null
   >(null);
@@ -199,7 +199,7 @@ export default function Pedidos() {
   const [isFinalizarVentaModalOpen, setIsFinalizarVentaModalOpen] =
     useState(false);
 
-  const operadorActual = localStorage.getItem("user_id");
+  const operadorActual = sessionStorage.getItem("user_id");
   const [itemsEditados, setItemsEditados] = useState<ItemEditado[]>([]);
   const [listaPrecios, setListaPrecios] = useState<any[0]>([]);
   const [listaPrecio, setListaPrecio] = useState("");
@@ -212,7 +212,7 @@ export default function Pedidos() {
   const [activeModal, setActiveModal] = useState<ModalType>(null);
 
   const operadorMovimiento = Number(
-    localStorage.getItem("operador_movimiento")
+    sessionStorage.getItem("operador_movimiento")
   );
 
   useEffect(() => {
@@ -406,7 +406,7 @@ export default function Pedidos() {
       };
       const newItems = [...items, nuevoItem];
       setItems(newItems);
-      saveItemsToLocalStorage(newItems);
+      saveItemsTosessionStorage(newItems);
       setArticuloBusqueda("");
       setCantidad(1);
       setSelectedItem(null);
@@ -423,7 +423,7 @@ export default function Pedidos() {
   const eliminarItem = (index: number) => {
     const newItems = items.filter((_, i) => i !== index);
     setItems(newItems);
-    saveItemsToLocalStorage(newItems);
+    saveItemsTosessionStorage(newItems);
   };
 
   const calcularTotal = () => {
@@ -441,7 +441,7 @@ export default function Pedidos() {
     newItems[index].cantidad = nuevaCantidad;
     newItems[index].subtotal = newItems[index].precioUnitario * nuevaCantidad;
     setItems(newItems);
-    saveItemsToLocalStorage(newItems);
+    saveItemsTosessionStorage(newItems);
   };
 
   const actualizarDescuentoIndividual = (
@@ -451,7 +451,7 @@ export default function Pedidos() {
     const newItems = [...items];
     newItems[index].descuentoIndividual = nuevoDescuento;
     setItems(newItems);
-    saveItemsToLocalStorage(newItems);
+    saveItemsTosessionStorage(newItems);
   };
 
   const actualizarPrecioUnitario = (index: number, nuevoPrecio: number) => {
@@ -467,7 +467,7 @@ export default function Pedidos() {
     item.exentas = nuevosImpuestos.exentas;
 
     setItems(newItems);
-    saveItemsToLocalStorage(newItems);
+    saveItemsTosessionStorage(newItems);
   };
 
   const actualizarDescripcionArticulo = (
@@ -478,7 +478,7 @@ export default function Pedidos() {
     const item = newItems[index];
     item.nombre = nuevaDescripcion;
     setItems(newItems);
-    saveItemsToLocalStorage(newItems);
+    saveItemsTosessionStorage(newItems);
 
     const nuevosItemsEditados = [...itemsEditados];
     const itemEditado = {
@@ -632,7 +632,7 @@ export default function Pedidos() {
   }, []);
 
   useEffect(() => {
-    saveItemsToLocalStorage(items);
+    saveItemsTosessionStorage(items);
   }, [items]);
 
   const handleDepositoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -1008,7 +1008,7 @@ export default function Pedidos() {
         setSucursalInfo(sucursales.find((s) => s.id.toString() === sucursal));
         setVendedorInfo(vendedores.find((v) => v.op_codigo === operador));
         setItems([]);
-        saveItemsToLocalStorage([]); // Limpiar el localStorage
+        saveItemsTosessionStorage([]); // Limpiar el sessionStorage
         setClienteSeleccionado(null);
         setClienteBusqueda("");
         setDescuentoValor(0);
@@ -1049,7 +1049,7 @@ export default function Pedidos() {
 
   const cancelarVenta = async () => {
     setItems([]);
-    saveItemsToLocalStorage([]);
+    saveItemsTosessionStorage([]);
     setClienteSeleccionado(null);
     setClienteBusqueda("");
     setDescuentoValor(0);

@@ -37,10 +37,12 @@ import {
   Home,
 } from "lucide-react";
 import { useAuth } from "@/services/AuthContext";
-import { db, fechaRelease, userName, version } from "@/utils";
+import { db, fechaRelease, version } from "@/utils";
 import CustomDrawer from "./customDrawer";
 
 interface NavItem {
+  grupo?: number;
+  orden?: number;
   id?: number;
   name: string;
   icon: React.ElementType;
@@ -61,19 +63,61 @@ const Sidebar = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const permisos_menu_local = (() => {
     try {
-      const stored = localStorage.getItem("permisos_menu");
-      if (!stored) return [];
+      const stored = sessionStorage.getItem("permisos_menu");
+
+
+      // Verificar que stored no sea null, undefined o una cadena vacía
+      if (!stored || stored === "undefined" || stored === "") {
+
+        return [
+          {
+            grupo: 0,
+            orden: 1,
+            acceso: 1,
+            menu_id: 0,
+            menu_descripcion: "Inicio",
+          },
+        ];
+      }
+
       const parsed = JSON.parse(stored);
-      return Array.isArray(parsed) ? parsed : [];
+
+      // Si es un array vacío o null, agregar permiso de Home
+      if (!Array.isArray(parsed) || parsed.length === 0) {
+
+        return [
+          {
+            acceso: 1,
+            menu_id: 0,
+            menu_descripcion: "Inicio",
+            menu_grupo: 0,
+            menu_orden: 1,
+          },
+        ];
+      }
+
+      return parsed;
     } catch (error) {
-      console.warn("Error parsing permisos_menu:", error);
-      return [];
+      console.warn("Error al analizar permisos_menu:", error);
+
+      return [
+        {
+          acceso: 1,
+          menu_id: 0,
+          menu_descripcion: "Inicio",
+          menu_grupo: 0,
+          menu_orden: 1,
+        },
+      ];
     }
   })();
 
-  
+  const nombreUsuario = sessionStorage.getItem("user_name");
+
   const NAV_ITEMS: NavItem[] = [
     {
+      grupo: 0,
+      orden: 1,
       id: 0, // ID 0 para indicar que es accesible para todos
       name: "Inicio",
       icon: Home,
@@ -81,6 +125,8 @@ const Sidebar = () => {
       enabled: true,
     },
     {
+      grupo: 2,
+      orden: 69,
       id: 249,
       name: "Dashboard",
       icon: ChartSpline,
@@ -94,6 +140,8 @@ const Sidebar = () => {
       enabled: true,
       subItems: [
         {
+          grupo: 5,
+          orden: 2,
           id: 142,
           name: "Op. Caja Diaria",
           icon: SmartphoneNfc,
@@ -101,6 +149,8 @@ const Sidebar = () => {
           enabled: true,
         },
         {
+          grupo: 5,
+          orden: 6,
           id: 146,
           name: "Op. Caja Financiero",
           icon: HandCoins,
@@ -116,6 +166,8 @@ const Sidebar = () => {
       enabled: true,
       subItems: [
         {
+          grupo: 2,
+          orden: 9,
           id: 47,
           name: "Venta Rápida",
           icon: SmartphoneNfc,
@@ -123,6 +175,8 @@ const Sidebar = () => {
           enabled: true,
         },
         {
+          grupo: 2,
+          orden: 102,
           id: 421,
           name: "Punto de Venta",
           icon: ShoppingBasket,
@@ -130,6 +184,8 @@ const Sidebar = () => {
           enabled: true,
         },
         {
+          grupo: 2,
+          orden: 104,
           id: 429,
           name: "Venta Balcon",
           icon: ShoppingCart,
@@ -137,6 +193,8 @@ const Sidebar = () => {
           enabled: true,
         },
         {
+          grupo: 2,
+          orden: 98,
           id: 401,
           name: "Reg. de Pedidos",
           icon: Handshake,
@@ -144,6 +202,8 @@ const Sidebar = () => {
           enabled: true,
         },
         {
+          grupo:2 ,
+          orden: 13,
           id: 51,
           name: "Reg. Presupuesto",
           icon: SquareChartGantt,
@@ -159,6 +219,8 @@ const Sidebar = () => {
       enabled: true,
       subItems: [
         {
+          grupo: 2,
+          orden: 106,
           id: 462,
           name: "Consulta de Ventas",
           icon: HandCoins,
@@ -167,6 +229,8 @@ const Sidebar = () => {
         },
 
         {
+          grupo: 2,
+          orden: 106,
           id: 462,
           name: "Consulta de Pedidos",
           icon: Handshake,
@@ -174,6 +238,8 @@ const Sidebar = () => {
           enabled: true,
         },
         {
+          grupo: 2,
+          orden: 106,
           id: 462,
           name: "Consulta de Presupuestos",
           icon: FilePen,
@@ -189,6 +255,8 @@ const Sidebar = () => {
       enabled: true,
       subItems: [
         {
+          grupo: 2,
+          orden: 36,
           id: 74,
           name: "Informe de Ventas",
           icon: FileChartColumnIncreasing,
@@ -204,6 +272,8 @@ const Sidebar = () => {
       enabled: true,
       subItems: [
         {
+          grupo: 1,
+          orden: 1,
           id: 1,
           name: "Consulta de Artículos",
           icon: Archive,
@@ -211,6 +281,8 @@ const Sidebar = () => {
           enabled: true,
         },
         {
+          grupo: 1,
+          orden: 15,
           id: 14,
           name: "Toma de inventario",
           icon: ArchiveRestore,
@@ -226,6 +298,8 @@ const Sidebar = () => {
       enabled: true,
       subItems: [
         {
+          grupo: 2,
+          orden: 30,
           id: 68,
           name: "Ingreso de planificación",
           icon: Truck,
@@ -233,6 +307,8 @@ const Sidebar = () => {
           enabled: true,
         },
         {
+          grupo: 2,
+          orden: 18,
           id: 56,
           name: "Iniciar Rutas",
           icon: Truck,
@@ -240,6 +316,8 @@ const Sidebar = () => {
           enabled: true,
         },
         {
+          grupo: 2,
+          orden: 31,
           id: 69,
           name: "Dashboard Ruteamientos",
           icon: Truck,
@@ -255,6 +333,8 @@ const Sidebar = () => {
       enabled: true,
       subItems: [
         {
+          grupo: 2,
+          orden: 18,
           id: 56,
           name: "Ruteamiento de pedidos",
           icon: Truck,
@@ -262,6 +342,8 @@ const Sidebar = () => {
           enabled: true,
         },
         {
+          grupo: 2,
+          orden: 18,
           id: 56,
           name: "Rutas de pedidos",
           icon: Truck,
@@ -269,6 +351,8 @@ const Sidebar = () => {
           enabled: true,
         },
         {
+          grupo: 2,
+          orden: 31,
           id: 69,
           name: "Informe de entregas",
           icon: FileBox,
@@ -279,25 +363,34 @@ const Sidebar = () => {
     },
   ];
 
-  const [menuItems, setMenuItems] = useState(NAV_ITEMS);
-  useEffect(() => {
-    const tienePermiso = (menuId: number | undefined) => {
-      if (menuId === 0 || !menuId) return true;
-      return permisos_menu_local?.some?.(
-        (permiso: any) => permiso.menu_id === menuId && permiso.acceso === 1
-      );
-    };
-    const menuConPermisos = NAV_ITEMS.map((item) => ({
-      ...item,
-      enabled: tienePermiso(item.id),
-      subItems: item.subItems?.map((subItem) => ({
-        ...subItem,
-        enabled: tienePermiso(subItem.id),
-      })),
-    }));
+const [menuItems, setMenuItems] = useState(NAV_ITEMS);
+useEffect(() => {
+  const tienePermiso = (
+    grupo: number | undefined,
+    orden: number | undefined
+  ) => {
+    // Si no hay grupo u orden definidos, no permitir acceso
+    if (!grupo || !orden) return false;
 
-    setMenuItems(menuConPermisos);
-  }, []);
+    return permisos_menu_local?.some?.(
+      (permiso: any) =>
+        permiso.menu_grupo === grupo &&
+        permiso.menu_orden === orden &&
+        permiso.acceso === 1
+    );
+  };
+
+  const menuConPermisos = NAV_ITEMS.map((item) => ({
+    ...item,
+    enabled: !item.subItems ? tienePermiso(item.grupo, item.orden) : true,
+    subItems: item.subItems?.map((subItem) => ({
+      ...subItem,
+      enabled: tienePermiso(subItem.grupo, subItem.orden),
+    })),
+  }));
+
+  setMenuItems(menuConPermisos);
+}, []);
 
   const handleMouseEnter = () => {
     if (isLargerThan768) {
@@ -492,7 +585,7 @@ const Sidebar = () => {
           isOpen={isOpen}
           onClose={onClose}
           navItems={menuItems}
-          userName={userName || ""}
+          userName={nombreUsuario || ""}
           version={version}
           fechaRelease={fechaRelease}
           db={db}
@@ -554,7 +647,7 @@ const Sidebar = () => {
             >
               <Text color={"black"} fontWeight={"bold"}>
                 {" "}
-                Bienvenido, {userName}
+                Usuario: {nombreUsuario}
               </Text>
             </Flex>
           )}

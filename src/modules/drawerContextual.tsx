@@ -35,8 +35,8 @@ interface DrawerContextualProps {
 
 function DrawerContextual({ isOpen, onClose, verificarCajaAbierta, sucursal, deposito }: DrawerContextualProps) {
   const [fecha, setFecha] = useState(new Date());
-  const operador = localStorage.getItem("userName");
-  const operadorId = Number(localStorage.getItem("user_id"));
+  const operador = sessionStorage.getItem("userName");
+  const operadorId = Number(sessionStorage.getItem("user_id"));
   const [moneda, setMoneda] = useState(2);
   const [area, setArea] = useState(1);
   const [turno, setTurno] = useState(1);

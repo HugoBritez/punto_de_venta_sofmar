@@ -109,8 +109,8 @@ const Ruteamientos = () => {
   >(null);
   const [, setError] = useState<string | null>(null);
   const { auth } = useAuth();
-  const vendedorActual = Number(localStorage.getItem("user_id"));
-  const operadorNombre = localStorage.getItem("user_name");
+  const vendedorActual = Number(sessionStorage.getItem("user_id"));
+  const operadorNombre = sessionStorage.getItem("user_name");
   const handlePeriodoChange = (index: number) => {
     setPeriodoSeleccionado(index);
     const hoy = new Date();
@@ -342,7 +342,6 @@ const Ruteamientos = () => {
   useEffect(() => {
     fetchRuteamientos();
     fetchVendedores();
-    fetchClientes();
   }, [
     fechaDesde,
     fechaHasta,

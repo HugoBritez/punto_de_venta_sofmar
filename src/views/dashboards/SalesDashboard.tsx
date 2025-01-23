@@ -23,7 +23,7 @@ import { ChartNoAxesCombined } from "lucide-react";
 
 export default function VentasChart() {
   const [isMobile] = useMediaQuery("(max-width: 48em)");
-  const verGrafico = localStorage.getItem("permiso_graficos") === "1";
+  const verGrafico = sessionStorage.getItem("permiso_graficos") === "1";
   const [tipo, setTipo] = useState("hoy");
   const [ventasData, setVentasData] = useState([]);
   const [totalVentas, setTotalVentas] = useState("");

@@ -4,8 +4,8 @@ import { now } from "lodash";
 
 
 async function Auditar(entidad: number, accion: number, idReferencia: number | null, vendedor: number, obs: string) {
-    const token = localStorage.getItem('token');
-    const usuario = localStorage.getItem('user_name');
+    const token = sessionStorage.getItem('token');
+    const usuario = sessionStorage.getItem('user_name');
     
     const datos = {
         entidad,

@@ -1,4 +1,4 @@
-export const api_url = 'https://localhost:4000/api/'
+export const api_url = 'https://node.sofmar.com.py:4025/api/'
 
 //export const api_url = 'https://localhost:4000/api/'
 //export const  api_url = 'https://db.sofmar.com.py:4009/api/' //acricolor
@@ -23,5 +23,5 @@ export const version = '0.9.7'
 
 
 export const fechaRelease = '22/01/2025'
-export const db = 'gaesa'
-export const userName = localStorage.getItem('userName')
+export const db = 'lamberty'
+export const userName = sessionStorage.getItem('userName')

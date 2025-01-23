@@ -178,12 +178,12 @@ interface DescripcionEditada {
   ar_descripcion: string;
 }
 
-const saveItemsToLocalStorage = (items: any[]) => {
-  localStorage.setItem("cartItems", JSON.stringify(items));
+const saveItemsTosessionStorage = (items: any[]) => {
+  sessionStorage.setItem("cartItems", JSON.stringify(items));
 };
 
-const loadItemsFromLocalStorage = (): any[] => {
-  const savedItems = localStorage.getItem("cartItems");
+const loadItemsFromsessionStorage = (): any[] => {
+  const savedItems = sessionStorage.getItem("cartItems");
   return savedItems ? JSON.parse(savedItems) : [];
 };
 
@@ -228,7 +228,7 @@ export default function PuntoDeVenta() {
       al_codigo?: number;
       al_vencimiento?: string;
     }[]
-  >(loadItemsFromLocalStorage());
+  >(loadItemsFromsessionStorage());
   const [selectedItem, setSelectedItem] = useState<
     (typeof articulos)[0] | null
   >(null);
@@ -293,10 +293,10 @@ export default function PuntoDeVenta() {
   const [isFinalizarVentaModalOpen, setIsFinalizarVentaModalOpen] =
     useState(false);
 
-  const operadorActual = localStorage.getItem("user_id");
+  const operadorActual = sessionStorage.getItem("user_id");
 
   const operadorMovimiento = Number(
-    localStorage.getItem("operador_movimiento")
+    sessionStorage.getItem("operador_movimiento")
   );
 
   // Funciones y Effects para traer los datos//
@@ -664,7 +664,7 @@ export default function PuntoDeVenta() {
         },
       ];
       setItems(newItems);
-      saveItemsToLocalStorage(newItems);
+      saveItemsTosessionStorage(newItems);
       setArticuloBusqueda("");
       setCantidad(1);
       setSelectedItem(null);
@@ -682,7 +682,7 @@ export default function PuntoDeVenta() {
   const eliminarItem = (index: number) => {
     const newItems = items.filter((_, i) => i !== index);
     setItems(newItems);
-    saveItemsToLocalStorage(newItems);
+    saveItemsTosessionStorage(newItems);
   };
 
   const calcularTotal = () => {
@@ -700,7 +700,7 @@ export default function PuntoDeVenta() {
     newItems[index].cantidad = nuevaCantidad;
     newItems[index].subtotal = newItems[index].precioUnitario * nuevaCantidad;
     setItems(newItems);
-    saveItemsToLocalStorage(newItems);
+    saveItemsTosessionStorage(newItems);
   };
 
   const actualizarDescuentoIndividual = (
@@ -710,7 +710,7 @@ export default function PuntoDeVenta() {
     const newItems = [...items];
     newItems[index].descuentoIndividual = nuevoDescuento;
     setItems(newItems);
-    saveItemsToLocalStorage(newItems);
+    saveItemsTosessionStorage(newItems);
   };
 
   const actualizarPrecioUnitario = (index: number, nuevoPrecio: number) => {
@@ -726,7 +726,7 @@ export default function PuntoDeVenta() {
     item.exentas = nuevosImpuestos.exentas;
 
     setItems(newItems);
-    saveItemsToLocalStorage(newItems);
+    saveItemsTosessionStorage(newItems);
   };
 
   const actualizarDescripcionArticulo = (
@@ -737,7 +737,7 @@ export default function PuntoDeVenta() {
     const item = newItems[index];
     item.nombre = nuevaDescripcion;
     setItems(newItems);
-    saveItemsToLocalStorage(newItems);
+    saveItemsTosessionStorage(newItems);
 
     const nuevosItemsEditados = [...itemsEditados];
     const itemEditado = {
@@ -923,7 +923,7 @@ export default function PuntoDeVenta() {
   }, []);
 
   useEffect(() => {
-    saveItemsToLocalStorage(items);
+    saveItemsTosessionStorage(items);
   }, [items]);
 
   const handleDepositoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -1219,7 +1219,7 @@ export default function PuntoDeVenta() {
       setVentaSeleccionada(null);
       // Limpiar estado
       setItems([]);
-      saveItemsToLocalStorage([]);
+      saveItemsTosessionStorage([]);
       setClienteBusqueda("");
       setDescuentoValor(0);
       setCondicionVenta(0);
@@ -1353,7 +1353,7 @@ export default function PuntoDeVenta() {
         setVendedorInfo(vendedores.find((v) => v.op_codigo === operador));
         setIsModalOpen(true);
         setItems([]);
-        saveItemsToLocalStorage([]);
+        saveItemsTosessionStorage([]);
         setClienteBusqueda("");
         setDescuentoValor(0);
         setCondicionVenta(0);
@@ -1426,7 +1426,7 @@ export default function PuntoDeVenta() {
 
   const cancelarVenta = async () => {
     setItems([]);
-    saveItemsToLocalStorage([]);
+    saveItemsTosessionStorage([]);
     setClienteSeleccionado(null);
     setDescuentoValor(0);
     setCondicionVenta(0);
@@ -1632,7 +1632,7 @@ export default function PuntoDeVenta() {
 
       setItems(newItems);
 
-      saveItemsToLocalStorage(newItems);
+      saveItemsTosessionStorage(newItems);
 
       setDescuentoTipo(venta.descuento > 0 ? "valor" : "porcentaje");
 
@@ -1701,7 +1701,7 @@ export default function PuntoDeVenta() {
 
       setItems(newItems);
 
-      saveItemsToLocalStorage(newItems);
+      saveItemsTosessionStorage(newItems);
 
       setDescuentoTipo(pedido.descuento > 0 ? "valor" : "porcentaje");
 
@@ -1771,7 +1771,7 @@ export default function PuntoDeVenta() {
 
       setItems(newItems);
 
-      saveItemsToLocalStorage(newItems);
+      saveItemsTosessionStorage(newItems);
 
       setDescuentoTipo(presupuesto.descuento > 0 ? "valor" : "porcentaje");
       setDescuentoValor(presupuesto.descuento);
@@ -2126,7 +2126,7 @@ export default function PuntoDeVenta() {
                         isDisabled={true}
                         id="vendedor-search"
                         placeholder={
-                          localStorage.getItem("userName") || "Cajero actual"
+                          sessionStorage.getItem("userName") || "Cajero actual"
                         }
                         value={buscarVendedor}
                         onChange={handleBusquedaVendedor}

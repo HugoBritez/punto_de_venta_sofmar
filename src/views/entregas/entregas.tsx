@@ -22,6 +22,7 @@ import {
 import { Truck, Box as BoxIcon, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
+
 interface Entrega {
   id: string;
   estado: string;
@@ -62,7 +63,7 @@ interface EntregaDetalle {
 
 const Entregas = () => {
   const isMobile = useMediaQuery("(max-width: 768px)");
-  const usuarioId = localStorage.getItem("user_id");
+  const usuarioId = sessionStorage.getItem("user_id");
   const [isLoading, setIsLoading] = useState(false);
   const [entregas, setEntregas] = useState<Entrega[]>([]);
   const fechaHoy = new Date().toISOString().split("T")[0];
@@ -80,21 +81,42 @@ const Entregas = () => {
     []
   );
 
+
   const [entregaDetalleSeleccionado, setEntregaDetalleSeleccionado] =
     useState<EntregaDetalle | null>(null);
 
+
   const [mostrarBotones, setMostrarBotones] = useState<boolean>(false);
 
+  const permisosMenu = JSON.parse(
+    sessionStorage.getItem("permisos_menu") || "[]"
+  );
+
+  const tienePermiso = (menuId: number | undefined) => {
+    if (!menuId) return false;
+    return permisosMenu.some((permiso: any) => permiso.menu_id === menuId);
+  };
+
   const listarEntregas = async () => {
+
     try {
       setIsLoading(true);
+      
       const response = await axios.get(`${api_url}reparto/listar-rutas`, {
         params: {
           fecha: fechaHoy,
+          vendedor: tienePermiso(14) ? undefined : usuarioId,
         },
       });
       console.log(response.data);
+
+      if (tienePermiso(14)) {
+        console.log("Tiene permiso");
+        console.log(response.config.params);
+      }
       setEntregas(response.data.body);
+
+
     } catch (error) {
       console.log(error);
     } finally {
@@ -107,7 +129,6 @@ const Entregas = () => {
       console.log("Parametro", parametro);
       console.log("Entrega seleccionada", entregaSeleccionada);
       setIsLoading(true);
-
       const response = await axios.get(`${api_url}reparto/listar`, {
         params: {
           id: parametro,
@@ -289,11 +310,12 @@ const Entregas = () => {
                       isClosable: true,
                     });
                   } else {
-                    if (1 === 1) {
+                    if (isMine(entrega.chofer_id)) {
                       handleEntregaSeleccionada(entrega);
                     } else {
                       toast({
-                        title: "No puedes seleccionar esta entrega",
+                        title: "No autorizado",
+                        description: "No puedes seleccionar esta entrega",
                         status: "error",
                         duration: 3000,
                         isClosable: true,

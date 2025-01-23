@@ -273,7 +273,7 @@ const InformeEntregas = () => {
       pdf.text(`Empresa: ${nombreEmpresa}`, 15, marginTop);
       pdf.text(`RUC: ${rucEmpresa}`, pdfWidth / 2, marginTop);
       pdf.text(
-        `${fechaCompletaActual} - ${localStorage.getItem("user_name")}`,
+        `${fechaCompletaActual} - ${sessionStorage.getItem("user_name")}`,
         pdfWidth - 40,
         marginTop
       );
@@ -473,7 +473,7 @@ const InformeEntregas = () => {
                 <div>
                   <p className="font-semibold">{fechaCompletaActual}</p>
                   <p className="font-semibold">
-                    {localStorage.getItem("user_name")}
+                    {sessionStorage.getItem("user_name")}
                   </p>
                 </div>
               </div>
@@ -645,7 +645,7 @@ const InformeEntregas = () => {
                     .........................................................................
                   </p>
                   <p className="text-center font-bold my-2">
-                    {localStorage.getItem("user_name")}
+                    {sessionStorage.getItem("user_name")}
                   </p>
                 </div>
                 <div>

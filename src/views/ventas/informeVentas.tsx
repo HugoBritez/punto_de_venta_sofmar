@@ -1068,7 +1068,7 @@ const buscarSecciones = (busqueda: string) =>{
       pdf.text(`Empresa: ${nombreEmpresa}`, 15, marginTop);
       pdf.text(`RUC: ${rucEmpresa}`, pdfWidth / 2, marginTop);
       pdf.text(
-        `${fechaCompletaActual} - ${localStorage.getItem("user_name")}`,
+        `${fechaCompletaActual} - ${sessionStorage.getItem("user_name")}`,
         pdfWidth - 40,
         marginTop
       );
@@ -3354,7 +3354,7 @@ const buscarSecciones = (busqueda: string) =>{
                   <div>
                     <p className="text-md font-bold">{fechaCompletaActual}</p>
                     <p className="text-md font-bold">
-                      {localStorage.getItem("user_name")}
+                      {sessionStorage.getItem("user_name")}
                     </p>
                   </div>
                 </div>
