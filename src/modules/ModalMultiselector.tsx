@@ -12,6 +12,7 @@ import {
   Text,
   Heading,
 } from "@chakra-ui/react";
+import { useState } from "react"; // Añadir esta importación
 
 interface ModalMultiselectorProps<T> {
   isOpen: boolean;
@@ -40,6 +41,12 @@ export const ModalMultiselector = <T extends Record<string, any>>({
   selectedItems = [],
   onConfirm,
 }: ModalMultiselectorProps<T>) => {
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const filteredItems = items.filter((item) =>
+    String(item[displayField]).toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <ModalOverlay />
@@ -50,13 +57,18 @@ export const ModalMultiselector = <T extends Record<string, any>>({
         <ModalBody gap={4}>
           <Input
             placeholder={searchPlaceholder}
-            onChange={(e) => onSearch(e.target.value)}
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              onSearch(e.target.value);
+            }}
             mb={4}
           />
           <Flex flexDirection={"column"} gap={2} overflowY={"auto"} h={"500px"}>
-            {items.map((item) => {
+            {filteredItems.map((item) => {
               const isSelected = selectedItems.some(
-                (selectedItem) => String(selectedItem[idField]) === String(item[idField])
+                (selectedItem) =>
+                  String(selectedItem[idField]) === String(item[idField])
               );
               return (
                 <Box

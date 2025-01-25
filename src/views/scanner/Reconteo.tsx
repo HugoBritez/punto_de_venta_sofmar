@@ -273,139 +273,237 @@ const InventarioScanner = () => {
     fetchSububicaciones();
   }, [token]);
 
-  const getUbicacionCodigo = (ubicacion: any): number => {
-    // Si es un objeto con ub_codigo
-    if (typeof ubicacion === "object" && ubicacion.ub_codigo) {
-      return Number(ubicacion.ub_codigo);
-    }
+  // const getUbicacionCodigo = (ubicacion: any): number => {
+  //   // Si es un objeto con ub_codigo
+  //   if (typeof ubicacion === "object" && ubicacion.ub_codigo) {
+  //     return Number(ubicacion.ub_codigo);
+  //   }
 
-    // Si es un string o número
-    const codigo = Number(ubicacion);
-    return isNaN(codigo) ? 0 : codigo;
-  };
+  //   // Si es un string o número
+  //   const codigo = Number(ubicacion);
+  //   return isNaN(codigo) ? 0 : codigo;
+  // };
 
-  const cargarItemInventario = async () => {
-    try {
-      if (!articuloSeleccionado) {
+  // const cargarItemInventario = async () => {
+  //   try {
+  //     if (!articuloSeleccionado) {
+  //       toast({
+  //         title: "No hay artículos para cargar",
+  //         status: "error",
+  //         duration: 3000,
+  //         isClosable: true,
+  //       });
+  //       return;
+  //     }
+
+  //     if (!vencimiento) {
+  //       toast({
+  //         title: "Debe seleccionar una fecha de vencimiento",
+  //         status: "error",
+  //         duration: 3000,
+  //         isClosable: true,
+  //       });
+  //       return;
+  //     }
+
+  //     if (!ubicacion) {
+  //       toast({
+  //         title: "Debe seleccionar una ubicación",
+  //         status: "error",
+  //         duration: 3000,
+  //         isClosable: true,
+  //       });
+  //       return;
+  //     }
+
+  //     if (!sububicacion) {
+  //       toast({
+  //         title: "Debe seleccionar una sububicación",
+  //         status: "error",
+  //         duration: 3000,
+  //         isClosable: true,
+  //       });
+  //       return;
+  //     }
+
+  //     if (!lote) {
+  //       toast({
+  //         title: "Debe determinar un lote",
+  //         status: "error",
+  //         duration: 3000,
+  //         isClosable: true,
+  //       });
+  //       return;
+  //     }
+
+  //     if (prevVencimiento !== vencimiento && prevLote === lote) {
+  //       toast({
+  //         title:
+  //           "Debe cambiar el número de lote si cambia la fecha de vencimiento",
+  //         status: "error",
+  //         duration: 3000,
+  //         isClosable: true,
+  //       });
+  //       return;
+  //     }
+
+  //     const inventarioData = {
+  //       inventario: {
+  //         fecha,
+  //         hora: new Date().toLocaleTimeString().slice(0, 5),
+  //         operador: localStorage.getItem("user_id") || 1,
+  //         sucursal: sucursal?.id || 1,
+  //         deposito: depositoId,
+  //         tipo: 1,
+  //         estado: 1,
+  //         in_obs: observaciones || "",
+  //         nro_inventario: ultimoNroInventario,
+  //       },
+  //       inventario_items: [
+  //         {
+  //           idArticulo: articuloSeleccionado.ar_codigo,
+  //           cantidad: Number(existenciaFisica),
+  //           costo: articuloSeleccionado.ar_pcg,
+  //           stock_actual: Number(existenciaActual),
+  //           stock_dif: Number(existenciaFisica) - Number(existenciaActual),
+  //           codbarra: codigoBarra || "",
+  //           ubicacion: getUbicacionCodigo(ubicacion),
+  //           sububicacion: sububicacion,
+  //           vencimientos: [
+  //             {
+  //               lote: lote || "SIN LOTE",
+  //               fecha_vence: formatearVencimiento(vencimiento),
+  //               loteid: String(lote) || 0,
+  //             },
+  //           ],
+  //         },
+  //       ],
+  //     };
+
+  //     console.log(inventarioData);
+
+  //     await axios.post(
+  //       `${api_url}articulos/agregar-item-inventario`,
+  //       inventarioData
+  //     );
+  //     setModalVisible(false);
+  //     toast({
+  //       title: "El inventario se cargó satisfactoriamente",
+  //       status: "success",
+  //       duration: 3000,
+  //       isClosable: true,
+  //     });
+  //     setArticuloBusqueda("");
+  //     setArticulos([]);
+  //     searchInputRef.current?.focus();
+  //   } catch (error) {
+  //     console.error(error);
+  //     toast({
+  //       title: "Error al cargar el inventario",
+  //       status: "error",
+  //       duration: 3000,
+  //       isClosable: true,
+  //     });
+  //   }
+  // };
+
+    const cargarItemInventario = async () => {
+      try {
+        if (!articuloSeleccionado) {
+          toast({
+            title: "No hay artículos para cargar",
+            status: "error",
+            duration: 3000,
+            isClosable: true,
+          });
+          return;
+        }
+
+        if (!vencimiento) {
+          toast({
+            title: "Debe seleccionar una fecha de vencimiento",
+            status: "error",
+            duration: 3000,
+            isClosable: true,
+          });
+          return;
+        }
+
+        if (!ubicacion) {
+          toast({
+            title: "Debe seleccionar una ubicación",
+            status: "error",
+            duration: 3000,
+            isClosable: true,
+          });
+          return;
+        }
+
+        if (!sububicacion) {
+          toast({
+            title: "Debe seleccionar una sububicación",
+            status: "error",
+            duration: 3000,
+            isClosable: true,
+          });
+          return;
+        }
+
+        if (!lote) {
+          toast({
+            title: "Debe determinar un lote",
+            status: "error",
+            duration: 3000,
+            isClosable: true,
+          });
+          return;
+        }
+
+        if (prevVencimiento !== vencimiento && prevLote === lote) {
+          toast({
+            title:
+              "Debe cambiar el número de lote si cambia la fecha de vencimiento",
+            status: "error",
+            duration: 3000,
+            isClosable: true,
+          });
+          return;
+        }
+
+        const datos = {
+          id_articulo: articuloSeleccionado.ar_codigo,
+          cantidad: Number(existenciaFisica),
+          lote: lote,
+          lote_id: articuloSeleccionado.al_codigo,
+          fecha_vencimiento: formatearVencimiento(vencimiento),
+        };
+
+        console.log(datos);
+
+        await axios.post(
+          `${api_url}articulos/insertar-item-conteo-scanner`,
+          datos
+        );
+        setModalVisible(false);
         toast({
-          title: "No hay artículos para cargar",
+          title: "El inventario se cargó satisfactoriamente",
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
+        setArticuloBusqueda("");
+        setArticulos([]);
+        searchInputRef.current?.focus();
+      } catch (error) {
+        console.error(error);
+        toast({
+          title: "Error al cargar el inventario",
           status: "error",
           duration: 3000,
           isClosable: true,
         });
-        return;
       }
-
-      if (!vencimiento) {
-        toast({
-          title: "Debe seleccionar una fecha de vencimiento",
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
-        return;
-      }
-
-      if (!ubicacion) {
-        toast({
-          title: "Debe seleccionar una ubicación",
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
-        return;
-      }
-
-      if (!sububicacion) {
-        toast({
-          title: "Debe seleccionar una sububicación",
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
-        return;
-      }
-
-      if (!lote) {
-        toast({
-          title: "Debe determinar un lote",
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
-        return;
-      }
-
-      if (prevVencimiento !== vencimiento && prevLote === lote) {
-        toast({
-          title:
-            "Debe cambiar el número de lote si cambia la fecha de vencimiento",
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
-        return;
-      }
-
-      const inventarioData = {
-        inventario: {
-          fecha,
-          hora: new Date().toLocaleTimeString().slice(0, 5),
-          operador: localStorage.getItem("user_id") || 1,
-          sucursal: sucursal?.id || 1,
-          deposito: depositoId,
-          tipo: 1,
-          estado: 1,
-          in_obs: observaciones || "",
-          nro_inventario: ultimoNroInventario,
-        },
-        inventario_items: [
-          {
-            idArticulo: articuloSeleccionado.ar_codigo,
-            cantidad: Number(existenciaFisica),
-            costo: articuloSeleccionado.ar_pcg,
-            stock_actual: Number(existenciaActual),
-            stock_dif: Number(existenciaFisica) - Number(existenciaActual),
-            codbarra: codigoBarra || "",
-            ubicacion: getUbicacionCodigo(ubicacion),
-            sububicacion: sububicacion,
-            vencimientos: [
-              {
-                lote: lote || "SIN LOTE",
-                fecha_vence: formatearVencimiento(vencimiento),
-                loteid: String(lote) || 0,
-              },
-            ],
-          },
-        ],
-      };
-
-      console.log(inventarioData);
-
-      await axios.post(
-        `${api_url}articulos/agregar-item-inventario`,
-        inventarioData
-      );
-      setModalVisible(false);
-      toast({
-        title: "El inventario se cargó satisfactoriamente",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-      setArticuloBusqueda("");
-      setArticulos([]);
-      searchInputRef.current?.focus();
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: "Error al cargar el inventario",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-  };
+    };
 
   const cargarInventario = async () => {
     try {

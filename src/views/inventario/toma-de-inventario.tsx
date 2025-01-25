@@ -267,9 +267,6 @@ const TomaDeInventario = () => {
   }
 
 
-
-  
-
   const fetchSucursales = async () => {
     try {
       const response = await axios.get(`${api_url}sucursales/listar`);

@@ -17,7 +17,7 @@
     "build:campomax": "node scripts/updateConfig.js campomax && npm run build",
     "build:gaesa": "node scripts/updateConfig.js gaesa && npm run build",
     "build:lamberty": "node scripts/updateConfig.js lamberty && npm run build",
-    "build:local": "node scripts/updateConfig.js local && npm run build",
+    "build:local": "node scripts/updateConfig.js local",
     "build:rustimemo": "node scripts/updateConfig.js rustimemo && npm run build"
   },
 

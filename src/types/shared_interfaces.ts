@@ -387,6 +387,11 @@ export interface Ubicacion {
   ub_descripcion: string;
 }
 
+export interface SubUbicacion {
+  s_codigo: number;
+  s_descripcion: string;
+}
+
 export interface Marca {
   ma_codigo: number
   ma_descripcion: string

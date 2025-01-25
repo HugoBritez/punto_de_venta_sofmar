@@ -24,8 +24,7 @@ import {
   Button,
   ModalFooter,
   Divider,
-  Checkbox,
-  Text,
+
 } from "@chakra-ui/react";
 import { find } from "lodash";
 
@@ -91,8 +90,7 @@ const InformeEntregas = () => {
   );
   const [resumenEntregas, setResumenEntregas] = useState<ResumenEntregas[]>([]);
 
-  const [traerUltimaEntrega, setTraerUltimaEntrega] = useState<boolean>(true);
-
+const [idEntrega, setIdEntrega] = useState<number | null>(null);
 
   const tipoReparto = [
     {
@@ -194,7 +192,7 @@ const InformeEntregas = () => {
           choferes: choferesSeleccionados,
           camiones: camionesSeleccionados,
           tipos: tipoRepartoSeleccionado,
-          traer_ultima_entrega: traerUltimaEntrega,
+          id_entrega: idEntrega,
         },
       });
       console.log(response.data.body);
@@ -440,19 +438,14 @@ const InformeEntregas = () => {
             }
             onClick={onOpenTipoReparto}
           />
-          <Checkbox
-            isChecked={traerUltimaEntrega}
-            onChange={(e) => setTraerUltimaEntrega(e.target.checked)}
-            colorScheme="green"
+          <Input
+            type="text"
+            placeholder="Id de entrega" 
+            value={idEntrega ?? ''}
+            onChange={(e) => setIdEntrega(parseInt(e.target.value))}
           />
-          <Flex flexDir={"row"} alignItems={"center"} w={"100%"}>
-            <Text fontSize={"sm"} w={"100%"}  fontWeight={"bold"} textAlign={"left"}>
-              Traer ultima entrega
-            </Text>
-          </Flex>
           <Flex flexDir={"row"} gap={2}>
             <Button
-
               colorScheme="red"
               onClick={() => {
                 setSucursalesSeleccionadas([]);

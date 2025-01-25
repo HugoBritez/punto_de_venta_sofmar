@@ -664,7 +664,12 @@ const GestionInventario: React.FC = () => {
         onClose={onCloseModalUbicacion}
         title="Seleccionar ubicación"
         items={ubicaciones}
-        onSearch={() => {}}
+        onSearch={(busqueda) => {
+          const ubicacionesFiltradas = ubicaciones.filter(ubicacion => 
+            ubicacion.ub_descripcion.toLowerCase().includes(busqueda.toLowerCase())
+          );
+          return ubicacionesFiltradas;
+        }}
         onSelect={(item) => {
           setUbicacionesSeleccionadas((prev) => {
             const exists = prev.includes(item.ub_codigo);

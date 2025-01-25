@@ -558,7 +558,6 @@ const RutaActualCard = ({
                 )}
               </Flex>
               <Flex gap={2}>
-
                 <CalendarFold color="white" />
                 <Text color={"white"} fontWeight={"bold"}>
                   {dia} {fecha} {hora}
