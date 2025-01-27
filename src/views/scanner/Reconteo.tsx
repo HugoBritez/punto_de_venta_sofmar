@@ -201,7 +201,7 @@ const InventarioScanner = () => {
           });
 
           const responseOriginal = await axios.get(
-            `${api_url}/articulos?${queryParamsOriginal}`
+            `${api_url}articulos?${queryParamsOriginal}`
           );
 
           const dataOriginal = responseOriginal.data;
@@ -407,7 +407,7 @@ const InventarioScanner = () => {
   //   }
   // };
 
-    const cargarItemInventario = async () => {
+    const cargarItemInventarioScanner = async () => {
       try {
         if (!articuloSeleccionado) {
           toast({
@@ -787,7 +787,6 @@ const InventarioScanner = () => {
                   <span className="text-2xl">&times;</span>
                 </button>
               </div>
-
               <div className="bg-gray-50 p-4 rounded-lg mb-4">
                 <p className="text-sm text-gray-500">
                   Inventario nro: {ultimoNroInventario}
@@ -825,7 +824,6 @@ const InventarioScanner = () => {
                   />
                 </div>
               </div>
-
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Fecha Vencimiento
@@ -909,9 +907,8 @@ const InventarioScanner = () => {
                   onChange={(e) => setObservaciones(e.target.value)}
                 />
               </div>
-
               <button
-                onClick={cargarItemInventario}
+                onClick={cargarItemInventarioScanner}
                 className="w-full bg-green-600 text-white p-3 rounded-lg font-bold hover:bg-green-600"
               >
                 Guardar

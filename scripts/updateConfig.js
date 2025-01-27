@@ -63,6 +63,12 @@ const configs = {
     version: "0.9.9",
     title: "Gaesa",
   },
+  gaesademo: {
+    api_url: "https://node.sofmar.com.py:4024/api/",
+    db: "gaesademo",
+    version: "0.9.9",
+    title: "Gaesa Demo",
+  },
   lamberty: {
     api_url: "https://node.sofmar.com.py:4025/api/",
     db: "lamberty",

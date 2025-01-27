@@ -24,6 +24,13 @@ interface ArticulosCategoria {
   selected?: boolean;
 }
 
+interface ArticulosMarca {
+  id: number;
+  nombre: string;
+  cantidad_articulos: number;
+  selected?: boolean;
+}
+
 interface ArticulosDirecta {
   id: number;
   descripcion: string;
@@ -39,7 +46,6 @@ interface ItemsParaTomaInventario {
   lote_id: number;
   codigo_barra: string;
 }
-
 
 interface FloatingCardProps {
   isVisible: boolean;
@@ -110,6 +116,8 @@ const NuevaTomaInventario = () => {
   const [articulosCategoria, setArticulosCategoria] = useState<
     ArticulosCategoria[] | null
   >(null);
+  const [articulosCategoriaFiltrados, setArticulosCategoriaFiltrados] =
+    useState<ArticulosCategoria[] | null>(null);
 
   const [articulosDirecta, setArticulosDirecta] = useState<
     ArticulosDirecta[] | null
@@ -125,13 +133,28 @@ const NuevaTomaInventario = () => {
     number[]
   >([]);
 
-const [ubicaciones, setUbicaciones] = useState<Ubicacion[]>([]);
-const [ubicacionSeleccionada, setUbicacionSeleccionada] = useState<Ubicacion | null>(null);
-const [subUbicaciones, setSubUbicaciones] = useState<SubUbicacion[]>([]);
-const [subUbicacionSeleccionada, setSubUbicacionSeleccionada] = useState<SubUbicacion | null>(null);
-const [itemsParaTomaInventario, setItemsParaTomaInventario] = useState<ItemsParaTomaInventario[]>([]);
-const [itemsParaTomaInventarioConScanner, setItemsParaTomaInventarioConScanner] = useState<ItemsParaTomaInventario[]>([]);
+  const [articulosMarca, setArticulosMarca] = useState<ArticulosMarca[] | null>(
+    null
+  );
+  const [articulosMarcaFiltrados, setArticulosMarcaFiltrados] = useState<
+    ArticulosMarca[] | null
+  >(null);
+  const [marcasSeleccionadas, setMarcasSeleccionadas] = useState<number[]>([]);
 
+  const [ubicaciones, setUbicaciones] = useState<Ubicacion[]>([]);
+  const [ubicacionSeleccionada, setUbicacionSeleccionada] =
+    useState<Ubicacion | null>(null);
+  const [subUbicaciones, setSubUbicaciones] = useState<SubUbicacion[]>([]);
+  const [subUbicacionSeleccionada, setSubUbicacionSeleccionada] =
+    useState<SubUbicacion | null>(null);
+  const [itemsParaTomaInventario, setItemsParaTomaInventario] = useState<
+    ItemsParaTomaInventario[]
+  >([]);
+  const [
+    itemsParaTomaInventarioConScanner,
+    setItemsParaTomaInventarioConScanner,
+  ] = useState<ItemsParaTomaInventario[]>([]);
+  const [filtrarPorMarca, setFiltrarPorMarca] = useState<boolean>(false);
 
   const toast = useToast();
 
@@ -147,195 +170,203 @@ const [itemsParaTomaInventarioConScanner, setItemsParaTomaInventarioConScanner] 
     setSubUbicacionSeleccionada(response.data.body[0]);
   };
 
-
   useEffect(() => {
     fetchUbicaciones();
     fetchSubUbicaciones();
   }, []);
 
-
-const fetchItemsParaTomaInventario = async () => {
-
-  console.log(
-    "estos son los datos",
-    depositoSeleccionado,
-    articuloSeleccionado,
-    ubicacionSeleccionada,
-    subUbicacionSeleccionada,
-    categoriasSeleccionadas
-
-  );
-
-  // Validación según el tipo de inventario
-  if (tipoInventario === "1" && categoriasSeleccionadas.length === 0) {
-    toast({
-      title: "Error",
-      description: "Debe seleccionar al menos una categoría",
-      status: "error",
-      duration: 3000,
-      isClosable: true,
-    });
-    return;
-  }
-
-  if (tipoInventario === "2" && !articuloSeleccionado) {
-    toast({
-      title: "Error",
-      description: "Debe seleccionar un artículo",
-      status: "error",
-      duration: 3000,
-      isClosable: true,
-    });
-    return;
-  }
-
-  if (tipoInventario === "3" && (!ubicacionSeleccionada || !subUbicacionSeleccionada)) {
-    toast({
-      title: "Error",
-      description: "Debe ingresar ubicación y sub-ubicación",
-      status: "error",
-      duration: 3000,
-      isClosable: true,
-    });
-    return;
-  }
-
-  if (!depositoSeleccionado) {
-    toast({
-      title: "Error",
-      description: "Debe seleccionar un depósito",
-      status: "error",
-      duration: 3000,
-      isClosable: true,
-    });
-    return;
-  }
-
-  try {
-    const response = await axios.get(
-      `${api_url}articulos/toma-inventario-items`,
-      {
-        params: {
-          deposito_id: depositoSeleccionado?.dep_codigo,
-          articulo_id: tipoInventario === "2" ? articuloSeleccionado?.id : null,
-          ubicacion: tipoInventario === "3" ? ubicacionSeleccionada?.ub_codigo : null,
-          sub_ubicacion: tipoInventario === "3" ? subUbicacionSeleccionada?.s_codigo : null,
-          categorias: tipoInventario === "1" ? categoriasSeleccionadas : null,
-        },
-      }
+  const fetchItemsParaTomaInventario = async () => {
+    console.log(
+      "estos son los datos",
+      depositoSeleccionado,
+      articuloSeleccionado,
+      ubicacionSeleccionada,
+      subUbicacionSeleccionada,
+      categoriasSeleccionadas
     );
-    console.log("response", response.data.body);
-    setItemsParaTomaInventario(response.data.body);
-    if(response.data.body.length === 0){
+
+    // Validación según el tipo de inventario
+    if (tipoInventario === "1" && categoriasSeleccionadas.length === 0) {
       toast({
-        title: "Informacion",
-        description: "No se encontraron items para toma inventario",
-        status: "info",
+        title: "Error",
+        description: "Debe seleccionar al menos una categoría",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (tipoInventario === "2" && !articuloSeleccionado) {
+      toast({
+        title: "Error",
+        description: "Debe seleccionar un artículo",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (
+      tipoInventario === "3" &&
+      (!ubicacionSeleccionada || !subUbicacionSeleccionada)
+    ) {
+      toast({
+        title: "Error",
+        description: "Debe ingresar ubicación y sub-ubicación",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (!depositoSeleccionado) {
+      toast({
+        title: "Error",
+        description: "Debe seleccionar un depósito",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    try {
+      const response = await axios.get(
+        `${api_url}articulos/toma-inventario-items`,
+        {
+          params: {
+            deposito_id: depositoSeleccionado?.dep_codigo,
+            articulo_id:
+              tipoInventario === "2" ? articuloSeleccionado?.id : null,
+            ubicacion:
+              tipoInventario === "3" ? ubicacionSeleccionada?.ub_codigo : null,
+            sub_ubicacion:
+              tipoInventario === "3"
+                ? subUbicacionSeleccionada?.s_codigo
+                : null,
+            categorias: tipoInventario === "1" ? categoriasSeleccionadas : null,
+            marcas: tipoInventario === "4" ? marcasSeleccionadas : null,
+          },
+        }
+      );
+      console.log("response", response.data.body);
+      setItemsParaTomaInventario(response.data.body);
+      if (response.data.body.length === 0) {
+        toast({
+          title: "Informacion",
+          description: "No se encontraron items para toma inventario",
+          status: "info",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Error al obtener items para toma inventario",
+        status: "error",
+        duration: 3000,
       });
     }
-  } catch (error) {
-    toast({
-      title: "Error",
-      description: "Error al obtener items para toma inventario",
-      status: "error",
-      duration: 3000,
-    });
-  }
-};
+  };
 
-const fetchItemsParaTomaInventarioConScanner = async () => {
-  console.log(
-    "estos son los datos",
-    depositoSeleccionado,
-    articuloSeleccionado,
-    ubicacionSeleccionada,
-    subUbicacionSeleccionada,
-    categoriasSeleccionadas
-  );
-
-  // Validación según el tipo de inventario
-  if (tipoInventario === "1" && categoriasSeleccionadas.length === 0) {
-    toast({
-      title: "Error",
-      description: "Debe seleccionar al menos una categoría",
-      status: "error",
-      duration: 3000,
-      isClosable: true,
-    });
-    return;
-  }
-
-  if (tipoInventario === "2" && !articuloSeleccionado) {
-    toast({
-      title: "Error",
-      description: "Debe seleccionar un artículo",
-      status: "error",
-      duration: 3000,
-      isClosable: true,
-    });
-    return;
-  }
-
-  if (
-    tipoInventario === "3" &&
-    (!ubicacionSeleccionada || !subUbicacionSeleccionada)
-  ) {
-    toast({
-      title: "Error",
-      description: "Debe ingresar ubicación y sub-ubicación",
-      status: "error",
-      duration: 3000,
-      isClosable: true,
-    });
-    return;
-  }
-
-  if (!depositoSeleccionado) {
-    toast({
-      title: "Error",
-      description: "Debe seleccionar un depósito",
-      status: "error",
-      duration: 3000,
-      isClosable: true,
-    });
-    return;
-  }
-
-  try {
-    const response = await axios.get(
-      `${api_url}articulos/toma-inventario-scanner`,
-      {
-        params: {
-          deposito_id: depositoSeleccionado?.dep_codigo,
-          articulo_id: tipoInventario === "2" ? articuloSeleccionado?.id : null,
-          ubicacion:
-            tipoInventario === "3" ? ubicacionSeleccionada?.ub_codigo : null,
-          sub_ubicacion:
-            tipoInventario === "3" ? subUbicacionSeleccionada?.s_codigo : null,
-          categorias: tipoInventario === "1" ? categoriasSeleccionadas : null,
-        },
-      }
+  const fetchItemsParaTomaInventarioConScanner = async () => {
+    console.log(
+      "estos son los datos",
+      depositoSeleccionado,
+      articuloSeleccionado,
+      ubicacionSeleccionada,
+      subUbicacionSeleccionada,
+      categoriasSeleccionadas,
+      marcasSeleccionadas
     );
-    console.log("response", response.data.body);
-    setItemsParaTomaInventarioConScanner(response.data.body);
-    if (response.data.body.length === 0) {
+
+    // Validación según el tipo de inventario
+    if (tipoInventario === "1" && categoriasSeleccionadas.length === 0) {
       toast({
-        title: "Informacion",
-        description: "No se encontraron items para toma inventario",
-        status: "info",
+        title: "Error",
+        description: "Debe seleccionar al menos una categoría",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (tipoInventario === "2" && !articuloSeleccionado) {
+      toast({
+        title: "Error",
+        description: "Debe seleccionar un artículo",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (
+      tipoInventario === "3" &&
+      (!ubicacionSeleccionada || !subUbicacionSeleccionada)
+    ) {
+      toast({
+        title: "Error",
+        description: "Debe ingresar ubicación y sub-ubicación",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (!depositoSeleccionado) {
+      toast({
+        title: "Error",
+        description: "Debe seleccionar un depósito",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    try {
+      const response = await axios.get(
+        `${api_url}articulos/toma-inventario-scanner`,
+        {
+          params: {
+            deposito_id: depositoSeleccionado?.dep_codigo,
+            articulo_id:
+              tipoInventario === "2" ? articuloSeleccionado?.id : null,
+            ubicacion:
+              tipoInventario === "3" ? ubicacionSeleccionada?.ub_codigo : null,
+            sub_ubicacion:
+              tipoInventario === "3"
+                ? subUbicacionSeleccionada?.s_codigo
+                : null,
+            categorias: tipoInventario === "1" ? categoriasSeleccionadas : null,
+            marcas: tipoInventario === "4" ? marcasSeleccionadas : null,
+          },
+        }
+      );
+      console.log("response", response.data.body);
+      setItemsParaTomaInventarioConScanner(response.data.body);
+      if (response.data.body.length === 0) {
+        toast({
+          title: "Informacion",
+          description: "No se encontraron items para toma inventario",
+          status: "info",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Error al obtener items para toma inventario",
+        status: "error",
+        duration: 3000,
       });
     }
-  } catch (error) {
-    toast({
-      title: "Error",
-      description: "Error al obtener items para toma inventario",
-      status: "error",
-      duration: 3000,
-    });
-  }
-};
-
-
+  };
 
   const handleCategoriaSelect = (categoriaId: number) => {
     setCategoriasSeleccionadas((prevSelected) => {
@@ -344,7 +375,16 @@ const fetchItemsParaTomaInventarioConScanner = async () => {
       } else {
         return [...prevSelected, categoriaId];
       }
+    });
+  };
 
+  const handleMarcaSelect = (marcaId: number) => {
+    setMarcasSeleccionadas((prevSelected) => {
+      if (prevSelected.includes(marcaId)) {
+        return prevSelected.filter((id) => id !== marcaId);
+      } else {
+        return [...prevSelected, marcaId];
+      }
     });
   };
 
@@ -356,6 +396,29 @@ const fetchItemsParaTomaInventarioConScanner = async () => {
       setCategoriasSeleccionadas([]);
     }
   };
+
+  const handleSelectAllMarcas = (checked: boolean) => {
+    if (checked) {
+      const todasLasMarcas = articulosMarca?.map((marca) => marca.id) || [];
+      setMarcasSeleccionadas(todasLasMarcas);
+    } else {
+      setMarcasSeleccionadas([]);
+    }
+  };
+
+  function handleBuscarItems(busqueda: string) {
+    if (filtrarPorMarca) {
+      const resultadosFiltrados = articulosMarca?.filter((item) =>
+        item.nombre.toLowerCase().includes(busqueda.toLowerCase())
+      );
+      setArticulosMarcaFiltrados(resultadosFiltrados || []);
+    } else {
+      const resultadosFiltrados = articulosCategoria?.filter((item) =>
+        item.nombre.toLowerCase().includes(busqueda.toLowerCase())
+      );
+      setArticulosCategoriaFiltrados(resultadosFiltrados || []);
+    }
+  }
 
   const fetchArticulosCategoria = async () => {
     const response = await axios.get(
@@ -373,8 +436,12 @@ const fetchItemsParaTomaInventarioConScanner = async () => {
         },
       });
       setArticulosDirecta(response.data.body);
-    } catch (error) {
-    }
+    } catch (error) {}
+  };
+
+  const fetchMarcasArticulos = async () => {
+    const response = await axios.get(`${api_url}articulos/marcas-articulos`);
+    setArticulosMarca(response.data.body);
   };
 
   const fetchDepositos = async () => {
@@ -406,7 +473,12 @@ const fetchItemsParaTomaInventarioConScanner = async () => {
   useEffect(() => {
     if (tipoInventario === "1") {
       fetchArticulosCategoria();
+      setFiltrarPorMarca(false);
+    } else if (tipoInventario === "4") {
+      fetchMarcasArticulos();
+      setFiltrarPorMarca(true);
     }
+
     setArticuloBuscado(null);
   }, [tipoInventario]);
 
@@ -512,7 +584,7 @@ const fetchItemsParaTomaInventarioConScanner = async () => {
             />
           </div>
         </div>
-        <div className="flex flex-col gap-2 border border-gray-300 rounded-md p-2 bg-white">
+        <div className="flex flex-col  border border-gray-300 rounded-md p-2 bg-white">
           <FormLabel>Tipo de inventario</FormLabel>
           <RadioGroup
             className="flex flex-col gap-2 justify-start"
@@ -522,6 +594,7 @@ const fetchItemsParaTomaInventarioConScanner = async () => {
             <Radio value="1">Inventario por categoria</Radio>
             <Radio value="2">Inventario por articulo</Radio>
             <Radio value="3">Inventario por ubicación</Radio>
+            <Radio value="4">Inventario por marca</Radio>
           </RadioGroup>
         </div>
         <div className="flex flex-col gap-2">
@@ -598,63 +671,140 @@ const fetchItemsParaTomaInventarioConScanner = async () => {
               : ""
           }`}
         >
-          <FormLabel>Categorias</FormLabel>
+          <div className="flex flex-row gap-2 items-center">
+            <FormLabel>
+              {tipoInventario === "1"
+                ? "Categorias"
+                : tipoInventario === "4"
+                ? "Marcas"
+                : "Categorias"}
+            </FormLabel>
+            <input
+              type="text"
+              placeholder="Buscar..."
+              className="w-full my-2 bg-gray-200 p-1 rounded-md outline-none"
+              onChange={(e) => handleBuscarItems(e.target.value)}
+            />
+          </div>
           <div className="flex flex-col gap-2 w-full overflow-y-auto h-[120px]">
-            <table className="w-full">
-              <thead className="bg-gray-200">
-                <tr>
-                  <th>
-                    <div className="flex flex-col  items-center justify-center bg-white">
-                      <Checkbox
-                        isChecked={
-                          articulosCategoria?.length ===
-                          categoriasSeleccionadas.length
-                        }
-                        isIndeterminate={
-                          categoriasSeleccionadas.length > 0 &&
-                          categoriasSeleccionadas.length <
-                            (articulosCategoria?.length || 0)
-                        }
-                        onChange={(e) =>
-                          handleSelectAllCategorias(e.target.checked)
-                        }
-                        isDisabled={
-                          tipoInventario === "2" || tipoInventario === "3"
-                        }
-                      />
-                    </div>
-                  </th>
-                  <th className="text-center">Código</th>
-                  <th className="text-left">Descripción</th>
-                  <th className="text-center">Cantidad</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {articulosCategoria?.map((articulo) => (
-                  <tr key={articulo.id}>
-                    <td className="text-center">
-                      <div className="flex flex-row gap-2 items-center justify-center">
+            {filtrarPorMarca === false ? (
+              <table className="w-full">
+                <thead className="bg-gray-200">
+                  <tr>
+                    <th>
+                      <div className="flex flex-col  items-center justify-center bg-white">
                         <Checkbox
-                          isChecked={categoriasSeleccionadas.includes(
-                            articulo.id
-                          )}
-                          onChange={() => handleCategoriaSelect(articulo.id)}
+                          isChecked={
+                            articulosCategoria?.length ===
+                            categoriasSeleccionadas.length
+                          }
+                          isIndeterminate={
+                            categoriasSeleccionadas.length > 0 &&
+                            categoriasSeleccionadas.length <
+                              (articulosCategoria?.length || 0)
+                          }
+                          onChange={(e) =>
+                            handleSelectAllCategorias(e.target.checked)
+                          }
                           isDisabled={
                             tipoInventario === "2" || tipoInventario === "3"
                           }
                         />
                       </div>
-                    </td>
-                    <td className="text-center">{articulo.id}</td>
-                    <td>{articulo.nombre}</td>
-                    <td className="text-center">
-                      {articulo.cantidad_articulos}
-                    </td>
+                    </th>
+                    <th className="text-center">Código</th>
+                    <th className="text-left">Descripción</th>
+                    <th className="text-center">Cantidad</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {(articulosCategoriaFiltrados || articulosCategoria)?.map(
+                    (articulo) => (
+                      <tr key={articulo.id}>
+                        <td className="text-center">
+                          <div className="flex flex-row gap-2 items-center justify-center">
+                            <Checkbox
+                              isChecked={categoriasSeleccionadas.includes(
+                                articulo.id
+                              )}
+                              onChange={() =>
+                                handleCategoriaSelect(articulo.id)
+                              }
+                              isDisabled={
+                                tipoInventario === "2" || tipoInventario === "3"
+                              }
+                            />
+                          </div>
+                        </td>
+                        <td className="text-center">{articulo.id}</td>
+                        <td>{articulo.nombre}</td>
+                        <td className="text-center">
+                          {articulo.cantidad_articulos}
+                        </td>
+                      </tr>
+                    )
+                  )}
+                </tbody>
+              </table>
+            ) : (
+              <table className="w-full">
+                <thead className="bg-gray-200">
+                  <tr>
+                    <th>
+                      <div className="flex flex-col  items-center justify-center bg-white">
+                        <Checkbox
+                          isChecked={
+                            articulosMarca?.length ===
+                            marcasSeleccionadas.length
+                          }
+                          isIndeterminate={
+                            marcasSeleccionadas.length > 0 &&
+                            marcasSeleccionadas.length <
+                              (articulosMarca?.length || 0)
+                          }
+                          onChange={(e) =>
+                            handleSelectAllMarcas(e.target.checked)
+                          }
+                          isDisabled={
+                            tipoInventario === "2" || tipoInventario === "3"
+                          }
+                        />
+                      </div>
+                    </th>
+                    <th className="text-center">Código</th>
+                    <th className="text-left">Descripción</th>
+                    <th className="text-center">Cantidad</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {(articulosMarcaFiltrados || articulosMarca)?.map(
+                    (articulo) => (
+                      <tr key={articulo.id}>
+                        <td className="text-center">
+                          <div className="flex flex-row gap-2 items-center justify-center">
+                            <Checkbox
+                              isChecked={marcasSeleccionadas.includes(
+                                articulo.id
+                              )}
+                              onChange={() => handleMarcaSelect(articulo.id)}
+                              isDisabled={
+                                tipoInventario === "2" || tipoInventario === "3"
+                              }
+                            />
+                          </div>
+                        </td>
+                        <td className="text-center">{articulo.id}</td>
+                        <td>{articulo.nombre}</td>
+                        <td className="text-center">
+                          {articulo.cantidad_articulos}
+                        </td>
+                      </tr>
+                    )
+                  )}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
         <div className="flex flex-col gap-2  justify-center">
@@ -667,14 +817,85 @@ const fetchItemsParaTomaInventarioConScanner = async () => {
           </Button>
         </div>
       </div>
-      <div className="flex flex-row w-full border border-gray-300 rounded-md bg-white h-full p-1 gap-1">
-        <div className="flex flex-col w-1/2 border border-gray-300 rounded-md bg-white h-[73%]">
-          <p className="text-center font-bold text-lg">A inventariar:</p>
+      <div className="flex flex-row w-full border border-gray-300 rounded-md bg-white h-[70%] p-1 gap-1">
+        <div className="flex flex-col w-1/2 border border-gray-300 rounded-md bg-white h-full">
+          <p className="text-center py-3 font-bold text-lg">A inventariar:</p>
+          <Divider />
+          <div className="flex-1 overflow-hidden ">
+            <div className="flex w-full h-full overflow-y-auto">
+              <table className="w-full ">
+                <thead className="bg-gray-200 text-center sticky top-0">
+                  <tr className="border border-gray-300">
+                    <th className="text-left border border-gray-300 px-2 ">
+                      Ubi./Sub-ubi.
+                    </th>
+                    <th className="text-left border border-gray-300 px-2 ">
+                      Codigo Barras
+                    </th>
+                    <th className="text-left border border-gray-300 px-2 ">
+                      Descripcion
+                    </th>
+                    <th className="text-left border border-gray-300 px-2 ">
+                      Vencimiento
+                    </th>
+                    <th className="text-left border border-gray-300 px-2 ">
+                      Lote
+                    </th>
+                    <th className="text-left border border-gray-300 px-2 ">
+                      Stock
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="align-top">
+                  {itemsParaTomaInventario.map((item) => (
+                    <tr key={item.lote_id} className="border border-gray-300">
+                      <td className="border border-gray-300 px-2 truncate">
+                        {item.ubicacion} / {item.sub_ubicacion}
+                      </td>
+                      <td className="border border-gray-300 px-2 truncate">
+                        {item.codigo_barra}
+                      </td>
+                      <td className="border border-gray-300 px-2 truncate">
+                        {item.descripcion}
+                      </td>
+                      <td className="border border-gray-300 px-2 truncate">
+                        {item.vencimiento}
+                      </td>
+                      <td className="border border-gray-300 px-2 truncate">
+                        {item.lote}
+                      </td>
+                      <td className="border border-gray-300 px-2 truncate">
+                        {item.stock}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <Divider />
+          <div className="flex w-full h-1/10 p-1">
+            <p className="text-center font-bold text-lg">
+              Total a inventariar: {itemsParaTomaInventario.length}
+            </p>
+          </div>
+        </div>
+        <div className="flex flex-col w-1/2 border border-gray-300 rounded-md bg-white h-[100%]">
+          <div className="flex flex-row justify-between items-center px-4 py-2 ">
+            <p className="text-center font-bold text-lg">Inventariado:</p>
+            <Button
+              variant={"outline"}
+              colorScheme="blue"
+              onClick={fetchItemsParaTomaInventarioConScanner}
+            >
+              <RotateCcw />
+            </Button>
+          </div>
           <Divider />
           <div className="flex-1 overflow-hidden">
             <div className="flex w-full h-full overflow-y-auto">
-              <table className="w-full h-full ">
-                <thead className="bg-gray-200 text-center ">
+              <table className="w-full ">
+                <thead className="bg-gray-200 text-center sticky top-0">
                   <tr className="border border-gray-300">
                     <th className="text-left border border-gray-300 px-2">
                       Ubi./Sub-ubi.
@@ -697,24 +918,24 @@ const fetchItemsParaTomaInventarioConScanner = async () => {
                   </tr>
                 </thead>
                 <tbody className="align-top">
-                  {itemsParaTomaInventario.map((item) => (
+                  {itemsParaTomaInventarioConScanner.map((item) => (
                     <tr key={item.lote_id} className="border border-gray-300">
-                      <td className="border border-gray-300 px-2">
+                      <td className="border border-gray-300 px-2 truncate">
                         {item.ubicacion} / {item.sub_ubicacion}
                       </td>
-                      <td className="border border-gray-300 px-2">
+                      <td className="border border-gray-300 px-2 truncate">
                         {item.codigo_barra}
                       </td>
-                      <td className="border border-gray-300 px-2">
+                      <td className="border border-gray-300 px-2 truncate ">
                         {item.descripcion}
                       </td>
-                      <td className="border border-gray-300 px-2">
+                      <td className="border border-gray-300 px-2 truncate">
                         {item.vencimiento}
                       </td>
-                      <td className="border border-gray-300 px-2">
+                      <td className="border border-gray-300 px-2 truncate">
                         {item.lote}
                       </td>
-                      <td className="border border-gray-300 px-2">
+                      <td className="border border-gray-300 px-2 truncate">
                         {item.stock}
                       </td>
                     </tr>
@@ -726,74 +947,8 @@ const fetchItemsParaTomaInventarioConScanner = async () => {
           <Divider />
           <div className="flex w-full h-1/10 p-1">
             <p className="text-center font-bold text-lg">
-              Total a inventariar: {itemsParaTomaInventario.length}
+              Total inventariado: {itemsParaTomaInventarioConScanner.length}
             </p>
-          </div>
-        </div>
-        <div className="flex flex-col w-1/2 border border-gray-300 rounded-md bg-white h-[73%]">
-          <div className="flex flex-row justify-between items-center px-4 py-2">
-            <p className="text-center font-bold text-lg">Inventariado:</p>
-            <Button
-              variant={"outline"}
-              colorScheme="blue"
-              onClick={fetchItemsParaTomaInventarioConScanner}
-            >
-              <RotateCcw />
-            </Button>
-          </div>
-          <Divider />
-          <div className="flex w-full h-full">
-            <table className="w-full h-full">
-              <thead className="bg-gray-200 text-center ">
-                <tr className="border border-gray-300">
-                  <th className="text-left border border-gray-300 px-2">
-                    Ubi./Sub-ubi.
-                  </th>
-                  <th className="text-left border border-gray-300 px-2">
-                    Codigo Barras
-                  </th>
-                  <th className="text-left border border-gray-300 px-2">
-                    Descripcion
-                  </th>
-                  <th className="text-left border border-gray-300 px-2">
-                    Vencimiento
-                  </th>
-                  <th className="text-left border border-gray-300 px-2">
-                    Lote
-                  </th>
-                  <th className="text-left border border-gray-300 px-2">
-                    Stock
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="align-top">
-                {itemsParaTomaInventarioConScanner.map((item) => (
-                  <tr key={item.lote_id} className="border border-gray-300">
-                    <td className="border border-gray-300 px-2">
-                      {item.ubicacion} / {item.sub_ubicacion}
-                    </td>
-
-                    <td className="border border-gray-300 px-2">
-                      {item.codigo_barra}
-                    </td>
-                    <td className="border border-gray-300 px-2">
-                      {item.descripcion}
-                    </td>
-                    <td className="border border-gray-300 px-2">
-                      {item.vencimiento}
-                    </td>
-                    <td className="border border-gray-300 px-2">{item.lote}</td>
-                    <td className="border border-gray-300 px-2">
-                      {item.stock}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <Divider />
-          <div className="flex w-full h-1/10 p-1">
-            <p className="text-center font-bold text-lg">Total inventariado:</p>
           </div>
         </div>
       </div>
