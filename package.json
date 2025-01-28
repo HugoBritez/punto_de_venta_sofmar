@@ -22,7 +22,6 @@
     "build:gaesademo": "node scripts/updateConfig.js gaesademo && npm run build"
   },
 
-
   "dependencies": {
     "@chakra-ui/icons": "^2.1.1",
     "@chakra-ui/react": "^2.8.2",

@@ -45,14 +45,20 @@ interface ItemsParaTomaInventario {
   lote: string;
   lote_id: number;
   codigo_barra: string;
+  articulo_id: number;
 }
 
 interface FloatingCardProps {
   isVisible: boolean;
-
   items: any[];
   onClose: () => void;
   onSelect: (item: any) => void;
+}
+
+interface InventarioAuxiliar {
+  id: number;
+  nro_inventario: number;
+  estado: number;
 }
 
 const FloatingCard = ({
@@ -109,8 +115,6 @@ const NuevaTomaInventario = () => {
   const [depositoSeleccionado, setDepositoSeleccionado] =
     useState<Deposito | null>(null);
 
-  const [nroInventario, setNroInventario] = useState<number | null>(null);
-
   const [tipoInventario, setTipoInventario] = useState<string>("1");
 
   const [articulosCategoria, setArticulosCategoria] = useState<
@@ -155,6 +159,9 @@ const NuevaTomaInventario = () => {
     setItemsParaTomaInventarioConScanner,
   ] = useState<ItemsParaTomaInventario[]>([]);
   const [filtrarPorMarca, setFiltrarPorMarca] = useState<boolean>(false);
+
+  const [inventarioAuxiliar, setInventarioAuxiliar] =
+    useState<InventarioAuxiliar>();
 
   const toast = useToast();
 
@@ -271,102 +278,7 @@ const NuevaTomaInventario = () => {
     }
   };
 
-  const fetchItemsParaTomaInventarioConScanner = async () => {
-    console.log(
-      "estos son los datos",
-      depositoSeleccionado,
-      articuloSeleccionado,
-      ubicacionSeleccionada,
-      subUbicacionSeleccionada,
-      categoriasSeleccionadas,
-      marcasSeleccionadas
-    );
 
-    // Validación según el tipo de inventario
-    if (tipoInventario === "1" && categoriasSeleccionadas.length === 0) {
-      toast({
-        title: "Error",
-        description: "Debe seleccionar al menos una categoría",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
-
-    if (tipoInventario === "2" && !articuloSeleccionado) {
-      toast({
-        title: "Error",
-        description: "Debe seleccionar un artículo",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
-
-    if (
-      tipoInventario === "3" &&
-      (!ubicacionSeleccionada || !subUbicacionSeleccionada)
-    ) {
-      toast({
-        title: "Error",
-        description: "Debe ingresar ubicación y sub-ubicación",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
-
-    if (!depositoSeleccionado) {
-      toast({
-        title: "Error",
-        description: "Debe seleccionar un depósito",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
-    }
-
-    try {
-      const response = await axios.get(
-        `${api_url}articulos/toma-inventario-scanner`,
-        {
-          params: {
-            deposito_id: depositoSeleccionado?.dep_codigo,
-            articulo_id:
-              tipoInventario === "2" ? articuloSeleccionado?.id : null,
-            ubicacion:
-              tipoInventario === "3" ? ubicacionSeleccionada?.ub_codigo : null,
-            sub_ubicacion:
-              tipoInventario === "3"
-                ? subUbicacionSeleccionada?.s_codigo
-                : null,
-            categorias: tipoInventario === "1" ? categoriasSeleccionadas : null,
-            marcas: tipoInventario === "4" ? marcasSeleccionadas : null,
-          },
-        }
-      );
-      console.log("response", response.data.body);
-      setItemsParaTomaInventarioConScanner(response.data.body);
-      if (response.data.body.length === 0) {
-        toast({
-          title: "Informacion",
-          description: "No se encontraron items para toma inventario",
-          status: "info",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Error al obtener items para toma inventario",
-        status: "error",
-        duration: 3000,
-      });
-    }
-  };
 
   const handleCategoriaSelect = (categoriaId: number) => {
     setCategoriasSeleccionadas((prevSelected) => {
@@ -453,18 +365,15 @@ const NuevaTomaInventario = () => {
   const traerIdUltimoInventario = async () => {
     try {
       const response = await axios.get(
-        `${api_url}articulos/ultimo-nro-inventario`
+        `${api_url}articulos/ultimo-inventario-auxiliar`
       );
       const data = response.data;
-
-      if (data.body && data.body.length > 0) {
-        setNroInventario(data.body[0].nro_inventario);
-      }
+      console.log("data", response.data.body);
+      setInventarioAuxiliar(data.body);
     } catch (error) {
       console.error("Error al obtener último número de inventario:", error);
     }
   };
-
   useEffect(() => {
     fetchDepositos();
     traerIdUltimoInventario();
@@ -509,7 +418,7 @@ const NuevaTomaInventario = () => {
       if (articuloBuscado && articuloBuscado.length >= 3) {
         fetchArticulosDirecta(articuloBuscado);
       }
-    }, 300); // espera 300ms después de que el usuario deje de escribir
+    }, 300); 
 
     return () => clearTimeout(timeoutId);
   }, [articuloBuscado]);
@@ -525,6 +434,208 @@ const NuevaTomaInventario = () => {
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
   }, []);
+
+  const iniciarNuevoInventarioAuxiliar = async () => {
+    const inventario = {
+      operador: sessionStorage.getItem("user_id"),
+      sucursal: 1,
+      deposito: depositoSeleccionado?.dep_codigo,
+      obs: "",
+      nro_inventario: inventarioAuxiliar?.nro_inventario
+        ? Number(inventarioAuxiliar?.nro_inventario) + 1
+        : 1,
+    };
+    // Validación según el tipo de inventario
+    try {
+      await axios.post(
+        `${api_url}articulos/insertar-inventario-auxiliar`,
+        inventario
+      );
+
+      traerIdUltimoInventario();
+      toast({
+        title: "Inventario iniciado correctamente",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Error al iniciar el inventario",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const iniciarNuevoInventarioAuxiliarItems = async () => {
+    const inventario = {
+      inventario_items: itemsParaTomaInventario.map((item) => ({
+        id_articulo: item.articulo_id,
+        id_lote: item.lote_id,
+        lote: item.lote,
+        fecha_vencimiento: item.vencimiento,
+        cantidad_inicial: item.stock,
+      })),
+    };
+
+    // Validación según el tipo de inventario
+    if (tipoInventario === "1" && categoriasSeleccionadas.length === 0) {
+      toast({
+        title: "Error",
+        description: "Debe seleccionar al menos una categoría",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (tipoInventario === "2" && !articuloSeleccionado) {
+      toast({
+        title: "Error",
+        description: "Debe seleccionar un artículo",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (
+      tipoInventario === "3" &&
+      (!ubicacionSeleccionada || !subUbicacionSeleccionada)
+    ) {
+      toast({
+        title: "Error",
+        description: "Debe ingresar ubicación y sub-ubicación",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (!depositoSeleccionado) {
+      toast({
+        title: "Error",
+        description: "Debe seleccionar un depósito",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (tipoInventario === "4" && marcasSeleccionadas.length === 0) {
+      toast({
+        title: "Error",
+        description: "Debe seleccionar al menos una marca",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (itemsParaTomaInventario.length === 0) {
+      toast({
+        title: "Error",
+        description: "Debe procesar al menos un filtro para el inventario",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    try {
+      await axios.post(
+        `${api_url}articulos/insertar-inventario-auxiliar-items`,
+        inventario
+      );
+      toast({
+        title: "Inventario iniciado correctamente",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Error al iniciar el inventario",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const cerrarInventario = async () => {
+    const inventario = {
+      id: inventarioAuxiliar?.id,
+    };
+    try {
+      await axios.post(
+        `${api_url}articulos/cerrar-inventario-auxiliar`,
+        inventario
+      );
+      toast({
+        title: "Inventario cerrado correctamente",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+      traerIdUltimoInventario();
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Error al cerrar el inventario",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const buscarItemsPorInventarioDerecha = async () => {
+    try {
+      const response = await axios.get(
+        `${api_url}articulos/mostrar-items-inventario-auxiliar-principal`,
+        {
+          params: {
+            id: inventarioAuxiliar?.nro_inventario,
+            scanneado: true,
+          },
+        }
+      );
+      const data = response.data;
+      console.log("Datos del inventario:", data.body);
+      setItemsParaTomaInventarioConScanner(data.body);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+    const buscarItemsPorInventarioIzquierda = async () => {
+      try {
+        const response = await axios.get(
+          `${api_url}articulos/mostrar-items-inventario-auxiliar-principal`,
+          {
+            params: {
+              id: inventarioAuxiliar?.nro_inventario,
+            },
+          }
+        );
+        const data = response.data;
+        console.log("Datos del inventario:", data.body);
+        setItemsParaTomaInventario(data.body);
+      } catch (error) {
+        console.error(error);
+      }
+    };
 
   return (
     <Flex
@@ -579,9 +690,12 @@ const NuevaTomaInventario = () => {
             <Input
               type="number"
               className="w-36"
-              value={nroInventario ? nroInventario : 0}
-              onChange={(e) => setNroInventario(parseInt(e.target.value))}
+              value={inventarioAuxiliar?.nro_inventario}
+              readOnly
             />
+            <Button onClick={buscarItemsPorInventarioIzquierda} colorScheme="green">
+              <RotateCcw />
+            </Button>
           </div>
         </div>
         <div className="flex flex-col  border border-gray-300 rounded-md p-2 bg-white">
@@ -603,7 +717,7 @@ const NuevaTomaInventario = () => {
             <Input
               type="text"
               placeholder="Buscar articulo por nombre o codigo de barras"
-              isDisabled={tipoInventario === "1" || tipoInventario === "3"}
+              isDisabled={tipoInventario === "1" || tipoInventario === "3" || tipoInventario === '4'}
               value={articuloBuscado || ""}
               onChange={handleArticuloInputChange}
               onClick={() => {
@@ -631,7 +745,7 @@ const NuevaTomaInventario = () => {
                     ) || null
                   )
                 }
-                isDisabled={tipoInventario === "2" || tipoInventario === "1"}
+                isDisabled={tipoInventario === "2" || tipoInventario === "1" || tipoInventario === '4'}
                 value={ubicacionSeleccionada?.ub_codigo}
               >
                 {ubicaciones.map((ubicacion) => (
@@ -652,7 +766,7 @@ const NuevaTomaInventario = () => {
                     ) || null
                   )
                 }
-                isDisabled={tipoInventario === "2" || tipoInventario === "1"}
+                isDisabled={tipoInventario === "2" || tipoInventario === "1" || tipoInventario === '4'}
                 value={subUbicacionSeleccionada?.s_codigo}
               >
                 {subUbicaciones.map((subUbicacion) => (
@@ -808,9 +922,34 @@ const NuevaTomaInventario = () => {
           </div>
         </div>
         <div className="flex flex-col gap-2  justify-center">
-          <Button colorScheme="blue">Limpiar filtros</Button>
-          <Button variant={"outline"} colorScheme="red">
-            Cerrar Inventario
+          <Button colorScheme="orange">Limpiar filtros</Button>
+          <Button
+            variant={"outline"}
+            colorScheme="red"
+            onClick={
+              inventarioAuxiliar?.estado === 1 ||
+              inventarioAuxiliar?.estado === undefined ||
+              inventarioAuxiliar?.estado === null
+                ? iniciarNuevoInventarioAuxiliar
+                : cerrarInventario
+            }
+          >
+            {inventarioAuxiliar?.estado === 1 ||
+            inventarioAuxiliar?.estado === undefined ||
+            inventarioAuxiliar?.estado === null
+              ? "Iniciar Inventario"
+              : "Cerrar Inventario"}
+          </Button>
+          <Button
+            colorScheme="blue"
+            onClick={iniciarNuevoInventarioAuxiliarItems}
+            isDisabled={
+              inventarioAuxiliar?.estado === 1 ||
+              inventarioAuxiliar?.estado === undefined ||
+              inventarioAuxiliar?.estado === null
+            }
+          >
+            Añadir items
           </Button>
           <Button colorScheme="green" onClick={fetchItemsParaTomaInventario}>
             Procesar
@@ -886,7 +1025,7 @@ const NuevaTomaInventario = () => {
             <Button
               variant={"outline"}
               colorScheme="blue"
-              onClick={fetchItemsParaTomaInventarioConScanner}
+              onClick={buscarItemsPorInventarioDerecha}
             >
               <RotateCcw />
             </Button>
@@ -913,7 +1052,7 @@ const NuevaTomaInventario = () => {
                       Lote
                     </th>
                     <th className="text-left border border-gray-300 px-2">
-                      Stock
+                      Cantidad Scanner
                     </th>
                   </tr>
                 </thead>
@@ -923,6 +1062,7 @@ const NuevaTomaInventario = () => {
                       <td className="border border-gray-300 px-2 truncate">
                         {item.ubicacion} / {item.sub_ubicacion}
                       </td>
+
                       <td className="border border-gray-300 px-2 truncate">
                         {item.codigo_barra}
                       </td>
@@ -931,11 +1071,13 @@ const NuevaTomaInventario = () => {
                       </td>
                       <td className="border border-gray-300 px-2 truncate">
                         {item.vencimiento}
+
                       </td>
                       <td className="border border-gray-300 px-2 truncate">
                         {item.lote}
                       </td>
                       <td className="border border-gray-300 px-2 truncate">
+
                         {item.stock}
                       </td>
                     </tr>

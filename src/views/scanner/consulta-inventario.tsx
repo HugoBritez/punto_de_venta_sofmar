@@ -17,16 +17,17 @@ import { motion, AnimatePresence } from "framer-motion";
 interface Articulo {
   ar_codigo: number;
   ar_codbarra: string;
+
   ar_descripcion: string;
   ar_pvg: number;
   ar_pcg: number;
   al_cantidad: number;
+
   al_codigo: number;
   al_vencimiento: string;
   ar_ubicacicion: number;
   ar_sububicacion: number;
   al_lote: string;
-  ar_vencimiento: number;
 }
 
 interface Deposito {
@@ -51,12 +52,10 @@ interface Sububicaciones {
   s_descripcion: string;
 }
 
-interface TooltipProps {
-  text: string;
-  children: React.ReactNode;
-  position?: "top" | "bottom" | "left" | "right";
-}
-
+const formatNumber = (num: number): string => {
+  const roundedNum = Math.round(num);
+  return roundedNum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+};
 
 const InventarioScanner = () => {
   const navigate = useNavigate();
@@ -100,44 +99,33 @@ const InventarioScanner = () => {
     setLote(nuevoLote);
   };
 
-const handleEditarArticulo = (articulo: Articulo) => {
-  setArticuloSeleccionado(articulo);
+  const handleEditarArticulo = (articulo: Articulo) => {
+    setArticuloSeleccionado(articulo);
 
-  // Si estamos buscando por inventario, la estructura de datos es diferente
-  if (buscarPorInventario) {
-    setExistenciaActual("0"); // Iniciamos en 0 ya que no viene cantidad
-    setExistenciaFisica("0");
-    setVencimiento(formatearVencimiento(articulo.al_vencimiento));
-    setPrevVencimiento(formatearVencimiento(articulo.al_vencimiento));
-    setLote(articulo.al_lote || "");
-    setPrevLote(articulo.al_lote || "");
-    setCodigoBarra(articulo.ar_codbarra || "");
-    setUbicacion(articulo.ar_ubicacicion || null);
-    setSububicacion(articulo.ar_sububicacion || null);
-  } else {
+    console.log(articulo);
+
     const articuloVencimiento =
       formatearVencimiento(articulo.al_vencimiento) || "";
     const articuloLote = articulo.al_lote || "";
+
     setExistenciaActual(articulo.al_cantidad.toString());
     setExistenciaFisica(articulo.al_cantidad.toString());
+
     setVencimiento(articuloVencimiento);
     setPrevVencimiento(articuloVencimiento);
     setLote(articuloLote);
     setPrevLote(articuloLote);
+
     setCodigoBarra(articulo.ar_codbarra);
+    setModalVisible(true);
     setUbicacion(articulo.ar_ubicacicion);
     setSububicacion(articulo.ar_sububicacion);
-  }
-
-  setModalVisible(true);
-};
+  };
 
   const handleInputClick = (e: React.MouseEvent<HTMLInputElement>) => {
     e.preventDefault();
     searchInputRef.current?.focus();
   };
-
-  const [buscarPorInventario, setBuscarPorInventario] = useState(false);
 
   useEffect(() => {
     const fetchSucursalesYDepositos = async () => {
@@ -247,11 +235,7 @@ const handleEditarArticulo = (articulo: Articulo) => {
       return;
     }
     const timeoutId = setTimeout(() => {
-      if (buscarPorInventario) {
-        buscarItemsPorInventario(texto);
-      } else {
-        buscarArticuloPorCodigo(texto);
-      }
+      buscarArticuloPorCodigo(texto);
     }, 300);
     return () => clearTimeout(timeoutId);
   };
@@ -289,20 +273,141 @@ const handleEditarArticulo = (articulo: Articulo) => {
     fetchSububicaciones();
   }, [token]);
 
-  const getUbicacionCodigo = (ubicacion: any): number => {
-    // Si es un objeto con ub_codigo
-    if (typeof ubicacion === "object" && ubicacion.ub_codigo) {
-      return Number(ubicacion.ub_codigo);
-    }
+  // const getUbicacionCodigo = (ubicacion: any): number => {
+  //   // Si es un objeto con ub_codigo
+  //   if (typeof ubicacion === "object" && ubicacion.ub_codigo) {
+  //     return Number(ubicacion.ub_codigo);
+  //   }
 
-    // Si es un string o número
-    const codigo = Number(ubicacion);
-    return isNaN(codigo) ? 0 : codigo;
-  };
+  //   // Si es un string o número
+  //   const codigo = Number(ubicacion);
+  //   return isNaN(codigo) ? 0 : codigo;
+  // };
 
+  // const cargarItemInventario = async () => {
+  //   try {
+  //     if (!articuloSeleccionado) {
+  //       toast({
+  //         title: "No hay artículos para cargar",
+  //         status: "error",
+  //         duration: 3000,
+  //         isClosable: true,
+  //       });
+  //       return;
+  //     }
 
+  //     if (!vencimiento) {
+  //       toast({
+  //         title: "Debe seleccionar una fecha de vencimiento",
+  //         status: "error",
+  //         duration: 3000,
+  //         isClosable: true,
+  //       });
+  //       return;
+  //     }
 
-  const cargarItemInventario = async () => {
+  //     if (!ubicacion) {
+  //       toast({
+  //         title: "Debe seleccionar una ubicación",
+  //         status: "error",
+  //         duration: 3000,
+  //         isClosable: true,
+  //       });
+  //       return;
+  //     }
+
+  //     if (!sububicacion) {
+  //       toast({
+  //         title: "Debe seleccionar una sububicación",
+  //         status: "error",
+  //         duration: 3000,
+  //         isClosable: true,
+  //       });
+  //       return;
+  //     }
+
+  //     if (!lote) {
+  //       toast({
+  //         title: "Debe determinar un lote",
+  //         status: "error",
+  //         duration: 3000,
+  //         isClosable: true,
+  //       });
+  //       return;
+  //     }
+
+  //     if (prevVencimiento !== vencimiento && prevLote === lote) {
+  //       toast({
+  //         title:
+  //           "Debe cambiar el número de lote si cambia la fecha de vencimiento",
+  //         status: "error",
+  //         duration: 3000,
+  //         isClosable: true,
+  //       });
+  //       return;
+  //     }
+
+  //     const inventarioData = {
+  //       inventario: {
+  //         fecha,
+  //         hora: new Date().toLocaleTimeString().slice(0, 5),
+  //         operador: localStorage.getItem("user_id") || 1,
+  //         sucursal: sucursal?.id || 1,
+  //         deposito: depositoId,
+  //         tipo: 1,
+  //         estado: 1,
+  //         in_obs: observaciones || "",
+  //         nro_inventario: ultimoNroInventario,
+  //       },
+  //       inventario_items: [
+  //         {
+  //           idArticulo: articuloSeleccionado.ar_codigo,
+  //           cantidad: Number(existenciaFisica),
+  //           costo: articuloSeleccionado.ar_pcg,
+  //           stock_actual: Number(existenciaActual),
+  //           stock_dif: Number(existenciaFisica) - Number(existenciaActual),
+  //           codbarra: codigoBarra || "",
+  //           ubicacion: getUbicacionCodigo(ubicacion),
+  //           sububicacion: sububicacion,
+  //           vencimientos: [
+  //             {
+  //               lote: lote || "SIN LOTE",
+  //               fecha_vence: formatearVencimiento(vencimiento),
+  //               loteid: String(lote) || 0,
+  //             },
+  //           ],
+  //         },
+  //       ],
+  //     };
+
+  //     console.log(inventarioData);
+
+  //     await axios.post(
+  //       `${api_url}articulos/agregar-item-inventario`,
+  //       inventarioData
+  //     );
+  //     setModalVisible(false);
+  //     toast({
+  //       title: "El inventario se cargó satisfactoriamente",
+  //       status: "success",
+  //       duration: 3000,
+  //       isClosable: true,
+  //     });
+  //     setArticuloBusqueda("");
+  //     setArticulos([]);
+  //     searchInputRef.current?.focus();
+  //   } catch (error) {
+  //     console.error(error);
+  //     toast({
+  //       title: "Error al cargar el inventario",
+  //       status: "error",
+  //       duration: 3000,
+  //       isClosable: true,
+  //     });
+  //   }
+  // };
+
+  const cargarItemInventarioScanner = async () => {
     try {
       if (!articuloSeleccionado) {
         toast({
@@ -314,13 +419,12 @@ const handleEditarArticulo = (articulo: Articulo) => {
         return;
       }
 
-      if (articuloSeleccionado?.ar_vencimiento === 1 && !vencimiento) {
+      if (!vencimiento) {
         toast({
           title: "Debe seleccionar una fecha de vencimiento",
           status: "error",
           duration: 3000,
           isClosable: true,
-
         });
         return;
       }
@@ -345,7 +449,7 @@ const handleEditarArticulo = (articulo: Articulo) => {
         return;
       }
 
-      if (articuloSeleccionado?.ar_vencimiento === 1 && !lote) {
+      if (!lote) {
         toast({
           title: "Debe determinar un lote",
           status: "error",
@@ -366,54 +470,20 @@ const handleEditarArticulo = (articulo: Articulo) => {
         return;
       }
 
-      const inventarioData = {
-        inventario: {
-          fecha,
-          hora: new Date().toLocaleTimeString().slice(0, 5),
-          operador: localStorage.getItem("user_id") || 1,
-          sucursal: sucursal?.id || 1,
-          deposito: depositoId,
-          tipo: 1,
-          estado: 1,
-          in_obs: observaciones || "",
-          nro_inventario: ultimoNroInventario,
-        },
-        inventario_items: [
-          {
-            idArticulo: articuloSeleccionado.ar_codigo,
-            idLote: articuloSeleccionado.al_codigo,
-            cantidad: Number(existenciaFisica),
-            costo: articuloSeleccionado.ar_pcg,
-            stock_actual: Number(existenciaActual),
-            stock_dif: Number(existenciaFisica) - Number(existenciaActual),
-            codbarra: codigoBarra || "",
-            ubicacion: getUbicacionCodigo(ubicacion),
-            sububicacion: sububicacion,
-            control_vencimiento: articuloSeleccionado?.ar_vencimiento,
-            vencimientos: [
-              {
-                lote: lote || "SIN LOTE",
-                fecha_vence: formatearVencimiento(vencimiento),
-                loteid: String(lote) || 0,
-              },
-            ],
-          },
-        ],
+      const datos = {
+        id_articulo: articuloSeleccionado.ar_codigo,
+        cantidad: Number(existenciaFisica),
+        lote: lote,
+        lote_id: articuloSeleccionado.al_codigo,
+        fecha_vencimiento: formatearVencimiento(vencimiento),
       };
 
-      console.log(inventarioData);
+      console.log(datos);
 
-      if (articuloSeleccionado?.ar_vencimiento === 1) {
-        await axios.post(
-          `${api_url}articulos/agregar-item-inventario`,
-          inventarioData
-        );
-      } else {
-        await axios.post(
-          `${api_url}articulos/agregar-item-inventario-con-vencimiento`,
-          inventarioData
-        );
-      }
+      await axios.post(
+        `${api_url}articulos/insertar-item-conteo-scanner`,
+        datos
+      );
       setModalVisible(false);
       toast({
         title: "El inventario se cargó satisfactoriamente",
@@ -421,11 +491,9 @@ const handleEditarArticulo = (articulo: Articulo) => {
         duration: 3000,
         isClosable: true,
       });
-      if (articulos.length < 2) {
-        setArticuloBusqueda("");
-        setArticulos([]);
-        searchInputRef.current?.focus();
-      }
+      setArticuloBusqueda("");
+      setArticulos([]);
+      searchInputRef.current?.focus();
     } catch (error) {
       console.error(error);
       toast({
@@ -437,49 +505,6 @@ const handleEditarArticulo = (articulo: Articulo) => {
     }
   };
 
-  const buscarItemsPorInventario = async (inventario: string) => {
-    try{
-      const response = await axios.get(
-        `${api_url}articulos/mostrar-items-inventario-auxiliar`,
-        {
-          params: {
-            id: inventario,
-          },
-        }
-      );
-      const data = response.data;
-      console.log("Datos del inventario:", data.body);
-      setArticulos(data.body);
-    }catch(error){
-      console.error(error);
-    }
-  }
-
-const scannearItemInventarioAuxiliar = async () => {
-  try {
-    await axios.post(`${api_url}articulos/scannear-item-inventario-auxiliar`, {
-      id_articulo: articuloSeleccionado?.ar_codigo,
-      id_lote: articuloSeleccionado?.al_codigo,
-      cantidad: Number(existenciaFisica),
-    })
-    toast({
-      title: "Item cargado correctamente",
-      status: "success",
-      duration: 1000,
-      isClosable: true,
-    });
-    setModalVisible(false);
-    handleBusqueda(articuloBusqueda);
-  } catch (error) {
-    console.error(error);
-    toast({
-      title: "Error al scannear el item",
-      status: "error",
-      duration: 3000,
-      isClosable: true,
-    });
-  }
-}
   const cargarInventario = async () => {
     try {
       const inventarioData = {
@@ -522,59 +547,6 @@ const scannearItemInventarioAuxiliar = async () => {
       });
     }
   };
-
-const Tooltip = ({ text, children, position = "top" }: TooltipProps) => {
-  const [isVisible, setIsVisible] = useState(false);
-
-  const positionClasses = {
-    top: {
-      tooltip: "bottom-full left-1/2 transform -translate-x-1/2 mb-2",
-      arrow: "-bottom-1 left-1/2 -translate-x-1/2",
-    },
-    bottom: {
-      tooltip: "top-full left-1/2 transform -translate-x-1/2 mt-2",
-      arrow: "-top-1 left-1/2 -translate-x-1/2 rotate-180",
-    },
-    left: {
-      tooltip: "right-full top-1/2 transform -translate-y-1/2 mr-2",
-      arrow: "-right-1 top-1/2 -translate-y-1/2 rotate-90",
-    },
-    right: {
-      tooltip: "left-full top-1/2 transform -translate-y-1/2 ml-2",
-      arrow: "-left-1 top-1/2 -translate-y-1/2 -rotate-90",
-    },
-  };
-
-  return (
-    <div className="relative inline-block">
-      <div
-        onMouseEnter={() => setIsVisible(true)}
-        onMouseLeave={() => setIsVisible(false)}
-        onTouchStart={() => setIsVisible(true)}
-        onTouchEnd={() => setIsVisible(false)}
-      >
-        {children}
-      </div>
-      <AnimatePresence>
-        {isVisible && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            transition={{ duration: 0.15 }}
-            className={`absolute z-50 px-2 py-1 text-sm text-white bg-gray-800 rounded-md whitespace-nowrap ${positionClasses[position].tooltip}`}
-          >
-            {text}
-            <div
-              className={`absolute w-2 h-2 bg-gray-800 transform rotate-45 ${positionClasses[position].arrow}`}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-};
-
   return (
     <div className="h-screen w-full flex flex-col overflow-hidden">
       {/* Header Fijo */}
@@ -587,38 +559,16 @@ const Tooltip = ({ text, children, position = "top" }: TooltipProps) => {
             </h2>
           </div>
           <div className="flex gap-2">
-            <Tooltip
-              text={
-                buscarPorInventario
-                  ? "Buscar por articulo"
-                  : "Buscar por inventario"
-              }
-              position="left"
+            <button
+              onClick={() => setIsGridView(!isGridView)}
+              className="bg-white/20 p-2 rounded"
             >
-              <button
-                onClick={() => setBuscarPorInventario(!buscarPorInventario)}
-                className={` p-2 rounded ${
-                  buscarPorInventario ? "bg-white" : "bg-white/20"
-                }`}
-              >
-                <ClipboardCheck
-                  size={20}
-                  color={buscarPorInventario ? "#0455c1" : "white"}
-                />
-              </button>
-            </Tooltip>
-            <Tooltip text="Cambiar vista" position="left">
-              <button
-                onClick={() => setIsGridView(!isGridView)}
-                className="bg-white/20 p-2 rounded"
-              >
-                {isGridView ? (
-                  <Grid size={20} color="white" />
-                ) : (
-                  <List size={20} color="white" />
-                )}
-              </button>
-            </Tooltip>
+              {isGridView ? (
+                <Grid size={20} color="white" />
+              ) : (
+                <List size={20} color="white" />
+              )}
+            </button>
             <button
               className="bg-white/20 p-2 rounded"
               onClick={() => setIsDrawerOpen(true)}
@@ -635,11 +585,7 @@ const Tooltip = ({ text, children, position = "top" }: TooltipProps) => {
               ref={searchInputRef}
               type="text"
               inputMode="text"
-              placeholder={
-                buscarPorInventario
-                  ? "Buscar numero de inventario"
-                  : "Buscar producto"
-              }
+              placeholder="Buscar producto"
               className="flex-1 p-3 rounded-lg"
               value={articuloBusqueda}
               onChange={(e) => handleBusqueda(e.target.value)}
@@ -677,6 +623,12 @@ const Tooltip = ({ text, children, position = "top" }: TooltipProps) => {
                     Vto.: {formatearVencimiento(item.al_vencimiento)}
                   </p>
                   <p className="font-bold my-1">{item.ar_descripcion}</p>
+                  <p className="text-[#0455c1] font-medium">
+                    Gs. {formatNumber(item.ar_pvg)}
+                  </p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Stock: {item.al_cantidad}
+                  </p>
                 </motion.div>
               ))}
             </motion.div>
@@ -875,17 +827,10 @@ const Tooltip = ({ text, children, position = "top" }: TooltipProps) => {
                   Fecha Vencimiento
                 </label>
                 <input
-                  type={
-                    articuloSeleccionado?.ar_vencimiento === 1 ? "date" : "text"
-                  }
+                  type="date"
                   className="w-full p-2 border rounded"
-                  value={
-                    articuloSeleccionado?.ar_vencimiento === 1
-                      ? vencimiento
-                      : ""
-                  }
+                  value={vencimiento}
                   onChange={(e) => handleVencimientoChange(e.target.value)}
-                  disabled={articuloSeleccionado?.ar_vencimiento === 0}
                 />
               </div>
 
@@ -929,16 +874,11 @@ const Tooltip = ({ text, children, position = "top" }: TooltipProps) => {
                     Lote
                   </label>
                   <input
-                    placeholder={
-                      articuloSeleccionado?.ar_vencimiento === 1
-                        ? "Solo p/ lote nuevo"
-                        : ""
-                    }
+                    placeholder="Solo p/ lote nuevo"
                     type="text"
                     className="w-full p-2 border rounded"
                     value={lote}
                     onChange={(e) => handleLoteChange(e.target.value)}
-                    disabled={articuloSeleccionado?.ar_vencimiento === 0}
                   />
                 </div>
                 <div>
@@ -965,11 +905,7 @@ const Tooltip = ({ text, children, position = "top" }: TooltipProps) => {
                 />
               </div>
               <button
-                onClick={
-                  buscarPorInventario === true
-                    ? scannearItemInventarioAuxiliar
-                    : cargarItemInventario
-                }
+                onClick={cargarItemInventarioScanner}
                 className="w-full bg-green-600 text-white p-3 rounded-lg font-bold hover:bg-green-600"
               >
                 Guardar

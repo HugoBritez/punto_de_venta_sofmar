@@ -22,6 +22,6 @@ export const version = '0.9.9'
 
 
 
-export const fechaRelease = '27/01/2025'
+export const fechaRelease = '28/01/2025'
 export const db = 'gaesademo'
 export const userName = sessionStorage.getItem('userName')
