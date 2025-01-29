@@ -42,6 +42,7 @@ import InventarioScanner from "./views/scanner/Reconteo";
 import ReconteoInventarioScanner from "./views/scanner/Inventario";
 import ReporteInventarioScanner from "./views/scanner/ReporteReconteo";
 import NuevaTomaInventario from "./views/inventario/nueva-toma-inventario";
+import ConsultaArticulos from "./views/inventario/consulta-de-articulos";
 
 const ProtectedLayout: React.FC = () => {
   const { auth, isLoading } = useAuth();
@@ -84,6 +85,7 @@ function App() {
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route element={<ProtectedLayout />}>
+                <Route path="/consulta-de-articulos" element={<ConsultaArticulos />} />
                 <Route path="/home" element={<Home />} />
                 <Route
                   path="/ruteamiento-de-pedidos"

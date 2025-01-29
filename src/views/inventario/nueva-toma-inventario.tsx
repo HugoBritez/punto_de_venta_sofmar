@@ -1,5 +1,10 @@
 import HeaderComponent from "@/modules/Header";
-import { Deposito, SubUbicacion, Ubicacion } from "@/types/shared_interfaces";
+import {
+  Deposito,
+  SubUbicacion,
+  Sucursal,
+  Ubicacion,
+} from "@/types/shared_interfaces";
 import { api_url } from "@/utils";
 import {
   Flex,
@@ -12,10 +17,18 @@ import {
   Checkbox,
   Divider,
   useToast,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  useDisclosure,
+  ModalBody,
+  ModalCloseButton,
 } from "@chakra-ui/react";
 import axios from "axios";
 import { ArchiveRestore, RotateCcw } from "lucide-react";
 import { useEffect, useState } from "react";
+import ReporteAnomalias from "./reporte-anomalias";
 
 interface ArticulosCategoria {
   id: number;
@@ -115,6 +128,10 @@ const NuevaTomaInventario = () => {
   const [depositoSeleccionado, setDepositoSeleccionado] =
     useState<Deposito | null>(null);
 
+  const [sucursales, setSucursales] = useState<Sucursal[] | null>(null);
+  const [sucursalSeleccionada, setSucursalSeleccionada] =
+    useState<Sucursal | null>(null);
+
   const [tipoInventario, setTipoInventario] = useState<string>("1");
 
   const [articulosCategoria, setArticulosCategoria] = useState<
@@ -163,7 +180,59 @@ const NuevaTomaInventario = () => {
   const [inventarioAuxiliar, setInventarioAuxiliar] =
     useState<InventarioAuxiliar>();
 
+  const [numeroInventario, setNumeroInventario] = useState<number | null>(null);
+
+  const [itemEnEdicion, setItemEnEdicion] = useState<{
+    lote_id: number;
+    cantidad: number;
+  } | null>(null);
+
   const toast = useToast();
+
+  const {
+    isOpen: isModalOpen,
+    onOpen: onOpenModal,
+    onClose: onCloseModal,
+  } = useDisclosure();
+
+
+const actualizarCantidadManual = async (
+  lote_id: number,
+  nuevaCantidad: number
+) => {
+  try {
+    const articulo = itemsParaTomaInventarioConScanner.find(
+      (item) => item.lote_id === lote_id
+    );
+
+    if (!articulo) {
+      throw new Error("Artículo no encontrado");
+    }
+
+    await axios.post(`${api_url}articulos/scannear-item-inventario-auxiliar`, {
+      id_articulo: articulo.articulo_id,
+      id_lote: lote_id,
+      cantidad: nuevaCantidad,
+    });
+    buscarItemsPorInventarioDerecha();
+
+    setItemEnEdicion(null);
+
+    toast({
+      title: "Cantidad actualizada",
+      status: "success",
+      duration: 3000,
+      isClosable: true,
+    });
+  } catch (error) {
+    toast({
+      title: "Error al actualizar cantidad",
+      status: "error",
+      duration: 3000,
+      isClosable: true,
+    });
+  }
+};
 
   const fetchUbicaciones = async () => {
     const response = await axios.get(`${api_url}ubicaciones/`);
@@ -278,8 +347,6 @@ const NuevaTomaInventario = () => {
     }
   };
 
-
-
   const handleCategoriaSelect = (categoriaId: number) => {
     setCategoriasSeleccionadas((prevSelected) => {
       if (prevSelected.includes(categoriaId)) {
@@ -362,6 +429,12 @@ const NuevaTomaInventario = () => {
     setDepositoSeleccionado(response.data.body[0]);
   };
 
+  const fetchSucursales = async () => {
+    const response = await axios.get(`${api_url}sucursales/listar`);
+    setSucursales(response.data.body);
+    setSucursalSeleccionada(response.data.body[0]);
+  };
+
   const traerIdUltimoInventario = async () => {
     try {
       const response = await axios.get(
@@ -370,12 +443,14 @@ const NuevaTomaInventario = () => {
       const data = response.data;
       console.log("data", response.data.body);
       setInventarioAuxiliar(data.body);
+      setNumeroInventario(data.body.nro_inventario);
     } catch (error) {
       console.error("Error al obtener último número de inventario:", error);
     }
   };
   useEffect(() => {
     fetchDepositos();
+    fetchSucursales();
     traerIdUltimoInventario();
   }, []);
 
@@ -418,7 +493,7 @@ const NuevaTomaInventario = () => {
       if (articuloBuscado && articuloBuscado.length >= 3) {
         fetchArticulosDirecta(articuloBuscado);
       }
-    }, 300); 
+    }, 300);
 
     return () => clearTimeout(timeoutId);
   }, [articuloBuscado]);
@@ -606,7 +681,7 @@ const NuevaTomaInventario = () => {
         `${api_url}articulos/mostrar-items-inventario-auxiliar-principal`,
         {
           params: {
-            id: inventarioAuxiliar?.nro_inventario,
+            id: numeroInventario,
             scanneado: true,
           },
         }
@@ -619,23 +694,23 @@ const NuevaTomaInventario = () => {
     }
   };
 
-    const buscarItemsPorInventarioIzquierda = async () => {
-      try {
-        const response = await axios.get(
-          `${api_url}articulos/mostrar-items-inventario-auxiliar-principal`,
-          {
-            params: {
-              id: inventarioAuxiliar?.nro_inventario,
-            },
-          }
-        );
-        const data = response.data;
-        console.log("Datos del inventario:", data.body);
-        setItemsParaTomaInventario(data.body);
-      } catch (error) {
-        console.error(error);
-      }
-    };
+  const buscarItemsPorInventarioIzquierda = async () => {
+    try {
+      const response = await axios.get(
+        `${api_url}articulos/mostrar-items-inventario-auxiliar-principal`,
+        {
+          params: {
+            id: numeroInventario,
+          },
+        }
+      );
+      const data = response.data;
+      console.log("Datos del inventario:", data.body);
+      setItemsParaTomaInventario(data.body);
+    } catch (error) {
+      console.error(error);
+    }
+  };
 
   return (
     <Flex
@@ -661,6 +736,26 @@ const NuevaTomaInventario = () => {
               value={fechaActual.toISOString().split("T")[0]}
               onChange={(e) => setFechaActual(new Date(e.target.value))}
             />
+          </div>
+          <div className="flex flex-row gap-2 items-center">
+            <FormLabel className="w-24">Sucursal:</FormLabel>
+            <Select
+              name=""
+              id=""
+              className="w-36"
+              value={sucursalSeleccionada?.id}
+              onChange={(e) =>
+                setSucursalSeleccionada(
+                  sucursales?.find(
+                    (sucursal) => sucursal.id === parseInt(e.target.value)
+                  ) || null
+                )
+              }
+            >
+              {sucursales?.map((sucursal) => (
+                <option value={sucursal.id}>{sucursal.descripcion}</option>
+              ))}
+            </Select>
           </div>
           <div className="flex flex-row gap-2 items-center">
             <FormLabel className="w-24">Deposito:</FormLabel>
@@ -690,10 +785,13 @@ const NuevaTomaInventario = () => {
             <Input
               type="number"
               className="w-36"
-              value={inventarioAuxiliar?.nro_inventario}
-              readOnly
+              value={numeroInventario || ""}
+              onChange={(e) => setNumeroInventario(parseInt(e.target.value))}
             />
-            <Button onClick={buscarItemsPorInventarioIzquierda} colorScheme="green">
+            <Button
+              onClick={buscarItemsPorInventarioIzquierda}
+              colorScheme="green"
+            >
               <RotateCcw />
             </Button>
           </div>
@@ -717,7 +815,11 @@ const NuevaTomaInventario = () => {
             <Input
               type="text"
               placeholder="Buscar articulo por nombre o codigo de barras"
-              isDisabled={tipoInventario === "1" || tipoInventario === "3" || tipoInventario === '4'}
+              isDisabled={
+                tipoInventario === "1" ||
+                tipoInventario === "3" ||
+                tipoInventario === "4"
+              }
               value={articuloBuscado || ""}
               onChange={handleArticuloInputChange}
               onClick={() => {
@@ -745,7 +847,11 @@ const NuevaTomaInventario = () => {
                     ) || null
                   )
                 }
-                isDisabled={tipoInventario === "2" || tipoInventario === "1" || tipoInventario === '4'}
+                isDisabled={
+                  tipoInventario === "2" ||
+                  tipoInventario === "1" ||
+                  tipoInventario === "4"
+                }
                 value={ubicacionSeleccionada?.ub_codigo}
               >
                 {ubicaciones.map((ubicacion) => (
@@ -766,7 +872,11 @@ const NuevaTomaInventario = () => {
                     ) || null
                   )
                 }
-                isDisabled={tipoInventario === "2" || tipoInventario === "1" || tipoInventario === '4'}
+                isDisabled={
+                  tipoInventario === "2" ||
+                  tipoInventario === "1" ||
+                  tipoInventario === "4"
+                }
                 value={subUbicacionSeleccionada?.s_codigo}
               >
                 {subUbicaciones.map((subUbicacion) => (
@@ -922,7 +1032,7 @@ const NuevaTomaInventario = () => {
           </div>
         </div>
         <div className="flex flex-col gap-2  justify-center">
-          <Button colorScheme="orange">Limpiar filtros</Button>
+          <Button colorScheme="orange" onClick={onOpenModal}>Generar reporte</Button>
           <Button
             variant={"outline"}
             colorScheme="red"
@@ -949,7 +1059,7 @@ const NuevaTomaInventario = () => {
               inventarioAuxiliar?.estado === null
             }
           >
-            Añadir items
+            Guardar items
           </Button>
           <Button colorScheme="green" onClick={fetchItemsParaTomaInventario}>
             Procesar
@@ -1071,14 +1181,58 @@ const NuevaTomaInventario = () => {
                       </td>
                       <td className="border border-gray-300 px-2 truncate">
                         {item.vencimiento}
-
                       </td>
                       <td className="border border-gray-300 px-2 truncate">
                         {item.lote}
                       </td>
-                      <td className="border border-gray-300 px-2 truncate">
-
-                        {item.stock}
+                      <td className="border border-gray-300 px-2 truncate items-center justify-center">
+                        {itemEnEdicion?.lote_id === item.lote_id ? (
+                          <div className="flex items-center gap-2 justify-center h-full">
+                            <Input
+                              type="number"
+                              size="sm"
+                              value={itemEnEdicion.cantidad}
+                              onChange={(e) =>
+                                setItemEnEdicion({
+                                  ...itemEnEdicion,
+                                  cantidad: parseInt(e.target.value),
+                                })
+                              }
+                              className="w-20"
+                            />
+                            <Button
+                              size="sm"
+                              colorScheme="green"
+                              onClick={() =>
+                                actualizarCantidadManual(
+                                  item.lote_id,
+                                  itemEnEdicion.cantidad
+                                )
+                              }
+                            >
+                              ✓
+                            </Button>
+                            <Button
+                              size="sm"
+                              colorScheme="red"
+                              onClick={() => setItemEnEdicion(null)}
+                            >
+                              ✕
+                            </Button>
+                          </div>
+                        ) : (
+                          <div
+                            className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded"
+                            onClick={() =>
+                              setItemEnEdicion({
+                                lote_id: item.lote_id,
+                                cantidad: item.stock,
+                              })
+                            }
+                          >
+                            {item.stock}
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -1094,7 +1248,27 @@ const NuevaTomaInventario = () => {
           </div>
         </div>
       </div>
+      <Modal isOpen={isModalOpen} onClose={onCloseModal} size={'full'}>
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>
+            <p>Reporte de anomalias</p>
+          </ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <ReporteAnomalias
+              numeroInventario={inventarioAuxiliar?.nro_inventario || 0}
+              sucursal={depositoSeleccionado?.dep_codigo || 0}
+              deposito={depositoSeleccionado?.dep_codigo || 0}
+            />
+          </ModalBody>
+
+        </ModalContent>
+      </Modal>
+
+
     </Flex>
+
   );
 };
 

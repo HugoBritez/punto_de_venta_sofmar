@@ -996,8 +996,11 @@ const buscarSecciones = (busqueda: string) =>{
     const elemento = document.getElementById("reporte");
     if (!elemento) return;
 
+    const scale = 4;
+
     // Generar el canvas a partir del elemento
     const canvas = await html2canvas(elemento, {
+      scale: scale,
       scrollX: 0,
       scrollY: 0,
       windowWidth: elemento.scrollWidth,
