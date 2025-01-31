@@ -310,7 +310,7 @@ return (
                     <td>{item.articulo}</td>
                     <td>{item.lote}</td>
                     <td>{item.vencimiento}</td>
-                    <td className="text-center">{item.cantidad_scanner}</td>
+                    <td className="text-center">{item.cantidad_scanner || 0}</td>
                     <td className="text-center">{item.cantidad_inicial}</td>
                     <td className="text-center">{item.diferencia}</td>
                   </tr>

@@ -24,11 +24,14 @@ import {
   useDisclosure,
   ModalBody,
   ModalCloseButton,
+  Spinner,
 } from "@chakra-ui/react";
-import axios from "axios";
-import { ArchiveRestore, RotateCcw } from "lucide-react";
+import axios, { AxiosError } from "axios";
+import { AlertTriangle, ArchiveRestore,  RotateCcw, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import ReporteAnomalias from "./reporte-anomalias";
+import { motion, AnimatePresence } from "framer-motion";
+
 
 interface ArticulosCategoria {
   id: number;
@@ -73,6 +76,130 @@ interface InventarioAuxiliar {
   nro_inventario: number;
   estado: number;
 }
+
+interface ConfirmModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title: string;
+  message: string;
+}
+
+interface ServerError {
+  message?: string;
+  error?: string;
+  statusCode?: number;
+}
+
+const ConfirmModal: React.FC<ConfirmModalProps> = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  title,
+  message,
+}) => {
+  // Cerrar con ESC
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [onClose]);
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          {/* Overlay */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-black bg-opacity-50"
+            onClick={onClose}
+          />
+
+          {/* Modal */}
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4">
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                transition={{
+                  duration: 0.2,
+                  ease: [0.4, 0, 0.2, 1],
+                }}
+                className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Header */}
+                <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                  <div className="sm:flex sm:items-start">
+                    <motion.div
+                      initial={{ rotate: -180, opacity: 0 }}
+                      animate={{ rotate: 0, opacity: 1 }}
+                      transition={{ duration: 0.3, delay: 0.1 }}
+                      className="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10"
+                    >
+                      <AlertTriangle className="h-6 w-6 text-red-600" />
+                    </motion.div>
+                    <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                      <motion.h3
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.3, delay: 0.2 }}
+                        className="text-lg font-medium leading-6 text-gray-900"
+                      >
+                        {title}
+                      </motion.h3>
+                      <motion.div
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.3, delay: 0.3 }}
+                        className="mt-2"
+                      >
+                        <p className="text-sm text-gray-500">{message}</p>
+                      </motion.div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    type="button"
+                    className="inline-flex w-full justify-center rounded-md border border-transparent bg-red-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm"
+                    onClick={() => {
+                      onConfirm();
+                      onClose();
+                    }}
+                  >
+                    Confirmar
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    type="button"
+                    className="mt-3 inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                    onClick={onClose}
+                  >
+                    Cancelar
+                  </motion.button>
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+};
+
 
 const FloatingCard = ({
   isVisible,
@@ -181,6 +308,12 @@ const NuevaTomaInventario = () => {
     useState<InventarioAuxiliar>();
 
   const [numeroInventario, setNumeroInventario] = useState<number | null>(null);
+  const [botonesLoading, setBotonesLoading] = useState<boolean>(false);
+
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+
+
+
 
   const [itemEnEdicion, setItemEnEdicion] = useState<{
     lote_id: number;
@@ -310,6 +443,7 @@ const actualizarCantidadManual = async (
     }
 
     try {
+      setBotonesLoading(true);
       const response = await axios.get(
         `${api_url}articulos/toma-inventario-items`,
         {
@@ -344,6 +478,8 @@ const actualizarCantidadManual = async (
         status: "error",
         duration: 3000,
       });
+    } finally {
+      setBotonesLoading(false);
     }
   };
 
@@ -438,7 +574,13 @@ const actualizarCantidadManual = async (
   const traerIdUltimoInventario = async () => {
     try {
       const response = await axios.get(
-        `${api_url}articulos/ultimo-inventario-auxiliar`
+        `${api_url}articulos/ultimo-inventario-auxiliar`,{
+          params : {
+            deposito: depositoSeleccionado?.dep_codigo,
+            sucursal: sucursalSeleccionada?.id
+          }
+        }
+          
       );
       const data = response.data;
       console.log("data", response.data.body);
@@ -448,11 +590,54 @@ const actualizarCantidadManual = async (
       console.error("Error al obtener último número de inventario:", error);
     }
   };
+
+const handleAnularInventario = async () => {
+  try {
+    await axios.get(`${api_url}articulos/anular-inventario-auxiliar`, {
+      params: {
+        id: inventarioAuxiliar?.id,
+      },
+    });
+
+    toast({
+      title: "Inventario anulado",
+      description: "El inventario ha sido anulado exitosamente",
+      status: "success",
+      duration: 3000,
+      isClosable: true,
+    });
+    traerIdUltimoInventario();
+  } catch (error: any) {
+    console.error("Error al anular inventario:", error);
+
+    const axiosError = error as AxiosError<ServerError>;
+
+    // Extraemos el mensaje de error del servidor
+    const errorMessage =
+      axiosError.response?.data?.message ||
+      axiosError.response?.data?.error ||
+      "Error desconocido al anular el inventario";
+
+    toast({
+      title: "No se pudo anular el inventario",
+      description: `${errorMessage}`,
+      status: "error",
+      duration: 3000,
+      isClosable: true,
+    });
+  }
+};
+
+
   useEffect(() => {
     fetchDepositos();
     fetchSucursales();
-    traerIdUltimoInventario();
   }, []);
+
+  useEffect(()=>{
+    traerIdUltimoInventario()
+    setItemsParaTomaInventario([])
+  }, [depositoSeleccionado, sucursalSeleccionada])
 
   useEffect(() => {
     if (tipoInventario === "1") {
@@ -513,7 +698,7 @@ const actualizarCantidadManual = async (
   const iniciarNuevoInventarioAuxiliar = async () => {
     const inventario = {
       operador: sessionStorage.getItem("user_id"),
-      sucursal: 1,
+      sucursal: sucursalSeleccionada?.id,
       deposito: depositoSeleccionado?.dep_codigo,
       obs: "",
       nro_inventario: inventarioAuxiliar?.nro_inventario
@@ -627,6 +812,7 @@ const actualizarCantidadManual = async (
     }
 
     try {
+      setBotonesLoading(true);
       await axios.post(
         `${api_url}articulos/insertar-inventario-auxiliar-items`,
         inventario
@@ -645,14 +831,21 @@ const actualizarCantidadManual = async (
         duration: 3000,
         isClosable: true,
       });
+    } finally {
+      setBotonesLoading(false);
     }
   };
 
   const cerrarInventario = async () => {
     const inventario = {
       id: inventarioAuxiliar?.id,
+      operador: sessionStorage.getItem("user_id"),
+      sucursal: sucursalSeleccionada?.id,
+      deposito: depositoSeleccionado?.dep_codigo,
+      nro_inventario: numeroInventario,
     };
     try {
+      setBotonesLoading(true);
       await axios.post(
         `${api_url}articulos/cerrar-inventario-auxiliar`,
         inventario
@@ -672,6 +865,8 @@ const actualizarCantidadManual = async (
         duration: 3000,
         isClosable: true,
       });
+    } finally {
+      setBotonesLoading(false);
     }
   };
 
@@ -683,6 +878,8 @@ const actualizarCantidadManual = async (
           params: {
             id: numeroInventario,
             scanneado: true,
+            deposito: depositoSeleccionado?.dep_codigo,
+            sucursal: sucursalSeleccionada?.id,
           },
         }
       );
@@ -696,11 +893,14 @@ const actualizarCantidadManual = async (
 
   const buscarItemsPorInventarioIzquierda = async () => {
     try {
+      setItemsParaTomaInventario([])
       const response = await axios.get(
         `${api_url}articulos/mostrar-items-inventario-auxiliar-principal`,
         {
           params: {
             id: numeroInventario,
+            deposito: depositoSeleccionado?.dep_codigo,
+            sucursal: sucursalSeleccionada?.id
           },
         }
       );
@@ -711,6 +911,8 @@ const actualizarCantidadManual = async (
       console.error(error);
     }
   };
+
+
 
   return (
     <Flex
@@ -787,6 +989,19 @@ const actualizarCantidadManual = async (
               className="w-36"
               value={numeroInventario || ""}
               onChange={(e) => setNumeroInventario(parseInt(e.target.value))}
+            />
+            <Button
+              onClick={() => setShowConfirmModal(true)}
+              colorScheme="red"
+            >
+              <X />
+            </Button>
+            <ConfirmModal
+              isOpen={showConfirmModal}
+              onClose={() => setShowConfirmModal(false)}
+              onConfirm={handleAnularInventario}
+              title="¿Está seguro de anular este inventario?"
+              message="Esta acción anulará el inventario y no podrá ser revertida."
             />
             <Button
               onClick={buscarItemsPorInventarioIzquierda}
@@ -1032,7 +1247,9 @@ const actualizarCantidadManual = async (
           </div>
         </div>
         <div className="flex flex-col gap-2  justify-center">
-          <Button colorScheme="orange" onClick={onOpenModal}>Generar reporte</Button>
+          <Button colorScheme="orange" onClick={onOpenModal}>
+            Generar reporte
+          </Button>
           <Button
             variant={"outline"}
             colorScheme="red"
@@ -1044,11 +1261,15 @@ const actualizarCantidadManual = async (
                 : cerrarInventario
             }
           >
-            {inventarioAuxiliar?.estado === 1 ||
-            inventarioAuxiliar?.estado === undefined ||
-            inventarioAuxiliar?.estado === null
-              ? "Iniciar Inventario"
-              : "Cerrar Inventario"}
+            {botonesLoading ? (
+              <Spinner size="sm" />
+            ) : inventarioAuxiliar?.estado === 1 ||
+              inventarioAuxiliar?.estado === undefined ||
+              inventarioAuxiliar?.estado === null ? (
+              "Iniciar Inventario"
+            ) : (
+              "Cerrar Inventario"
+            )}
           </Button>
           <Button
             colorScheme="blue"
@@ -1059,10 +1280,10 @@ const actualizarCantidadManual = async (
               inventarioAuxiliar?.estado === null
             }
           >
-            Guardar items
+            {botonesLoading ? <Spinner size="sm" /> : "Guardar items"}
           </Button>
           <Button colorScheme="green" onClick={fetchItemsParaTomaInventario}>
-            Procesar
+            {botonesLoading ? <Spinner size="sm" /> : "Procesar"}
           </Button>
         </div>
       </div>
@@ -1078,6 +1299,7 @@ const actualizarCantidadManual = async (
                     <th className="text-left border border-gray-300 px-2 ">
                       Ubi./Sub-ubi.
                     </th>
+                    <th>Cod. Interno</th>
                     <th className="text-left border border-gray-300 px-2 ">
                       Codigo Barras
                     </th>
@@ -1100,6 +1322,9 @@ const actualizarCantidadManual = async (
                     <tr key={item.lote_id} className="border border-gray-300">
                       <td className="border border-gray-300 px-2 truncate">
                         {item.ubicacion} / {item.sub_ubicacion}
+                      </td>
+                      <td className="border border-gray-300 px-2 truncate">
+                        {item.articulo_id}
                       </td>
                       <td className="border border-gray-300 px-2 truncate">
                         {item.codigo_barra}
@@ -1153,6 +1378,9 @@ const actualizarCantidadManual = async (
                       Codigo Barras
                     </th>
                     <th className="text-left border border-gray-300 px-2">
+                      Cod. Interno
+                    </th>
+                    <th className="text-left border border-gray-300 px-2">
                       Descripcion
                     </th>
                     <th className="text-left border border-gray-300 px-2">
@@ -1175,6 +1403,9 @@ const actualizarCantidadManual = async (
 
                       <td className="border border-gray-300 px-2 truncate">
                         {item.codigo_barra}
+                      </td>
+                      <td className="border border-gray-300 px-2 truncate">
+                        {item.articulo_id}
                       </td>
                       <td className="border border-gray-300 px-2 truncate ">
                         {item.descripcion}
@@ -1248,7 +1479,7 @@ const actualizarCantidadManual = async (
           </div>
         </div>
       </div>
-      <Modal isOpen={isModalOpen} onClose={onCloseModal} size={'full'}>
+      <Modal isOpen={isModalOpen} onClose={onCloseModal} size={"full"}>
         <ModalOverlay />
         <ModalContent>
           <ModalHeader>
@@ -1258,17 +1489,13 @@ const actualizarCantidadManual = async (
           <ModalBody>
             <ReporteAnomalias
               numeroInventario={inventarioAuxiliar?.nro_inventario || 0}
-              sucursal={depositoSeleccionado?.dep_codigo || 0}
+              sucursal={sucursalSeleccionada?.id || 0}
               deposito={depositoSeleccionado?.dep_codigo || 0}
             />
           </ModalBody>
-
         </ModalContent>
       </Modal>
-
-
     </Flex>
-
   );
 };
 

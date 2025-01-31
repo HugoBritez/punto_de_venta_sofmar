@@ -695,7 +695,7 @@ const RuteamientoCard = ({
                 <Text fontWeight={"bold"} mb={2}>
                   Notas:
                 </Text>
-                <Box bg={"gray.100"} height={"auto"} borderRadius={"md"} p={2}>
+                <Box bg={"gray.100"} maxH={"10rem"} borderRadius={"md"} p={2} overflowY={"auto"}>
                   <Flex flexDir={"column"} gap={2} p={2}>
                     {notasRuteamiento.map((nota) => (
                       <Box key={nota.an_codigo}>

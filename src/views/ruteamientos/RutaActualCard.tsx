@@ -656,7 +656,7 @@ const RutaActualCard = ({
                         bg={"gray.100"}
                         borderRadius={"md"}
                         p={2}
-                        maxH={"10rem"}
+                        maxH={"8rem"}
                         overflowY={"auto"}
                       >
                         <Text fontWeight={"bold"}>Nota #{nota.an_codigo}</Text>

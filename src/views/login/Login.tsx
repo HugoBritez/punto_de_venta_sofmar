@@ -127,7 +127,7 @@ const Login: React.FC = () => {
 
           <Box alignItems={'center'} textAlign={'center'} mt={4}>
           <Text fontWeight={'bold'} fontSize={isMobile? 'xs' : 'md'} color={'gray.500'}>Celular: 0971 271 288</Text>
-          <Text fontWeight={'bold'} fontSize={isMobile? 'xs' : 'md'} color={'gray.500'}>E-Mail: administracion@sofmarsistema.net</Text>
+          <Text fontWeight={'bold'} fontSize={isMobile? 'xs' : 'md'} color={'gray.500'}>E-Mail: administracion@sofmarsistemas.net</Text>
           </Box>
         </Flex>
       </Flex>

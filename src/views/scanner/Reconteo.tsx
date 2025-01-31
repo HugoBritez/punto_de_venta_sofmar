@@ -10,6 +10,7 @@ import {
   ScanIcon,
   ClipboardCheck,
   ChartColumn,
+  ListStart,
 } from "lucide-react";
 
 import { motion, AnimatePresence } from "framer-motion";
@@ -57,6 +58,71 @@ interface TooltipProps {
   position?: "top" | "bottom" | "left" | "right";
 }
 
+interface FloatingCardProps {
+  inventarios: Array<{ id: number; fecha: string }>;
+  onSelect: (id: number) => void;
+  onClose: () => void;
+  onBuscarItems: (inventarioId: string, busqueda: string | null) => void;
+}
+
+const FloatingCard = ({
+  inventarios,
+  onSelect,
+  onClose,
+  onBuscarItems,
+}: FloatingCardProps) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      className=" border border-gray-500 absolute right-16 top-full mt-2 bg-white rounded-lg shadow-lg w-72 z-50"
+    >
+      <div className="p-4">
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="font-semibold text-gray-700">
+            Inventarios Disponibles
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            ×
+          </button>
+        </div>
+        <div className="max-h-64 overflow-y-auto">
+          {inventarios.length > 0 ? (
+            <div className="space-y-2">
+              {inventarios.map((inv: any) => (
+                <button
+                  key={inv.id}
+                  onClick={() => {
+                    onSelect(inv.id);
+                    // Realizar búsqueda inmediata al seleccionar inventario
+                    onBuscarItems(String(inv.id), null);
+                  }}
+                  className="w-full text-left p-2 hover:bg-gray-50 rounded transition-colors flex justify-between items-center"
+                >
+                  <div>
+                    <div className="font-medium">Inventario #{inv.id}</div>
+                    <div className="text-sm text-gray-500">
+                      {new Date(inv.fecha).toLocaleDateString()}
+                    </div>
+                  </div>
+                  <ChartColumn size={16} className="text-gray-400" />
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center text-gray-500 py-4">
+              No hay inventarios disponibles
+            </div>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+};
 
 const InventarioScanner = () => {
   const navigate = useNavigate();
@@ -89,6 +155,14 @@ const InventarioScanner = () => {
   const [prevLote, setPrevLote] = useState("");
   const token = sessionStorage.getItem("token");
   const toast = useToast();
+  const [showInventarioCard, setShowInventarioCard] = useState(false);
+  const [inventariosDisponibles, setInventariosDisponibles] = useState<
+    Array<{ id: number; fecha: string }>
+  >([]);
+  const [inventarioSeleccionado, setInventarioSeleccionado] = useState<
+    number | null
+  >(null);
+
 
   const handleVencimientoChange = (nuevoVencimiento: string) => {
     setPrevVencimiento(vencimiento);
@@ -139,38 +213,66 @@ const handleEditarArticulo = (articulo: Articulo) => {
 
   const [buscarPorInventario, setBuscarPorInventario] = useState(false);
 
-  useEffect(() => {
-    const fetchSucursalesYDepositos = async () => {
-      try {
-        const [sucursalesRes, depositosRes] = await Promise.all([
-          axios.get(`${api_url}sucursales/listar`),
-          axios.get(`${api_url}depositos/`),
-        ]);
+useEffect(() => {
+  const fetchSucursalesYDepositos = async () => {
+    try {
+      const [sucursalesRes, depositosRes] = await Promise.all([
+        axios.get(`${api_url}sucursales/listar`),
+        axios.get(`${api_url}depositos/`),
+      ]);
 
-        const sucursalesData = sucursalesRes.data;
-        const depositosData = depositosRes.data;
+      const sucursalesData = sucursalesRes.data;
+      const depositosData = depositosRes.data;
 
-        console.log(sucursalesData, depositosData);
-        setSucursales(sucursalesData.body || []);
-        setDepositos(depositosData.body || []);
+      setSucursales(sucursalesData.body || []);
+      setDepositos(depositosData.body || []);
 
-        const defaultDeposito = depositosData.body[0];
-        if (defaultDeposito) {
-          setDeposito(defaultDeposito);
-          setDepositoId(String(defaultDeposito.dep_codigo));
-        }
-      } catch (error) {
-        console.error("Error al cargar datos:", error);
+      const defaultDeposito = depositosData.body[0];
+      if (defaultDeposito) {
+        setDeposito(defaultDeposito);
+        setDepositoId(String(defaultDeposito.dep_codigo));
       }
-    };
-    fetchSucursalesYDepositos();
-  }, []);
+    } catch (error) {
+      console.error("Error al cargar datos:", error);
+    }
+  };
+
+  fetchSucursalesYDepositos();
+}, []);
+
+// Nuevo useEffect separado que depende del depositoId
+useEffect(() => {
+  const fetchInventariosDisponibles = async () => {
+    if (!depositoId) return; // No ejecutar si no hay depositoId
+
+    try {
+      const response = await axios.get(
+        `${api_url}articulos/inventarios-disponibles`,
+        {
+          params: {
+            deposito: depositoId,
+          },
+        }
+      );
+      const data = response.data;
+      setInventariosDisponibles(data.body || []);
+    } catch (error) {
+      console.error("Error al cargar inventarios:", error);
+    }
+  };
+
+  fetchInventariosDisponibles();
+}, [depositoId]);
 
   useEffect(() => {
     const traerIdUltimoInventario = async () => {
       try {
         const response = await axios.get(
-          `${api_url}articulos/ultimo-nro-inventario`
+          `${api_url}articulos/ultimo-nro-inventario`, {
+            params : {
+              deposito: depositoId,
+            }
+          }
         );
         const data = response.data;
 
@@ -240,21 +342,23 @@ const handleEditarArticulo = (articulo: Articulo) => {
     }
   };
 
-  const handleBusqueda = (texto: string) => {
-    setArticuloBusqueda(texto);
-    if (!texto || texto.trim() === "") {
-      setArticulos([]);
-      return;
+const handleBusqueda = (texto: string) => {
+  setArticuloBusqueda(texto);
+  if (!texto || texto.trim() === "") {
+    setArticulos([]);
+    return;
+  }
+  const timeoutId = setTimeout(() => {
+    if (buscarPorInventario && inventarioSeleccionado) {
+      // Asegurarse de que se pase el inventarioSeleccionado
+      buscarItemsPorInventario(String(inventarioSeleccionado), texto);
+    } else {
+      buscarArticuloPorCodigo(texto);
     }
-    const timeoutId = setTimeout(() => {
-      if (buscarPorInventario) {
-        buscarItemsPorInventario(texto);
-      } else {
-        buscarArticuloPorCodigo(texto);
-      }
-    }, 300);
-    return () => clearTimeout(timeoutId);
-  };
+  }, 300);
+  return () => clearTimeout(timeoutId);
+};
+
 
   const formatearVencimiento = (vencimiento: string) => {
     const date = new Date(vencimiento);
@@ -437,13 +541,15 @@ const handleEditarArticulo = (articulo: Articulo) => {
     }
   };
 
-  const buscarItemsPorInventario = async (inventario: string) => {
+  const buscarItemsPorInventario = async (inventario: string, busqueda: string | null = null) => {
     try{
       const response = await axios.get(
         `${api_url}articulos/mostrar-items-inventario-auxiliar`,
         {
           params: {
             id: inventario,
+            buscar: busqueda,
+            deposito: depositoId
           },
         }
       );
@@ -469,7 +575,14 @@ const scannearItemInventarioAuxiliar = async () => {
       isClosable: true,
     });
     setModalVisible(false);
-    handleBusqueda(articuloBusqueda);
+        if (articuloBusqueda) {
+          handleBusqueda(articuloBusqueda);
+        } else if (inventarioSeleccionado) {
+          // Si no hay búsqueda pero hay un inventario seleccionado,
+          // traer todos los items de ese inventario
+          buscarItemsPorInventario(String(inventarioSeleccionado));
+        }
+
   } catch (error) {
     console.error(error);
     toast({
@@ -545,6 +658,8 @@ const Tooltip = ({ text, children, position = "top" }: TooltipProps) => {
     },
   };
 
+
+
   return (
     <div className="relative inline-block">
       <div
@@ -583,7 +698,8 @@ const Tooltip = ({ text, children, position = "top" }: TooltipProps) => {
           <div className="flex items-start gap-4 flex-col">
             <h1 className="text-white text-xl font-bold">Toma de Inventario</h1>
             <h2 className="text-white text-xs font-medium">
-              {deposito?.dep_descripcion}
+              {deposito?.dep_descripcion} - Inventario Nro:{" "}
+              {inventarioSeleccionado}
             </h2>
           </div>
           <div className="flex gap-2">
@@ -629,30 +745,55 @@ const Tooltip = ({ text, children, position = "top" }: TooltipProps) => {
         </div>
 
         {/* Barra de búsqueda */}
-        <div className="px-4">
-          <div className="flex items-center bg-white rounded-lg">
+        <div className="px-4 flex flex-row w-full justify-center items-center gap-4">
+          <div className="flex items-center bg-white rounded-lg w-full">
             <input
               ref={searchInputRef}
               type="text"
               inputMode="text"
-              placeholder={
-                buscarPorInventario
-                  ? "Buscar numero de inventario"
-                  : "Buscar producto"
-              }
+              placeholder="Buscar producto por nombre o codigo"
               className="flex-1 p-3 rounded-lg"
               value={articuloBusqueda}
               onChange={(e) => handleBusqueda(e.target.value)}
               onClick={handleInputClick}
             />
           </div>
+          {buscarPorInventario && (
+            <div className="relative">
+              <button
+                className="bg-blue-500 p-2 rounded-lg text-white"
+                onClick={() => setShowInventarioCard(!showInventarioCard)}
+              >
+                <ListStart size={20} color="white" />
+              </button>
+              <AnimatePresence>
+                {showInventarioCard && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setShowInventarioCard(false)}
+                    />
+                    <FloatingCard
+                      inventarios={inventariosDisponibles}
+                      onSelect={(id) => {
+                        setInventarioSeleccionado(id);
+                        buscarItemsPorInventario(String(id));
+                        setShowInventarioCard(false);
+                      }}
+                      onClose={() => setShowInventarioCard(false)}
+                      onBuscarItems={buscarItemsPorInventario}
+                    />
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
         </div>
       </div>
-
       {/* Lista de artículos con scroll - Ajustamos las clases */}
       <div className="flex-1 overflow-y-auto">
         <div className="p-4">
-          {articuloBusqueda && articulos.length > 0 ? (
+          { articulos.length > 0 ? (
             <motion.div
               className={`grid ${
                 isGridView ? "grid-cols-2" : "grid-cols-1"
@@ -677,6 +818,20 @@ const Tooltip = ({ text, children, position = "top" }: TooltipProps) => {
                     Vto.: {formatearVencimiento(item.al_vencimiento)}
                   </p>
                   <p className="font-bold my-1">{item.ar_descripcion}</p>
+                  <p className="text-sm text-blue-500">
+                    {
+                      ubicaciones.find(
+                        (ubicacion) =>
+                          ubicacion.ub_codigo === item.ar_ubicacicion
+                      )?.ub_descripcion
+                    }{" "}
+                    -{" "}
+                    {
+                      sububicaciones.find(
+                        (sub) => sub.s_codigo === item.ar_sububicacion
+                      )?.s_descripcion
+                    }
+                  </p>
                 </motion.div>
               ))}
             </motion.div>
@@ -786,7 +941,6 @@ const Tooltip = ({ text, children, position = "top" }: TooltipProps) => {
                       ))}
                     </select>
                   </div>
-
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Depósito
