@@ -61,6 +61,11 @@ interface EntregaDetalle {
   hora_salida: string;
 }
 
+interface Coordinates {
+  latitude: number;
+  longitude: number;
+}
+
 const Entregas = () => {
   const isMobile = useMediaQuery("(max-width: 768px)");
   const usuarioId = sessionStorage.getItem("user_id");
@@ -88,9 +93,18 @@ const Entregas = () => {
 
   const [mostrarBotones, setMostrarBotones] = useState<boolean>(false);
 
+const [, setCoordenadas] = useState<{
+  latitude: number | null;
+  longitude: number | null;
+}>({
+  latitude: null,
+  longitude: null,
+});
+
   const permisosMenu = JSON.parse(
     sessionStorage.getItem("permisos_menu") || "[]"
   );
+
 
   const tienePermiso = (
     menuGrupo: number | undefined,
@@ -160,8 +174,53 @@ const Entregas = () => {
     }
   };
 
+const obtenerUbicacion = (): Promise<Coordinates> => {
+  return new Promise((resolve, reject) => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position: GeolocationPosition) => {
+          const coords: Coordinates = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          };
+          setCoordenadas(coords);
+          resolve(coords);
+        },
+        (error: GeolocationPositionError) => {
+          console.error("Error obteniendo ubicación:", error);
+          toast({
+            title: "Error",
+            description: "No se pudo obtener la ubicación",
+            status: "error",
+            duration: 3000,
+            isClosable: true,
+          });
+          reject(error);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 0,
+        }
+      );
+    } else {
+      const error = new Error("Geolocalización no disponible");
+      toast({
+        title: "Error",
+        description: "Geolocalización no disponible en este dispositivo",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      reject(error);
+    }
+  });
+};
+
+
   const marcarSalidaRuta = async () => {
     try {
+      await obtenerUbicacion();
       const response = await axios.get(`${api_url}reparto/marcar-salida-ruta`, {
         params: {
           id: entregaSeleccionada?.[0]?.id,
@@ -224,39 +283,73 @@ const Entregas = () => {
       });
     }
   };
-  const marcarLLegadaEntrega = async () => {
-    try {
-      await axios.get(`${api_url}reparto/marcar-llegada-entrega`, {
-        params: {
-          id: entregaDetalleSeleccionado?.id,
-        },
-      });
-    } catch (error) {
-      console.log(error);
-    } finally {
-      setIsLoading(false);
-      if (entregaSeleccionada?.[0]?.id) {
-        listarDetalles(Number(entregaSeleccionada[0].id));
-      }
-    }
-  };
+const marcarLLegadaEntrega = async () => {
+  try {
+    setIsLoading(true);
+    const coords = await obtenerUbicacion();
 
-  const marcarSalidaEntrega = async () => {
-    try {
-      await axios.get(`${api_url}reparto/marcar-salida-entrega`, {
-        params: {
-          id: entregaDetalleSeleccionado?.id,
-        },
-      });
-    } catch (error) {
-      console.log(error);
-    } finally {
-      setIsLoading(false);
-      if (entregaSeleccionada?.[0]?.id) {
-        listarDetalles(Number(entregaSeleccionada[0].id));
-      }
+    if (!coords.latitude || !coords.longitude) {
+      throw new Error("No se pudo obtener la ubicación");
     }
-  };
+
+    await axios.get(`${api_url}reparto/marcar-llegada-entrega`, {
+      params: {
+        id: entregaDetalleSeleccionado?.id,
+        chat_id: [7916186377, 8172917124, 7554800275, 5691578531],
+        latitud: coords.latitude || -25.29932588164876,
+        longitud: coords.longitude || -57.59385564614278,
+      },
+    });
+  } catch (error) {
+    console.log(error);
+    toast({
+      title: "Error",
+      description: "Hubo un error al marcar la llegada",
+      status: "error",
+      duration: 3000,
+      isClosable: true,
+    });
+  } finally {
+    setIsLoading(false);
+    if (entregaSeleccionada?.[0]?.id) {
+      listarDetalles(Number(entregaSeleccionada[0].id));
+    }
+  }
+};
+
+const marcarSalidaEntrega = async () => {
+  try {
+    setIsLoading(true);
+    const coords = await obtenerUbicacion();
+
+    if (!coords.latitude || !coords.longitude) {
+      throw new Error("No se pudo obtener la ubicación");
+    }
+
+    await axios.get(`${api_url}reparto/marcar-salida-entrega`, {
+      params: {
+        id: entregaDetalleSeleccionado?.id,
+        chat_id: [7916186377, 8172917124, 7554800275, 5691578531],
+        latitud: coords.latitude || -25.29932588164876,
+        longitud: coords.longitude || -57.59385564614278,
+      },
+    });
+  } catch (error) {
+    console.log(error);
+    toast({
+      title: "Error",
+      description: "Hubo un error al marcar la salida",
+      status: "error",
+      duration: 3000,
+      isClosable: true,
+    });
+  } finally {
+    setIsLoading(false);
+    if (entregaSeleccionada?.[0]?.id) {
+      listarDetalles(Number(entregaSeleccionada[0].id));
+    }
+  }
+};
 
   const isMine = (id: number) => {
     if (id === Number(usuarioId)) {
