@@ -76,7 +76,6 @@ const Entregas = () => {
     null
   );
   const [kilometrajeFinal, setKilometrajeFinal] = useState<number | null>(null);
-
   
   const toast = useToast();
   const [entregaSeleccionada, setEntregaSeleccionada] = useState<
@@ -217,7 +216,6 @@ const obtenerUbicacion = (): Promise<Coordinates> => {
   });
 };
 
-
   const marcarSalidaRuta = async () => {
     try {
       await obtenerUbicacion();
@@ -245,7 +243,6 @@ const obtenerUbicacion = (): Promise<Coordinates> => {
     try {
       const response = await axios.get(
         `${api_url}reparto/marcar-llegada-ruta`,
-
         {
           params: {
             id: entregaSeleccionada?.[0]?.id,

@@ -1141,7 +1141,6 @@ const deseleccionarItem = (id: number | undefined) => {
                 >
                   <Text>{chofer.nombre} - {chofer.rol}</Text>
                 </Box>
-
               ))}
             </Flex>
           </ModalBody>

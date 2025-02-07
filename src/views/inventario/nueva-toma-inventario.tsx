@@ -62,6 +62,7 @@ interface ItemsParaTomaInventario {
   lote_id: number;
   codigo_barra: string;
   articulo_id: number;
+  cod_interno: string;
 }
 
 interface FloatingCardProps {
@@ -312,9 +313,6 @@ const NuevaTomaInventario = () => {
 
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-
-
-
   const [itemEnEdicion, setItemEnEdicion] = useState<{
     lote_id: number;
     cantidad: number;
@@ -430,7 +428,6 @@ const actualizarCantidadManual = async (
       });
       return;
     }
-
     if (!depositoSeleccionado) {
       toast({
         title: "Error",
@@ -441,7 +438,6 @@ const actualizarCantidadManual = async (
       });
       return;
     }
-
     try {
       setBotonesLoading(true);
       const response = await axios.get(
@@ -482,7 +478,6 @@ const actualizarCantidadManual = async (
       setBotonesLoading(false);
     }
   };
-
   const handleCategoriaSelect = (categoriaId: number) => {
     setCategoriasSeleccionadas((prevSelected) => {
       if (prevSelected.includes(categoriaId)) {
@@ -492,7 +487,6 @@ const actualizarCantidadManual = async (
       }
     });
   };
-
   const handleMarcaSelect = (marcaId: number) => {
     setMarcasSeleccionadas((prevSelected) => {
       if (prevSelected.includes(marcaId)) {
@@ -628,7 +622,6 @@ const handleAnularInventario = async () => {
   }
 };
 
-
   useEffect(() => {
     fetchDepositos();
     fetchSucursales();
@@ -705,7 +698,6 @@ const handleAnularInventario = async () => {
         ? Number(inventarioAuxiliar?.nro_inventario) + 1
         : 1,
     };
-    // Validación según el tipo de inventario
     try {
       await axios.post(
         `${api_url}articulos/insertar-inventario-auxiliar`,
@@ -990,10 +982,7 @@ const handleAnularInventario = async () => {
               value={numeroInventario || ""}
               onChange={(e) => setNumeroInventario(parseInt(e.target.value))}
             />
-            <Button
-              onClick={() => setShowConfirmModal(true)}
-              colorScheme="red"
-            >
+            <Button onClick={() => setShowConfirmModal(true)} colorScheme="red">
               <X />
             </Button>
             <ConfirmModal
@@ -1324,10 +1313,11 @@ const handleAnularInventario = async () => {
                         {item.ubicacion} / {item.sub_ubicacion}
                       </td>
                       <td className="border border-gray-300 px-2 truncate">
-                        {item.articulo_id}
+                        {item.cod_interno}
                       </td>
                       <td className="border border-gray-300 px-2 truncate">
                         {item.codigo_barra}
+
                       </td>
                       <td className="border border-gray-300 px-2 truncate">
                         {item.descripcion}
@@ -1375,10 +1365,10 @@ const handleAnularInventario = async () => {
                       Ubi./Sub-ubi.
                     </th>
                     <th className="text-left border border-gray-300 px-2">
-                      Codigo Barras
+                      Cod. Interno
                     </th>
                     <th className="text-left border border-gray-300 px-2">
-                      Cod. Interno
+                      Codigo Barras
                     </th>
                     <th className="text-left border border-gray-300 px-2">
                       Descripcion
@@ -1400,12 +1390,12 @@ const handleAnularInventario = async () => {
                       <td className="border border-gray-300 px-2 truncate">
                         {item.ubicacion} / {item.sub_ubicacion}
                       </td>
-
                       <td className="border border-gray-300 px-2 truncate">
-                        {item.codigo_barra}
+                        {item.cod_interno}
                       </td>
                       <td className="border border-gray-300 px-2 truncate">
-                        {item.articulo_id}
+                        {item.codigo_barra}
+
                       </td>
                       <td className="border border-gray-300 px-2 truncate ">
                         {item.descripcion}

@@ -44,10 +44,13 @@ import ReporteInventarioScanner from "./views/scanner/ReporteReconteo";
 import NuevaTomaInventario from "./views/inventario/nueva-toma-inventario";
 import ConsultaArticulos from "./views/inventario/consulta-de-articulos";
 import AutorizacionAjusteStock from "./views/inventario/autorizacion-ajuste-stock";
+import PreparacionPedido from "./views/entregas/preparacionPedido";
+import VerificacionPedidos from "./views/entregas/VerificacionPedidos";
 
 const ProtectedLayout: React.FC = () => {
   const { auth, isLoading } = useAuth();
   const [isLargerThan768] = useMediaQuery("(min-width: 768px)");
+
 
 
   if (isLoading) {
@@ -94,6 +97,7 @@ function App() {
                   element={<RuteamientoPedidos />}
                 />
                 <Route path="/entrega-de-pedidos" element={<Entregas />} />
+                <Route path="/preparacion-de-pedido" element={<PreparacionPedido />} />
                 <Route
                   path="/informe-de-entregas"
                   element={<InformeEntregas />}
@@ -145,6 +149,7 @@ function App() {
                   path="/consultar-pedidos"
                   element={<ConsultaPedidos />}
                 />
+                <Route path="/verificacion-de-pedidos" element={<VerificacionPedidos />} />
               </Route>
               <Route path="/" element={<Navigate to="/home" replace />} />
               <Route path="/404" element={<NoExiste />} />

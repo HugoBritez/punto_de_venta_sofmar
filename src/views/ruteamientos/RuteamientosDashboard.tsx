@@ -54,6 +54,7 @@ interface topVendedores {
   cantidad: number;
   op_nombre: string;
   total_ventas: number;
+  vendedores_activos: number;
 }
 
 const RuteamientoGeneralChart = ({ data }: { data: GeneralChartData[] }) => (
@@ -330,13 +331,14 @@ const RuteamientosDashboard = () => {
 
 
   return (
-    <Box p={2} h={"100%"} bg={"gray.100"}>
+    <Box p={2} h={"100vh"} bg={"gray.100"}>
       <Box bg={"white"} borderRadius={"lg"} boxShadow={"md"} p={2}>
         <Flex
           bgGradient="linear(to-r, blue.500, blue.600)"
           color="white"
           p={4}
           alignItems="center"
+
           rounded="lg"
           justifyContent={"space-between"}
         >
@@ -347,7 +349,7 @@ const RuteamientosDashboard = () => {
           <Flex alignItems={"center"}>
           <Box position={"relative"}>
                   <Input
-                  isDisabled = {permisoGrafico === "0" ? false : true}
+                  isDisabled = {permisoGrafico === "1" ? false : true}
                   color={"black"}
                     bg={"white"}
                     width={'300px'}
@@ -444,6 +446,7 @@ const RuteamientosDashboard = () => {
             pb={4}
             flexGrow={1}
             gap={2}
+            h={"100%"}
           >
             <Box
               p={4}
@@ -479,7 +482,7 @@ const RuteamientosDashboard = () => {
               <RuteamientoGeneralChart data={graficoVendedor} />
             </Box>
           </Box>
-          <Box display={"flex"} flexDir={"column"} p={2} flexGrow={1}>
+          <Box display={"flex"} flexDir={"column"} p={2} flexGrow={1} h={"100%"}>
             <Box
               display={"flex"}
               flexDir={"row-reverse"}
@@ -678,13 +681,14 @@ const RuteamientosDashboard = () => {
                   boxShadow={"xs"}
                   p={4}
                   flexGrow={1}
-                  height="50%"
+                  height="450px"
                   borderRadius={"md"}
                   display={"flex"}
                   flexDir={"column"}
                   gap={4}
+                  overflowY={"auto"}
                 >
-                  <Heading size={"md"}>Top 3 vendedores</Heading>
+                  <Heading size={"md"}>Vendedores: {topVendedores.length} (Total activos: {topVendedores[0]?.vendedores_activos})</Heading>
                   <Box display={"flex"} flexDir={"column"} gap={2}>
                     {topVendedores.map((vendedor, index) => (
                       <Flex

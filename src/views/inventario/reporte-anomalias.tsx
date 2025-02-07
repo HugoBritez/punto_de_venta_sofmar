@@ -23,6 +23,7 @@ interface ReporteAnomalias {
   items: [
     {
       articulo: string;
+      cod_interno: string;
       lote_id: number;
       lote: string;
       vencimiento: string;
@@ -292,6 +293,7 @@ return (
               <thead className="bg-gray-200">
                 <tr>
                   <th className="text-left">Ubi/Sub-Ubi</th>
+                  <th className="text-left">Codigo Interno</th>
                   <th className="text-left">Articulo</th>
                   <th className="text-left">Lote</th>
                   <th className="text-left">Vencimiento</th>
@@ -307,6 +309,7 @@ return (
                     <td>
                       {item.ubicacion} / {item.sub_ubicacion}
                     </td>
+                    <td>{item.cod_interno}</td>
                     <td>{item.articulo}</td>
                     <td>{item.lote}</td>
                     <td>{item.vencimiento}</td>
