@@ -24,6 +24,6 @@ export const version = '0.9.7'
 
 
 
-export const fechaRelease = '07/02/2025'
+export const fechaRelease = '10/02/2025'
 export const db = 'local'
 export const userName = sessionStorage.getItem('userName')

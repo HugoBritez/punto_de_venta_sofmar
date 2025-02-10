@@ -34,6 +34,7 @@ import MenuContextual from "../../modules/MenuContextual";
 import { Moneda, Sucursal, Vendedor } from "@/types/shared_interfaces";
 import DocumentoPreparacion from "./documento-preparacion";
 import FloatingCard from "@/modules/FloatingCard";
+import StickerCajas from "./sticker-cajas";
 
 interface Pedidos {
   codigo: number;
@@ -99,6 +100,7 @@ interface PedidosNuevo {
   obs: string;
   total: number;
   cliente_id: number;
+  cantidad_cajas: number;
   detalles: [
     {
       codigo: number;
@@ -366,60 +368,32 @@ export default function PreparacionPedido({
   };
 
   useEffect(() => {
+    console.log("Pedido seleccionado:", pedidoSeleccionado);
+    console.log("DocumentoRef:", documentoRef);
     getSucursales();
     getMonedas();
   }, []);
 
-  const handleImprimir = async () => {
-    if (pedidoSeleccionado) {
+
+  //TODO: pasar la responsabilidad de esta funcion al componente hijo, NUEVA RESPONSABILIDAD: SOLO ABRIR EL MODAL
+
+const handleImprimir = async () => {
+  if (pedidoSeleccionado) {
+    try {
       onOpenModal();
-      setTimeout(async () => {
-        if (documentoRef) {
-          await documentoRef.generarPDF();
-        }
-      }, 2000);
-    } else {
-      toast({
-        title: "Error",
-        description: "No se ha seleccionado ningún pedido",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-  };
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      console.log("DocumentoRef:", documentoRef); // Para debug
 
-const actualizarEstadoPedidos = async (pedidoIds: number[]) => {
-  if (!pedidoIds || pedidoIds.length === 0) {
-    console.log("No hay pedidos para actualizar");
-    return;
-  }
-
-  console.log("Actualizando estado de pedidos:", pedidoIds);
-  try {
-    const response = await axios.post(
-      `${api_url}pedidos/iniciar-preparacion-pedido`,
-      {
-        pedido_ids: pedidoIds,
+      if (!documentoRef) {
+        throw new Error("Referencia al documento no disponible");
       }
-    );
-    console.log("Respuesta del servidor:", response.data);
-
+    } catch (error) {
+      console.error("Error detallado:", error);
+    }
+  } else {
     toast({
-      title: "Estado actualizado",
-      description: "Los pedidos han sido marcados como preparados",
-      status: "success",
-      duration: 3000,
-      isClosable: true,
-    });
-
-    // Actualizar la lista de pedidos
-    getPedidosNuevo();
-  } catch (error) {
-    console.error("Error al actualizar estado:", error);
-    toast({
-      title: "Error al actualizar el estado",
-      description: "No se pudo actualizar el estado de los pedidos",
+      title: "Error",
+      description: "No se ha seleccionado ningún pedido",
       status: "error",
       duration: 3000,
       isClosable: true,
@@ -427,6 +401,48 @@ const actualizarEstadoPedidos = async (pedidoIds: number[]) => {
   }
 };
 
+//TODO: pasar la responsabilidad de esta funcion al componente hijo, NUEVA RESPONSABILIDAD: SOLO ACTUALIZAR EL ESTADO DE LOS PEDIDOS
+const actualizarEstadoPedidos = async (pedidoIds: number[]) => {
+  if (!pedidoIds || pedidoIds.length === 0) {
+    console.error("No hay pedidos para actualizar");
+    return;
+  }
+  try {
+    console.log("Actualizando pedidos:", pedidoIds);
+    const response = await axios.post(
+      `${api_url}pedidos/iniciar-preparacion-pedido`,
+      { pedido_ids: pedidoIds }
+    );
+    console.log("Respuesta del servidor:", response.data); // Para debug
+    if (response.data.status === "success" || response.status === 200) {
+      toast({
+        title: "Éxito",
+        description: "Los pedidos han sido marcados como preparados",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+      // Actualizar la lista de pedidos
+      await getPedidosNuevo();
+      // Cerrar el modal después de actualizar
+      onCloseModal();
+    } else {
+      throw new Error(response.data.message || "Error al actualizar pedidos");
+    }
+  } catch (error) {
+    console.error("Error detallado al actualizar estado:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "Error desconocido";
+    toast({
+      title: "Error",
+      description: `No se pudo actualizar el estado de los pedidos: ${errorMessage}`,
+      status: "error",
+      duration: 3000,
+      isClosable: true,
+    });
+    throw error; // Re-lanzar el error para manejarlo en el nivel superior
+  }
+};
 
   return (
     <Box
@@ -670,9 +686,15 @@ const actualizarEstadoPedidos = async (pedidoIds: number[]) => {
                         className={
                           isMobile
                             ? `border border-gray-200 hover:bg-gray-200 cursor-pointer [&>td]:px-2 [&>td]:text-xs [&>td]:border-r [&>td]:border-gray-200
-                            ${setColor(pedido.estado, pedido.imprimir_preparacion)}`
+                            ${setColor(
+                              pedido.estado,
+                              pedido.imprimir_preparacion
+                            )}`
                             : `border border-gray-200 hover:bg-gray-200 cursor-pointer [&>td]:px-2 [&>td]:border-r [&>td]:border-gray-200
-                            ${setColor(pedido.estado, pedido.imprimir_preparacion)}`
+                            ${setColor(
+                              pedido.estado,
+                              pedido.imprimir_preparacion
+                            )}`
                         }
                         onClick={() => handleSelectPedido(pedido)}
                       >
@@ -770,27 +792,44 @@ const actualizarEstadoPedidos = async (pedidoIds: number[]) => {
           </div>
         </div>
       </div>
-      <Modal isOpen={isModalOpen} onClose={onCloseModal} size="full">
-        <ModalOverlay />
-        <ModalContent>
-          <ModalCloseButton />
-          <ModalHeader>
-            <Heading size={"md"}>Preparacion de Pedido</Heading>
-          </ModalHeader>
-          <ModalBody>
-            <DocumentoPreparacion
-              pedido_id={pedidoSeleccionado?.pedido_id || null}
-              consolidar={consolidarPedidos}
-              cliente={pedidoSeleccionado?.cliente_id || null}
-              fecha_desde={fechaDesde}
-              fecha_hasta={fechaHasta}
-              estado={estado}
-              onRef={setDocumentoRef}
-              onPedidosImpresos={actualizarEstadoPedidos}
-            />
-          </ModalBody>
-        </ModalContent>
-      </Modal>
+      {pedidoSeleccionado?.cantidad_cajas &&
+      pedidoSeleccionado.cantidad_cajas > 0 ? (
+        <Modal isOpen={isModalOpen} onClose={onCloseModal} size="full">
+          <ModalOverlay />
+          <ModalContent>
+            <ModalCloseButton />
+            <ModalHeader>
+              <Heading size={"md"}>Impresion de Stickers</Heading>
+            </ModalHeader>
+            <ModalBody>
+              <StickerCajas pedidoId={pedidoSeleccionado?.pedido_id || null} />
+            </ModalBody>
+          </ModalContent>
+        </Modal>
+      ) : (
+        <Modal isOpen={isModalOpen} onClose={onCloseModal} size="full">
+          <ModalOverlay />
+          <ModalContent>
+            <ModalCloseButton />
+            <ModalHeader>
+              <Heading size={"md"}>Preparacion de Pedido</Heading>
+            </ModalHeader>
+            <ModalBody>
+              <DocumentoPreparacion
+                pedido_id={pedidoSeleccionado?.pedido_id || null}
+                consolidar={consolidarPedidos}
+                cliente={pedidoSeleccionado?.cliente_id || null}
+                fecha_desde={fechaDesde}
+                fecha_hasta={fechaHasta}
+                estado={estado}
+                onRef={setDocumentoRef}
+                onPedidosImpresos={actualizarEstadoPedidos}
+              />
+            </ModalBody>
+          </ModalContent>
+        </Modal>
+      )}
     </Box>
   );
 }
+

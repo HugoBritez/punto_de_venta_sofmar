@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Configuraciones } from "@/types/shared_interfaces";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import { Button } from "@chakra-ui/react";
 
 interface PreparacionPedido {
   id_pedido: number;
@@ -53,6 +54,8 @@ const DocumentoPreparacion = ({
 
   const fechaCompletaActual = new Date().toLocaleDateString();
   const operador = sessionStorage.getItem("user_name") || "N/A";
+  
+  
   const fetchConfiguraciones = async () => {
     try {
       const response = await axios.get(`${api_url}configuraciones/todos`);
@@ -88,6 +91,7 @@ const DocumentoPreparacion = ({
     }
   };
   useEffect(() => {
+    console.log("Pedido ID:", pedido_id);
     if (pedido_id) {
       fetchConfiguraciones();
       getPedido(
@@ -117,7 +121,7 @@ const generarPDF = async () => {
   try {
     // Validación inicial de datos
     if (!pedido || pedido.length === 0) {
-      console.log("No hay datos de pedidos disponibles");
+      console.log("No hay datos de pedidos disponibles para generar el PDF");
       return;
     }
 
@@ -222,8 +226,22 @@ const generarPDF = async () => {
   }
 };
 
+async function handleAceptarButton(){
+  try{
+    generarPDF();
+     await axios.post(
+      `${api_url}pedidos/iniciar-preparacion-pedido`,
+      { pedido_ids: pedido_id }
+    );
+  } catch (error) {
+    console.error("Error al actualizar el estado de los pedidos:", error);
+    throw error;
+  }
+}
+
   return (
     <div className="w-full flex justify-center">
+
       <div className="flex flex-col gap-2 w-[80%] px-10" id="reporte">
         <div className="border border-gray-400  rounded-sm">
           <div className=" border-b border-gray-400 flex justify-between  text-sm text-gray-600 font-bold">
@@ -295,8 +313,10 @@ const generarPDF = async () => {
           </table>
         </div>
       </div>
+      <Button onClick={handleAceptarButton}>Aceptar</Button>
     </div>
   );
 };
+
 
 export default DocumentoPreparacion;

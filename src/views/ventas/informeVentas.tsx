@@ -49,6 +49,16 @@ import { useEffect, useState } from "react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
+interface TotalesVentas {
+  cantidad_vendida: number;
+  exentas: number;
+  iva5_total: number;
+  iva10_total: number;
+  sub_total: number;
+  total_nc: number;
+  total_neto: number;
+}
+
 interface ResumenItem {
   ar_codbarra: string;
   ar_descripcion: string;
@@ -230,7 +240,7 @@ const InformeVentas = () => {
   const [resumen, setResumen] = useState<ResumenItem[]>([]);
   const [tipoValorizacion, setTipoValorizacion] = useState<number | null>(2);
 
-  const [ventasNC, setVentasNC] = useState<ResumenItem[]>([]);
+  const [, setVentasNC] = useState<ResumenItem[]>([]);
 
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -255,6 +265,17 @@ const InformeVentas = () => {
   const [marcasFiltradas, setMarcasFiltradas] = useState(marca)
   const [ciudadesFiltradas, setCiudadesFiltradas] = useState(ciudades)
   const [seccionesFiltradas, setSeccionesFiltradas] = useState(secciones)
+
+  const [totales, setTotales] = useState<TotalesVentas>({
+    cantidad_vendida: 0,
+    exentas: 0,
+    iva5_total: 0,
+    iva10_total: 0,
+    sub_total: 0,
+    total_nc: 0,
+    total_neto: 0,
+  });
+
 
 
     const estadoActivo = (filtro: string) => {
@@ -781,11 +802,37 @@ const buscarSecciones = (busqueda: string) =>{
 
     try {
       setLoading(true);
-      const response = await axios.post(
+      const responseTotales = await axios.post(
+        `${api_url}venta/resumen-totales`,
+        filtrosResumen
+      );
+          console.log("Respuesta del servidor:", responseTotales.data.body);
+
+          const totalesData: TotalesVentas = {
+            cantidad_vendida:
+              Number(responseTotales.data.body.cantidad_vendida) || 0,
+            exentas: Number(responseTotales.data.body.exentas) || 0,
+            iva5_total: Number(responseTotales.data.body.iva5_total) || 0,
+            iva10_total: Number(responseTotales.data.body.iva10_total) || 0,
+            sub_total: Number(responseTotales.data.body.sub_total) || 0,
+            total_nc: Number(responseTotales.data.body.total_nc) || 0,
+            total_neto: Number(responseTotales.data.body.total_neto) || 0,
+          };
+
+          // Log para verificar la conversión
+          console.log("Datos convertidos:", totalesData);
+
+          setTotales(totalesData);
+
+          // Log después de setear el estado
+          console.log("Estado totales actualizado:", totales);
+
+      const responseVentas = await axios.post(
         `${api_url}venta/resumen`,
         filtrosResumen
       );
-          const dataModificada = response.data.body.map((item: ResumenItem) => {
+
+          const dataModificada = responseVentas.data.body.map((item: ResumenItem) => {
             if (item.ve_moneda === 2 && monedasSeleccionada === 1) {
               return { 
                 ...item, 
@@ -903,21 +950,14 @@ const buscarSecciones = (busqueda: string) =>{
     );
   };
 
-  const totalMontoNc = () => {
-    return ventasNC.reduce((total, item) => {
-      const montoNcNumerico = parseFloat(item.montonc);
-      const cantidadNumerica = parseFloat(item.cantidad);
-      const cantidadNcNumerica = parseFloat(item.cantidadNC);
-      if (!isNaN(montoNcNumerico) && !isNaN(cantidadNumerica) && !isNaN(cantidadNcNumerica)) {
-        return total + montoNcNumerico * (cantidadNcNumerica);
-      }
-      return total;
-    }, 0);
-  };
+
 
   const totalNetoReal =  ( data = resumen) => {
-    return totalNeto(data) - totalMontoNc();
+    return totalNeto(data) - totales.total_nc;
   };
+
+
+
   const totalUnidadesVendidas = (data = resumen) => {
     return data.reduce((total, item) => {
         const cantidadNumerica = parseFloat(item.cantidad);
@@ -1765,22 +1805,33 @@ const buscarSecciones = (busqueda: string) =>{
               <Box>
                 <FormLabel>Sucursales:</FormLabel>
                 <Input
-                  placeholder={sucursalesSeleccionadas && sucursalesSeleccionadas?.length <1 ? "Seleccione una sucursal..." : sucursalesSeleccionadas?.map((suc) => suc).join(", ")}
+                  placeholder={
+                    sucursalesSeleccionadas &&
+                    sucursalesSeleccionadas?.length < 1
+                      ? "Seleccione una sucursal..."
+                      : sucursalesSeleccionadas?.map((suc) => suc).join(", ")
+                  }
                   onClick={onSucursalModalOpen}
                 />
               </Box>
               <Box>
                 <FormLabel>Depositos:</FormLabel>
                 <Input
-                  placeholder={depositosSeleccionados && depositosSeleccionados.length < 1 ? "Seleccione un deposito..." : depositosSeleccionados?.map((dep) => dep).join(", ")}
+                  placeholder={
+                    depositosSeleccionados && depositosSeleccionados.length < 1
+                      ? "Seleccione un deposito..."
+                      : depositosSeleccionados?.map((dep) => dep).join(", ")
+                  }
                   onClick={onDepositoModalOpen}
                 />
               </Box>
               <Box display={"flex"} flexDirection={"column"} flexGrow={1}>
                 <FormLabel>Clientes:</FormLabel>
                 <Input
-                  placeholder={clienteSeleccionados && clienteSeleccionados.length < 1 ?  "Buscar cliente..." :
-                    clienteSeleccionados?.map((cli) => cli).join(", ")
+                  placeholder={
+                    clienteSeleccionados && clienteSeleccionados.length < 1
+                      ? "Buscar cliente..."
+                      : clienteSeleccionados?.map((cli) => cli).join(", ")
                   }
                   type="text"
                   onClick={onClienteModalOpen}
@@ -1789,8 +1840,11 @@ const buscarSecciones = (busqueda: string) =>{
               <Box display={"flex"} flexDirection={"column"} flexGrow={1}>
                 <FormLabel>Vendedores:</FormLabel>
                 <Input
-                  placeholder={vendedoresSeleccionados && vendedoresSeleccionados.length < 1 ? "Buscar vendedor..." :
-                    vendedoresSeleccionados?.map((ven) => ven).join(", ")
+                  placeholder={
+                    vendedoresSeleccionados &&
+                    vendedoresSeleccionados.length < 1
+                      ? "Buscar vendedor..."
+                      : vendedoresSeleccionados?.map((ven) => ven).join(", ")
                   }
                   type="text"
                   onClick={onVendedorModalOpen}
@@ -1832,8 +1886,11 @@ const buscarSecciones = (busqueda: string) =>{
               <Box>
                 <FormLabel>Categoria:</FormLabel>
                 <Input
-                  placeholder={categoriasSeleccionadas && categoriasSeleccionadas.length <1 ?  "Seleccione una categoria..." :
-                    categoriasSeleccionadas?.map((cat)=> cat).join(', ')
+                  placeholder={
+                    categoriasSeleccionadas &&
+                    categoriasSeleccionadas.length < 1
+                      ? "Seleccione una categoria..."
+                      : categoriasSeleccionadas?.map((cat) => cat).join(", ")
                   }
                   onClick={onCategoriaModalOpen}
                 />
@@ -1841,8 +1898,11 @@ const buscarSecciones = (busqueda: string) =>{
               <Box>
                 <FormLabel>Subcategoria:</FormLabel>
                 <Input
-                  placeholder={subcategoriasSeleccionadas && subcategoriasSeleccionadas.length <1 ?  "Seleccione una subcategoria..." :
-                    subcategoriasSeleccionadas?.map((sub)=> sub).join(', ')
+                  placeholder={
+                    subcategoriasSeleccionadas &&
+                    subcategoriasSeleccionadas.length < 1
+                      ? "Seleccione una subcategoria..."
+                      : subcategoriasSeleccionadas?.map((sub) => sub).join(", ")
                   }
                   onClick={onSubcategoriaModalOpen}
                 />
@@ -1850,8 +1910,10 @@ const buscarSecciones = (busqueda: string) =>{
               <Box>
                 <FormLabel>Marca:</FormLabel>
                 <Input
-                  placeholder={marcasSeleccionadas && marcasSeleccionadas.length <1 ? "Seleccione una marca" :
-                    marcasSeleccionadas?.map((mar)=> mar).join(', ')
+                  placeholder={
+                    marcasSeleccionadas && marcasSeleccionadas.length < 1
+                      ? "Seleccione una marca"
+                      : marcasSeleccionadas?.map((mar) => mar).join(", ")
                   }
                   onClick={onMarcaModalOpen}
                 />
@@ -1859,8 +1921,10 @@ const buscarSecciones = (busqueda: string) =>{
               <Box>
                 <FormLabel>Ciudades:</FormLabel>
                 <Input
-                  placeholder={ciudadesSeleccionadas && ciudadesSeleccionadas.length < 1 ?  "Seleccione una ciudad" :
-                    ciudadesSeleccionadas?.map((ciu)=> ciu).join(', ')
+                  placeholder={
+                    ciudadesSeleccionadas && ciudadesSeleccionadas.length < 1
+                      ? "Seleccione una ciudad"
+                      : ciudadesSeleccionadas?.map((ciu) => ciu).join(", ")
                   }
                   onClick={onCiudadModalOpen}
                 />
@@ -1879,8 +1943,10 @@ const buscarSecciones = (busqueda: string) =>{
               <Box>
                 <FormLabel>Secciones:</FormLabel>
                 <Input
-                  placeholder={seccionesSeleccionadas && seccionesSeleccionadas.length <1 ? "Seleccione una seccion"
-                    : seccionesSeleccionadas?.map((sec)=> sec).join(', ')
+                  placeholder={
+                    seccionesSeleccionadas && seccionesSeleccionadas.length < 1
+                      ? "Seleccione una seccion"
+                      : seccionesSeleccionadas?.map((sec) => sec).join(", ")
                   }
                   onClick={onSeccionModalOpen}
                 />
@@ -1924,8 +1990,11 @@ const buscarSecciones = (busqueda: string) =>{
                 >
                   <FormLabel>Articulos:</FormLabel>
                   <Input
-                    placeholder={articulosSeleccionados && articulosSeleccionados.length <1 ?  "Buscar articulo..." :
-                      articulosSeleccionados?.map((a)=> a).join(', ')
+                    placeholder={
+                      articulosSeleccionados &&
+                      articulosSeleccionados.length < 1
+                        ? "Buscar articulo..."
+                        : articulosSeleccionados?.map((a) => a).join(", ")
                     }
                     type="text"
                     onClick={onArticuloModalOpen}
@@ -2262,20 +2331,37 @@ const buscarSecciones = (busqueda: string) =>{
                 <tr>
                   <td colSpan={5} className="border border-gray-300 p-2"></td>
                   <td className="border border-gray-300 p-2 font-bold">
-                    Total: {formatearNumero(totalUnidadesVendidas(filtrarPorUtilidad(resumen)).toString())}
+                    Total:{" "}
+                    {formatearNumero(
+                      totalUnidadesVendidas(
+                        filtrarPorUtilidad(resumen)
+                      ).toString()
+                    )}
                   </td>
                   <td className="border font-bold border-gray-300 p-2">
-                    Total: {formatearNumero(totalExentas(filtrarPorUtilidad(resumen)).toString())}
+                    Total:{" "}
+                    {formatearNumero(
+                      totalExentas(filtrarPorUtilidad(resumen)).toString()
+                    )}
                   </td>
                   <td className="border font-bold border-gray-300 p-2">
-                    Total: {formatearNumero(totalCincos(filtrarPorUtilidad(resumen)).toString())}
+                    Total:{" "}
+                    {formatearNumero(
+                      totalCincos(filtrarPorUtilidad(resumen)).toString()
+                    )}
                   </td>
                   <td className="border font-bold border-gray-300 p-2">
-                    Total: {formatearNumero(totalDiez(filtrarPorUtilidad(resumen)).toString())}
+                    Total:{" "}
+                    {formatearNumero(
+                      totalDiez(filtrarPorUtilidad(resumen)).toString()
+                    )}
                   </td>
                   <td className="border font-bold border-gray-300 p-2"></td>
                   <td className="border font-bold border-gray-300 p-2">
-                    Total: {formatearNumero(totalVentas(filtrarPorUtilidad(resumen)).toString())}
+                    Total:{" "}
+                    {formatearNumero(
+                      totalVentas(filtrarPorUtilidad(resumen)).toString()
+                    )}
                   </td>
                   <td className="border font-bold border-gray-300 p-2"></td>
                 </tr>
@@ -2319,8 +2405,12 @@ const buscarSecciones = (busqueda: string) =>{
                   textAlign={"right"}
                 >
                   {deducirDescuentoSobreVenta === 1
-                    ? formatearNumero(totalNetoReal(filtrarPorUtilidad(resumen)).toString())
-                    : formatearNumero(totalNeto(filtrarPorUtilidad(resumen)).toString())}
+                    ? formatearNumero(
+                        totalNetoReal(filtrarPorUtilidad(resumen)).toString()
+                      )
+                    : formatearNumero(
+                        totalNeto(filtrarPorUtilidad(resumen)).toString()
+                      )}
                 </Text>
               </Box>
             </Flex>
@@ -2338,7 +2428,9 @@ const buscarSecciones = (busqueda: string) =>{
                   color={"black"}
                   textAlign={"right"}
                 >
-                  {formatearNumero(totalCostos(filtrarPorUtilidad(resumen)).toString())}
+                  {formatearNumero(
+                    totalCostos(filtrarPorUtilidad(resumen)).toString()
+                  )}
                 </Text>
               </Box>
             </Flex>
@@ -2374,7 +2466,10 @@ const buscarSecciones = (busqueda: string) =>{
                   color={"black"}
                   textAlign={"right"}
                 >
-                  {utilidadPorcentajeNeto(filtrarPorUtilidad(resumen)).toFixed(2)} %
+                  {utilidadPorcentajeNeto(filtrarPorUtilidad(resumen)).toFixed(
+                    2
+                  )}{" "}
+                  %
                 </Text>
               </Box>
             </Flex>
@@ -2392,7 +2487,7 @@ const buscarSecciones = (busqueda: string) =>{
                   color={"black"}
                   textAlign={"right"}
                 >
-                  {formatearNumero(totalMontoNc().toString())}
+                  {formatearNumero(totales.total_nc.toString())}
                 </Text>
               </Box>
             </Flex>
@@ -2410,7 +2505,9 @@ const buscarSecciones = (busqueda: string) =>{
                   color={"black"}
                   textAlign={"right"}
                 >
-                  {formatearNumero(utilidadEnMonto(filtrarPorUtilidad(resumen)).toString())}
+                  {formatearNumero(
+                    utilidadEnMonto(filtrarPorUtilidad(resumen)).toString()
+                  )}
                 </Text>
               </Box>
             </Flex>
@@ -2428,7 +2525,9 @@ const buscarSecciones = (busqueda: string) =>{
                   color={"black"}
                   textAlign={"right"}
                 >
-                  {formatearNumero(totalDescuentoItems(filtrarPorUtilidad(resumen)).toString())}
+                  {formatearNumero(
+                    totalDescuentoItems(filtrarPorUtilidad(resumen)).toString()
+                  )}
                 </Text>
               </Box>
             </Flex>
@@ -2446,7 +2545,10 @@ const buscarSecciones = (busqueda: string) =>{
                   color={"black"}
                   textAlign={"right"}
                 >
-                  {utilidadPorcentajeBruto(filtrarPorUtilidad(resumen)).toFixed(2)} %
+                  {utilidadPorcentajeBruto(filtrarPorUtilidad(resumen)).toFixed(
+                    2
+                  )}{" "}
+                  %
                 </Text>
               </Box>
             </Flex>
@@ -2460,7 +2562,12 @@ const buscarSecciones = (busqueda: string) =>{
                   color={"black"}
                   textAlign={"right"}
                 >
-                  {formatearNumero((totalDescuentoItems(filtrarPorUtilidad(resumen)) + totalDescuentoFacturas()).toString())}
+                  {formatearNumero(
+                    (
+                      totalDescuentoItems(filtrarPorUtilidad(resumen)) +
+                      totalDescuentoFacturas()
+                    ).toString()
+                  )}
                 </Text>
               </Box>
             </Flex>
@@ -2477,9 +2584,9 @@ const buscarSecciones = (busqueda: string) =>{
               </Text>
               <Flex
                 gap={4}
-                onClick={() =>{
-                  setUtilidadGris(!indicarUtilidadGris)
-                  estadoActivo('Gris')
+                onClick={() => {
+                  setUtilidadGris(!indicarUtilidadGris);
+                  estadoActivo("Gris");
                 }}
                 cursor={"pointer"}
                 _hover={{ bg: "gray.200" }}
@@ -2496,8 +2603,8 @@ const buscarSecciones = (busqueda: string) =>{
               <Flex
                 gap={4}
                 onClick={() => {
-                  setUtilidadAmarilla(!indicarUtilidadAmarilla)
-                  estadoActivo('Amarillo')
+                  setUtilidadAmarilla(!indicarUtilidadAmarilla);
+                  estadoActivo("Amarillo");
                 }}
                 cursor={"pointer"}
                 _hover={{ bg: "gray.200" }}
@@ -2514,8 +2621,8 @@ const buscarSecciones = (busqueda: string) =>{
               <Flex
                 gap={4}
                 onClick={() => {
-                  setUtilidadRoja(!indicarUtilidadRoja)
-                  estadoActivo('Rojo')
+                  setUtilidadRoja(!indicarUtilidadRoja);
+                  estadoActivo("Rojo");
                 }}
                 cursor={"pointer"}
               >
@@ -2531,8 +2638,8 @@ const buscarSecciones = (busqueda: string) =>{
               <Flex
                 gap={4}
                 onClick={() => {
-                  setUtilidadAzul(!indicarUtilidadAzul)
-                  estadoActivo('Azul')
+                  setUtilidadAzul(!indicarUtilidadAzul);
+                  estadoActivo("Azul");
                 }}
                 cursor={"pointer"}
                 _hover={{ bg: "gray.200" }}
@@ -2548,7 +2655,7 @@ const buscarSecciones = (busqueda: string) =>{
               </Flex>
             </Box>
             <Flex gap={2} mt={2}>
-            <Button colorScheme={"red"} w={"50%"} onClick={cancelarOperacion}>
+              <Button colorScheme={"red"} w={"50%"} onClick={cancelarOperacion}>
                 Cancelar
               </Button>
               <Button colorScheme={"blue"} w={"50%"} onClick={onPdfModalOpen}>
@@ -2590,7 +2697,10 @@ const buscarSecciones = (busqueda: string) =>{
               gap={2}
               py={4}
             >
-              {(clientesFiltrados.length === 0 ? clientes : clientesFiltrados).map((cliente) => (
+              {(clientesFiltrados.length === 0
+                ? clientes
+                : clientesFiltrados
+              ).map((cliente) => (
                 <Box
                   key={cliente.cli_codigo}
                   p={2}
@@ -2653,7 +2763,10 @@ const buscarSecciones = (busqueda: string) =>{
               gap={2}
               py={4}
             >
-              {(vendedoresFiltrados.length === 0 ? vendedores : vendedoresFiltrados).map((vendedor) => (
+              {(vendedoresFiltrados.length === 0
+                ? vendedores
+                : vendedoresFiltrados
+              ).map((vendedor) => (
                 <Box
                   key={vendedor.id}
                   p={2}
@@ -2749,18 +2862,17 @@ const buscarSecciones = (busqueda: string) =>{
             </Flex>
           </ModalBody>
           <ModalFooter display={"flex"} gap={4}>
-          <Button
-            colorScheme={"red"}
-            onClick={() => setArticulosSeleccionados([])}
-          >
-            Cancelar
-          </Button>
-          <Button colorScheme={"green"} onClick={onArticuloModalClose}>
-            Aceptar
-          </Button>
-        </ModalFooter>
+            <Button
+              colorScheme={"red"}
+              onClick={() => setArticulosSeleccionados([])}
+            >
+              Cancelar
+            </Button>
+            <Button colorScheme={"green"} onClick={onArticuloModalClose}>
+              Aceptar
+            </Button>
+          </ModalFooter>
         </ModalContent>
-        
       </Modal>
       <Modal
         isOpen={isSucursalModalOpen}
@@ -2786,7 +2898,10 @@ const buscarSecciones = (busqueda: string) =>{
               gap={2}
               py={4}
             >
-              {(sucursalesFiltradas.length === 0 ? sucursales : sucursalesFiltradas).map((sucursal) => (
+              {(sucursalesFiltradas.length === 0
+                ? sucursales
+                : sucursalesFiltradas
+              ).map((sucursal) => (
                 <Box
                   key={sucursal.id}
                   p={2}
@@ -2862,7 +2977,10 @@ const buscarSecciones = (busqueda: string) =>{
               gap={2}
               py={4}
             >
-              {(depositosFiltrados.length === 0 ? depositos : depositosFiltrados).map((deposito) => (
+              {(depositosFiltrados.length === 0
+                ? depositos
+                : depositosFiltrados
+              ).map((deposito) => (
                 <Box
                   key={deposito.dep_codigo}
                   p={2}
@@ -2939,7 +3057,10 @@ const buscarSecciones = (busqueda: string) =>{
               gap={2}
               py={4}
             >
-              {(categoriasFiltradas.length === 0 ? categorias : categoriasFiltradas).map((categoria) => (
+              {(categoriasFiltradas.length === 0
+                ? categorias
+                : categoriasFiltradas
+              ).map((categoria) => (
                 <Box
                   key={categoria.ca_codigo}
                   p={2}
@@ -3016,7 +3137,10 @@ const buscarSecciones = (busqueda: string) =>{
               gap={2}
               py={4}
             >
-              {(subcategoriasFiltradas.length === 0 ? subcategorias : subcategoriasFiltradas).map((subcategoria) => (
+              {(subcategoriasFiltradas.length === 0
+                ? subcategorias
+                : subcategoriasFiltradas
+              ).map((subcategoria) => (
                 <Box
                   key={subcategoria.sc_codigo}
                   p={2}
@@ -3090,35 +3214,37 @@ const buscarSecciones = (busqueda: string) =>{
               gap={2}
               py={4}
             >
-              {(marcasFiltradas.length === 0 ? marca : marcasFiltradas).map((marca) => (
-                <Box
-                  key={marca.ma_codigo}
-                  p={2}
-                  bg={
-                    marcasSeleccionadas?.includes(marca.ma_codigo) ?? false
-                      ? "blue.100"
-                      : "gray.100"
-                  }
-                  borderRadius={8}
-                  cursor={"pointer"}
-                  onClick={() =>
-                    setMarcasSeleccionadas((prevSeleccionados) => {
-                      if (prevSeleccionados === null) {
-                        return [marca.ma_codigo];
-                      }
-                      if (prevSeleccionados.includes(marca.ma_codigo)) {
-                        return prevSeleccionados.filter(
-                          (id) => id !== marca.ma_codigo
-                        );
-                      } else {
-                        return [...prevSeleccionados, marca.ma_codigo];
-                      }
-                    })
-                  }
-                >
-                  {marca.ma_descripcion}
-                </Box>
-              ))}
+              {(marcasFiltradas.length === 0 ? marca : marcasFiltradas).map(
+                (marca) => (
+                  <Box
+                    key={marca.ma_codigo}
+                    p={2}
+                    bg={
+                      marcasSeleccionadas?.includes(marca.ma_codigo) ?? false
+                        ? "blue.100"
+                        : "gray.100"
+                    }
+                    borderRadius={8}
+                    cursor={"pointer"}
+                    onClick={() =>
+                      setMarcasSeleccionadas((prevSeleccionados) => {
+                        if (prevSeleccionados === null) {
+                          return [marca.ma_codigo];
+                        }
+                        if (prevSeleccionados.includes(marca.ma_codigo)) {
+                          return prevSeleccionados.filter(
+                            (id) => id !== marca.ma_codigo
+                          );
+                        } else {
+                          return [...prevSeleccionados, marca.ma_codigo];
+                        }
+                      })
+                    }
+                  >
+                    {marca.ma_descripcion}
+                  </Box>
+                )
+              )}
             </Flex>
           </ModalBody>
           <ModalFooter display={"flex"} gap={4}>
@@ -3163,7 +3289,10 @@ const buscarSecciones = (busqueda: string) =>{
               gap={2}
               py={4}
             >
-              {(ciudadesFiltradas.length === 0 ? ciudades : ciudadesFiltradas).map((ciudad) => (
+              {(ciudadesFiltradas.length === 0
+                ? ciudades
+                : ciudadesFiltradas
+              ).map((ciudad) => (
                 <Box
                   key={ciudad.ciu_codigo}
                   p={2}
@@ -3239,7 +3368,10 @@ const buscarSecciones = (busqueda: string) =>{
               gap={2}
               py={4}
             >
-              {(seccionesFiltradas.length === 0 ? secciones : seccionesFiltradas).map((seccion) => (
+              {(seccionesFiltradas.length === 0
+                ? secciones
+                : seccionesFiltradas
+              ).map((seccion) => (
                 <Box
                   key={seccion.s_codigo}
                   p={2}
@@ -3573,7 +3705,7 @@ const buscarSecciones = (busqueda: string) =>{
                       />
                     );
                   }
-                  if (clienteSeleccionados && clienteSeleccionados.length > 0 ) {
+                  if (clienteSeleccionados && clienteSeleccionados.length > 0) {
                     return (
                       <TablaFiltros
                         titulo="Clientes"
@@ -3673,9 +3805,7 @@ const buscarSecciones = (busqueda: string) =>{
                     );
                   }
 
-                  if (
-                    desglosadoXFactura === true
-                  ) {
+                  if (desglosadoXFactura === true) {
                     return (
                       <TablaFiltros
                         titulo="Facturas"
@@ -3786,22 +3916,43 @@ const buscarSecciones = (busqueda: string) =>{
                             <td className="border border-gray-300 p-2 font-bold">
                               Total:{" "}
                               {formatearNumero(
-                                totalUnidadesVendidas(filtrarPorUtilidad(resumen)).toString()
+                                totalUnidadesVendidas(
+                                  filtrarPorUtilidad(resumen)
+                                ).toString()
                               )}
                             </td>
                             <td className="border font-bold border-gray-300 p-2">
                               Total:{" "}
-                              {formatearNumero(totalExentas(filtrarPorUtilidad(resumen)).toString())}
+                              {formatearNumero(
+                                totalExentas(
+                                  filtrarPorUtilidad(resumen)
+                                ).toString()
+                              )}
                             </td>
                             <td className="border font-bold border-gray-300 p-2">
-                              Total: {formatearNumero(totalCincos(filtrarPorUtilidad(resumen)).toString())}
+                              Total:{" "}
+                              {formatearNumero(
+                                totalCincos(
+                                  filtrarPorUtilidad(resumen)
+                                ).toString()
+                              )}
                             </td>
                             <td className="border font-bold border-gray-300 p-2">
-                              Total: {formatearNumero(totalDiez(filtrarPorUtilidad(resumen)).toString())}
+                              Total:{" "}
+                              {formatearNumero(
+                                totalDiez(
+                                  filtrarPorUtilidad(resumen)
+                                ).toString()
+                              )}
                             </td>
                             <td className="border font-bold border-gray-300 p-2"></td>
                             <td className="border font-bold border-gray-300 p-2">
-                              Total: {formatearNumero(totalVentas(filtrarPorUtilidad(resumen)).toString())}
+                              Total:{" "}
+                              {formatearNumero(
+                                totalVentas(
+                                  filtrarPorUtilidad(resumen)
+                                ).toString()
+                              )}
                             </td>
                             <td className="border font-bold border-gray-300 p-2"></td>
                           </tr>
@@ -3826,11 +3977,12 @@ const buscarSecciones = (busqueda: string) =>{
                     <div className="flex flex-row justify-between mt-2">
                       <p className="text-2xl">
                         <strong>Total NC. Desc.:</strong>{" "}
-                        {formatearNumero(totalMontoNc().toString())}
+                        {formatearNumero(totales.total_nc.toString())}
                       </p>
+
                       <p className="text-2xl">
                         <strong>Neto venta:</strong>{" "}
-                        {formatearNumero(totalNetoReal(filtrarPorUtilidad(resumen)).toString())}
+                        {formatearNumero(totales.total_neto.toString())}
                       </p>
                     </div>
                     <div className="flex flex-row justify-between mt-2 mb-4">
@@ -3838,37 +3990,50 @@ const buscarSecciones = (busqueda: string) =>{
                         <strong>Total Desc.:</strong>{" "}
                         {formatearNumero(
                           (
-                            totalDescuentoItems(filtrarPorUtilidad(resumen)) + totalDescuentoFacturas(filtrarPorUtilidad(resumen))
+                            totalDescuentoItems(filtrarPorUtilidad(resumen)) +
+                            totalDescuentoFacturas(filtrarPorUtilidad(resumen))
                           ).toString()
                         )}
                       </p>
                       <p className="text-2xl">
                         <strong>Costos directos:</strong>{" "}
-                        {formatearNumero(totalCostos(filtrarPorUtilidad(resumen)).toString())}
+                        {formatearNumero(
+                          totalCostos(filtrarPorUtilidad(resumen)).toString()
+                        )}
                       </p>
                     </div>
                     <div className="border border-black my-2"></div>
                     <div className="flex flex-row justify-between">
                       <p className="text-2xl">
                         <strong>Neto venta:</strong>{" "}
-                        {formatearNumero(totalNetoReal(filtrarPorUtilidad(resumen)).toString())}
+                        {formatearNumero(totales.total_neto.toString())}
                       </p>
                       <p className="text-2xl">
                         <strong>Utilidad en monto:</strong>{" "}
-                        {formatearNumero(utilidadEnMonto(filtrarPorUtilidad(resumen)).toString())}
+                        {formatearNumero(
+                          utilidadEnMonto(
+                            filtrarPorUtilidad(resumen)
+                          ).toString()
+                        )}
                       </p>
                     </div>
                     <div className="flex flex-row justify-between mt-2">
                       <p className="text-2xl">
                         <strong>Utilidad Bruta:</strong>{" "}
                         {eliminarDecimales(
-                          utilidadPorcentajeBruto(filtrarPorUtilidad(resumen)).toString()
+                          utilidadPorcentajeBruto(
+                            filtrarPorUtilidad(resumen)
+                          ).toString()
                         )}
                         %
                       </p>
                       <p className="text-2xl">
                         <strong>Utilidad Neta: </strong>{" "}
-                        {eliminarDecimales(utilidadPorcentajeNeto(filtrarPorUtilidad(resumen)).toString())}
+                        {eliminarDecimales(
+                          utilidadPorcentajeNeto(
+                            filtrarPorUtilidad(resumen)
+                          ).toString()
+                        )}
                         %
                       </p>
                     </div>

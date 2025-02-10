@@ -25,6 +25,7 @@ interface Articulo {
   ar_sububicacion: number;
   al_lote: string;
   ar_vencimiento: number;
+  id_detalle: number;
 }
 
 interface Deposito {
@@ -104,7 +105,6 @@ const FloatingCard = ({
                     <div className="font-medium">Pedido #{pedido.id_pedido}</div>
                     <div className="text-sm text-gray-500">
                       {pedido.fecha}
-                      <p className="text-xs font-thin">{pedido.deposito}</p>
                       <p className="text-xs font-thin">{pedido.cliente}</p>
                     </div>
                   </div>
@@ -141,7 +141,6 @@ const VerificacionPedidos = () => {
   const [ubicacion, setUbicacion] = useState<number | null>(null);
   const [sububicacion, setSububicacion] = useState<number | null>(null);
   const [sububicaciones, setSububicaciones] = useState<Sububicaciones[]>([]);
-  const token = sessionStorage.getItem("token");
   const toast = useToast();
   const [showPedidosCard, setShowPedidosCard] = useState(false);
   const [pedidosDisponibles, setPedidosDisponibles] = useState<
@@ -152,6 +151,10 @@ const VerificacionPedidos = () => {
   const [pedidoSeleccionado, setPedidoSeleccionado] = useState<
     number | null
   >(null);
+
+  const [showCajasModal, setShowCajasModal] = useState(false);
+  const [numeroCajas, setNumeroCajas] = useState<number>(1);
+  const [, setTodosItemsVerificados] = useState(false);
 
   const handleInputClick = (e: React.MouseEvent<HTMLInputElement>) => {
     e.preventDefault();
@@ -181,7 +184,6 @@ const VerificacionPedidos = () => {
         console.error("Error al cargar datos:", error);
       }
     };
-
     fetchSucursalesYDepositos();
   }, []);
 
@@ -255,6 +257,7 @@ const VerificacionPedidos = () => {
 
     return () => clearTimeout(timeoutId);
   };
+
   const buscarItemsPorPedido = async (pedido: string, texto: string | null = null) => {
     try {
       const response = await axios.get(
@@ -270,6 +273,10 @@ const VerificacionPedidos = () => {
       const data = response.data;
       console.log("Datos del pedido:", data.body);
       setArticulos(data.body);
+
+      if (data.body.length === 0) {
+        verificarTodosLosItems();
+      }
     } catch (error) {
       console.error("Error al buscar artículos:", error);
       toast({
@@ -332,8 +339,7 @@ const VerificacionPedidos = () => {
     fetchUbicaciones();
     fetchSububicaciones();
     getPedidosDisponibles();
-  }, [token]);
-
+  }, []);
 
   const Tooltip = ({ text, children, position = "top" }: TooltipProps) => {
     const [isVisible, setIsVisible] = useState(false);
@@ -387,6 +393,100 @@ const VerificacionPedidos = () => {
     );
   };
 
+const cargarArticulos = async () => {
+  try {
+    console.log("iniciando funcion cargarArticulos");
+    await axios.post(`${api_url}pedidos/cargar-pedido-preparado`, {
+      pedidoId: articuloSeleccionado?.id_detalle,
+      cantidad: cantidad,
+    });
+
+    // Cerramos el modal de verificación
+    setModalVisible(false);
+
+    // Actualizamos los artículos y verificamos si era el último
+    setArticulos((prevArticulos) => {
+      // Filtramos el artículo actual
+      const nuevosArticulos = prevArticulos.filter(
+        (art) => art.id_detalle !== articuloSeleccionado?.id_detalle
+      );
+
+      // Si no quedan más artículos, mostramos el modal de cajas
+      if (nuevosArticulos.length === 0) {
+        setTodosItemsVerificados(true);
+        setShowCajasModal(true);
+        toast({
+          title: "Pedido Completo",
+          description: "Todos los items han sido verificados correctamente",
+          status: "success",
+          duration: 3000,
+        });
+      }
+
+      return nuevosArticulos;
+    });
+
+    // Limpiamos los estados
+    setArticuloSeleccionado(null);
+    setCantidad(null);
+  } catch (error) {
+    console.error("Error al cargar articulos:", error);
+    toast({
+      title: "Error al cargar articulos",
+      description: "Por favor, inténtelo de nuevo",
+      status: "error",
+      duration: 3000,
+    });
+  }
+};
+
+const verificarTodosLosItems = () => {
+  const todosVerificados = articulos.length === 0;
+  console.log("todosVerificados", todosVerificados);
+  console.log("articulos", articulos.length);
+  if (todosVerificados) {
+    console.log("todos los items fueron verificados");
+    setTodosItemsVerificados(true);
+    setShowCajasModal(true);
+    toast({
+      title: "Pedido Completo",
+      description: "Todos los items han sido verificados correctamente",
+      status: "success",
+      duration: 3000,
+    });
+  }
+};
+
+  const enviarInformacionCajas = async () => {
+    try {
+      await axios.post(`${api_url}pedidos/registrar-cajas`, {
+        pedidoId: pedidoSeleccionado,
+        numeroCajas: numeroCajas,
+      });
+      toast({
+        title: "Éxito",
+        description: "La información de cajas se ha registrado correctamente",
+        status: "success",
+        duration: 3000,
+      });
+      // Limpiar estados
+      getPedidosDisponibles();
+      setShowCajasModal(false);
+      setPedidoSeleccionado(null);
+      setArticulos([]);
+      setTodosItemsVerificados(false);
+      setNumeroCajas(1);
+    } catch (error) {
+      console.error("Error al registrar cajas:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo registrar la información de cajas",
+        status: "error",
+        duration: 3000,
+      });
+    }
+  };
+
 function handleAceptar() {
   const cantidadNormalizada = Number(cantidad).toFixed(2);
   const cantidadArticulo = Number(articuloSeleccionado?.al_cantidad).toFixed(2);
@@ -397,20 +497,20 @@ function handleAceptar() {
       description:
         "La cantidad ingresada coincide con la cantidad del artículo",
       status: "success",
+      duration: 3000,
     });
-    setModalVisible(false);
-    if (pedidoSeleccionado) {
-      buscarItemsPorPedido(
-        String(pedidoSeleccionado),
-        articuloBusqueda || null
-      );
-    }
+
+    cargarArticulos().then(() => {
+      setModalVisible(false);
+      // Ya no necesitamos volver a buscar los items porque actualizamos el estado local
+    });
   } else {
     toast({
       title: "Cantidad incorrecta",
       description:
         "La cantidad ingresada no coincide con la cantidad del artículo",
       status: "error",
+      duration: 3000,
     });
   }
 }
@@ -421,14 +521,15 @@ function handleAceptar() {
       <div className="bg-[#0455c1] rounded-b-3xl pb-4 z-2">
         <div className="flex  justify-between items-center px-4 pt-2 pb-4">
           <div className="flex items-start gap-4 flex-col">
-            <h1 className="text-white text-xl font-bold">Verificacion de Pedidos</h1>
+            <h1 className="text-white text-xl font-bold">
+              Verificacion de Pedidos
+            </h1>
             <h2 className="text-white text-xs font-medium">
               {deposito?.dep_descripcion} - Pedido Nro:{" "}
-              {pedidoSeleccionado || 'N/A'}
+              {pedidoSeleccionado || "N/A"}
             </h2>
           </div>
           <div className="flex gap-2">
-
             <Tooltip text="Cambiar vista" position="left">
               <button
                 onClick={() => setIsGridView(!isGridView)}
@@ -464,34 +565,34 @@ function handleAceptar() {
               onClick={handleInputClick}
             />
           </div>
-            <div className="relative">
-              <button
-                className="bg-blue-500 p-2 rounded-lg text-white"
-                onClick={() => setShowPedidosCard(!showPedidosCard)}
-              >
-                <ListStart size={20} color="white" />
-              </button>
-              <AnimatePresence>
-                {showPedidosCard && (
-                  <>
-                    <div    
-                      className="fixed inset-0 z-40"
-                      onClick={() => setShowPedidosCard(false)}
-                    />
-                    <FloatingCard
-                      pedidos={pedidosDisponibles}
-                      onSelect={(id) => {
-                        setPedidoSeleccionado(id);
-                        buscarItemsPorPedido(String(id));
-                        setShowPedidosCard(false);
-                      }}
-                      onClose={() => setShowPedidosCard(false)}
-                      onBuscarItems={buscarItemsPorPedido}
-                    />
-                  </>
-                )}
-              </AnimatePresence>
-            </div>
+          <div className="relative">
+            <button
+              className="bg-blue-500 p-2 rounded-lg text-white"
+              onClick={() => setShowPedidosCard(!showPedidosCard)}
+            >
+              <ListStart size={20} color="white" />
+            </button>
+            <AnimatePresence>
+              {showPedidosCard && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowPedidosCard(false)}
+                  />
+                  <FloatingCard
+                    pedidos={pedidosDisponibles}
+                    onSelect={(id) => {
+                      setPedidoSeleccionado(id);
+                      buscarItemsPorPedido(String(id));
+                      setShowPedidosCard(false);
+                    }}
+                    onClose={() => setShowPedidosCard(false)}
+                    onBuscarItems={buscarItemsPorPedido}
+                  />
+                </>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
       {/* Lista de artículos con scroll - Ajustamos las clases */}
@@ -647,7 +748,6 @@ function handleAceptar() {
                 </p>
                 <div className="flex space-x-14">
                   <p className="font-bold">{articuloSeleccionado?.ar_codigo}</p>
-
                   <p className="text-lg">
                     {articuloSeleccionado?.ar_descripcion}
                   </p>
@@ -661,7 +761,7 @@ function handleAceptar() {
                   <input
                     type="number"
                     className="w-full p-2 border rounded"
-                    value={cantidad || ''}
+                    value={cantidad || ""}
                     onChange={(e) => setCantidad(Number(e.target.value))}
                   />
                 </div>
@@ -675,7 +775,9 @@ function handleAceptar() {
                     articuloSeleccionado?.ar_vencimiento === 1 ? "date" : "text"
                   }
                   className="w-full p-2 border rounded"
-                  value={formatearVencimiento(articuloSeleccionado?.al_vencimiento || '')}
+                  value={formatearVencimiento(
+                    articuloSeleccionado?.al_vencimiento || ""
+                  )}
                   disabled={true}
                 />
               </div>
@@ -753,6 +855,56 @@ function handleAceptar() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+      {showCajasModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            className="bg-white rounded-lg w-96 p-6"
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Información de Empaque</h2>
+              <button
+                onClick={() => setShowCajasModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <span className="text-2xl">&times;</span>
+              </button>
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Número de Cajas
+              </label>
+              <input
+                type="number"
+                min="1"
+                value={numeroCajas}
+                onChange={(e) =>
+                  setNumeroCajas(Math.max(1, parseInt(e.target.value)))
+                }
+                className="w-full p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowCajasModal(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={enviarInformacionCajas}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+              >
+                Confirmar
+              </button>
+            </div>
+          </motion.div>
         </div>
       )}
     </div>

@@ -45,6 +45,8 @@ import Auditar from "@/services/AuditoriaHook";
 import { Tooltip } from "@chakra-ui/react";
 import { debounce } from "lodash";
 
+
+
 interface Venta {
   codigo: number;
   codcliente: number;
@@ -263,6 +265,7 @@ export default function ResumenVentas({
       setIsLoadingMore(false);
     }
   };
+
 
   const fetchDetalleVenta = async (codigo: number) => {
     setIsLoading(true);
