@@ -1,0 +1,2646 @@
+import {
+  Cliente,
+  Deposito,
+  Sucursal,
+  Vendedor,
+  Moneda,
+  MetodosPago,
+  ArticulosNuevo,
+  ListaPrecios,
+  PedidosNuevo,
+} from "@/types/shared_interfaces";
+import { api_url } from "@/utils";
+import axios from "axios";
+import {
+  Box,
+  Heading,
+  Flex,
+  useMediaQuery,
+  Button,
+  useToast,
+  ModalBody,
+  IconButton,
+  ModalHeader,
+  ModalContent,
+  ModalOverlay,
+  Modal,
+  useDisclosure,
+  ModalCloseButton,
+  ModalFooter,
+} from "@chakra-ui/react";
+import {
+  FileText,
+  Plus,
+  Tally1,
+  X,
+  Trash,
+  CassetteTape,
+  Coins,
+  FileSearch,
+} from "lucide-react";
+import { ShoppingCart } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import FloatingCard from "@/modules/FloatingCard";
+import ArticuloInfoCard from "@/modules/ArticuloInfoCard";
+import ModeloTicket from "../facturacion/ModeloTicket";
+import ModeloFactura from "../facturacion/ModeloFactura";
+import ConsultaPedidos from "../pedidos/ConsultaPedidos";
+interface ItemParaVenta {
+  deve_articulo: number;
+  articulo: string;
+  deve_cantidad: number;
+  deve_precio: number;
+  deve_descuento: number;
+  deve_exentas: number;
+  deve_cinco: number;
+  deve_diez: number;
+  deve_devolucion: number;
+  deve_vendedor: number;
+  deve_color: number | null;
+  deve_bonificacion: number | null;
+  deve_talle: string | null;
+  deve_codioot: number | null;
+  deve_costo: number | null;
+  deve_costo_art: number | null;
+  deve_cinco_x: number | null;
+  deve_diez_x: number | null;
+  deve_lote?: string | null;
+  loteid?: number | null;
+  deve_vencimiento?: string | null;
+  cod_barra?: string | null;
+  editar_nombre?: number | null;
+  precio_original?: number | null;
+}
+
+interface VentaCliente {
+  codigo: number;
+  fecha: string;
+  factura: string;
+  total: number;
+  saldo: number;
+  descuento: number;
+  estado: number;
+  estado_desc: string;
+  condicion: string;
+  vendedor: string;
+}
+
+interface DetalleVentaCliente {
+  det_codigo: number;
+  codbarra: string;
+  descripcion: string;
+  cantidad: number;
+  precio: number;
+  descuento: number;
+  lote: string;
+}
+
+interface OpcionesFinalizacionVenta {
+  tipo_venta: "CONTADO" | "CREDITO";
+  tipo_documento: "FACTURA" | "TICKET";
+  nro_factura?: string;
+  nro_establecimiento?: number;
+  nro_emision?: number;
+  timbrado?: string;
+  fecha_vencimiento_timbrado?: string;
+  cantidad_cuotas?: number;
+  entrega_inicial?: number;
+  observacion?: string;
+}
+
+interface DocumentoBase {
+  id: number;
+  tipo: "VENTA" | "PEDIDO" | "PRESUPUESTO" | "REMISION";
+  cliente: number;
+  vendedor?: number;
+  items: Array<{
+    articulo: number;
+    cantidad: number;
+    precio: number;
+    descuento?: number;
+    lote?: string;
+    loteid?: number;
+  }>;
+}
+
+interface PedidoModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const VentaBalconNuevo = () => {
+  const [isMobile] = useMediaQuery("(max-width: 768px)");
+
+  const [fecha, setFecha] = useState(new Date().toISOString().split("T")[0]);
+
+  const [sucursales, setSucursales] = useState<Sucursal[]>([]);
+  const [, setSucursalSeleccionada] = useState<Sucursal | null>(null);
+
+  const [depositos, setDepositos] = useState<Deposito[]>([]);
+  const [depositoSeleccionado, setDepositoSeleccionado] =
+    useState<Deposito | null>(null);
+
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [clienteSeleccionado, setClienteSeleccionado] =
+    useState<Cliente | null>(null);
+
+  const [vendedores, setVendedores] = useState<Vendedor[]>([]);
+  const [vendedorSeleccionado, setVendedorSeleccionado] =
+    useState<Vendedor | null>(null);
+
+  const [monedas, setMonedas] = useState<Moneda[]>([]);
+  const [monedaSeleccionada, setMonedaSeleccionada] = useState<Moneda | null>(
+    null
+  );
+
+  const [metodosPago, setMetodosPago] = useState<MetodosPago[]>([]);
+  const [metodoPagoSeleccionado, setMetodoPagoSeleccionado] =
+    useState<MetodosPago | null>(null);
+
+  const [articulos, setArticulos] = useState<ArticulosNuevo[]>([]);
+
+  const [listaPrecios, setListaPrecios] = useState<ListaPrecios[]>([]);
+  const [precioSeleccionado, setPrecioSeleccionado] =
+    useState<ListaPrecios | null>(null);
+
+  const [cantidad, setCantidad] = useState(1);
+
+  const operador = sessionStorage.getItem("user_id");
+
+  // const [pedidoSeleccionado, setPedidoSeleccionado] = useState<Pedido | null>(
+  //   null
+  // );
+  // const [presupuestoSeleccionado, setPresupuestoSeleccionado] =
+  //   useState<Presupuesto | null>(null);
+
+  const [articuloBusqueda, setArticuloBusqueda] = useState<string>("");
+  const [vendedorBusqueda, setVendedorBusqueda] = useState<number | null>(null);
+  const [clienteBusqueda, setClienteBusqueda] = useState<string>("");
+
+  const [descuento, setDescuento] = useState<number | null>(null);
+
+  const [isArticuloCardVisible, setIsArticuloCardVisible] =
+    useState<boolean>(false);
+  const [, setIsVendedorCardVisible] = useState<boolean>(false);
+  const [isClienteCardVisible, setIsClienteCardVisible] =
+    useState<boolean>(false);
+
+  const [itemsParaVenta, setItemsParaVenta] = useState<ItemParaVenta[]>([]);
+
+  const [entregaInicialVentaCuotas, setEntregaInicialVentaCuotas] = useState<
+    number | null
+  >(null);
+  const [cuotas, setCuotas] = useState<number | null>(1);
+
+  const [ultimaVentaId, setUltimaVentaId] = useState<number | null>(null);
+
+  const busquedaInputRef = useRef<HTMLInputElement>(null);
+  const descuentoInputRef = useRef<HTMLInputElement>(null);
+  const cantidadInputRef = useRef<HTMLInputElement>(null);
+
+  const [cotizacionDolar, setCotizacionDolar] = useState<number>(7770);
+  const [cotizacionReal, setCotizacionReal] = useState<number>(1200);
+  const [cotizacionPeso, setCotizacionPeso] = useState<number>(5);
+  const [articuloSeleccionado, setArticuloSeleccionado] =
+    useState<ArticulosNuevo | null>(null);
+
+  const [imprimirFacturaPDF, setImprimirFacturaPDF] = useState(false);
+  const [imprimirTicketPDF, setImprimirTicketPDF] = useState(false);
+
+  const [montoEntregado, setMontoEntregado] = useState<number>(0);
+
+  const [hoveredArticulo, setHoveredArticulo] = useState<ArticulosNuevo | null>(
+    null
+  );
+
+  const [d_codigo, setD_codigo] = useState<number>(0);
+
+  const [cuotasList, setCuotasList] = useState<
+    Array<{
+      fecha: string;
+      valor: number;
+      saldo: number;
+    }>
+  >([]);
+
+  const {
+    isOpen: isConsultaVentasOpen,
+    onOpen: onOpenConsultaVentas,
+    onClose: onCloseConsultaVentas,
+  } = useDisclosure();
+
+  const {
+    isOpen: isKCOpen,
+    onOpen: onKCOpen,
+    onClose: onCloseKCOpen,
+  } = useDisclosure();
+
+  const {
+    isOpen: isImpresionTicketOpen,
+    onOpen: onImpresionTicketOpen,
+    onClose: onImpresionTicketClose,
+  } = useDisclosure();
+
+  const {
+    isOpen: isPedidoModalOpen,
+    onOpen: onPedidoModalOpen,
+    onClose: onPedidoModalClose,
+  } = useDisclosure();
+
+  const {
+    isOpen: isPresupuestoModalOpen,
+    onOpen: onPresupuestoModalOpen,
+    onClose: onPresupuestoModalClose,
+  } = useDisclosure();
+
+  const {
+    isOpen: isRemisionModalOpen,
+    onOpen: onRemisionModalOpen,
+    onClose: onRemisionModalClose,
+  } = useDisclosure();
+
+  const [buscarItemsConStock, setBuscarItemsConStock] =
+    useState<boolean>(false);
+
+  const [numeroPedido, setNumeroPedido] = useState<number | null>(null);
+
+  const {
+    isOpen: isImpresionFacturaOpen,
+    onOpen: onImpresionFacturaOpen,
+    onClose: onImpresionFacturaClose,
+  } = useDisclosure();
+
+  const configuraciones = JSON.parse(
+    sessionStorage.getItem("configuraciones") || "[]"
+  );
+  const permisos_descuento = JSON.parse(
+    sessionStorage.getItem("permisos_descuento") || "[]"
+  );
+
+  const tipoImpresion = configuraciones[5].valor || 0;
+
+  const [imprimirFactura, setImprimirFactura] = useState<boolean>(true);
+  const [imprimirTicket, setImprimirTicket] = useState<boolean>(false);
+  const [imprimirNotaInterna, setImprimirNotaInterna] =
+    useState<boolean>(false);
+
+  const [opcionesFinalizacion, setOpcionesFinalizacion] =
+    useState<OpcionesFinalizacionVenta>({
+      tipo_venta: "CREDITO",
+      tipo_documento: tipoImpresion === "1" ? "FACTURA" : "TICKET",
+    });
+
+  const toast = useToast();
+
+  async function getDatos() {
+    try {
+      const responseUltimaVentaId = await axios.get(
+        `${api_url}venta/idUltimaVenta`
+      );
+      setUltimaVentaId(responseUltimaVentaId.data.body[0].id);
+
+      const responseSucursales = await axios.get(`${api_url}sucursales/listar`);
+      setSucursales(responseSucursales.data.body);
+      setSucursalSeleccionada(responseSucursales.data.body[0]);
+
+      const responseDepositos = await axios.get(`${api_url}depositos`);
+      setDepositos(responseDepositos.data.body);
+      setDepositoSeleccionado(responseDepositos.data.body[0]);
+
+      const responseMetodosPago = await axios.get(
+        `${api_url}venta/metodosPago`
+      );
+      setMetodosPago(responseMetodosPago.data.body);
+      setMetodoPagoSeleccionado(responseMetodosPago.data.body[0]);
+
+      const responseMonedas = await axios.get(`${api_url}monedas`);
+      setMonedas(responseMonedas.data.body);
+      setMonedaSeleccionada(responseMonedas.data.body[0]);
+
+      const responseListaPrecios = await axios.get(`${api_url}listasprecios`);
+      setListaPrecios(responseListaPrecios.data.body);
+      if (configuraciones[49].valor === "1") {
+        console.log(configuraciones[49].valor);
+        setPrecioSeleccionado(responseListaPrecios.data.body[0]);
+      } else {
+        console.log(configuraciones[49].valor);
+        setPrecioSeleccionado(responseListaPrecios.data.body[1]);
+      }
+
+      const responseCotizaciones = await axios.get(`${api_url}cotizaciones/`);
+      setCotizacionDolar(responseCotizaciones.data.body[0].usd_venta);
+      setCotizacionPeso(responseCotizaciones.data.body[0].ars_venta);
+      setCotizacionReal(responseCotizaciones.data.body[0].brl_venta);
+    } catch (error) {
+      toast({
+        title: "Error al obtener los datos",
+        description: "Se ha producido un error al obtener los datos",
+        status: "error",
+      });
+    }
+  }
+
+  const obtenerDatosFacturacion = async () => {
+    try {
+      const response = await axios.get(`${api_url}definicion-ventas/timbrado`, {
+        params: {
+          usuario: operador,
+        },
+      });
+
+      console.log(response.data.body);
+      setOpcionesFinalizacion({
+        ...opcionesFinalizacion,
+        nro_establecimiento: response.data.body[0].d_establecimiento,
+        nro_emision: response.data.body[0].d_p_emision,
+        nro_factura: response.data.body[0].d_nro_secuencia + 1,
+        timbrado: response.data.body[0].d_nrotimbrado,
+      });
+      setD_codigo(response.data.body[0].d_codigo);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  async function actualizarUltimaFactura(codigo: number, numero: number) {
+    try {
+      await axios.post(
+        `${api_url}definicion-ventas/sec?secuencia=${codigo}&codigo=${numero}`
+      );
+    } catch (err) {
+      toast({
+        title: "Error",
+        description:
+          "Hubo un problema al actualizar la secuencia de la factura.",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  }
+
+  const getArticulos = async (busqueda: string) => {
+    setArticulos([]);
+    const response = await axios.get(`${api_url}articulos/consulta-articulos`, {
+      params: {
+        busqueda: busqueda,
+        deposito: depositoSeleccionado?.dep_codigo,
+        moneda: monedaSeleccionada?.mo_codigo,
+        stock: buscarItemsConStock,
+      },
+    });
+    console.log(response.data.body);
+    setArticulos(response.data.body);
+  };
+
+  const getClientes = async (busqueda: string) => {
+    const response = await axios.get(`${api_url}clientes/get-clientes`, {
+      params: {
+        buscar: busqueda,
+      },
+    });
+    console.log(response.data.body);
+    setClientes(response.data.body);
+  };
+
+  const getClientePorId = async (id: number) => {
+    try {
+      const response = await axios.get(`${api_url}clientes/get-clientes`, {
+        params: {
+          id: id,
+        },
+      });
+      setClienteSeleccionado(response.data.body[0]);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  useEffect(() => {
+    if (clienteSeleccionado) {
+      getVendedores(clienteSeleccionado.vendedor_cliente);
+    }
+  }, [clienteSeleccionado]);
+
+  const getVendedores = async (busqueda: number) => {
+    const response = await axios.get(`${api_url}usuarios/vendedores`, {
+      params: {
+        id_vendedor: busqueda,
+      },
+    });
+    setVendedores(response.data.body);
+    setVendedorSeleccionado(response.data.body[0]);
+  };
+
+  const handleBuscarArticulo = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const busqueda = e.target.value;
+    setArticuloBusqueda(busqueda);
+    setArticuloSeleccionado(null);
+    if (busqueda.length > 0) {
+      setIsArticuloCardVisible(true);
+      getArticulos(busqueda);
+    } else {
+      setIsArticuloCardVisible(false);
+      setArticulos([]);
+    }
+  };
+
+  const handleBuscarCliente = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const busqueda = e.target.value;
+    setClienteBusqueda(busqueda);
+    if (busqueda.length >= 0) {
+      setIsClienteCardVisible(true);
+      getClientes(busqueda);
+    } else {
+      setIsClienteCardVisible(false);
+      setClientes([]);
+    }
+  };
+
+  const handleBuscarClientePorId = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const busqueda = e.target.value;
+    if (busqueda.length > 0) {
+      getClientePorId(Number(busqueda));
+    } else {
+      setClienteSeleccionado(null);
+    }
+  };
+
+  const handleBuscarVendedor = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setIsVendedorCardVisible(true);
+    const busqueda = e.target.value;
+    getVendedores(Number(busqueda));
+    setVendedorBusqueda(Number(busqueda));
+  };
+
+  const handleSelectArticulo = (articulo: ArticulosNuevo) => {
+    setArticuloSeleccionado(articulo);
+    setIsArticuloCardVisible(false);
+    setArticulos([]);
+    setHoveredArticulo(null);
+  };
+
+  const handleSelectCliente = (cliente: Cliente) => {
+    setClienteSeleccionado(cliente);
+    getVendedores(cliente.vendedor_cliente);
+    setVendedorSeleccionado(
+      vendedores.find((vendedor) => vendedor.id === cliente.vendedor_cliente) ||
+        null
+    );
+  };
+
+  const agregarItemAVenta = () => {
+    if (!articuloSeleccionado) return;
+
+    if (!articuloSeleccionado.lotes?.length) {
+      toast({
+        title: "Error",
+        description: "No hay lotes disponibles para este artículo",
+        status: "error",
+      });
+      return;
+    }
+
+    const lotesDeposito = articuloSeleccionado.lotes.filter((lote) => {
+      return Number(lote.deposito) === Number(depositoSeleccionado?.dep_codigo);
+    });
+
+    if (lotesDeposito.length === 0) {
+      toast({
+        title: "Error",
+        description: "No hay lotes disponibles en el depósito seleccionado",
+        status: "error",
+      });
+      return;
+    }
+
+    // Ordenar lotes por fecha de vencimiento y obtener el más cercano
+    const loteSeleccionado = lotesDeposito.sort((a, b) => {
+      if (a.cantidad > 0 && b.cantidad === 0) return -1;
+      if (a.cantidad === 0 && b.cantidad > 0) return 1;
+      const fechaA = new Date(a.vencimiento.split("/").reverse().join("-"));
+      const fechaB = new Date(b.vencimiento.split("/").reverse().join("-"));
+      return fechaB.getTime() - fechaA.getTime();
+    })[0];
+
+    let precioAUsar = 0;
+
+    switch (precioSeleccionado?.lp_codigo) {
+      case 1: // Lista precio contado
+        precioAUsar = articuloSeleccionado.precio_venta;
+        break;
+      case 2: // Lista precio mostrador
+        precioAUsar = articuloSeleccionado.precio_mostrador;
+        break;
+      case 3: // Lista precio credito
+        precioAUsar = articuloSeleccionado.precio_credito;
+        break;
+      default:
+        precioAUsar = articuloSeleccionado.precio_venta;
+    }
+
+    const montoTotal = precioAUsar * cantidad;
+
+    // Determinar el tipo de IVA según el campo iva
+    let deve_exentas = 0;
+    let deve_cinco = 0;
+    let deve_diez = 0;
+
+    switch (articuloSeleccionado.iva) {
+      case 1: // Exento
+        deve_exentas = montoTotal;
+        break;
+      case 2: // IVA 10%
+        deve_diez = montoTotal;
+        break;
+      case 3: // IVA 5%
+        deve_cinco = montoTotal;
+        break;
+      default:
+        console.warn("Tipo de IVA no reconocido");
+    }
+
+    const nuevoItem: ItemParaVenta = {
+      cod_barra: articuloSeleccionado.codigo_barra,
+      deve_articulo: articuloSeleccionado.id_articulo,
+      articulo: articuloSeleccionado.descripcion,
+      deve_cantidad: cantidad,
+      deve_precio: precioAUsar,
+      precio_original: precioAUsar,
+      deve_descuento: descuento || 0,
+      deve_exentas,
+      deve_cinco,
+      deve_diez,
+      deve_devolucion: 0,
+      deve_vendedor: Number(vendedorSeleccionado?.op_codigo) || 0,
+      deve_color: null,
+      deve_bonificacion: null,
+      deve_talle: null,
+      deve_codioot: null,
+      deve_costo: null,
+      deve_costo_art: null,
+      deve_cinco_x: deve_cinco / 22,
+      deve_diez_x: deve_diez / 11,
+      editar_nombre: articuloSeleccionado.editar_nombre,
+      deve_lote: loteSeleccionado.lote,
+      loteid: loteSeleccionado.id,
+      deve_vencimiento: loteSeleccionado.vencimiento,
+    };
+    setItemsParaVenta([...itemsParaVenta, nuevoItem]);
+    setArticuloSeleccionado(null);
+    setArticuloBusqueda("");
+    setCantidad(1);
+    setDescuento(null);
+  };
+
+  const handleEliminarItem = (articulo: ItemParaVenta) => {
+    setItemsParaVenta(itemsParaVenta.filter((item) => item !== articulo));
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      if (articuloSeleccionado) {
+        if (permisos_descuento === 1) {
+          descuentoInputRef.current?.focus();
+        } else {
+          cantidadInputRef.current?.focus();
+        }
+      } else if (hoveredArticulo) {
+        handleSelectArticulo(hoveredArticulo);
+        setHoveredArticulo(null);
+      } else if (articulos.length > 0) {
+        handleSelectArticulo(articulos[0]);
+      }
+    } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      const currentIndex = hoveredArticulo
+        ? articulos.findIndex(
+            (a) => a.id_articulo === hoveredArticulo.id_articulo
+          )
+        : -1;
+
+      if (e.key === "ArrowDown") {
+        if (currentIndex < articulos.length - 1) {
+          setHoveredArticulo(articulos[currentIndex + 1]);
+        }
+      } else if (e.key === "ArrowUp") {
+        if (currentIndex > 0) {
+          setHoveredArticulo(articulos[currentIndex - 1]);
+        }
+      }
+    }
+  };
+  const handleDescuentoKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      cantidadInputRef.current?.focus();
+    }
+  };
+
+  const handleCantidadKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      if (articuloSeleccionado) {
+        agregarItemAVenta();
+      }
+      setCantidad(1);
+      setDescuento(0);
+      busquedaInputRef.current?.focus();
+    }
+  };
+
+  const handleCancelarVenta = () => {
+    setItemsParaVenta([]);
+    setArticuloSeleccionado(null);
+    setArticuloBusqueda("");
+    setCantidad(1);
+    setDescuento(0);
+    setClienteSeleccionado(null);
+    setClienteBusqueda("");
+    setVendedorSeleccionado(null);
+    setVendedorBusqueda(null);
+  };
+
+  useEffect(() => {
+    getDatos();
+    obtenerDatosFacturacion();
+  }, []);
+
+  const totalExentas = itemsParaVenta.reduce(
+    (total, item) => total + item.deve_exentas,
+    0
+  );
+  const totalCinco = itemsParaVenta.reduce(
+    (total, item) => total + item.deve_cinco,
+    0
+  );
+  const totalDiez = itemsParaVenta.reduce(
+    (total, item) => total + item.deve_diez,
+    0
+  );
+  const totalItems = itemsParaVenta.reduce(
+    (total, item) => total + item.deve_cantidad,
+    0
+  );
+  const totalPagar = itemsParaVenta.reduce(
+    (total, item) => total + item.deve_precio * item.deve_cantidad,
+    0
+  );
+  const totalDescuentoItems = itemsParaVenta.reduce(
+    (total, item) =>
+      total +
+      (item.deve_descuento * item.deve_precio * item.deve_cantidad) / 100,
+    0
+  );
+  const totalDescuentoFactura = 0;
+  const totalDescuento = totalDescuentoItems + totalDescuentoFactura;
+
+  const totalPagarFinal = totalPagar - totalDescuento;
+  const totalDolares = totalPagarFinal / cotizacionDolar;
+  const totalReales = totalPagarFinal / cotizacionReal;
+  const totalPesos = totalPagarFinal / cotizacionPeso;
+
+  const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
+
+  // Formatear los números con 2 decimales y separador de miles
+  const formatNumber = (num: number) =>
+    num.toLocaleString("es-PY", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
+
+  const formatearDivisasExtranjeras = (num: number) => {
+    return num.toLocaleString("es-PY", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
+
+  const totalExentasFormateado = formatNumber(totalExentas);
+  const totalCincoFormateado = formatNumber(totalCinco);
+  const totalDiezFormateado = formatNumber(totalDiez);
+  const totalItemsFormateado = formatNumber(totalItems);
+  const totalPagarFormateado = formatNumber(totalPagar);
+  const totalDescuentoItemsFormateado = formatNumber(totalDescuentoItems);
+  const totalDescuentoFormateado = formatNumber(totalDescuento);
+  const totalPagarFinalFormateado = formatNumber(totalPagarFinal);
+  const totalDolaresFormateado = formatearDivisasExtranjeras(totalDolares);
+  const totalRealesFormateado = formatearDivisasExtranjeras(totalReales);
+  const totalPesosFormateado = formatearDivisasExtranjeras(totalPesos);
+  const porcentajeDescuentoFormateado = porcentajeDescuento;
+
+  const ResumenVentasCliente = ({
+    cliente,
+    onClose,
+  }: {
+    cliente: Cliente;
+    onClose: () => void;
+  }) => {
+    const [ventas, setVentas] = useState<VentaCliente[]>([]);
+    const [detalleVenta, setDetalleVenta] = useState<DetalleVentaCliente[]>([]);
+    const [ventaSeleccionada, setVentaSeleccionada] = useState<number | null>(
+      null
+    );
+    const toast = useToast();
+
+    const fetchVentasCliente = async () => {
+      try {
+        const response = await axios.post(`${api_url}venta/consultas`, {
+          cliente: cliente.cli_codigo,
+          estadoVenta: 3,
+        });
+        setVentas(response.data.body);
+      } catch (error) {
+        toast({
+          title: "Error al cargar las ventas",
+          description: "No se pudieron cargar las ventas del cliente",
+          status: "error",
+          duration: 3000,
+        });
+      }
+    };
+
+    const fetchDetalleVenta = async (codigo: number) => {
+      try {
+        const response = await axios.get(
+          `${api_url}venta/detalles?cod=${codigo}`
+        );
+        setDetalleVenta(response.data.body);
+      } catch (error) {
+        toast({
+          title: "Error al cargar el detalle",
+          description: "No se pudo cargar el detalle de la venta",
+          status: "error",
+          duration: 3000,
+        });
+      }
+    };
+
+    useEffect(() => {
+      fetchVentasCliente();
+    }, [cliente]);
+
+    const setColor = (estado: number) => {
+      if (estado === 2) return "bg-pink-200"; // anulado
+      return "bg-white";
+    };
+
+    return (
+      <Box h="full" p={4} display="flex" flexDirection="column" gap={4}>
+        <Flex justify="space-between" align="center" mb={4}>
+          <Heading size="md">Últimas ventas de {cliente.cli_razon}</Heading>
+          <IconButton
+            aria-label="Cerrar"
+            icon={<X />}
+            onClick={onClose}
+            variant="ghost"
+          />
+        </Flex>
+
+        <Box flex={1} overflow="auto">
+          <Box mb={4} maxH="50%" overflow="auto">
+            <table className="min-w-full">
+              <thead className="bg-gray-100">
+                <tr className="[&>th]:p-2 text-left">
+                  <th>Código</th>
+                  <th>Fecha</th>
+                  <th>Factura</th>
+                  <th>Total</th>
+                  <th>Saldo</th>
+                  <th>Descuento</th>
+                  <th>Condición</th>
+                  <th>Vendedor</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {ventas.map((venta) => (
+                  <tr
+                    key={venta.codigo}
+                    className={`${setColor(
+                      venta.estado
+                    )} hover:bg-gray-50 cursor-pointer ${
+                      ventaSeleccionada === venta.codigo ? "bg-blue-100" : ""
+                    }`}
+                    onClick={() => {
+                      setVentaSeleccionada(venta.codigo);
+                      fetchDetalleVenta(venta.codigo);
+                    }}
+                  >
+                    <td className="p-2">{venta.codigo}</td>
+                    <td className="p-2">{venta.fecha}</td>
+                    <td className="p-2">{venta.factura}</td>
+                    <td className="p-2 text-right">
+                      {venta.total.toLocaleString("es-PY")}
+                    </td>
+                    <td className="p-2 text-right">
+                      {venta.saldo.toLocaleString("es-PY")}
+                    </td>
+                    <td className="p-2 text-right">
+                      {venta.descuento.toLocaleString("es-PY")}
+                    </td>
+                    <td className="p-2">{venta.condicion}</td>
+                    <td className="p-2">{venta.vendedor}</td>
+                    <td className="p-2">{venta.estado_desc}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Box>
+          {ventaSeleccionada && (
+            <Box>
+              <Heading size="sm" mb={2}>
+                Detalle de la venta
+              </Heading>
+              <table className="min-w-full">
+                <thead className="bg-gray-100">
+                  <tr className="[&>th]:p-2 text-left">
+                    <th>Código</th>
+                    <th>Descripción</th>
+                    <th>Cantidad</th>
+                    <th>Precio</th>
+                    <th>Descuento</th>
+                    <th>Subtotal</th>
+                    <th>Lote</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {detalleVenta.map((detalle) => (
+                    <tr key={detalle.det_codigo} className="hover:bg-gray-50">
+                      <td className="p-2">{detalle.codbarra}</td>
+                      <td className="p-2">{detalle.descripcion}</td>
+                      <td className="p-2 text-right">{detalle.cantidad}</td>
+                      <td className="p-2 text-right">
+                        {detalle.precio.toLocaleString("es-PY")}
+                      </td>
+                      <td className="p-2 text-right">{detalle.descuento}%</td>
+                      <td className="p-2 text-right">
+                        {(
+                          detalle.precio *
+                          detalle.cantidad *
+                          (1 - detalle.descuento / 100)
+                        ).toLocaleString("es-PY")}
+                      </td>
+                      <td className="p-2">{detalle.lote}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Box>
+          )}
+        </Box>
+      </Box>
+    );
+  };
+
+  const calcularCuotas = useCallback(() => {
+    if (
+      !opcionesFinalizacion.cantidad_cuotas ||
+      !opcionesFinalizacion.fecha_vencimiento_timbrado ||
+      !totalPagarFinal
+    ) {
+      setCuotasList([]);
+      return;
+    }
+
+    const montoTotal =
+      totalPagarFinal - (opcionesFinalizacion.entrega_inicial || 0);
+    const valorCuota = Math.ceil(
+      montoTotal / opcionesFinalizacion.cantidad_cuotas
+    );
+    const fechaInicial = new Date(
+      opcionesFinalizacion.fecha_vencimiento_timbrado
+    );
+
+    const nuevasCuotas = [];
+    let saldoRestante = montoTotal;
+
+    for (let i = 0; i < opcionesFinalizacion.cantidad_cuotas; i++) {
+      const fechaCuota = new Date(fechaInicial);
+      fechaCuota.setMonth(fechaInicial.getMonth() + i);
+
+      nuevasCuotas.push({
+        fecha: fechaCuota.toISOString().split("T")[0],
+        valor: valorCuota,
+        saldo: saldoRestante - valorCuota,
+      });
+
+      saldoRestante -= valorCuota;
+    }
+
+    setCuotasList(nuevasCuotas);
+  }, [
+    opcionesFinalizacion.cantidad_cuotas,
+    opcionesFinalizacion.fecha_vencimiento_timbrado,
+    opcionesFinalizacion.entrega_inicial,
+    totalPagarFinal,
+  ]);
+
+  // Agregar este efecto para recalcular las cuotas cuando cambien los valores relevantes
+  useEffect(() => {
+    calcularCuotas();
+  }, [calcularCuotas]);
+
+  const finalizarVenta = async () => {
+    try {
+      if (
+        !clienteSeleccionado ||
+        !vendedorSeleccionado ||
+        itemsParaVenta.length === 0
+      ) {
+        toast({
+          title: "Error",
+          description: "Faltan datos requeridos para la venta",
+          status: "error",
+          duration: 3000,
+        });
+        return;
+      }
+      // Preparar objeto de venta
+      const venta = {
+        cliente: clienteSeleccionado.cli_codigo,
+        operador: Number(operador),
+        deposito: depositoSeleccionado?.dep_codigo,
+        moneda: monedaSeleccionada?.mo_codigo,
+        fecha: fecha,
+        factura:
+          opcionesFinalizacion.tipo_documento === "FACTURA"
+            ? opcionesFinalizacion.nro_emision +
+              "-" +
+              opcionesFinalizacion.nro_establecimiento +
+              "-" +
+              opcionesFinalizacion.nro_factura
+            : null,
+        credito: opcionesFinalizacion.tipo_venta === "CREDITO" ? 1 : 0,
+        saldo:
+          opcionesFinalizacion.tipo_venta === "CREDITO"
+            ? totalPagarFinal - (opcionesFinalizacion.entrega_inicial || 0)
+            : totalPagarFinal,
+        vencimiento: opcionesFinalizacion.fecha_vencimiento_timbrado || null,
+        descuento: totalDescuento,
+        total: totalPagarFinal,
+        cuotas: opcionesFinalizacion.tipo_venta === "CREDITO" ? 1 : 0,
+        cantCuotas: opcionesFinalizacion.cantidad_cuotas || 0,
+        obs: opcionesFinalizacion.observacion || "",
+        vendedor: vendedorSeleccionado.op_codigo,
+        sucursal: sucursales[0].id,
+        timbrado:
+          opcionesFinalizacion.tipo_documento === "FACTURA"
+            ? opcionesFinalizacion.timbrado
+            : null,
+        pedido: numeroPedido,
+        hora: new Date().toLocaleTimeString(),
+        userpc: sessionStorage.getItem("user_name") || "Sistema web",
+        situacion: 1,
+        chofer: null,
+        metodo: metodoPagoSeleccionado?.me_codigo || 1,
+      };
+
+      // Preparar detalles de venta
+      const detalleVentas = itemsParaVenta.map((item) => ({
+        deve_articulo: item.deve_articulo,
+        deve_cantidad: item.deve_cantidad,
+        deve_precio: item.deve_precio,
+        deve_descuento: item.deve_descuento,
+        deve_exentas: item.deve_exentas,
+        deve_cinco: item.deve_cinco,
+        deve_diez: item.deve_diez,
+        deve_color: item.deve_color,
+        deve_bonificacion: item.deve_bonificacion,
+        deve_vendedor: item.deve_vendedor,
+        deve_codioot: item.deve_codioot,
+        deve_costo: item.deve_costo,
+        deve_costo_art: item.deve_costo_art,
+        deve_cinco_x: item.deve_cinco_x,
+        deve_diez_x: item.deve_diez_x,
+        lote: item.deve_lote,
+        loteid: item.loteid,
+        articulo_editado: item.editar_nombre === 1,
+        deve_codigo: item.deve_articulo,
+        deve_descripcion_editada:
+          item.editar_nombre === 1 ? item.articulo : null,
+      }));
+
+      // Enviar datos al backend
+      const response = await axios.post(`${api_url}venta/agregar-venta-nuevo`, {
+        venta,
+        detalle_ventas: detalleVentas,
+      });
+
+      console.log(response.data.body);
+
+      if (response.data.body.status === "success") {
+        toast({
+          title: "Éxito",
+          description: "Venta realizada correctamente",
+          status: "success",
+          duration: 3000,
+        });
+
+        onCloseKCOpen();
+
+        handleCancelarVenta();
+
+        setUltimaVentaId(response.data.body.ventaId);
+
+        actualizarUltimaFactura(
+          d_codigo,
+          Number(opcionesFinalizacion.nro_factura)
+        );
+
+        if (imprimirFactura) {
+          setImprimirFacturaPDF(true);
+          onImpresionFacturaOpen();
+        }
+        if (imprimirTicket) {
+          setImprimirTicketPDF(true);
+          onImpresionTicketOpen();
+        }
+      }
+    } catch (error) {
+      console.error("Error al finalizar la venta:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo completar la venta",
+        status: "error",
+        duration: 3000,
+      });
+    }
+  };
+
+async function convertirDocumentoAVenta(documento: DocumentoBase) {
+  try {
+    // Limpiar estado actual
+    handleCancelarVenta();
+
+    // Obtener datos del cliente
+    await getClientePorId(documento.cliente);
+
+    // Obtener datos del vendedor
+    if (documento.vendedor) {
+      await getVendedores(documento.vendedor);
+    }
+
+    // Procesar cada item
+    for (const item of documento.items) {
+      try {
+        // Buscar artículo
+        const response = await axios.get(
+          `${api_url}articulos/consulta-articulos`,
+          {
+            params: {
+              articulo_id: item.articulo,
+              moneda: monedaSeleccionada?.mo_codigo,
+            },
+          }
+        );
+
+        if (response.data.body.length > 0) {
+          const articulo = response.data.body[0];
+
+          // Crear el nuevo item directamente
+          const nuevoItem = {
+            deve_articulo: articulo.id_articulo,
+            deve_cantidad: item.cantidad,
+            deve_precio: item.precio,
+            deve_descuento: item.descuento || 0,
+            deve_exentas: 0,
+            deve_cinco: 0,
+            deve_diez: item.precio,
+            deve_color: null,
+            deve_bonificacion: 0,
+            deve_vendedor: documento.vendedor,
+            deve_codioot: 0,
+            deve_costo: articulo.costo || 0,
+            deve_costo_art: articulo.costo || 0,
+            deve_cinco_x: 0,
+            deve_diez_x: 0,
+            deve_lote: item.lote || "",
+            loteid: item.loteid || 0,
+            editar_nombre: 0,
+            articulo: articulo.descripcion,
+            deve_devolucion: 0,
+            deve_vencimiento: null,
+            deve_talle: null,
+          };
+
+          setItemsParaVenta((prev) => [...prev, nuevoItem as ItemParaVenta]);
+
+
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        } else {
+          toast({
+            title: "Error",
+            description: `No se encontró el artículo con código ${item.articulo}`,
+            status: "error",
+          });
+        }
+      } catch (error) {
+        console.error("Error al procesar item:", error);
+        toast({
+          title: "Error",
+          description: `Error al procesar el artículo ${item.articulo}`,
+          status: "error",
+        });
+      }
+    }
+
+    toast({
+      title: "Éxito",
+      description: `${documento.tipo} convertido a venta correctamente`,
+      status: "success",
+    });
+  } catch (error) {
+    console.error("Error al convertir documento a venta:", error);
+    toast({
+      title: "Error",
+      description: "No se pudo convertir el documento a venta",
+      status: "error",
+    });
+  }
+}
+
+  async function obtenerYEditarVenta(id: number) {
+    try {
+      const response = await axios.get(`${api_url}venta/obtener`, {
+        params: { id },
+      });
+      const venta: DocumentoBase = {
+        id: response.data.body.id,
+        tipo: "VENTA",
+        cliente: response.data.body.cliente,
+        vendedor: response.data.body.vendedor,
+        items: response.data.body.items.map((item: any) => ({
+          articulo: item.deve_articulo,
+          cantidad: item.deve_cantidad,
+          precio: item.deve_precio,
+          descuento: item.deve_descuento,
+          lote: item.deve_lote,
+          loteid: item.loteid,
+        })),
+      };
+
+      await convertirDocumentoAVenta(venta);
+    } catch (error) {
+      console.error("Error al obtener venta:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo obtener la venta",
+        status: "error",
+      });
+    }
+  }
+
+  async function obtenerYConvertirPedido(pedido_id: number) {
+    try {
+
+      setNumeroPedido(pedido_id);
+
+      const response = await axios.get(`${api_url}pedidos/obtener`, {
+        params: { id: pedido_id },
+      });
+
+      // La respuesta viene como un array, tomamos el primer elemento
+      const pedidoData = response.data.body[0];
+
+    
+      if (!pedidoData) {
+        throw new Error("No se encontró el pedido");
+      }
+
+      const pedido: DocumentoBase = {
+        id: pedido_id,
+        tipo: "PEDIDO",
+        cliente: pedidoData.cliente,
+        vendedor: pedidoData.vendedor,
+        items: pedidoData.items.map((item: any) => ({
+          articulo: item.articulo,
+          cantidad: item.cantidad || 1,
+          precio: item.precio,
+          descuento: item.descuento || 0,
+          lote: item.lote || "",
+          loteid: item.loteid,
+        })),
+      };
+
+      await convertirDocumentoAVenta(pedido);
+
+      toast({
+        title: "Éxito",
+        description: "Pedido convertido a venta correctamente",
+        status: "success",
+      });
+    } catch (error) {
+      console.error("Error al obtener pedido:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo obtener el pedido",
+        status: "error",
+      });
+    }
+  }
+
+  async function obtenerYConvertirPresupuesto(presupuesto_id: number) {
+    try {
+      const response = await axios.get(`${api_url}presupuestos/obtener`, {
+        params: { id: presupuesto_id },
+      });
+
+      const presupuesto: DocumentoBase = {
+        id: response.data.body.id,
+        tipo: "PRESUPUESTO",
+        cliente: response.data.body.cliente,
+        vendedor: response.data.body.vendedor,
+        items: response.data.body.items.map((item: any) => ({
+          articulo: item.depre_articulo,
+          cantidad: item.depre_cantidad,
+          precio: item.depre_precio,
+          descuento: item.depre_descuento,
+          lote: item.depre_lote,
+          loteid: item.depre_loteid,
+        })),
+      };
+      await convertirDocumentoAVenta(presupuesto);
+    } catch (error) {
+      console.error("Error al obtener presupuesto:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo obtener el presupuesto",
+      });
+    }
+  }
+
+  async function obtenerYConvertirRemision(remision_id: number) {
+    try {
+      const response = await axios.get(`${api_url}remisiones/obtener`, {
+        params: { id: remision_id },
+      });
+
+      const presupuesto: DocumentoBase = {
+        id: response.data.body.id,
+        tipo: "REMISION",
+        cliente: response.data.body.cliente,
+        vendedor: response.data.body.vendedor,
+        items: response.data.body.items.map((item: any) => ({
+          articulo: item.articulo,
+          cantidad: item.cantidad,
+          precio: item.precio,
+          descuento: item.descuento || 0,
+          lote: item.lote,
+          loteid: item.loteid,
+        })),
+      };
+      await convertirDocumentoAVenta(presupuesto);
+    } catch (error) {
+      console.error("Error al obtener presupuesto:", error);
+      toast({
+        title: "Error",
+        description: "No se pudo obtener el presupuesto",
+      });
+    }
+  }
+
+  const PedidoModal: React.FC<PedidoModalProps> = ({ isOpen, onClose }) => {
+    const handleSelectPedido = (pedido: PedidosNuevo) => {
+      obtenerYConvertirPedido(pedido.pedido_id);
+      onClose();
+    };
+
+    return (
+      <Modal isOpen={isOpen} onClose={onClose} size="full">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Consulta de Pedidos</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <ConsultaPedidos
+              onSelectPedido={handleSelectPedido}
+              onClose={onClose}
+              isModal={true}
+              clienteSeleccionado={clienteSeleccionado}
+            />
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+    );
+  };
+
+  return (
+    <Box
+      h={"100vh"}
+      w={"100%"}
+      p={2}
+      bg={"gray.100"}
+      display={"flex"}
+      flexDirection={"column"}
+      gap={2}
+      overflowY={"auto"}
+    >
+      <Flex
+        bgGradient="linear(to-r, blue.500, blue.600)"
+        color="white"
+        p={isMobile ? 2 : 3}
+        alignItems="center"
+        rounded="lg"
+      >
+        <ShoppingCart size={24} className="mr-2" />
+        <Heading size={isMobile ? "sm" : "md"}>Venta Balcon</Heading>
+      </Flex>
+      <Box
+        w="100%"
+        h={"18%"}
+        p={2}
+        shadow="sm"
+        rounded="md"
+        className="bg-blue-100"
+      >
+        <div className="flex flex-row gap-2">
+          <div className="flex flex-col gap-2 flex-1">
+            <div className="flex flex-row gap-2 items-center">
+              <div className="flex flex-col gap-2 flex-1">
+                <p className="text-sm font-bold">Fecha</p>
+                <input
+                  type="date"
+                  className="border rounded-md p-2"
+                  value={fecha}
+                  onChange={(e) => {
+                    setFecha(e.target.value);
+                  }}
+                />
+              </div>
+              <div className="flex flex-col gap-2 flex-1">
+                <p className="text-sm font-bold">Sucursal</p>
+                <select
+                  className="border rounded-md p-2"
+                  name=""
+                  id=""
+                  onChange={(e) => {
+                    setSucursalSeleccionada(
+                      sucursales.find(
+                        (sucursal) => sucursal.id === parseInt(e.target.value)
+                      ) || null
+                    );
+                  }}
+                >
+                  {sucursales.map((sucursal) => (
+                    <option value={sucursal.id}>{sucursal.descripcion}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col gap-2 flex-1">
+                <p className="text-sm font-bold">Deposito</p>
+                <select
+                  className="border rounded-md p-2"
+                  name=""
+                  id=""
+                  onChange={(e) => {
+                    setDepositoSeleccionado(
+                      depositos.find(
+                        (deposito) =>
+                          deposito.dep_codigo === parseInt(e.target.value)
+                      ) || null
+                    );
+                  }}
+                >
+                  {depositos.map((deposito) => (
+                    <option value={deposito.dep_codigo}>
+                      {deposito.dep_descripcion}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col gap-2 flex-1">
+                <p className="text-sm font-bold">Lista de precios</p>
+                <select
+                  className="border rounded-md p-2"
+                  value={precioSeleccionado?.lp_codigo}
+                  name=""
+                  id=""
+                  onChange={(e) => {
+                    setPrecioSeleccionado(
+                      listaPrecios.find(
+                        (precio) =>
+                          precio.lp_codigo === parseInt(e.target.value)
+                      ) || null
+                    );
+                  }}
+                >
+                  {listaPrecios.map((precio) => (
+                    <option value={precio.lp_codigo}>
+                      {precio.lp_descripcion}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col gap-2 flex-1">
+                <p className="text-sm font-bold">Moneda</p>
+                <select
+                  className="border rounded-md p-2"
+                  name=""
+                  id=""
+                  onChange={(e) => {
+                    setMonedaSeleccionada(
+                      monedas.find(
+                        (moneda) =>
+                          moneda.mo_codigo === parseInt(e.target.value)
+                      ) || null
+                    );
+                  }}
+                >
+                  {monedas.map((moneda) => (
+                    <option value={moneda.mo_codigo}>
+                      {moneda.mo_descripcion}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex flex-col   bg-white rounded-md p-2">
+                <p className="text-sm font-bold ">Código de venta:</p>
+                <div className="flex flex-col  items-center justify-center">
+                  <p className="text-xl font-bold text-blue-500">
+                    {ultimaVentaId === null ? 0 : ultimaVentaId + 1}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col   bg-white rounded-md p-2">
+                <p className="text-sm font-bold ">Cotizacion del dia:</p>
+                <div className="flex flex-row items-center justify-center gap-8">
+                  <div className="flex flex-row items-center justify-center gap-2">
+                    <p>USD:</p>
+                    <p className="text-lg font-bold text-green-600">
+                      {cotizacionDolar}
+                    </p>
+                  </div>
+                  <div className="flex flex-row items-center justify-center gap-2">
+                    <p>BRL:</p>
+                    <p className="text-lg font-bold text-green-600">
+                      {cotizacionReal}
+                    </p>
+                  </div>
+                  <div className="flex flex-row items-center justify-center gap-2">
+                    <p>ARS:</p>
+                    <p className="text-lg font-bold text-green-600">
+                      {cotizacionPeso}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-row gap-2">
+              <div className="flex flex-col gap-2 flex-1 relative">
+                <p className="text-sm font-bold">Cliente:</p>
+                <div className="flex flex-row gap-2">
+                  <input
+                    type="number"
+                    name=""
+                    id=""
+                    className="border rounded-md p-2 w-[80px]"
+                    onChange={(e) => {
+                      handleBuscarClientePorId(e);
+                    }}
+                  />
+                  <input
+                    type="text"
+                    name=""
+                    id=""
+                    value={
+                      clienteSeleccionado
+                        ? clienteSeleccionado.cli_razon
+                        : clienteBusqueda
+                    }
+                    onChange={(e) => {
+                      handleBuscarCliente(e);
+                    }}
+                    onClick={() => {
+                      setIsClienteCardVisible(true);
+                    }}
+                    className="border rounded-md p-2 flex-1"
+                    placeholder="Buscar cliente"
+                  />
+                  <FloatingCard
+                    isVisible={isClienteCardVisible}
+                    items={clientes}
+                    onClose={() => setIsClienteCardVisible(false)}
+                    onSelect={handleSelectCliente}
+                    className="absolute top-16 left-0 right-0 z-999"
+                    renderItem={(item) => <p>{item.cli_razon}</p>}
+                  />
+                </div>
+              </div>
+              <div className="flex flex-row gap-2 justify-between bg-blue-200 p-2 rounded-md">
+                <div className="flex flex-col gap-2">
+                  <p className="text-md font-bold">Limite de crédito</p>
+                  <div className=" font-bold bg-white p-2 rounded-md text-right">
+                    {clienteSeleccionado?.cli_limitecredito}
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <p className="text-md font-bold">Deuda actual</p>
+                  <div className="text-red-600 font-bold bg-white p-2 rounded-md text-right">
+                    {clienteSeleccionado?.deuda_actual}
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <p className="text-md font-bold">Credito disponible</p>
+                  <div className="text-green-600 font-bold bg-white p-2 rounded-md text-right">
+                    {clienteSeleccionado?.credito_disponible}
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2 flex-1 relative">
+                <p className="text-sm font-bold">Vendedor:</p>
+                <div className="flex flex-row gap-2">
+                  <input
+                    type="password"
+                    name=""
+                    id=""
+                    value={
+                      vendedorSeleccionado
+                        ? vendedorSeleccionado.op_codigo?.toString()
+                        : vendedorBusqueda || ""
+                    }
+                    onChange={(e) => {
+                      handleBuscarVendedor(e);
+                    }}
+                    onClick={() => {
+                      setIsVendedorCardVisible(true);
+                    }}
+                    className="border rounded-md p-2 w-[80px] toggle-password"
+                  />
+                  <input
+                    type="text"
+                    name=""
+                    id=""
+                    value={
+                      vendedorSeleccionado
+                        ? vendedorSeleccionado.op_nombre || ""
+                        : vendedorBusqueda || ""
+                    }
+                    onChange={(e) => {
+                      handleBuscarVendedor(e);
+                    }}
+                    onClick={() => {
+                      setIsVendedorCardVisible(true);
+                    }}
+                    disabled
+                    className="border rounded-md flex-1 p-2 disabled:bg-gray-400 disabled:text-black disabled:font-bold"
+                    placeholder="Buscar vendedor"
+                  />
+                </div>
+                {(vendedorSeleccionado || vendedorBusqueda) && (
+                  <button
+                    onClick={() => {
+                      setVendedorBusqueda(null);
+                      setVendedorSeleccionado(null);
+                      setIsVendedorCardVisible(false);
+                    }}
+                    className="absolute right-2 top-2/3 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-row gap-2 rounded-md ">
+            <div className="flex flex-col bg-blue-300 p-2  rounded-md gap-2">
+              <div className="flex flex-col gap-1">
+                <p>Entrega inicial</p>
+                <input
+                  type="number"
+                  className="border rounded-md p-2"
+                  value={entregaInicialVentaCuotas || ""}
+                  onChange={(e) => {
+                    setEntregaInicialVentaCuotas(Number(e.target.value));
+                  }}
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <p>Cantidad de cuotas</p>
+                <input
+                  type="number"
+                  className="border rounded-md p-2"
+                  value={cuotas || ""}
+                  onChange={(e) => {
+                    setCuotas(Number(e.target.value));
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </Box>
+      <Box
+        w={"100%"}
+        h={isMobile ? "100%" : "80%"}
+        shadow="sm"
+        rounded="md"
+        display={"flex"}
+        flexDirection={isMobile ? "column" : "row"}
+        gap={2}
+      >
+        <Box
+          w={isMobile ? "100%" : "80%"}
+          h={"100%"}
+          shadow="sm"
+          rounded="md"
+          display={"flex"}
+          flexDirection={"column"}
+          gap={2}
+        >
+          <Box
+            w={"100%"}
+            h={isMobile ? "100%" : "65%"}
+            bg="white"
+            shadow="sm"
+            rounded="md"
+          >
+            <div className="flex flex-row gap-2 p-2 border-b relative">
+              <div className="relative w-full">
+                <input
+                  type="text"
+                  value={
+                    articuloSeleccionado
+                      ? articuloSeleccionado.descripcion
+                      : articuloBusqueda
+                  }
+                  className="border rounded-md p-2 flex-1 items-center justify-center w-full"
+                  placeholder="Buscar articulo por nombre o codigo"
+                  onClick={() => {
+                    setIsArticuloCardVisible(true);
+                  }}
+                  onFocus={() => {
+                    setIsArticuloCardVisible(true);
+                  }}
+                  onChange={(e) => {
+                    handleBuscarArticulo(e);
+                  }}
+                  onKeyDown={handleKeyPress}
+                  ref={busquedaInputRef}
+                />
+                {articuloBusqueda && (
+                  <button
+                    onClick={() => {
+                      setArticuloBusqueda("");
+                      setIsArticuloCardVisible(false);
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  >
+                    <X size={16} />
+                  </button>
+                )}
+              </div>
+              <input
+                type="number"
+                name=""
+                id=""
+                className="border rounded-md p-2 w-28"
+                placeholder="Descuento"
+                value={descuento || ""}
+                onChange={(e) => {
+                  if (permisos_descuento === 1) {
+                    setDescuento(Number(e.target.value));
+                  }
+                }}
+                disabled={permisos_descuento === 0}
+                onKeyDown={handleDescuentoKeyPress}
+                ref={descuentoInputRef}
+              />
+              <select
+                className="border rounded-md p-2"
+                value={precioSeleccionado?.lp_codigo}
+                onChange={(e) => {
+                  setPrecioSeleccionado(
+                    listaPrecios.find(
+                      (precio) => precio.lp_codigo === parseInt(e.target.value)
+                    ) || null
+                  );
+                }}
+              >
+                {listaPrecios.map((precio) => (
+                  <option key={precio.lp_codigo} value={precio.lp_codigo}>
+                    {precio.lp_descripcion}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="number"
+                className="border rounded-md p-2 w-16"
+                placeholder="Cantidad"
+                value={cantidad}
+                onChange={(e) => {
+                  setCantidad(Number(e.target.value));
+                }}
+                min={1}
+                ref={cantidadInputRef}
+                onKeyDown={handleCantidadKeyPress}
+              />
+              <select name="" id="" className="border rounded-md p-2">
+                <option value="1">V</option>
+                <option value="2">B</option>
+              </select>
+              <Button colorScheme="green" onClick={agregarItemAVenta}>
+                <Plus />
+              </Button>
+              <FloatingCard
+                isVisible={isArticuloCardVisible}
+                items={articulos}
+                onClose={() => setIsArticuloCardVisible(false)}
+                onSelect={handleSelectArticulo}
+                className="absolute top-16 left-0 right-0 z-999"
+                renderItem={(item) => (
+                  <div
+                    className="flex flex-row gap-2 items-center [&>p]:font-bold"
+                    onMouseEnter={() => setHoveredArticulo(item)}
+                    onMouseLeave={() => setHoveredArticulo(null)}
+                  >
+                    <p>{item.codigo_barra}</p>
+                    <Tally1 />
+                    <p>{item.descripcion}</p>
+                    <Tally1 />
+                    <p>P. Contado</p>
+                    <p>{item.precio_venta}</p>-<p>P. Mostrador</p>
+                    <p>{item.precio_mostrador}</p>-<p>P. Credito</p>
+                    <p>{item.precio_credito}</p>
+                    <Tally1 />
+                    {item.vencimiento_validacion === 1 ? (
+                      <p
+                        className={
+                          item.estado_vencimiento === "VIGENTE"
+                            ? "text-green-500"
+                            : item.estado_vencimiento === "PROXIMO"
+                            ? "text-yellow-500"
+                            : "text-red-500"
+                        }
+                      >
+                        {item.lotes
+                          .filter((lote) => lote.cantidad > 0)
+                          .sort((a, b) => {
+                            const fechaA = new Date(
+                              a.vencimiento.split("/").reverse().join("-")
+                            );
+                            const fechaB = new Date(
+                              b.vencimiento.split("/").reverse().join("-")
+                            );
+                            return fechaA.getTime() - fechaB.getTime();
+                          })[0]?.vencimiento || "0001-01-01"}
+                      </p>
+                    ) : null}
+                    <Tally1 />
+                    <p>Stock</p>
+                    <p>{item.stock}</p>
+                  </div>
+                )}
+              />
+              <ArticuloInfoCard
+                articulo={hoveredArticulo}
+                isVisible={hoveredArticulo !== null}
+              />
+            </div>
+            <div className="flex flex-col  w-full h-[calc(100%-50px)] overflow-y-auto">
+              <table>
+                <thead className="bg-gray-100">
+                  <tr className="text-md font-bold [&>th]:p-2 [&>th]:text-center [&>th]:border [&>th]:border-gray-200">
+                    <th>Cod. de Barras</th>
+                    <th>Descripcion</th>
+                    <th>Cantidad</th>
+                    <th>V/B</th>
+                    <th>Lote</th>
+                    <th>Vencimiento</th>
+                    <th>Precio U.</th>
+                    <th>Descuento</th>
+                    <th>Exentas</th>
+                    <th>5%</th>
+                    <th>10%</th>
+                    <th>SubTotal</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {itemsParaVenta.map((item) => (
+                    <tr
+                      key={item.deve_articulo}
+                      className="[&>td]:px-2 [&>td]:py-1  [&>td]:border [&>td]:border-gray-200"
+                    >
+                      <td>{item.cod_barra}</td>
+                      <td>
+                        {item.editar_nombre === 1 ? (
+                          <input
+                            className="border rounded-md w-full"
+                            type="text"
+                            value={item.articulo}
+                            onChange={(e) => {
+                              setItemsParaVenta(
+                                itemsParaVenta.map((item) =>
+                                  item.deve_articulo === item.deve_articulo
+                                    ? { ...item, articulo: e.target.value }
+                                    : item
+                                )
+                              );
+                            }}
+                          ></input>
+                        ) : (
+                          item.articulo
+                        )}
+                      </td>
+                      <td className="text-center">{item.deve_cantidad}</td>
+                      <td className="text-center">{item.deve_bonificacion}</td>
+                      <td className="text-center">{item.deve_lote}</td>
+                      <td className="text-center">{item.deve_vencimiento}</td>
+                      <td className="text-right">
+                        <input
+                          type="number"
+                          min="0"
+                          className={`border rounded-md p-1 ${
+                            item.deve_precio !== item.precio_original
+                              ? "bg-yellow-100"
+                              : ""
+                          }`}
+                          value={item.deve_precio}
+                          onChange={(e) => {
+                            const newPrecio = Math.max(
+                              0,
+                              Number(e.target.value)
+                            );
+                            setItemsParaVenta(
+                              itemsParaVenta.map((currentItem) =>
+                                currentItem.deve_articulo === item.deve_articulo
+                                  ? {
+                                      ...currentItem,
+                                      deve_precio: newPrecio,
+                                      // Recalcular los montos de IVA
+                                      deve_exentas:
+                                        currentItem.deve_exentas === 0
+                                          ? 0
+                                          : newPrecio *
+                                            currentItem.deve_cantidad,
+                                      deve_cinco:
+                                        currentItem.deve_cinco === 0
+                                          ? 0
+                                          : newPrecio *
+                                            currentItem.deve_cantidad,
+                                      deve_diez:
+                                        currentItem.deve_diez === 0
+                                          ? 0
+                                          : newPrecio *
+                                            currentItem.deve_cantidad,
+                                    }
+                                  : currentItem
+                              )
+                            );
+                          }}
+                        />
+                      </td>
+                      <td className="text-right">
+                        {formatNumber(item.deve_descuento)}
+                      </td>
+                      <td className="text-right">
+                        {formatNumber(item.deve_exentas)}
+                      </td>
+                      <td className="text-right">
+                        {formatNumber(item.deve_cinco)}
+                      </td>
+                      <td className="text-right">
+                        {formatNumber(item.deve_diez)}
+                      </td>
+                      <td className="text-right">
+                        {formatNumber(
+                          (item.deve_precio -
+                            (item.deve_descuento * item.deve_precio) / 100) *
+                            item.deve_cantidad
+                        )}
+                      </td>
+                      <td className="flex  items-center justify-center">
+                        <button
+                          className="text-red-500"
+                          onClick={() => handleEliminarItem(item)}
+                        >
+                          <Trash />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Box>
+          <Box
+            w={"100%"}
+            h={isMobile ? "20%" : "30%"}
+            shadow="sm"
+            rounded="md"
+            className="flex flex-row gap-2 bg-blue-200"
+          >
+            <div className="flex flex-col-reverse gap-2 p-2 w-full bg-orange-200 m-2 rounded-md">
+              <div className="flex flex-row gap-2 w-full flex-1 items-center">
+                <p className="text-md font-bold">Total exentas:</p>
+                <div className="bg-white px-4 py-2 rounded-md w-1/2 ml-auto">
+                  <p className="text-right text-xl font-bold">
+                    {totalExentasFormateado}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-row gap-2 w-full flex-1 items-center">
+                <p className="text-md font-bold">Total 5%:</p>
+                <div className="bg-white px-4 py-2 rounded-md w-1/2 ml-auto">
+                  <p className="text-right text-xl font-bold">
+                    {totalCincoFormateado}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-row gap-2 w-full flex-1 items-center">
+                <p className="text-md font-bold">Total 10%:</p>
+                <div className="bg-white px-4 py-2 rounded-md w-1/2 ml-auto">
+                  <p className="text-right text-xl font-bold">
+                    {totalDiezFormateado}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 p-2 w-full">
+              <div className="flex flex-row gap-2 w-full flex-1 items-center">
+                <p className="text-md font-bold">Subtotal:</p>
+                <div className="bg-white px-4 py-2 rounded-md w-1/2 ml-auto">
+                  <p className="text-right text-xl font-bold">
+                    {totalPagarFormateado}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-row gap-2 w-full flex-1 items-center">
+                <p className="text-md font-bold">Total desc. por items :</p>
+                <div className="bg-white px-4 py-2 rounded-md w-1/2 ml-auto">
+                  <p className="text-right text-xl font-bold">
+                    {totalDescuentoItemsFormateado}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-row gap-2 w-full flex-1 items-center">
+                <p className="text-md font-bold">Total desc. por factura:</p>
+                <div className="bg-white px-4 py-2 rounded-md w-1/2 ml-auto ">
+                  <p className="text-right text-xl font-bold">
+                    {totalDescuentoFormateado}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 p-2 w-full">
+              <div className="flex flex-row gap-2 w-full flex-1 items-center">
+                <p className="text-md font-bold">Porcentaje de descuento:</p>
+                <div className="bg-white px-4 py-2 rounded-md w-1/2 ml-auto">
+                  <p className="text-right text-xl font-bold">
+                    {porcentajeDescuentoFormateado || 0}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-row gap-2 w-full flex-1 items-center">
+                <p className="text-md font-bold">Total de items vendidos:</p>
+                <div className="bg-white px-4 py-2 rounded-md w-1/2 ml-auto">
+                  <p className="text-right text-xl font-bold">
+                    {totalItemsFormateado}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 p-2 w-full  bg-blue-300  m-2 rounded-md">
+              <div className="flex flex-row gap-2 w-full flex-1 items-center">
+                <p className="text-md font-bold">Total a pagar GS.:</p>
+                <div className=" px-4 py-2 rounded-md w-1/2 ml-auto bg-blue-800">
+                  <p className="text-right text-xl font-bold text-white">
+                    {totalPagarFinalFormateado}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-row gap-2 w-full flex-1 items-center">
+                <p className="text-md font-bold">Total USD:</p>
+                <div className=" px-4 py-2 rounded-md w-1/2 ml-auto bg-blue-800">
+                  <p className="text-right text-xl font-bold text-white">
+                    {totalDolaresFormateado}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-row gap-2 w-full flex-1 items-center">
+                <p className="text-md font-bold">Total BRL:</p>
+                <div className=" px-4 py-2 rounded-md w-1/2 ml-auto bg-blue-800">
+                  <p className="text-right text-xl font-bold text-white">
+                    {totalRealesFormateado}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-row gap-2 w-full flex-1 items-center">
+                <p className="text-md font-bold">Total ARS:</p>
+                <div className=" px-4 py-2 rounded-md w-1/2 ml-auto bg-blue-800">
+                  <p className="text-right text-xl font-bold text-white">
+                    {totalPesosFormateado}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </Box>
+        </Box>
+        <Box
+          display={"flex"}
+          flexDirection={"column"}
+          w={isMobile ? "100%" : "20%"}
+          h={isMobile ? "20%" : "100%"}
+          p={2}
+          bg="white"
+          shadow="sm"
+          rounded="md"
+          gap={2}
+        >
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-row gap-2 items-center justify-center">
+              <input
+                type="checkbox"
+                checked={buscarItemsConStock}
+                onChange={(e) => setBuscarItemsConStock(e.target.checked)}
+              />
+              <p className="text-md font-bold">Buscar items con stock</p>
+            </div>
+            <button className="flex flex-row gap-2 items-center justify-center bg-slate-400 p-2 rounded-md">
+              <FileSearch size={32} color="white" />
+              <p className="text-md font-bold text-white">
+                Calc. Cuota p/Selec.
+              </p>
+            </button>
+            <p className="text-md font-bold">Obs. de venta:</p>
+            <textarea
+              name=""
+              id=""
+              className="w-full h-20 border rounded-md p-2"
+            />
+            <div className="flex flex-col bg-orange-200 p-2  rounded-md gap-2">
+              <p className="text-sm font-bold">Consultar:</p>
+              <div className="flex flex-col gap-2">
+                <div
+                  className="flex flex-row gap-2 items-center p-1 rounded-md bg-white cursor-pointer hover:bg-blue-300 transition-all duration-300"
+                  onClick={() => {
+                    onPedidoModalOpen();
+                  }}
+                >
+                  <FileText />
+                  <p>Pedidos</p>
+                </div>
+                <div
+                  className="flex flex-row gap-2 items-center p-1 rounded-md bg-white cursor-pointer hover:bg-blue-300 transition-all duration-300 "
+                  onClick={() => {
+                    onPresupuestoModalOpen();
+                  }}
+                >
+                  <FileText />
+                  <p>Presupuestos</p>
+                </div>
+                <div
+                  className="flex flex-row gap-2 items-center p-1 rounded-md bg-white cursor-pointer hover:bg-blue-300 transition-all duration-300"
+                  onClick={() => {
+                    onRemisionModalOpen();
+                  }}
+                >
+                  <FileText />
+                  <p>Remisiones</p>
+                </div>
+              </div>
+            </div>
+            <input type="number" />
+          </div>
+          <div className="flex flex-row gap-2 w-full">
+            <button
+              className="bg-blue-400 p-2 rounded-md hover:bg-blue-700 w-full"
+              onClick={() => {
+                if (!clienteSeleccionado) {
+                  toast({
+                    title: "Error",
+                    description: "Por favor, seleccione un cliente primero",
+                    status: "error",
+                    duration: 3000,
+                    isClosable: true,
+                  });
+                  return;
+                }
+                onOpenConsultaVentas();
+              }}
+            >
+              <p className="text-white font-bold flex flex-row gap-2 items-center justify-center">
+                <Coins size={24} /> Consultar ventas del cliente
+              </p>
+            </button>
+          </div>
+          <div className="flex flex-row gap-2 ">
+            <button
+              onClick={handleCancelarVenta}
+              className="flex flex-row gap-2 items-center justify-center w-full bg-red-600 p-2 rounded-md hover:bg-red-700"
+            >
+              <p className="text-white font-bold">Cancelar </p>
+              <X size={24} className="text-white" />
+            </button>
+            <button
+              onClick={() => {
+                try {
+                  onKCOpen();
+                } catch (error) {
+                  toast({
+                    title: "Error",
+                    description: "Error al finalizar la venta",
+                    status: "error",
+                  });
+                }
+              }}
+              className="flex flex-row gap-2 items-center justify-center w-full bg-blue-600 p-2 rounded-md hover:bg-blue-700"
+            >
+              <p className="text-white font-bold">Guardar </p>
+              <CassetteTape size={24} className="text-white" />
+            </button>
+          </div>
+        </Box>
+      </Box>
+      <Modal
+        isOpen={isConsultaVentasOpen}
+        onClose={onCloseConsultaVentas}
+        size="6xl"
+      >
+        <ModalOverlay />
+        <ModalContent maxW="90vw" maxH="90vh">
+          <ModalBody p={0} className="overflow-y-auto">
+            <ResumenVentasCliente
+              cliente={clienteSeleccionado!}
+              onClose={onCloseConsultaVentas}
+            />
+          </ModalBody>
+        </ModalContent>
+      </Modal>
+      <Modal isOpen={isKCOpen} onClose={onCloseKCOpen} size="3xl">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Finalizar Venta</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <div className="flex flex-col gap-4">
+              {/* Tipo de Documento */}
+              <div className="flex flex-col gap-2">
+                <p className="font-bold">Tipo de Documento</p>
+                <div className="flex gap-4">
+                  <button
+                    className={`px-4 py-2 rounded-md ${
+                      opcionesFinalizacion.tipo_documento === "TICKET"
+                        ? "bg-blue-500 text-white"
+                        : "bg-gray-200"
+                    }`}
+                    onClick={() => {
+                      setOpcionesFinalizacion({
+                        ...opcionesFinalizacion,
+                        tipo_documento: "TICKET",
+                      });
+                      setImprimirFactura(false);
+                      setImprimirTicket(true);
+                    }}
+                  >
+                    Nota Comun
+                  </button>
+                  <button
+                    className={`px-4 py-2 rounded-md ${
+                      opcionesFinalizacion.tipo_documento === "FACTURA"
+                        ? "bg-blue-500 text-white"
+                        : "bg-gray-200"
+                    }`}
+                    onClick={() => {
+                      setOpcionesFinalizacion({
+                        ...opcionesFinalizacion,
+                        tipo_documento: "FACTURA",
+                      });
+                      setImprimirFactura(true);
+                      setImprimirTicket(false);
+                    }}
+                  >
+                    Factura
+                  </button>
+
+                  <div className="flex flex-row gap-2 items-center">
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4"
+                      checked={imprimirFactura}
+                      onChange={(e) => setImprimirFactura(e.target.checked)}
+                      disabled={
+                        opcionesFinalizacion.tipo_documento === "TICKET"
+                      }
+                    />
+                    <p className="text-md font-bold">Impr. factura</p>
+                  </div>
+                  <div className="flex flex-row gap-2 items-center">
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4"
+                      checked={imprimirTicket}
+                      onChange={(e) => setImprimirTicket(e.target.checked)}
+                      disabled={
+                        opcionesFinalizacion.tipo_documento === "FACTURA"
+                      }
+                    />
+                    <p className="text-md font-bold">Impr. ticket</p>
+                  </div>
+                  <div className="flex flex-row gap-2 items-center">
+                    <input
+                      type="checkbox"
+                      className="w-4 h-4"
+                      checked={imprimirNotaInterna}
+                      onChange={(e) => setImprimirNotaInterna(e.target.checked)}
+                    />
+                    <p className="text-md font-bold">Impr. nota interna</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Campos de Factura */}
+              {opcionesFinalizacion.tipo_documento === "FACTURA" && (
+                <div className="flex flex-row gap-4 p-4 bg-blue-100 rounded-md">
+                  <div className="flex flex-col gap-2 w-1/2">
+                    <p className="font-bold">Timbrado</p>
+                    <input
+                      type="text"
+                      className="border rounded-md p-2"
+                      value={opcionesFinalizacion.timbrado || ""}
+                      onChange={(e) =>
+                        setOpcionesFinalizacion({
+                          ...opcionesFinalizacion,
+                          timbrado: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2 w-1/2">
+                    <p className="font-bold">Número de Factura</p>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        className="border rounded-md p-2 w-16 text-center"
+                        maxLength={3}
+                        value={
+                          opcionesFinalizacion.nro_establecimiento
+                            ?.toString()
+                            .padStart(3, "0") || ""
+                        }
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, "");
+                          setOpcionesFinalizacion({
+                            ...opcionesFinalizacion,
+                            nro_establecimiento: value
+                              ? parseInt(value)
+                              : undefined,
+                          });
+                        }}
+                        placeholder="000"
+                      />
+                      <span className="flex items-center">-</span>
+                      <input
+                        type="text"
+                        className="border rounded-md p-2 w-16 text-center"
+                        maxLength={3}
+                        value={
+                          opcionesFinalizacion.nro_emision
+                            ?.toString()
+                            .padStart(3, "0") || ""
+                        }
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, "");
+                          setOpcionesFinalizacion({
+                            ...opcionesFinalizacion,
+                            nro_emision: value ? parseInt(value) : undefined,
+                          });
+                        }}
+                        placeholder="000"
+                      />
+                      <span className="flex items-center">-</span>
+                      <input
+                        type="text"
+                        className="border rounded-md p-2 w-28 text-center"
+                        maxLength={7}
+                        value={
+                          opcionesFinalizacion.nro_factura
+                            ?.toString()
+                            .padStart(7, "0") || ""
+                        }
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, "");
+                          setOpcionesFinalizacion({
+                            ...opcionesFinalizacion,
+                            nro_factura: value,
+                          });
+                        }}
+                        placeholder="0000000"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Tipo de Venta */}
+              <div className="flex flex-col gap-2">
+                <p className="font-bold">Tipo de Venta</p>
+                <div className="flex gap-4">
+                  <button
+                    className={`px-4 py-2 rounded-md ${
+                      opcionesFinalizacion.tipo_venta === "CONTADO"
+                        ? "bg-blue-500 text-white"
+                        : "bg-gray-200"
+                    }`}
+                    onClick={() =>
+                      setOpcionesFinalizacion({
+                        ...opcionesFinalizacion,
+                        tipo_venta: "CONTADO",
+                        cantidad_cuotas: undefined,
+                        entrega_inicial: undefined,
+                      })
+                    }
+                  >
+                    Contado
+                  </button>
+                  <button
+                    className={`px-4 py-2 rounded-md ${
+                      opcionesFinalizacion.tipo_venta === "CREDITO"
+                        ? "bg-blue-500 text-white"
+                        : "bg-gray-200"
+                    }`}
+                    onClick={() =>
+                      setOpcionesFinalizacion({
+                        ...opcionesFinalizacion,
+                        tipo_venta: "CREDITO",
+                      })
+                    }
+                  >
+                    Crédito
+                  </button>
+                </div>
+              </div>
+
+              {opcionesFinalizacion.tipo_venta === "CREDITO" && (
+                <div className="flex flex-col gap-2">
+                  <div className="flex flex-row gap-2 justify-between bg-blue-200 p-2 rounded-md">
+                    <div className="flex flex-col gap-2">
+                      <p className="text-md font-bold">Limite de crédito</p>
+                      <div className=" font-bold bg-white p-2 rounded-md text-right">
+                        {clienteSeleccionado?.cli_limitecredito}
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <p className="text-md font-bold">Deuda actual</p>
+                      <div className="text-red-600 font-bold bg-white p-2 rounded-md text-right">
+                        {clienteSeleccionado?.deuda_actual}
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <p className="text-md font-bold">Credito disponible</p>
+                      <div className="text-green-600 font-bold bg-white p-2 rounded-md text-right">
+                        {clienteSeleccionado?.credito_disponible}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="flex flex-col gap-4 p-4 bg-blue-50 rounded-md w-1/2">
+                      <div className="flex flex-col gap-2">
+                        <p className="font-bold">Cantidad de Cuotas</p>
+                        <input
+                          type="number"
+                          disabled={
+                            !clienteSeleccionado?.cli_limitecredito ||
+                            clienteSeleccionado.cli_limitecredito <= 0
+                          }
+                          className="border rounded-md p-2"
+                          value={opcionesFinalizacion.cantidad_cuotas || ""}
+                          onChange={(e) =>
+                            setOpcionesFinalizacion({
+                              ...opcionesFinalizacion,
+                              cantidad_cuotas: parseInt(e.target.value),
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <p className="font-bold">Entrega Inicial</p>
+                        <input
+                          type="number"
+                          className="border rounded-md p-2"
+                          value={opcionesFinalizacion.entrega_inicial || ""}
+                          disabled={
+                            !clienteSeleccionado?.cli_limitecredito ||
+                            clienteSeleccionado.cli_limitecredito <= 0
+                          }
+                          onChange={(e) =>
+                            setOpcionesFinalizacion({
+                              ...opcionesFinalizacion,
+                              entrega_inicial: parseInt(e.target.value),
+                            })
+                          }
+                        />
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <p className="font-bold">Vencimiento</p>
+                        <input
+                          type="date"
+                          className="border rounded-md p-2"
+                          disabled={
+                            !clienteSeleccionado?.cli_limitecredito ||
+                            clienteSeleccionado.cli_limitecredito <= 0
+                          }
+                          value={
+                            opcionesFinalizacion.fecha_vencimiento_timbrado ||
+                            ""
+                          }
+                          onChange={(e) =>
+                            setOpcionesFinalizacion({
+                              ...opcionesFinalizacion,
+                              fecha_vencimiento_timbrado: e.target.value,
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
+
+                    {/* Tabla de Cuotas */}
+                    <div className="w-1/2 p-4 bg-blue-100 rounded-md">
+                      <p className="font-bold mb-2">Plan de Pagos</p>
+                      <div className="overflow-auto max-h-[300px]">
+                        <table className="w-full bg-white">
+                          <thead className="bg-gray-100">
+                            <tr>
+                              <th className="p-2 text-left">Fecha</th>
+                              <th className="p-2 text-right">Monto</th>
+                              <th className="p-2 text-right">Saldo</th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white border-2 border-gray-300 overflow-auto">
+                            {cuotasList.map((cuota, index) => (
+                              <tr key={index} className="border-b">
+                                <td className="p-2">{cuota.fecha}</td>
+                                <td className="p-2 text-right">
+                                  {formatNumber(cuota.valor)}
+                                </td>
+                                <td className="p-2 text-right">
+                                  {formatNumber(cuota.saldo)}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Campos de Crédito */}
+
+              {configuraciones[54].valor === "1" && (
+                <div className="flex flex-col gap-2">
+                  <div className="flex gap-4">
+                    <p className="font-bold">Metodo de pago</p>
+                    <select
+                      name=""
+                      id=""
+                      value={metodoPagoSeleccionado?.me_codigo}
+                      onChange={(e) =>
+                        setMetodoPagoSeleccionado(
+                          metodosPago.find(
+                            (metodo) =>
+                              metodo.me_codigo === Number(e.target.value)
+                          ) || null
+                        )
+                      }
+                    >
+                      {metodosPago.map((metodo) => (
+                        <option value={metodo.me_codigo}>
+                          {metodo.me_descripcion}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex flex-row gap-4 bg-blue-200 p-2 rounded-md">
+                    <div className="flex flex-col gap-2 w-1/2">
+                      <div>
+                        <p className="font-bold text-lg">Monto total:</p>
+                        <input
+                          type="number"
+                          value={totalPagarFinal}
+                          readOnly
+                          className="border rounded-md p-2 text-right bg-white w-full text-black font-bold text-2xl"
+                        />
+                      </div>
+                      <div>
+                        <p className="font-bold text-lg">Monto entregado:</p>
+                        <input
+                          type="number"
+                          value={montoEntregado}
+                          onChange={(e) =>
+                            setMontoEntregado(Number(e.target.value))
+                          }
+                          className="border rounded-md p-2 text-right bg-white w-full text-black font-bold text-2xl"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2 w-1/2">
+                      <div>
+                        <p className="font-bold text-lg">Monto faltante:</p>
+                        <input
+                          type="number"
+                          readOnly
+                          value={
+                            montoEntregado - totalPagarFinal < 0
+                              ? montoEntregado - totalPagarFinal
+                              : 0
+                          }
+                          className="border rounded-md p-2 text-right bg-white w-full text-black font-bold text-2xl"
+                        />
+                      </div>
+                      <div>
+                        <p className="font-bold text-lg">Cambio:</p>
+                        <input
+                          type="number"
+                          value={
+                            totalPagarFinal - montoEntregado < 0
+                              ? totalPagarFinal - montoEntregado
+                              : 0
+                          }
+                          readOnly
+                          className="border rounded-md p-2 text-right bg-white w-full text-black font-bold text-2xl"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Observación */}
+              <div className="flex flex-col gap-2">
+                <p className="font-bold">Observación</p>
+                <textarea
+                  className="border rounded-md p-2"
+                  value={opcionesFinalizacion.observacion || ""}
+                  onChange={(e) =>
+                    setOpcionesFinalizacion({
+                      ...opcionesFinalizacion,
+                      observacion: e.target.value,
+                    })
+                  }
+                />
+              </div>
+            </div>
+          </ModalBody>
+          <ModalFooter>
+            <Button colorScheme="blue" mr={3} onClick={finalizarVenta}>
+              Finalizar Venta
+            </Button>
+            <Button variant="ghost" onClick={onCloseKCOpen}>
+              Cancelar
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+      <Modal
+        isOpen={isImpresionTicketOpen}
+        onClose={onImpresionTicketClose}
+        size="full"
+      >
+        <ModalOverlay />
+        <ModalContent>
+          <ModalCloseButton />
+          <ModalHeader>Impresión de Ticket</ModalHeader>
+          <ModalBody>
+            <ModeloTicket id_venta={134812} onImprimir={imprimirTicketPDF} />
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              colorScheme="blue"
+              onClick={() => {
+                setImprimirTicketPDF(true);
+              }}
+            >
+              Imprimir
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+      <Modal
+        isOpen={isImpresionFacturaOpen}
+        onClose={onImpresionFacturaClose}
+        size="full"
+      >
+        <ModalOverlay />
+        <ModalContent>
+          <ModalCloseButton />
+          <ModalHeader>Impresión de Factura</ModalHeader>
+          <ModalBody>
+            <ModeloFactura id_venta={134812} onImprimir={imprimirFacturaPDF} />
+          </ModalBody>
+          <ModalFooter>
+            <Button
+              colorScheme="blue"
+              onClick={() => setImprimirFacturaPDF(true)}
+            >
+              Imprimir
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+      <PedidoModal isOpen={isPedidoModalOpen} onClose={onPedidoModalClose} />
+    </Box>
+  );
+};
+
+export default VentaBalconNuevo;

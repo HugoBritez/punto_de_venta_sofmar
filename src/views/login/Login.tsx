@@ -23,6 +23,7 @@ import Auditar from '@/services/AuditoriaHook';
 import logoSofmar from '@/assets/logos/logo_sofmar.png';
 import bgLogin from '@/assets/bg/login_bg.jpg';
 // import { traerConfiguraciones } from '@/services/ConfiguracionesHook';
+import { getConfiguraciones } from '@/services/ConfiguracionesHook';
 
 const Login: React.FC = () => {
   const [usuario, setUsuario] = useState('');
@@ -43,12 +44,11 @@ const Login: React.FC = () => {
 
       // const permisosData = await traerConfiguraciones();
       // setPermisos(permisosData);
-
       login(response.data.body);
       sessionStorage.setItem('permiso_graficos', response.data.body.usuario[0].op_graficos);
       navigate('/home');
       Auditar(10, 4, userID, 0, 'Inicio de Sesión desde la web');
-      // traerConfiguraciones()
+      getConfiguraciones();
     } catch (error) {
       console.error('Login error:', error);
       toast({

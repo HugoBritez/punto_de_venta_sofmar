@@ -32,47 +32,6 @@ import { Moneda, Sucursal, Vendedor } from "@/types/shared_interfaces";
 import FloatingCard from "@/modules/FloatingCard";
 import ConfirmationModal from "@/modules/ConfirmModal";
 
-interface Pedidos {
-  codigo: number;
-  codcliente: number;
-  cliente: string;
-  moneda: string;
-  fecha: string;
-  codsucursal: number;
-  sucursal: string;
-  vendedor: string;
-  operador: string;
-  total: number;
-  descuento: number;
-  saldo: number;
-  condicion: string;
-  vencimiento: string;
-  factura: string;
-  obs: string;
-  estado: number;
-  estado_desc: string;
-  area_actual: string;
-  area_sgte: string;
-}
-
-interface DetallePedidos {
-  det_codigo: number;
-  art_codigo: number;
-  codbarra: string;
-  descripcion: string;
-  cantidad: number;
-  precio: number;
-  descuento: number;
-  exentas: number;
-  cinco: number;
-  diez: number;
-  codlote: string;
-  lote: string;
-  ar_editar_desc: number;
-  costo: number;
-  precio_compra: number;
-  bonificacion: number;
-}
 
 interface PedidosNuevo {
   pedido_id: number;
@@ -132,16 +91,15 @@ interface Cliente {
 
 
 interface ConsultaPedidosProps {
-  onSelectPedido?: (pedido: Pedidos, detalles: DetallePedidos[]) => void;
+  onSelectPedido?: (pedido: PedidosNuevo) => void; // Cambiamos a PedidosNuevo
   onClose?: () => void;
   isModal?: boolean;
   clienteSeleccionado?: Cliente | null;
 }
 
 export default function ConsultaPedidos({
-  // onSelectPedido,
-  // onClose,
-  // isModal = false,
+   onSelectPedido,
+   isModal = false,
   clienteSeleccionado,
 }: ConsultaPedidosProps) {
   const [fechaDesde, setFechaDesde] = useState(
@@ -155,10 +113,6 @@ export default function ConsultaPedidos({
   const [isMobile] = useMediaQuery("(max-width: 48em)");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { isSwitchOn } = useSwitch();
-
-  // const permisoDeAutorizacion = Number(
-  //   sessionStorage.getItem("permisos_autorizar_pedido")
-  // );
 
   const verUtilidad = Number(sessionStorage.getItem("permiso_ver_utilidad"));
 
@@ -615,7 +569,7 @@ export default function ConsultaPedidos({
               </InputLeftElement>
               <Input
                 placeholder="Filtrar por cliente"
-                value={clienteBusqueda || ""}
+                value={ clienteBusqueda || ""}
                 onChange={(e) => handleBusquedaCliente(e.target.value)}
                 onClick={() => {
                   setIsFloatingCardVisibleCliente(true);
@@ -701,7 +655,10 @@ export default function ConsultaPedidos({
                             : `border border-gray-200 hover:bg-gray-200 cursor-pointer [&>td]:px-2 [&>td]:border-r [&>td]:border-gray-200
                   ${setColor(pedido.estado, pedido.imprimir)}`
                         }
-                        onClick={() => handleSelectPedido(pedido)}
+                        onClick={() => {
+                          handleSelectPedido(pedido);
+                          setPedidoSeleccionado(pedido);
+                        }}
                       >
                         <td>{pedido.pedido_id}</td>
                         <td>{pedido.cliente}</td>
@@ -715,6 +672,23 @@ export default function ConsultaPedidos({
                         <td>{pedido.condicion}</td>
                         <td>{pedido.operador}</td>
                         <td>{pedido.deposito}</td>
+                        {isModal && (
+                          <td className="p-2">
+                            <Button
+                              isDisabled={pedido.area != "Ventas"}
+                              colorScheme="blue"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (onSelectPedido) {
+                                  onSelectPedido(pedido);
+                                }
+                              }}
+                            >
+                              Convertir a Venta
+                            </Button>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>

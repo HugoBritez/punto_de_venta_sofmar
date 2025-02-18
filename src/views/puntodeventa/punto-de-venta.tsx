@@ -3625,8 +3625,6 @@ export default function PuntoDeVenta() {
               <ModalCloseButton />
               <ModalBody>
                 <ResumenVentas
-                  clienteSeleccionado={clienteSeleccionado}
-                  onCloseVenta={onVentaClose}
                   isModal={true}
                   onSelectVenta={handleSelectVentaBalcon}
                 />

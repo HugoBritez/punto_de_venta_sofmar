@@ -2270,7 +2270,7 @@ export default function Pedidos() {
           <ModalContent>
             <ModalCloseButton />
             <ModalBody>
-              <ResumenVentas clienteSeleccionado={clienteSeleccionado} />
+              <ResumenVentas/>
             </ModalBody>
           </ModalContent>
         </Modal>

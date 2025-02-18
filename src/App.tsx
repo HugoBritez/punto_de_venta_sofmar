@@ -46,7 +46,9 @@ import ConsultaArticulos from "./views/inventario/consulta-de-articulos";
 import AutorizacionAjusteStock from "./views/inventario/autorizacion-ajuste-stock";
 import PreparacionPedido from "./views/entregas/preparacionPedido";
 import VerificacionPedidos from "./views/entregas/VerificacionPedidos";
-
+import VentaBalconNuevo from "./views/puntodeventa/VentaBalcon";
+import ModeloTicket from "./views/facturacion/ModeloTicket";
+import ModeloFactura from "./views/facturacion/ModeloFactura";
 const ProtectedLayout: React.FC = () => {
   const { auth, isLoading } = useAuth();
   const [isLargerThan768] = useMediaQuery("(min-width: 768px)");
@@ -89,21 +91,42 @@ function App() {
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route element={<ProtectedLayout />}>
-                <Route path="/consulta-de-articulos" element={<ConsultaArticulos />} />
-                <Route path="/autorizacion-ajuste-stock" element={<AutorizacionAjusteStock />} />
+                <Route
+                  path="/consulta-de-articulos"
+                  element={<ConsultaArticulos />}
+                />
+                <Route
+                  path="/autorizacion-ajuste-stock"
+                  element={<AutorizacionAjusteStock />}
+                />
                 <Route path="/home" element={<Home />} />
                 <Route
                   path="/ruteamiento-de-pedidos"
                   element={<RuteamientoPedidos />}
                 />
                 <Route path="/entrega-de-pedidos" element={<Entregas />} />
-                <Route path="/preparacion-de-pedido" element={<PreparacionPedido />} />
+                <Route
+                  path="/ticket"
+                  element={<ModeloTicket  />}
+                />
+                <Route
+                  path="/factura"
+                  element={<ModeloFactura />}
+                />
+                <Route
+                  path="/preparacion-de-pedido"
+                  element={<PreparacionPedido />}
+                />
                 <Route
                   path="/informe-de-entregas"
                   element={<InformeEntregas />}
                 />
                 <Route path="/cobros" element={<CobrosDiarios />} />
                 <Route path="/venta-balcon" element={<VentaBalcon />} />
+                <Route
+                  path="/venta-balcon-nuevo"
+                  element={<VentaBalconNuevo />}
+                />
                 <Route path="/punto-de-venta" element={<PuntoDeVenta />} />
 
                 <Route path="/venta-rapida" element={<VentaRapida />} />
@@ -134,7 +157,6 @@ function App() {
                 <Route path="/dashboard" element={<VentasDashboard />} />
                 <Route path="/presupuestos" element={<Presupuestos />} />
                 <Route
-
                   path="/consulta-de-presupuestos"
                   element={<ConsultaPresupuestos />}
                 />
@@ -149,7 +171,10 @@ function App() {
                   path="/consultar-pedidos"
                   element={<ConsultaPedidos />}
                 />
-                <Route path="/verificacion-de-pedidos" element={<VerificacionPedidos />} />
+                <Route
+                  path="/verificacion-de-pedidos"
+                  element={<VerificacionPedidos />}
+                />
               </Route>
               <Route path="/" element={<Navigate to="/home" replace />} />
               <Route path="/404" element={<NoExiste />} />

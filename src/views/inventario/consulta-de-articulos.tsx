@@ -344,7 +344,7 @@ useEffect(() => {
             {/* ########## FILTROS ########## */}
             <div
               className={
-                "flex flex-col p-2 border border-gray-300 bg-white rounded-md h-[15%] py-4 justify-between"
+                "flex flex-col p-2 border border-gray-300 bg-gray-200 rounded-md h-[15%] py-4 justify-between"
               }
             >
               <div
@@ -357,7 +357,7 @@ useEffect(() => {
                       : "flex flex-row gap-2 items-center flex-1"
                   }
                 >
-                  <p className="font-bold text-gray-500 text-lg">Sucursal:</p>
+                  <p className="font-bold  text-lg">Sucursal:</p>
                   <Select
                     onChange={(e) =>
                       setSucursalSeleccionada(
@@ -381,7 +381,7 @@ useEffect(() => {
                       : "flex flex-row gap-2 items-center flex-1"
                   }
                 >
-                  <p className="font-bold text-gray-500 text-lg">Depósito:</p>
+                  <p className="font-bold  text-lg">Depósito:</p>
                   <Select
                     onChange={(e) =>
                       setDepositoSeleccionado(
@@ -409,7 +409,7 @@ useEffect(() => {
                       : "flex flex-row gap-2 items-center flex-1"
                   }
                 >
-                  <p className="font-bold text-gray-500 text-lg">Moneda:</p>
+                  <p className="font-bold  text-lg">Moneda:</p>
                   <Select
                     onChange={(e) =>
                       setMonedaSeleccionada(
@@ -435,8 +435,8 @@ useEffect(() => {
                   <p
                     className={
                       isMobile
-                        ? " font-bold text-gray-500 text-lg py-4"
-                        : "font-bold text-gray-500 text-lg"
+                        ? " font-bold  text-lg py-4"
+                        : "font-bold  text-lg"
                     }
                   >
                     Mostrar todos los articulos
@@ -447,6 +447,7 @@ useEffect(() => {
                 placeholder="Buscar"
                 onChange={handleBusqueda}
                 className="w-full"
+                bg={"white"}
               />
             </div>
             {/* ########## TABLA ########## */}

@@ -372,6 +372,7 @@ export default function VentaBalcon() {
     }
   };
 
+
   useEffect(() => {
     if (isFinalizarVentaModalOpen) {
       obtenerTimbrado();
@@ -381,7 +382,6 @@ export default function VentaBalcon() {
 
   useEffect(() => {
     // traerListaPrecios
-
     const fetchListasPrecios = async () => {
       try {
         const response = await axios.get(`${api_url}listasprecios/`);

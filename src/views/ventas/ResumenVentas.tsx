@@ -5,20 +5,7 @@ import {
   VStack,
   Heading,
   Input,
-  Table,
-  Thead,
-  Tbody,
-  Tr,
-  Th,
-  Td,
   useToast,
-  Tabs,
-  TabList,
-  Tab,
-  HStack,
-  InputGroup,
-  InputLeftElement,
-  Collapse,
   Button,
   Flex,
   useMediaQuery,
@@ -33,19 +20,24 @@ import {
   FormLabel,
   Select,
   Textarea,
-  Spinner,
+  Switch,
 } from "@chakra-ui/react";
-import { format, subDays, startOfWeek, startOfMonth } from "date-fns";
+import { format } from "date-fns";
 import { api_url } from "@/utils";
-import { SearchIcon } from "@chakra-ui/icons";
-import { Dot, HandCoins, Printer, ShoppingBag } from "lucide-react";
-import VentaModal from "./imprimirVenta";
+import {
+  HandCoins,
+  X,
+  Search,
+  Trash,
+  Printer,
+  Filter,
+} from "lucide-react";
 import { useAuth } from "@/services/AuthContext";
 import Auditar from "@/services/AuditoriaHook";
-import { Tooltip } from "@chakra-ui/react";
 import { debounce } from "lodash";
-
-
+import { Vendedor, Cliente, Moneda, Sucursal, ArticulosDirecta } from "@/types/shared_interfaces";
+import FloatingCard from "@/modules/FloatingCard";
+import UltimaVenta from "./ultimaVenta";
 
 interface Venta {
   codigo: number;
@@ -67,6 +59,14 @@ interface Venta {
   estado: number;
   estado_desc: string;
   obs_anulacion: string;
+  terminal: string;
+  exentas_total: number;
+  descuento_total: number;
+  iva5_total: number;
+  iva10_total: number;
+  sub_total: number;
+  total_articulos: number;
+  total_neto: number;
 }
 
 interface DetalleVenta {
@@ -83,23 +83,14 @@ interface DetalleVenta {
   diez: number;
   lote: string;
   vencimiento: string;
+  largo: string;
+  ancho: string;
+  altura: string;
+  mt2: string;
 }
 
-interface Cliente {
-  cli_codigo: number;
-  cli_interno: number;
-  cli_razon: string;
-  cli_ruc: string;
-  cli_limitecredito: number;
-}
 
-const periodos = [
-  { label: "Hoy", value: "hoy" },
-  { label: "Ayer", value: "ayer" },
-  { label: "Últimos 3 Días", value: "tresDias" },
-  { label: "Esta Semana", value: "semana" },
-  { label: "Este Mes", value: "mes" },
-];
+
 
 interface ConsultaDeVentasProps {
   clienteSeleccionado?: Cliente | null;
@@ -112,7 +103,6 @@ export default function ResumenVentas({
   clienteSeleccionado,
   onSelectVenta,
   onCloseVenta,
-  isModal = false,
 }: ConsultaDeVentasProps) {
   const [ventas, setVentas] = useState<Venta[]>([]);
   const [fechaDesde, setFechaDesde] = useState(
@@ -121,10 +111,6 @@ export default function ResumenVentas({
   const [fechaHasta, setFechaHasta] = useState(
     format(new Date(), "yyyy-MM-dd")
   );
-  const [periodoSeleccionado, setPeriodoSeleccionado] = useState(0);
-  const [vendedorFiltro, setVendedorFiltro] = useState("");
-  const [clienteFiltro, setClienteFiltro] = useState("");
-  const [facturaFiltro, setFacturaFiltro] = useState("");
   const [detalleVenta, setDetalleVenta] = useState<DetalleVenta[]>([]);
   const [ventaSeleccionada, setVentaSeleccionada] = useState<number | null>(
     null
@@ -132,10 +118,8 @@ export default function ResumenVentas({
   const [, setIsLoading] = useState(false);
   const toast = useToast();
   const [isMobile] = useMediaQuery("(max-width: 48em)");
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [saleID, setSaleID] = useState<number | null>(null);
   const { auth } = useAuth();
-  const [estadoVenta, setEstadoVenta] = useState<number>(3);
   const [obsAnulacion, setObsAnulacion] = useState<string>("");
   const [, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -143,61 +127,105 @@ export default function ResumenVentas({
   const observerTarget = useRef(null);
   const DEBOUNCE_DELAY = 300;
 
-  const scrollbarStyles = {
-    "&::-webkit-scrollbar": {
-      width: "4px",
-      height: "8px",
-      backgroundColor: "#f5f5f5",
-      "&:hover": {
-        width: "12px",
-      },
-    },
-    "&::-webkit-scrollbar-thumb": {
-      backgroundColor: "#3182ce", 
-      borderRadius: "4px",
-      "&:hover": {
-        backgroundColor: "#2b6cb0", 
-        width: "12px",
-      },
-    },
-    "&::-webkit-scrollbar-track": {
-      backgroundColor: "#e2e8f0", 
-      borderRadius: "4px",
-    },
-  };
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [clienteSeleccionadoFiltro, setClienteSeleccionadoFiltro] = useState<Cliente | null>(null);
+  const [vendedores, setVendedores] = useState<Vendedor[]>([]);
+  const [vendedorSeleccionadoFiltro, setVendedorSeleccionadoFiltro] = useState<Vendedor | null>(null);
+  const [monedas, setMonedas] = useState<Moneda[]>([]);
+  const [monedaSeleccionadaFiltro, setMonedaSeleccionadaFiltro] = useState<Moneda | null>(null);
+  const [sucursales, setSucursales] = useState<Sucursal[]>([]);
+  const [sucursalSeleccionadaFiltro, setSucursalSeleccionadaFiltro] = useState<Sucursal | null>(null);
+  const [articulos, setArticulos] = useState<ArticulosDirecta[]>([]);
+  const [articuloSeleccionadoFiltro, setArticuloSeleccionadoFiltro] = useState<ArticulosDirecta | null>(null);
+  const [factura, setFactura] = useState<string>("");
+  const [estadoVenta, setEstadoVenta] = useState<number>(3);
+  const [venta, setVenta] = useState<string>("");
+  const [isVisibleArticulo, setIsVisibleArticulo] = useState(false);
+  const [isVisibleCliente, setIsVisibleCliente] = useState(false);
+  const [isVisibleVendedor, setIsVisibleVendedor] = useState(false);
+  const [incluirRemisiones, setIncluirRemisiones] = useState(false);
+  const [listarFacturasSinCDC, setListarFacturasSinCDC] = useState(false);
 
+  const [busquedaArticulo, setBusquedaArticulo] = useState("");
+  const [busquedaCliente, setBusquedaCliente] = useState("");
+  const [busquedaVendedor, setBusquedaVendedor] = useState("");
+
+  const [ventaSeleccionadaInterna, setVentaSeleccionadaInterna] = useState<Venta | null>(null);
+
+  const [mostrarFiltros, setMostrarFiltros] = useState(false);
+
+
+  const setColor = (estado: string | number) => {
+    if (estado === 0) {
+      return "bg-pink-200";
+    }
+    return "bg-white";
+  }
+  
+
+    const fetchArticulosDirecta = async (busqueda: string) => {
+      try {
+        const response = await axios.get(`${api_url}articulos/directa`, {
+          params: {
+            busqueda,
+          },
+        });
+        setArticulos(response.data.body);
+      } catch (error) {}
+    };
+
+    const fetchSucursales = async () => {
+      const response = await axios.get(`${api_url}sucursales/listar`);
+      setSucursales(response.data.body);
+      setSucursalSeleccionadaFiltro(response.data.body[0]);
+    };
+
+    const fetchClientes = async (busqueda: string) => {
+      const response = await axios.get(`${api_url}clientes/get-clientes`, {
+        params: {
+          buscar: busqueda,
+        },
+      });
+      setClientes(response.data.body);
+      setClienteSeleccionadoFiltro(response.data.body[0]);
+    };
+    
+    const fetchVendedores = async (busqueda: string) => {
+      const response = await axios.get(`${api_url}usuarios/vendedores`, {
+        params: {
+          buscar: busqueda,
+        },
+      });
+      setVendedores(response.data.body);
+      setVendedorSeleccionadoFiltro(response.data.body[0]);
+    };
+
+    const fetchMonedas = async () => {
+      const response = await axios.get(`${api_url}monedas/`);
+      setMonedas(response.data.body);
+      setMonedaSeleccionadaFiltro(response.data.body[0]);
+    };
+      
+    
   const {
     isOpen: isAdvertenciaModalOpen,
     onOpen: handleOpenAdvertenciaModal,
     onClose: handleCLoseAdvertenciaModal,
   } = useDisclosure();
 
-  const debouncedVendedorChange = useCallback(
-    debounce((value: string) => {
-      setVendedorFiltro(value);
-    }, DEBOUNCE_DELAY),
-    []
-  );
-
-  const debouncedClienteChange = useCallback(
-    debounce((value: string) => {
-      setClienteFiltro(value); 
-    }, DEBOUNCE_DELAY),
-    []
-  );
 
   const debouncedEstadoChange = useCallback(
-    debounce((value: string)=> {
+    debounce((value: string) => {
       setEstadoVenta(Number(value));
     }, DEBOUNCE_DELAY),
     []
-  )
+  );
 
   useEffect(() => {
+    fetchSucursales();
+    fetchMonedas();
     fetchVentas(1, false);
-  }, [fechaDesde, fechaHasta, estadoVenta]);
-
-  
+  }, []);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -220,7 +248,6 @@ export default function ResumenVentas({
     return () => observer.disconnect();
   }, [hasMore, isLoadingMore]);
 
-
   const fetchVentas = async (pageNum = 1, append = false) => {
     setIsLoadingMore(pageNum > 1);
     setIsLoading(pageNum === 1);
@@ -229,17 +256,20 @@ export default function ResumenVentas({
       const response = await axios.post(`${api_url}venta/consultas`, {
         fecha_desde: fechaDesde,
         fecha_hasta: fechaHasta,
-        sucursal: "",
+        sucursal: sucursalSeleccionadaFiltro?.id,
         cliente: clienteSeleccionado
           ? clienteSeleccionado.cli_codigo
-          : clienteFiltro,
-        vendedor: vendedorFiltro,
-        articulo: "",
-        moneda: "",
-        factura: facturaFiltro,
+          : clienteSeleccionadoFiltro?.cli_codigo,
+        vendedor: vendedorSeleccionadoFiltro?.id,
+        articulo: articuloSeleccionadoFiltro?.id,
+        moneda: monedaSeleccionadaFiltro?.mo_codigo,
+        factura: factura,
+        venta: venta,
         estadoVenta,
+        incluirRemisiones,
+        listarFacturasSinCDC,
         page: pageNum,
-        itemsPorPagina: 20,
+        itemsPorPagina: 50,
       });
 
       const newVentas = response.data.body;
@@ -266,7 +296,6 @@ export default function ResumenVentas({
     }
   };
 
-
   const fetchDetalleVenta = async (codigo: number) => {
     setIsLoading(true);
     try {
@@ -288,86 +317,11 @@ export default function ResumenVentas({
     }
   };
 
-  const handlePeriodoChange = (index: number) => {
-    setPeriodoSeleccionado(index);
-    const hoy = new Date();
-    let nuevaFechaDesde = hoy;
-
-    switch (periodos[index].value) {
-      case "hoy":
-        nuevaFechaDesde = hoy;
-        break;
-      case "ayer":
-        nuevaFechaDesde = subDays(hoy, 1);
-        break;
-      case "tresDias":
-        nuevaFechaDesde = subDays(hoy, 2);
-        break;
-      case "semana":
-        nuevaFechaDesde = startOfWeek(hoy);
-        break;
-      case "mes":
-        nuevaFechaDesde = startOfMonth(hoy);
-        break;
-    }
-
-    setFechaDesde(format(nuevaFechaDesde, "yyyy-MM-dd"));
-    setFechaHasta(format(hoy, "yyyy-MM-dd"));
-  };
-
-  // const formatNumber = (value: number) => {
-  //   const numericValue = Number(value);
-  //   if (!isNaN(numericValue)) {
-  //     return numericValue.toLocaleString('es-ES', { minimumFractionDigits: 0 });
-  //   }
-  //   return value;
-  // }
-
-  const formatCantidad = (cantidad: string | number) => {
-    const numericValue = Number(cantidad);
-    if (!isNaN(numericValue)) {
-      return Math.floor(numericValue).toString();
-    }
-    return cantidad;
-  };
-
-  const formatCurrency = (value: number): string => {
-    return new Intl.NumberFormat("es-PY", {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
-
-  const filteredVentas = ventas.filter(
-    (venta) =>
-      venta.vendedor.toLowerCase().includes(vendedorFiltro.toLowerCase()) &&
-      venta.cliente.toLowerCase().includes(clienteFiltro.toLowerCase()) &&
-      venta.factura.toLowerCase().includes(facturaFiltro.toLowerCase())
-  );
-
-  const handleVentaClick = (codigo: number) => {
-    if (ventaSeleccionada === codigo) {
-      setVentaSeleccionada(null);
-      setDetalleVenta([]);
-      setSaleID(codigo);
-    } else {
-      setVentaSeleccionada(codigo);
-      fetchDetalleVenta(codigo);
-    }
-  };
-
-  const handleModal = () => {
-    setIsModalOpen(true);
-  };
-
-  const handleCLoseModal = () => {
-    setIsModalOpen(false);
-  };
 
   const anularVenta = async (metodo: number) => {
     try {
       const response = await axios.post(`${api_url}venta/anular-venta`, {
-        codigo: ventaSeleccionada,
+        codigo: ventaSeleccionada ?? ventaSeleccionadaInterna?.codigo,
         userId: auth?.userId,
         metodo: metodo,
         obs: obsAnulacion,
@@ -401,6 +355,8 @@ export default function ResumenVentas({
   };
 
   const handleSelectVenta = (venta: Venta) => {
+    setVentaSeleccionadaInterna(venta);
+    fetchDetalleVenta(venta.codigo);
     if (onSelectVenta) {
       onSelectVenta(venta, detalleVenta);
     }
@@ -409,25 +365,99 @@ export default function ResumenVentas({
     }
   };
 
-  const handleFechaDesdeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setFechaDesde(e.target.value);
-  }, []);
+  const handleFechaDesdeChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setFechaDesde(e.target.value);
+    },
+    []
+  );
 
-  const handleFechaHastaChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setFechaHasta(e.target.value);
-  }, []);
+  const handleFechaHastaChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setFechaHasta(e.target.value);
+    },
+    []
+  );
+
+
+const handleBuscarArticulo = (e: React.ChangeEvent<HTMLInputElement>) => {
+  setBusquedaArticulo(e.target.value);
+  setIsVisibleArticulo(true);
+  fetchArticulosDirecta(e.target.value);
+};
+
+const handleSelectArticulo = (articulo: ArticulosDirecta) => {
+  setArticuloSeleccionadoFiltro(articulo);
+  setBusquedaArticulo(articulo.descripcion); // Actualizar el texto de búsqueda
+  setIsVisibleArticulo(false);
+};
+
+  const handleBuscarCliente = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setIsVisibleCliente(true);
+    fetchClientes(e.target.value);
+    setBusquedaCliente(e.target.value);
+  };
+
+  const handleSelectCliente = (cliente: Cliente) => {
+    setClienteSeleccionadoFiltro(cliente);
+    setIsVisibleCliente(false);
+    setBusquedaCliente(cliente.cli_razon);
+  };
+
+  const handleBuscarVendedor = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setIsVisibleVendedor(true);
+    fetchVendedores(e.target.value);
+    setBusquedaVendedor(e.target.value);
+  };
+
+  const handleSelectVendedor = (vendedor: Vendedor) => {
+    setVendedorSeleccionadoFiltro(vendedor);
+    setIsVisibleVendedor(false);
+    setBusquedaVendedor(vendedor.op_nombre);
+  };
+
+    const [isImprimirModalOpen, setIsImprimirModalOpen] = useState(false);
+
+    // Función para formatear moneda (requerida por UltimaVenta)
+    const formatCurrency = (amount: number) => {
+      return new Intl.NumberFormat("es-PY", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      }).format(amount);
+    };
+
+    // Función para manejar el click en el botón de imprimir
+    const handleImprimirClick = () => {
+      if (ventaSeleccionadaInterna) {
+        setIsImprimirModalOpen(true);
+      } else {
+        toast({
+          title: "Error",
+          description: "Debe seleccionar una venta para imprimir",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    };
+
 
   return (
     <Box bg={"gray.100"} h={"100vh"} w={"100%"} p={2}>
       <VStack
-        spacing={4}
+        spacing={2}
         align="stretch"
-        bg={"white"}
-        p={2}
         borderRadius={"md"}
         boxShadow={"sm"}
-        h={"100%"}
+        h={"100vh"}
+        overflowY={"auto"}
       >
+        <button
+          className="absolute top-6 right-6"
+          onClick={() => setMostrarFiltros(!mostrarFiltros)}
+        >
+          <Filter size={32} color="white" />
+        </button>
         <Flex
           bgGradient="linear(to-r, blue.500, blue.600)"
           color="white"
@@ -439,257 +469,483 @@ export default function ResumenVentas({
           <Heading size={isMobile ? "sm" : "md"}>Consulta de Ventas</Heading>
         </Flex>
 
-        <HStack spacing={4}>
-          <Input
-            type="date"
-            value={fechaDesde}
-            onChange={handleFechaDesdeChange}
-          />
-          <Input
-            type="date"
-            value={fechaHasta}
-            onChange={handleFechaHastaChange}
-          />
-        </HStack>
-
-        <Flex gap={4} flexDir={isMobile? 'column' : 'row'}>
-          <InputGroup>
-            <InputLeftElement pointerEvents="none">
-              <SearchIcon color="gray.300" />
-            </InputLeftElement>
-            <Input
-              placeholder="Filtrar por vendedor"
-              value={vendedorFiltro}
-              onChange={(e) => debouncedVendedorChange(e.target.value)}
-            />
-          </InputGroup>
-          <InputGroup>
-            <InputLeftElement pointerEvents="none">
-              <SearchIcon color="gray.300" />
-            </InputLeftElement>
-            <Input
-              placeholder="Filtrar por cliente"
-              value={clienteFiltro}
-              onChange={(e) => debouncedClienteChange(e.target.value)}
-            />
-          </InputGroup>
-          <InputGroup>
-            <InputLeftElement pointerEvents="none">
-              <SearchIcon color="gray.300" />
-            </InputLeftElement>
-            <Input
-              placeholder="Buscar por nº de factura"
-              value={facturaFiltro}
-              onChange={(e) => setFacturaFiltro(e.target.value)}
-            />
-          </InputGroup>
-          <Flex alignItems={"center"} justify={"flex-end"}>
-            <FormLabel w={"100px"} overflowWrap="normal">
-              Filtrar por estado:
-            </FormLabel>
-            <Select
-              w={"200px"}
-              value={estadoVenta}
-              onChange={(e) => debouncedEstadoChange(e.target.value)}
+        <div
+          className={` flex-col gap-2 border border-gray-300 rounded-md p-2 bg-blue-200 ${
+            mostrarFiltros ? "flex" : "hidden"
+          }`}
+        >
+          <Flex flexDir={isMobile ? "column" : "row"} gap={2}>
+            <div>
+              <Input
+                type="date"
+                value={fechaDesde}
+                onChange={handleFechaDesdeChange}
+                bg={"white"}
+              />
+            </div>
+            <div>
+              <Input
+                type="date"
+                value={fechaHasta}
+                onChange={handleFechaHastaChange}
+                bg={"white"}
+              />
+            </div>
+            <div
+              className={
+                isMobile
+                  ? "flex flex-col gap-2 items-start "
+                  : "flex flex-row gap-2 items-center"
+              }
             >
-              <option value="0">Pendiente</option>
-              <option value="1">Cobrado</option>
-              <option value="2">Anulado</option>
-              <option value="3">Todos</option>
-            </Select>
-          </Flex>
-        </Flex>
-        <Tabs
-          index={periodoSeleccionado}
-          onChange={handlePeriodoChange}
-          variant={"solid-rounded"}
-          colorScheme="green"
-        >
-          <TabList>
-            {periodos.map((periodo, index) => (
-              <Tab key={index}>{periodo.label}</Tab>
-            ))}
-          </TabList>
-        </Tabs>
+              <p className="font-bold">Sucursal:</p>
+              <Select bg={"white"}>
+                {sucursales.map((sucursal) => (
+                  <option key={sucursal.id} value={sucursal.id}>
+                    {sucursal.descripcion}
+                  </option>
+                ))}
+              </Select>
+            </div>
 
-        <Box
-          height={"100%"}
-          overflowY={"auto"}
-          maxWidth={"100%"}
-          overflowX={"auto"}
-          sx={scrollbarStyles}
-        >
-          <Table variant="simple">
-            <Thead bg={"blue.100"}>
-              <Tr>
-                <Th>Codigo</Th>
-                <Th>Fecha</Th>
-                <Th>Cliente</Th>
-                <Th>Vendedor</Th>
-                <Th>Operador</Th>
-                <Th>Factura</Th>
-                <Th>Condicion</Th>
-                <Th>Moneda</Th>
-                <Th textAlign="right">Saldo</Th>
-                <Th textAlign="right">Descuento</Th>
-                <Th textAlign="right">Total</Th>
-                <Th>Estado</Th>
-                <Th></Th>
-                <Th></Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              {filteredVentas.map((venta) => (
-                <React.Fragment key={venta.codigo}>
-                  <Tr>
-                    <Td>{venta.codigo}</Td>
-                    <Td>
-                      {new Date(
-                        venta.fecha.split(" : ")[0] + "T00:00:00"
-                      ).toLocaleDateString("es-ES")}
-                    </Td>
-                    <Td>{venta.cliente}</Td>
-                    <Td>{venta.vendedor}</Td>
-                    <Td>{venta.operador}</Td>
-                    <Td>{venta.factura}</Td>
-                    <Td>{venta.condicion}</Td>
-                    <Td>{venta.moneda}</Td>
-                    <Td textAlign="right">{formatCurrency(venta.saldo)}</Td>
-                    <Td textAlign="right">{formatCurrency(venta.descuento)}</Td>
-                    <Td textAlign="right">{formatCurrency(venta.total)}</Td>
-                    <Td>
-                      <Box>
-                        <Tooltip
-                          label={`${venta.estado_desc}${
-                            venta.obs_anulacion
-                              ? `\nMotivo: ${venta.obs_anulacion}`
-                              : ""
-                          }`}
-                          aria-label="A tooltip"
-                          whiteSpace="pre-line"
-                        >
-                          <Box>
-                            <Dot
-                              strokeWidth={8}
-                              color={venta.estado === 0 ? "red" : "green"}
-                            />
-                          </Box>
-                        </Tooltip>
-                      </Box>
-                    </Td>
-                    <Td>
-                      <Button
-                        size="md"
-                        onClick={() => handleVentaClick(venta.codigo)}
-                        colorScheme={
-                          ventaSeleccionada === venta.codigo
-                            ? "yellow"
-                            : "green"
-                        }
-                      >
-                        {ventaSeleccionada === venta.codigo ? "-" : "+"}
-                      </Button>
-                    </Td>
-                    <Td>
-                      {isModal && (
-                        <Button
-                          size={"sm"}
-                          onClick={() => handleSelectVenta(venta)}
-                          colorScheme={"blue"}
-                          leftIcon={<ShoppingBag />}
-                          isDisabled={
-                            venta.estado_desc.toLowerCase() === "anulado"
-                              ? true
-                              : false
-                          }
-                        >
-                          Seleccionar venta balcón
-                        </Button>
-                      )}
-                    </Td>
-                  </Tr>
-                  <Tr style={{ padding: 0, margin: 0, height: "0px" }}>
-                    <Td colSpan={12} style={{ padding: 0, margin: 0 }}>
-                      <Collapse in={ventaSeleccionada === venta.codigo}>
-                        <Box p={4} bg="gray.100" rounded="md">
-                          <Heading size="sm" mb={2}>
-                            Detalle de la Venta
-                          </Heading>
-                          <Table size="sm" variant="striped" py={4}>
-                            <Thead bg={"blue.200"}>
-                              <Tr>
-                                <Th>Código</Th>
-                                <Th>Descripción</Th>
-                                <Th>Cantidad</Th>
-                                <Th textAlign="right">Precio</Th>
-                                <Th textAlign="right">Descuento</Th>
-                                <Th textAlign="right">Subtotal</Th>
-                              </Tr>
-                            </Thead>
-                            <Tbody bg={"white"}>
-                              {detalleVenta.map((detalle) => (
-                                <Tr key={detalle.det_codigo}>
-                                  <Td>{detalle.art_codigo}</Td>
-                                  <Td>
-                                    {detalle.descripcion_editada === ""
-                                      ? detalle.descripcion
-                                      : detalle.descripcion_editada}
-                                  </Td>
-                                  <Td textAlign={"left"}>
-                                    {formatCantidad(detalle.cantidad)}
-                                  </Td>
-                                  <Td textAlign="right">
-                                    {formatCurrency(detalle.precio)}
-                                  </Td>
-                                  <Td textAlign="right">
-                                    {formatCurrency(detalle.descuento)}
-                                  </Td>
-                                  <Td textAlign="right">
-                                    {formatCurrency(
-                                      (detalle.precio - detalle.descuento) *
-                                        detalle.cantidad
-                                    )}
-                                  </Td>
-                                </Tr>
-                              ))}
-                            </Tbody>
-                          </Table>
-                          <Flex
-                            flexDirection={"row"}
-                            justify={"end"}
-                            gap={4}
-                            width={"full"}
-                            my={4}
-                          >
-                            {auth?.rol === 7 ? (
-                              <Button
-                                colorScheme="red"
-                                onClick={handleOpenAdvertenciaModal}
-                                isDisabled={
-                                  venta.estado_desc.toLowerCase() === "anulado"
-                                    ? true
-                                    : false
-                                }
-                              >
-                                Anular Venta
-                              </Button>
-                            ) : null}
-                            <Button colorScheme="blue" onClick={handleModal}>
-                              <Printer />
-                            </Button>
-                          </Flex>
-                        </Box>
-                      </Collapse>
-                    </Td>
-                  </Tr>
-                </React.Fragment>
-              ))}
-              <div ref={observerTarget} style={{ height: "20px" }}>
-                {isLoadingMore && <Spinner size="sm" />}
+            <div
+              className={
+                isMobile
+                  ? "flex flex-col gap-2 items-start "
+                  : "flex flex-row gap-2 items-center "
+              }
+            >
+              <input
+                type="text"
+                placeholder="Buscar por Nro. de factura"
+                className={
+                  isMobile
+                    ? "bg-white p-2 rounded-md w-full"
+                    : "bg-white p-2 rounded-md"
+                }
+                value={factura}
+                onChange={(e) => setFactura(e.target.value)}
+              />
+            </div>
+            <div
+              className={
+                isMobile
+                  ? "flex flex-col gap-2 items-start w-full "
+                  : "flex flex-row gap-2 items-center "
+              }
+            >
+              <input
+                type="text"
+                placeholder="Buscar por Nro. de venta"
+                className={
+                  isMobile
+                    ? "bg-white p-2 rounded-md w-full"
+                    : "bg-white p-2 rounded-md"
+                }
+                value={venta}
+                onChange={(e) => setVenta(e.target.value)}
+              />
+            </div>
+            <Flex
+              flexDir={isMobile ? "column" : "row"}
+              alignItems={isMobile ? "start" : "center"}
+              justify={"flex-end"}
+            >
+              <FormLabel overflowWrap="normal">Filtrar por moneda:</FormLabel>
+              <Select
+                w={isMobile ? "100%" : "200px"}
+                value={monedaSeleccionadaFiltro?.mo_codigo}
+                onChange={(e) => debouncedEstadoChange(e.target.value)}
+                bg={"white"}
+              >
+                {monedas.map((moneda) => (
+                  <option key={moneda.mo_codigo} value={moneda.mo_codigo}>
+                    {moneda.mo_descripcion}
+                  </option>
+                ))}
+              </Select>
+            </Flex>
+            <Flex
+              flexDir={isMobile ? "column" : "row"}
+              alignItems={isMobile ? "start" : "center"}
+              justify={"flex-end"}
+            >
+              <FormLabel overflowWrap="normal">Filtrar por estado:</FormLabel>
+              <Select
+                w={isMobile ? "100%" : "200px"}
+                value={estadoVenta}
+                onChange={(e) => debouncedEstadoChange(e.target.value)}
+                bg={"white"}
+              >
+                <option value="0">Pendiente</option>
+                <option value="1">Cobrado</option>
+                <option value="2">Anulado</option>
+                <option value="3">Todos</option>
+              </Select>
+            </Flex>
+            <div>
+              <div className="flex flex-row gap-2 items-center">
+                <p>Incluir remisiones</p>
+                <Switch
+                  onChange={(e) => setIncluirRemisiones(e.target.checked)}
+                />
               </div>
-            </Tbody>
-          </Table>
-        </Box>
+              <div className="flex flex-row gap-2 items-center">
+                <p>List. Fact. sin CDC</p>
+                <Switch
+                  onChange={(e) => setListarFacturasSinCDC(e.target.checked)}
+                />
+              </div>
+            </div>
+            <button
+              className="bg-blue-500 text-white p-2 rounded-md flex flex-row gap-2 items-center"
+              onClick={() => fetchVentas(1, false)}
+            >
+              Procesar
+              <Search />
+            </button>
+          </Flex>
+          <Flex gap={2} flexDir={isMobile ? "column" : "row"}>
+            <div className="flex flex-row gap-2 items-center relative flex-1">
+              <div className="relative w-full">
+                <input
+                  type="text"
+                  placeholder="Buscar por articulo"
+                  className="bg-white p-2 rounded-md w-full pr-8" // Añadimos padding-right
+                  value={busquedaArticulo}
+                  onChange={handleBuscarArticulo}
+                />
+                {(articuloSeleccionadoFiltro || busquedaArticulo) && (
+                  <button
+                    onClick={() => {
+                      setBusquedaArticulo("");
+                      setArticuloSeleccionadoFiltro(null);
+                      setIsVisibleArticulo(false);
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  >
+                    <X size={16} />{" "}
+                  </button>
+                )}
+              </div>
+              <FloatingCard
+                isVisible={isVisibleArticulo}
+                items={articulos}
+                onClose={() => setIsVisibleArticulo(false)}
+                onSelect={handleSelectArticulo}
+                className="absolute top-10 left-0 right-0 z-50"
+                renderItem={(item) => (
+                  <p>
+                    {item.cod_barra} -{item.descripcion}
+                  </p>
+                )}
+              />
+            </div>
+            <div className="flex flex-row gap-2 items-center relative flex-1">
+              <div className="relative w-full">
+                <input
+                  type="text"
+                  placeholder="Buscar por cliente"
+                  className="bg-white p-2 rounded-md w-full pr-8" // Añadimos padding-right
+                  value={busquedaCliente}
+                  onChange={handleBuscarCliente}
+                />
+                {(clienteSeleccionadoFiltro || busquedaCliente) && (
+                  <button
+                    onClick={() => {
+                      setBusquedaCliente("");
+                      setClienteSeleccionadoFiltro(null);
+                      setIsVisibleCliente(false);
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  >
+                    <X size={16} />{" "}
+                  </button>
+                )}
+              </div>
+              <FloatingCard
+                isVisible={isVisibleCliente}
+                items={clientes}
+                onClose={() => setIsVisibleCliente(false)}
+                onSelect={handleSelectCliente}
+                className="absolute top-0 left-0 right-0 z-50"
+                renderItem={(item) => <p>{item.cli_razon}</p>}
+              />
+            </div>
+            <div className="flex flex-row gap-2 items-center relative flex-1">
+              <div className="relative w-full">
+                <input
+                  type="text"
+                  placeholder="Buscar por vendedor"
+                  className="bg-white p-2 rounded-md w-full pr-8"
+                  value={busquedaVendedor}
+                  onChange={handleBuscarVendedor}
+                />
+                {(vendedorSeleccionadoFiltro || busquedaVendedor) && (
+                  <button
+                    onClick={() => {
+                      setBusquedaVendedor("");
+                      setVendedorSeleccionadoFiltro(null);
+                      setIsVisibleVendedor(false);
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  >
+                    <X size={16} />{" "}
+                    {/* Asegúrate de importar X de lucide-react */}
+                  </button>
+                )}
+              </div>
+              <FloatingCard
+                isVisible={isVisibleVendedor}
+                items={vendedores}
+                onClose={() => setIsVisibleVendedor(false)}
+                onSelect={handleSelectVendedor}
+                className="absolute top-0 left-0 right-0 z-50"
+                renderItem={(item) => <p>{item.op_nombre}</p>}
+              />
+            </div>
+          </Flex>
+        </div>
+        <div
+          className={
+            isMobile
+              ? "flex flex-col gap-2  w-full h-[100%] overflow-x-auto overflow-y-auto "
+              : "flex flex-row gap-2  w-full h-full overflow-x-auto overflow-y-auto"
+          }
+        >
+          <div
+            className={
+              isMobile
+                ? "flex flex-col border border-gray-300 rounded-md bg-white w-full min-h-[80%]"
+                : "flex flex-col border border-gray-300 rounded-md bg-white w-[80%]"
+            }
+          >
+            <div
+              className={
+                isMobile ? "w-full h-[80%]" : "w-full h-[calc(100%-50px)]"
+              }
+            >
+              <div
+                className={
+                  isMobile
+                    ? "w-full h-2/3 overflow-x-auto overflow-y-auto mb-8"
+                    : "w-full h-[70%] overflow-x-auto overflow-y-auto"
+                }
+              >
+                <table className="min-w-[2100px] max-w-[2800px]">
+                  <thead className="bg-gray-200">
+                    <tr className="[&>*]:p-2 ">
+                      <th className="border border-gray-300">Cod. Venta</th>
+                      <th className="border border-gray-300">Cod. Cliente</th>
+                      <th className="border border-gray-300">Cliente</th>
+                      <th className="border border-gray-300">Fecha/Hora</th>
+                      <th className="border border-gray-300">Nro. Factura</th>
+                      <th className="border border-gray-300">Total</th>
+                      <th className="border border-gray-300">Saldo</th>
+                      <th className="border border-gray-300">Descuento</th>
+                      <th className="border border-gray-300">Vencimiento</th>
+                      <th className="border border-gray-300">Operador</th>
+                      <th className="border border-gray-300">Vendedor</th>
+                      <th className="border border-gray-300">Cond.</th>
+                      <th className="border border-gray-300">Terminal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ventas.map((venta) => (
+                      <tr
+                        key={venta.codigo}
+                        className={`border border-gray-300 [&>td]:border [&>td]:border-gray-300 [&>td]:px-2 cursor-pointer hover:bg-gray-100 ${
+                          ventaSeleccionada === venta.codigo
+                            ? "bg-blue-200 hover:bg-blue-300"
+                            : setColor(venta.estado)
+                        }`}
+                        onClick={() => {
+                          setVentaSeleccionada(venta.codigo);
+                          handleSelectVenta(venta);
+                        }}
+                      >
+                        <td>{venta.codigo}</td>
+                        <td>{venta.codcliente}</td>
+                        <td>{venta.cliente}</td>
+                        <td className="text-center">{venta.fecha}</td>
+                        <td className="text-center">{venta.factura}</td>
+                        <td className="text-right">{venta.total}</td>
+                        <td className="text-right">{venta.saldo}</td>
+                        <td className="text-right">{venta.descuento}</td>
+                        <td className="text-center">{venta.vencimiento}</td>
+                        <td className="text-left">{venta.operador}</td>
+                        <td className="text-left">{venta.vendedor}</td>
+                        <td>{venta.condicion}</td>
+                        <td>{venta.terminal}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div
+                className={
+                  isMobile
+                    ? "w-full h-[50%] overflow-x-auto overflow-y-auto"
+                    : "w-full h-[30%] overflow-x-auto overflow-y-auto"
+                }
+              >
+                <table className="min-w-[2100px] max-w-[2800px]">
+                  <thead className="bg-gray-200">
+                    <tr className=" [&>th]:border [&>th]:border-gray-300 [&>th]:px-2">
+                      <th>Cod. articulo</th>
+                      <th>Cod. Barra</th>
+                      <th>Descripcion</th>
+                      <th>Cantidad</th>
+                      <th>Precio</th>
+                      <th>Descuento</th>
+                      <th>Exentas</th>
+                      <th>5%</th>
+                      <th>10%</th>
+                      <th>Lote</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {detalleVenta.map((detalle) => (
+                      <tr className=" [&>td]:border [&>td]:border-gray-300 [&>td]:px-2">
+                        <td>{detalle.det_codigo}</td>
+                        <td>{detalle.codbarra}</td>
+                        <td>{detalle.descripcion}</td>
+                        <td className="text-center">{detalle.cantidad}</td>
+                        <td className="text-right">{detalle.precio}</td>
+                        <td className="text-right">{detalle.descuento}</td>
+                        <td className="text-right">{detalle.exentas}</td>
+                        <td className="text-right">{detalle.cinco}</td>
+                        <td className="text-right">{detalle.diez}</td>
+                        <td>{detalle.lote}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div
+            className={
+              isMobile
+                ? "flex flex-col border border-gray-300 rounded-md bg-white w-full p-2 gap-2"
+                : "flex flex-col border border-gray-300 rounded-md bg-white w-[20%] p-2 gap-2"
+            }
+          >
+            <div className=" grid grid-cols-2 gap-2 p-2">
+              <div className="flex flex-row gap-2 items-center">
+                <div className="p-3 bg-white border border-gray-300 rounded-md items-center" />
+                <p className="text-gray-500 font-bold">Nota interna</p>
+              </div>
+              <div className="flex flex-row gap-2 items-center">
+                <div className="p-3 bg-pink-200 rounded-md items-center" />
+                <p className="text-gray-500 font-bold">Anulados</p>
+              </div>
+              <div className="flex flex-row gap-2 items-center">
+                <div className="p-3 bg-violet-200 rounded-md items-center" />
+                <p className="text-gray-500 font-bold">Nota legal</p>
+              </div>
+              <div className="flex flex-row gap-2 items-center">
+                <div className="p-3 bg-lime-200 rounded-md items-center" />
+                <p className="text-gray-500 font-bold">Devoluciones</p>
+              </div>
+              <div className="flex flex-row gap-2 items-center">
+                <div className="p-3 bg-cyan-200 rounded-md items-center" />
+                <p className="text-gray-500 font-bold">Modificados</p>
+              </div>
+              <div className="flex flex-row gap-2 items-center">
+                <div className="p-3 bg-gray-200 rounded-md items-center" />
+                <p className="text-gray-500 font-bold">Remisiones</p>
+              </div>
+            </div>
+            <div className="p-2">
+              <p className="text-gray-500 font-bold">Obs.:</p>
+              <textarea
+                name=""
+                id=""
+                className="w-full h-[100px] border border-gray-300 rounded-md p-2"
+                placeholder="Sin observaciones"
+                value={
+                  ventaSeleccionadaInterna?.obs_anulacion === ""
+                    ? ventaSeleccionadaInterna?.obs
+                    : ventaSeleccionadaInterna?.obs_anulacion
+                }
+              />
+            </div>
+            <div className="rounded-md bg-blue-200 w-full h-[calc(100%-100px)] grid grid-cols-2 gap-2 p-2">
+              <div className="flex flex-col gap-2">
+                <p className="text-gray-800 font-bold">Total Exentas</p>
+                <div className="bg-white p-2 rounded-md">
+                  <p className=" font-bold text-right">
+                    {ventaSeleccionadaInterna?.exentas_total || 0}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <p className="text-gray-800 font-bold">Descuentos:</p>
+                <div className="bg-white p-2 rounded-md">
+                  <p className=" font-bold text-right">
+                    {ventaSeleccionadaInterna?.descuento_total || 0}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <p className="text-gray-800 font-bold">Total IVA 5%:</p>
+                <div className="bg-white p-2 rounded-md">
+                  <p className=" font-bold text-right">
+                    {ventaSeleccionadaInterna?.iva5_total || 0}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <p className="text-gray-800 font-bold">Subtotal:</p>
+                <div className="bg-white p-2 rounded-md">
+                  <p className=" font-bold text-right">
+                    {ventaSeleccionadaInterna?.sub_total || 0}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <p className="text-gray-800 font-bold">Total IVA 10%:</p>
+                <div className="bg-white p-2 rounded-md">
+                  <p className=" font-bold text-right">
+                    {ventaSeleccionadaInterna?.iva10_total || 0}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <p className="text-gray-800 font-bold">Total articulos:</p>
+                <div className="bg-white p-2 rounded-md">
+                  <p className=" font-bold text-right">
+                    {ventaSeleccionadaInterna?.total_articulos || 0}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2 col-span-2">
+                <p className="text-gray-800 font-bold">Total Neto:</p>
+                <div className="bg-white p-2 rounded-md">
+                  <p className=" font-bold text-right">
+                    {ventaSeleccionadaInterna?.total || 0}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-row gap-2 w-full">
+              <button className="bg-blue-500 text-white p-2 rounded-md flex flex-row gap-2 items-center w-full" onClick={handleImprimirClick}>
+                Imprimir
+                <Printer />
+              </button>
+              <button
+                className="bg-red-500 text-white p-2 rounded-md flex flex-row gap-2 items-center w-full"
+                onClick={() => {
+                  handleOpenAdvertenciaModal();
+                }}
+              >
+                Anular venta
+                <Trash />
+              </button>
+            </div>
+          </div>
+        </div>
       </VStack>
       <Modal
         isOpen={isAdvertenciaModalOpen}
@@ -741,10 +997,16 @@ export default function ResumenVentas({
           </ModalFooter>
         </ModalContent>
       </Modal>
-      <VentaModal
-        isOpen={isModalOpen}
-        onClose={handleCLoseModal}
-        ventaId={saleID}
+      <UltimaVenta
+        isOpen={isImprimirModalOpen}
+        onClose={() => setIsImprimirModalOpen(false)}
+        venta={ventaSeleccionadaInterna}
+        detalleVentas={detalleVenta}
+        formatCurrency={formatCurrency}
+        clienteInfo={clienteSeleccionadoFiltro}
+        sucursalInfo={sucursalSeleccionadaFiltro}
+        vendedorInfo={vendedorSeleccionadoFiltro}
+        newSaleID={saleID}
       />
     </Box>
   );

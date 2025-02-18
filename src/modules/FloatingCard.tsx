@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect, useCallback } from "react";
 
 interface FloatingCardProps<T> {
   isVisible: boolean;
@@ -6,6 +6,7 @@ interface FloatingCardProps<T> {
   onClose: () => void;
   onSelect: (item: T) => void;
   renderItem?: (item: T) => React.ReactNode;
+  className?: string;
 }
 
 const FloatingCard = <T extends object>({
@@ -13,6 +14,7 @@ const FloatingCard = <T extends object>({
   items,
   onClose,
   onSelect,
+  className = "",
   renderItem = (item: T) => {
     const displayText =
       "nombre" in item
@@ -23,15 +25,58 @@ const FloatingCard = <T extends object>({
     return <p>{displayText}</p>;
   },
 }: FloatingCardProps<T>) => {
+  const [selectedIndex, setSelectedIndex] = useState<number>(-1);
+
+  // Resetear el índice seleccionado cuando cambian los items o se oculta
+  useEffect(() => {
+    setSelectedIndex(-1);
+  }, [items, isVisible]);
+
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (!isVisible) return;
+
+      switch (e.key) {
+        case "ArrowDown":
+          e.preventDefault();
+          setSelectedIndex((prev) =>
+            prev < items.length - 1 ? prev + 1 : prev
+          );
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          setSelectedIndex((prev) => (prev > 0 ? prev - 1 : prev));
+          break;
+        case "Enter":
+          e.preventDefault();
+          if (selectedIndex >= 0 && selectedIndex < items.length) {
+            onSelect(items[selectedIndex]);
+          }
+          break;
+        case "Escape":
+          e.preventDefault();
+          onClose();
+          break;
+      }
+    },
+    [isVisible, items, selectedIndex, onSelect, onClose]
+  );
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
+
   return (
     <div
-      className={`absolute z-[9999] bg-white shadow-lg rounded-md border border-gray-200 p-4 w-full min-h-[100px] max-h-[200px] overflow-y-auto mt-12
+      className={`absolute z-[9999] bg-white shadow-lg rounded-md border border-gray-200 p-4 w-full min-h-[100px] max-h-[200px] overflow-y-auto mt-2
         transition-all duration-400 ease-out origin-top
         ${
           isVisible
             ? "opacity-100 scale-100 translate-y-0"
             : "opacity-0 scale-95 translate-y-4 pointer-events-none"
-        }`}
+        }
+        ${className}`}
     >
       <div className="flex justify-end items-center mb-2">
         <button
@@ -52,8 +97,12 @@ const FloatingCard = <T extends object>({
           items.map((item, index) => (
             <div
               key={index}
-              className="py-2 px-1 hover:bg-gray-100 cursor-pointer transition-colors duration-150"
+              className={`py-2 px-1 cursor-pointer transition-colors duration-150
+                ${
+                  index === selectedIndex ? "bg-blue-100" : "hover:bg-gray-100"
+                }`}
               onClick={() => onSelect(item)}
+              onMouseEnter={() => setSelectedIndex(index)}
             >
               {renderItem(item)}
             </div>

@@ -1650,7 +1650,7 @@ export default function Presupuestos() {
           <ModalContent>
             <ModalCloseButton />
             <ModalBody>
-              <ResumenVentas clienteSeleccionado={clienteSeleccionado} />
+              <ResumenVentas/>
             </ModalBody>
           </ModalContent>
         </Modal>

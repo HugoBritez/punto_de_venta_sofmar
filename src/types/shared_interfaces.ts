@@ -86,6 +86,9 @@ export interface Cliente {
     cli_razon: string
     cli_ruc: string
     cli_limitecredito: number
+    deuda_actual: number
+    credito_disponible: number
+    vendedor_cliente: number
 }
 
 export interface Nota {
@@ -183,7 +186,6 @@ export interface Nota {
     ar_editar_desc: number
     iva: number
   }
-
 
   export interface Factura {
     d_codigo: number
@@ -405,4 +407,144 @@ export interface UnidadMedida {
   um_codigo: number
   um_descripcion: string
 }
+
+export interface ArticulosDirecta {
+  id: number;
+  cod_barra: string;
+  descripcion: string;
+}
+
+export interface ArticulosNuevo {
+  id_articulo: number;
+  codigo_barra: string;
+  descripcion: string;
+  stock: number;
+  lotes: [
+    {
+      id: number;
+      lote: string;
+      cantidad: number;
+      vencimiento: string;
+      deposito: number;
+    }
+  ];
+  depositos: [
+    {
+      codigo: number;
+      descripcion: string;
+      stock: number;
+    }
+  ];
+  precio_costo: number;
+  precio_venta: number;
+  precio_credito: number;
+  precio_mostrador: number;
+  precio_4: number;
+  ubicacion: string;
+  sub_ubicacion: string;
+  marca: string;
+  categoria: string;
+  subcategoria: string;
+  proveedor_razon: string;
+  fecha_ultima_compra: string;
+  fecha_ultima_venta: string;
+  iva: number;
+  iva_descripcion: string;
+  vencimiento_validacion: number;
+  proveedor: string;
+  editar_nombre: number;
+  estado_vencimiento: string;
+}
+
+export interface ListaPrecios {
+  lp_codigo: number;
+  lp_descripcion: string;
+}
+
+export interface PedidosNuevo {
+  pedido_id: number;
+  cliente: string;
+  moneda: string;
+  fecha: Date;
+  factura: string;
+  area: string;
+  siguiente_area: string;
+  estado: "Pendiente" | "Facturado" | "Todos";
+  condicion: "Crédito" | "Contado";
+  operador: string;
+  vendedor: string;
+  deposito: string;
+  p_cantcuotas: number;
+  p_entrega: number;
+  p_autorizar_a_contado: boolean;
+  acuerdo: string;
+  imprimir: number;
+  obs: string;
+  total: number;
+  detalles: [
+    {
+      codigo: number;
+      descripcion_articulo: string;
+      cantidad_vendida: number;
+      bonificacion: "V" | "B";
+      d_cantidad: number;
+      precio: number;
+      ultimo_precio: number;
+      porc_costo: number;
+      porcentaje: number;
+      descuento: number;
+      exentas: number;
+      cinco: number;
+      diez: number;
+      dp_lote: string;
+      vencimiento: string;
+      comision: number;
+      actorizado: number;
+      obs: string;
+      cant_stock: number;
+      dp_codigolote: number;
+      cant_pendiente: number;
+      cantidad_verificada: number;
+    }
+  ];
+}
+
+export interface Presupuesto {
+  codigo: number
+  codcliente: number
+  cliente: string
+  moneda: string
+  fecha: string
+  codsucursal: number
+  sucursal: string
+  vendedor: string
+  operador: string
+  total: number
+  descuento: number
+  saldo: number
+  condicion: string
+  vencimiento: string
+  factura: string
+  obs: string
+  estado: number
+  estado_desc: string
+}
+
+export interface DetallePresupuesto {
+  det_codigo: number
+  art_codigo: number
+  codbarra: string
+  descripcion: string
+  descripcion_editada: string
+  cantidad: number
+  precio: number
+  descuento: number
+  exentas: number
+  cinco: number
+  diez: number
+  lote: string
+  vence: string
+  ar_editar_desc: number
+}
+
 

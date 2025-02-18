@@ -15,6 +15,7 @@ interface AuthState {
   permisosAutorizarPedido: number;
   permisoVerUtilidad: number;
   permisoVerProveedor: number;
+  permisos_descuento: number;
   tokenExpiration: number;
   rol: number;
   movimiento: number;
@@ -35,6 +36,7 @@ interface LoginData {
       op_autorizar: number;
       op_ver_utilidad: number;
       op_ver_proveedor: number;
+      op_aplicar_descuento: number;
       op_movimiento: number;
       rol: number;
       permisos_menu: {
@@ -46,8 +48,6 @@ interface LoginData {
       }[];
     }
   ];
-
-
 }
 
 interface AuthContextType {
@@ -74,6 +74,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       const userId = sessionStorage.getItem("user_id");
       const userName = sessionStorage.getItem("user_name");
       const userSuc = sessionStorage.getItem("user_suc");
+      const permisos_descuento = Number(
+        sessionStorage.getItem("permisos_descuento")
+      );
       const permisosAutorizarPedido = Number(
         sessionStorage.getItem("permisos_autorizar_pedido")
       );
@@ -106,6 +109,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
           permisosAutorizarPedido,
           permisoVerUtilidad,
           permisoVerProveedor,
+          permisos_descuento,
           tokenExpiration,
           rol,
           movimiento: Number(movimiento),
@@ -177,12 +181,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       permisosAutorizarPedido: data.usuario[0].op_autorizar,
       permisoVerUtilidad: data.usuario[0].op_ver_utilidad,
       permisoVerProveedor: data.usuario[0].op_ver_proveedor,
+      permisos_descuento: data.usuario[0].op_aplicar_descuento,
       tokenExpiration: expirationTime,
       rol: data.usuario[0].rol,
       movimiento: data.usuario[0].op_movimiento,
       permisos_menu: permisosMenu,
     };
-
     sessionStorage.setItem("token", authData.token);
     sessionStorage.setItem("user_id", authData.userId);
     sessionStorage.setItem("user_name", authData.userName);
@@ -204,6 +208,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       authData.permisoVerProveedor.toString()
     );
     sessionStorage.setItem("token_expiration", expirationTime.toString());
+    sessionStorage.setItem(
+      "permisos_descuento",
+      authData.permisos_descuento.toString()
+    );
     sessionStorage.setItem("rol", authData.rol ? authData.rol.toString() : "7");
     sessionStorage.setItem(
       "permisos_menu",
@@ -215,7 +223,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     console.log("authData", authData);
 
     axios.defaults.headers.common["Authorization"] = authData.token;
-
   };
 
 

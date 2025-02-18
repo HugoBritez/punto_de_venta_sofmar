@@ -204,6 +204,15 @@ const Sidebar = () => {
         },
         {
           grupo: 2,
+          orden: 104,
+          id: 429,
+          name: "Venta Balcon Nuevo",
+          icon: ShoppingCart,
+          path: "/venta-balcon-nuevo",
+          enabled: true,
+        },
+        {
+          grupo: 2,
           orden: 98,
           id: 401,
           name: "Reg. de Pedidos",

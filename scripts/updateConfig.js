@@ -1,6 +1,10 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { exec } from "child_process";
+import promptSync from "prompt-sync";
+import { NodeSSH } from "node-ssh";
+const prompt = promptSync({ sigint: true });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -26,7 +30,6 @@ const configs = {
     version: "0.9.7",
     title: "Lobeck",
   },
-
   distriwembe: {
     api_url: "https://node.sofmar.com.py:4020/api/",
     db: "distriwembe",
@@ -87,9 +90,78 @@ const configs = {
     version: "0.9.9",
     title: "Rustimemo",
   },
+  buda: {
+    api_url: "https://node.sofmar.com.py:4027/api/",
+    db: "buda",
+    version: "1.0",
+    title: "Buda",
+  },
 };
 
-function updateConfig(empresa) {
+function executeCommand(command) {
+  return new Promise((resolve, reject) => {
+    exec(command, { cwd: process.cwd() }, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Error ejecutando comando: ${error}`);
+        console.error("Salida de error:", stderr);
+        reject(error.message);
+        return;
+      }
+      if (stderr) {
+        console.error("Advertencias:", stderr);
+      }
+      console.log(stdout);
+      resolve(true);
+    });
+  });
+}
+
+async function deployToServer(empresa) {
+  const config = configs[empresa];
+  const ssh = new NodeSSH();
+
+  try {
+    // Ejecutar el build
+    console.log("🔨 Generando build...");
+    const buildResult = await executeCommand("npm run build");
+    if (!buildResult) throw new Error("Error al generar el build");
+
+    // Solicitar credenciales
+    console.log("\n📡 Configuración del despliegue:");
+    const username = prompt("Usuario SSH: ");
+    const password = prompt("Contraseña SSH: ");
+
+    console.log("\n📦 Conectando al servidor...");
+    await ssh.connect({
+      host: "192.168.200.3",
+      username,
+      password,
+      tryKeyboard: true,
+    });
+
+    const deployPath = `/var/www/${config.db}`;
+
+    // Primero limpiamos
+    console.log("🧹 Limpiando dist anterior...");
+    await ssh.execCommand(`rm -rf ${deployPath}/dist`);
+
+    // Luego copiamos
+    console.log("📦 Copiando nuevo dist...");
+    await ssh.putDirectory("./dist", `${deployPath}/dist`, {
+      recursive: true,
+      concurrency: 10,
+    });
+
+    await ssh.dispose();
+    console.log("✅ Despliegue completado exitosamente");
+  } catch (error) {
+    console.error("❌ Error en el proceso de despliegue:", error);
+    if (ssh) ssh.dispose();
+    process.exit(1);
+  }
+}
+
+async function updateConfig(empresa) {
   if (!configs[empresa]) {
     console.error(
       `Error: La empresa "${empresa}" no existe en la configuración`
@@ -106,25 +178,25 @@ function updateConfig(empresa) {
     const config = configs[empresa];
     const currentDate = getCurrentDate();
 
-     content = content.replace(
-       /export const\s+api_url\s*=\s*'[^']*'/,
-       `export const api_url = '${config.api_url}'`
-     );
+    content = content.replace(
+      /export const\s+api_url\s*=\s*'[^']*'/,
+      `export const api_url = '${config.api_url}'`
+    );
 
-     content = content.replace(
-       /export const\s+db\s*=\s*'[^']*'/,
-       `export const db = '${config.db}'`
-     );
+    content = content.replace(
+      /export const\s+db\s*=\s*'[^']*'/,
+      `export const db = '${config.db}'`
+    );
 
-     content = content.replace(
-       /export const\s+version\s*=\s*'[^']*'/,
-       `export const version = '${config.version}'`
-     );
+    content = content.replace(
+      /export const\s+version\s*=\s*'[^']*'/,
+      `export const version = '${config.version}'`
+    );
 
-     content = content.replace(
-       /export const\s+fechaRelease\s*=\s*'[^']*'/,
-       `export const fechaRelease = '${currentDate}'`
-     );
+    content = content.replace(
+      /export const\s+fechaRelease\s*=\s*'[^']*'/,
+      `export const fechaRelease = '${currentDate}'`
+    );
 
     fs.writeFileSync(configPath, content, "utf8");
 
@@ -143,8 +215,13 @@ function updateConfig(empresa) {
     console.log(`- Versión: ${config.version}`);
     console.log(`- Fecha Release: ${currentDate}`);
     console.log(`- Título: ${config.title}`);
+
+    // Ejecutar el despliegue solo si no es local
+    if (empresa !== "local") {
+      await deployToServer(empresa);
+    }
   } catch (error) {
-    console.error("❌ Error al actualizar la configuración:", error.message);
+    console.error("❌ Error en el proceso:", error.message);
     process.exit(1);
   }
 }

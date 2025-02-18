@@ -7,6 +7,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+       "react-to-pdf": path.resolve(__dirname, "node_modules/react-to-pdf")
     },
   },
   build: {
