@@ -49,6 +49,7 @@ import VerificacionPedidos from "./views/entregas/VerificacionPedidos";
 import VentaBalconNuevo from "./views/puntodeventa/VentaBalcon";
 import ModeloTicket from "./views/facturacion/ModeloTicket";
 import ModeloFactura from "./views/facturacion/ModeloFactura";
+import PuntoDeVentaNuevo from "./views/puntodeventa/PuntoDeVenta";
 const ProtectedLayout: React.FC = () => {
   const { auth, isLoading } = useAuth();
   const [isLargerThan768] = useMediaQuery("(min-width: 768px)");
@@ -128,6 +129,8 @@ function App() {
                   element={<VentaBalconNuevo />}
                 />
                 <Route path="/punto-de-venta" element={<PuntoDeVenta />} />
+                <Route path="/punto-de-venta-nuevo" element={<PuntoDeVentaNuevo />} />
+
 
                 <Route path="/venta-rapida" element={<VentaRapida />} />
 

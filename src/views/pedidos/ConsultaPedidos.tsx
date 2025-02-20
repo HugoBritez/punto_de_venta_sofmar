@@ -97,6 +97,7 @@ interface ConsultaPedidosProps {
   clienteSeleccionado?: Cliente | null;
 }
 
+
 export default function ConsultaPedidos({
    onSelectPedido,
    isModal = false,

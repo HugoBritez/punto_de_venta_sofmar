@@ -326,7 +326,12 @@ const VerificacionPedidos = () => {
   const getPedidosDisponibles = async () => {
     try {
       const response = await axios.get(
-        `${api_url}pedidos/traer-pedidos-disponibles`
+        `${api_url}pedidos/traer-pedidos-disponibles`,
+        {
+          params: {
+            deposito_id: depositoId,
+          },
+        }
       );
       const data = response.data;
       setPedidosDisponibles(data.body || []);

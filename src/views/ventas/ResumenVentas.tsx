@@ -31,6 +31,7 @@ import {
   Trash,
   Printer,
   Filter,
+  PenBox,
 } from "lucide-react";
 import { useAuth } from "@/services/AuthContext";
 import Auditar from "@/services/AuditoriaHook";
@@ -103,6 +104,7 @@ export default function ResumenVentas({
   clienteSeleccionado,
   onSelectVenta,
   onCloseVenta,
+  isModal = false,
 }: ConsultaDeVentasProps) {
   const [ventas, setVentas] = useState<Venta[]>([]);
   const [fechaDesde, setFechaDesde] = useState(
@@ -453,7 +455,9 @@ const handleSelectArticulo = (articulo: ArticulosDirecta) => {
         overflowY={"auto"}
       >
         <button
-          className="absolute top-6 right-6"
+          className={
+            isModal ? "absolute top-[100px] right-12" : "absolute top-6 right-6"
+          }
           onClick={() => setMostrarFiltros(!mostrarFiltros)}
         >
           <Filter size={32} color="white" />
@@ -597,6 +601,7 @@ const handleSelectArticulo = (articulo: ArticulosDirecta) => {
                 />
               </div>
             </div>
+
             <button
               className="bg-blue-500 text-white p-2 rounded-md flex flex-row gap-2 items-center"
               onClick={() => fetchVentas(1, false)}
@@ -604,6 +609,16 @@ const handleSelectArticulo = (articulo: ArticulosDirecta) => {
               Procesar
               <Search />
             </button>
+            {isModal && (
+              <button
+                className="bg-white text-green-600 font-bold border border-green-600 p-2 rounded-md flex flex-row gap-2 items-center"
+                onClick={() => fetchVentas(1, false)}
+                disabled={!ventaSeleccionadaInterna}
+              >
+                Editar venta
+                <PenBox />
+              </button>
+            )}
           </Flex>
           <Flex gap={2} flexDir={isMobile ? "column" : "row"}>
             <div className="flex flex-row gap-2 items-center relative flex-1">
@@ -930,7 +945,10 @@ const handleSelectArticulo = (articulo: ArticulosDirecta) => {
               </div>
             </div>
             <div className="flex flex-row gap-2 w-full">
-              <button className="bg-blue-500 text-white p-2 rounded-md flex flex-row gap-2 items-center w-full" onClick={handleImprimirClick}>
+              <button
+                className="bg-blue-500 text-white p-2 rounded-md flex flex-row gap-2 items-center w-full"
+                onClick={handleImprimirClick}
+              >
                 Imprimir
                 <Printer />
               </button>

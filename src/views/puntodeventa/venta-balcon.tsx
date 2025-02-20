@@ -265,7 +265,7 @@ export default function VentaBalcon() {
   const cobrarEnBalcon = sessionStorage.getItem("cobrarEnBalcon");
   const [isPresupuestoModalOpen, setIsPresupuestoModalOpen] = useState(false);
   const [isPedidoModalOpen, setIsPedidoModalOpen] = useState(false);
-  const [pedidoSeleccionado, setPedidoSeleccionado] = useState<Pedidos | null>(
+  const [pedidoSeleccionado, ] = useState<Pedidos | null>(
     null
   );
   const [presupuestoSeleccionado, setPresupuestoSeleccionado] =
@@ -274,7 +274,7 @@ export default function VentaBalcon() {
     DetallePresupuesto[]
   >([]);
 
-  const [pedidoOriginalItems, setPedidoOriginalItems] = useState<
+  const [pedidoOriginalItems, ] = useState<
     DetallePedidos[]
   >([]);
 
@@ -1476,78 +1476,78 @@ export default function VentaBalcon() {
     }
   };
 
-  const handleSelectPedido = async (pedido: Pedidos) => {
-    try {
-      const response = await axios.get(
-        `${api_url}pedidos/detalles/?cod=${pedido.codigo}`
-      );
-      const detalles: DetallePedidos[] = response.data.body;
+  // const handleSelectPedido = async (pedido: Pedidos) => {
+  //   try {
+  //     const response = await axios.get(
+  //       `${api_url}pedidos/detalles/?cod=${pedido.codigo}`
+  //     );
+  //     const detalles: DetallePedidos[] = response.data.body;
 
-      setPedidoSeleccionado(pedido);
-      setPedidoOriginalItems(detalles);
+  //     setPedidoSeleccionado(pedido);
+  //     setPedidoOriginalItems(detalles);
 
-      setClienteSeleccionado(
-        clientes.find((c) => c.cli_codigo === pedido.codcliente) || null
-      );
-      setClienteBusqueda(pedido.cliente);
-      setSucursal(pedido.codsucursal.toString());
-      setDeposito(pedido.codsucursal.toString());
-      setMoneda(pedido.moneda === "GUARANI" ? "PYG" : "USD");
+  //     setClienteSeleccionado(
+  //       clientes.find((c) => c.cli_codigo === pedido.codcliente) || null
+  //     );
+  //     setClienteBusqueda(pedido.cliente);
+  //     setSucursal(pedido.codsucursal.toString());
+  //     setDeposito(pedido.codsucursal.toString());
+  //     setMoneda(pedido.moneda === "GUARANI" ? "PYG" : "USD");
 
-      // Convertir el nombre del vendedor a su op_codigo
+  //     // Convertir el nombre del vendedor a su op_codigo
 
-      const vendedor = vendedores.find((v) => v.op_nombre === pedido.vendedor);
-      const vendedorId = vendedor ? vendedor.op_codigo : null;
-      setVendedor(vendedorId ?? "");
+  //     const vendedor = vendedores.find((v) => v.op_nombre === pedido.vendedor);
+  //     const vendedorId = vendedor ? vendedor.op_codigo : null;
+  //     setVendedor(vendedorId ?? "");
 
-      setOperador(pedido.operador);
+  //     setOperador(pedido.operador);
 
-      const newItems: Item[] = detalles.map((detalle) => ({
-        id: detalle.art_codigo,
-        nombre: detalle.descripcion,
-        precioOriginal: detalle.precio,
-        precioUnitario: detalle.precio,
-        cantidad: detalle.cantidad,
-        impuesto: detalle.iva,
-        impuesto5: detalle.cinco / detalle.cantidad,
-        impuesto10: detalle.diez / detalle.cantidad,
-        exentas: detalle.exentas / detalle.cantidad,
-        subtotal: detalle.precio * detalle.cantidad,
-        descuentoIndividual: (detalle.descuento / detalle.precio) * 100,
-        ar_editar_desc: detalle.ar_editar_desc,
-      }));
+  //     const newItems: Item[] = detalles.map((detalle) => ({
+  //       id: detalle.art_codigo,
+  //       nombre: detalle.descripcion,
+  //       precioOriginal: detalle.precio,
+  //       precioUnitario: detalle.precio,
+  //       cantidad: detalle.cantidad,
+  //       impuesto: detalle.iva,
+  //       impuesto5: detalle.cinco / detalle.cantidad,
+  //       impuesto10: detalle.diez / detalle.cantidad,
+  //       exentas: detalle.exentas / detalle.cantidad,
+  //       subtotal: detalle.precio * detalle.cantidad,
+  //       descuentoIndividual: (detalle.descuento / detalle.precio) * 100,
+  //       ar_editar_desc: detalle.ar_editar_desc,
+  //     }));
 
-      setItems(newItems);
+  //     setItems(newItems);
 
-      saveItemsTosessionStorage(newItems);
+  //     saveItemsTosessionStorage(newItems);
 
-      setDescuentoTipo(pedido.descuento > 0 ? "valor" : "porcentaje");
+  //     setDescuentoTipo(pedido.descuento > 0 ? "valor" : "porcentaje");
 
-      setDescuentoValor(pedido.descuento);
+  //     setDescuentoValor(pedido.descuento);
 
-      handleClosePedidoModal();
+  //     handleClosePedidoModal();
 
-      console.log("Pedido seleccionado", pedido);
-      console.log("Detalles del pedido", detalles);
-      console.log("items", newItems);
+  //     console.log("Pedido seleccionado", pedido);
+  //     console.log("Detalles del pedido", detalles);
+  //     console.log("items", newItems);
 
-      toast({
-        title: "Pedido cargado",
-        description: `El pedido #${pedido.codigo} ha sido cargado exitosamente.`,
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-    } catch (error) {
-      toast({
-        title: "Error al cargar los detalles del pedido",
-        description: "Por favor, intenta de nuevo más tarde",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-  };
+  //     toast({
+  //       title: "Pedido cargado",
+  //       description: `El pedido #${pedido.codigo} ha sido cargado exitosamente.`,
+  //       status: "success",
+  //       duration: 3000,
+  //       isClosable: true,
+  //     });
+  //   } catch (error) {
+  //     toast({
+  //       title: "Error al cargar los detalles del pedido",
+  //       description: "Por favor, intenta de nuevo más tarde",
+  //       status: "error",
+  //       duration: 3000,
+  //       isClosable: true,
+  //     });
+  //   }
+  // };
 
   const handleSelectPresupuesto = async (presupuesto: Presupuesto) => {
     try {
@@ -2899,7 +2899,6 @@ export default function VentaBalcon() {
               <ModalCloseButton />
               <ModalBody>
                 <ConsultaPedidos
-                  onSelectPedido={handleSelectPedido}
                   onClose={handleClosePedidoModal}
                   isModal={true}
                   clienteSeleccionado={clienteSeleccionado}

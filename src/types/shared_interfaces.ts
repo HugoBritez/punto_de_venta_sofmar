@@ -547,4 +547,30 @@ export interface DetallePresupuesto {
   ar_editar_desc: number
 }
 
+export interface Remisiones {
+  id: number;
+  fecha: string;
+  operador: string;
+  chofer: string;
+  cliente: string;
+  deposito: string;
+  nro_remision: string;
+  factura: string;
+  timbrado: string;
+  vehiculo: number;
+  fecha_salida: string;
+  fecha_llegada: string;
+  tipo_remision: string;
+  items: {
+    id: number;
+    cantidad: number;
+    articulo_id: number;
+    cod_barras: string;
+    articulo_descripcion: string;
+    lote: string;
+    lote_id: number;
+    vencimiento: string;
+  }[]
+}
+
 

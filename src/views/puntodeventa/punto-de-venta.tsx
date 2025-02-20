@@ -54,6 +54,7 @@ import {
   Venta,
   DetalleVenta,
   OperacionData,
+  PedidosNuevo,
 } from "@/types/shared_interfaces";
 import ConsultaPedidos from "../pedidos/ConsultaPedidos";
 // import usePermisos from "@/hooks/usePermisos";
@@ -3077,7 +3078,7 @@ export default function PuntoDeVenta() {
               <ModalCloseButton />
               <ModalBody>
                 <ConsultaPedidos
-                  onSelectPedido={handleSelectPedido}
+                  onSelectPedido={(pedido: PedidosNuevo) => handleSelectPedido(pedido as unknown as Pedidos)}
                   onClose={handleClosePedidoModal}
                   isModal={true}
                   clienteSeleccionado={clienteSeleccionado}
