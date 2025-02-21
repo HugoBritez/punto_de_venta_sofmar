@@ -573,4 +573,31 @@ export interface Remisiones {
   }[]
 }
 
+export interface VentaTicket {
+  codigo: number;
+  tipo_venta: string;
+  fecha_venta: string;
+  fecha_vencimiento: string;
+  cajero: string;
+  vendedor: string;
+  cliente: string;
+  direccion: string;
+  telefono: string;
+  ruc: string;
+  subtotal: number;
+  total_descuento: number;
+  total_a_pagar: number;
+  total_exentas: number;
+  total_diez: number;
+  total_cinco: number;
+  detalles: {
+    codigo: number;
+    descripcion: string;
+    cantidad: number;
+    precio: number;
+    total: number;
+  }[];
+}
+
+
 

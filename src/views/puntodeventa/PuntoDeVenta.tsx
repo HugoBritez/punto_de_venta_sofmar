@@ -51,6 +51,7 @@ import ConsultaPedidos from "../pedidos/ConsultaPedidos";
 import ConsultaPresupuestos from "../presupuestos/ConsultaPresupuesto";
 import ConsultaRemisiones from "../remisiones/ConsultaRemisiones";
 import ResumenVentas from "../ventas/ResumenVentas";
+import { createRoot } from "react-dom/client";
 interface ItemParaVenta {
   precio_guaranies: number;
   precio_dolares: number;
@@ -192,11 +193,6 @@ const PuntoDeVentaNuevo = () => {
 
   const operador = sessionStorage.getItem("user_id");
 
-  // const [pedidoSeleccionado, setPedidoSeleccionado] = useState<Pedido | null>(
-  //   null
-  // );
-  // const [presupuestoSeleccionado, setPresupuestoSeleccionado] =
-  //   useState<Presupuesto | null>(null);
 
   const [articuloBusqueda, setArticuloBusqueda] = useState<string>("");
   const [articuloBusquedaId, setArticuloBusquedaId] = useState<string | null>(
@@ -235,7 +231,6 @@ const PuntoDeVentaNuevo = () => {
     useState<ArticulosNuevo | null>(null);
 
   const [imprimirFacturaPDF, setImprimirFacturaPDF] = useState(false);
-  const [imprimirTicketPDF, setImprimirTicketPDF] = useState(false);
 
   const [montoEntregado, setMontoEntregado] = useState<number | null    >(null);
   const [montoEntregadoDolar, setMontoEntregadoDolar] = useState<number | null>(null);
@@ -268,11 +263,7 @@ const PuntoDeVentaNuevo = () => {
     onClose: onCloseKCOpen,
   } = useDisclosure();
 
-  const {
-    isOpen: isImpresionTicketOpen,
-    onOpen: onImpresionTicketOpen,
-    onClose: onImpresionTicketClose,
-  } = useDisclosure();
+
 
   const {
     isOpen: isPedidoModalOpen,
@@ -591,11 +582,11 @@ const agregarItemAVenta = () => {
     case 1: // Lista precio contado
       precioEnGuaranies = articuloSeleccionado.precio_venta;
       break;
-    case 2: // Lista precio mostrador
-      precioEnGuaranies = articuloSeleccionado.precio_mostrador;
-      break;
-    case 3: // Lista precio credito
+    case 2: // Lista precio credito
       precioEnGuaranies = articuloSeleccionado.precio_credito;
+      break;
+    case 3: // Lista precio mostrador
+      precioEnGuaranies = articuloSeleccionado.precio_mostrador;
       break;
     default:
       precioEnGuaranies = articuloSeleccionado.precio_venta;
@@ -737,18 +728,16 @@ const agregarItemAVenta = () => {
     }
   };
 
-
-
   const handleCancelarVenta = () => {
+    setMontoEntregado(0);
+    setMontoEntregadoDolar(0);
+    setMontoEntregadoReal(0);
+    setMontoEntregadoPeso(0);
     setItemsParaVenta([]);
     setArticuloSeleccionado(null);
     setArticuloBusqueda("");
     setCantidad(1);
     setDescuento(0);
-    setClienteSeleccionado(null);
-    setClienteBusqueda("");
-    setVendedorSeleccionado(null);
-    setVendedorBusqueda(null);
   };
 
   useEffect(() => {
@@ -803,17 +792,25 @@ const agregarItemAVenta = () => {
   const totalDescuentoFactura = 0;
   const totalDescuento = totalDescuentoItems + totalDescuentoFactura;
 
-const totalPagarFinal = Math.round(totalPagar - totalDescuento); //siempre en la moneda seleccionada
+const totalPagarFinal = (totalPagar - totalDescuento); //siempre en la moneda seleccionada
 
 
 const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
 
   // Formatear los números con 2 decimales y separador de miles
-  const formatNumber = (num: number | string) =>
-    num.toLocaleString("es-PY", {
+  const formatNumber = (num: number | string) => {
+    if (typeof num === "string") {
+      num = Number(num);
+      return num.toLocaleString("es-PY", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      });
+    }
+    return num.toLocaleString("es-PY", {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     });
+  };
 
   const formatearDivisasExtranjeras = (num: number) => {
     return num.toLocaleString("es-PY", {
@@ -1099,7 +1096,7 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
             ? opcionesFinalizacion.nro_emision +
               "-" +
               opcionesFinalizacion.nro_establecimiento +
-              "-" +
+              "-000" +
               opcionesFinalizacion.nro_factura
             : null,
         credito: opcionesFinalizacion.tipo_venta === "CREDITO" ? 1 : 0,
@@ -1109,8 +1106,8 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
               tasaCambio
             : 0,
         vencimiento: opcionesFinalizacion.fecha_vencimiento_timbrado || null,
-        descuento: totalDescuento * tasaCambio,
-        total: totalPagarFinal * tasaCambio,
+        descuento: totalDescuento ,
+        total: totalPagarFinal ,
         cuotas: opcionesFinalizacion.tipo_venta === "CREDITO" ? 1 : 0,
         cantCuotas: opcionesFinalizacion.cantidad_cuotas || 0,
         obs: opcionesFinalizacion.observacion || "",
@@ -1185,8 +1182,7 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
           onImpresionFacturaOpen();
         }
         if (imprimirTicket) {
-          setImprimirTicketPDF(true);
-          onImpresionTicketOpen();
+           await imprimirTicketComponente(response.data.body.ventaId);
         }
       }
     } catch (error) {
@@ -1745,7 +1741,7 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
         setOpcionesFinalizacion({
           ...opcionesFinalizacion,
           tipo_venta: "CREDITO",
-        });``
+        });
       } if (e.key === "Enter") {
         e.preventDefault();
         montoEntregadoKCInputRef.current?.focus();
@@ -1753,6 +1749,29 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
     }
   };
 
+const imprimirTicketComponente = async (ventaId: number) => {
+  // Componente oculto que solo se usa para generar el PDF
+  const ticketDiv = document.createElement("div");
+  ticketDiv.style.display = "none";
+  document.body.appendChild(ticketDiv);
+
+  const root = createRoot(ticketDiv);
+  root.render(
+    <ModeloTicket
+      id_venta={ventaId}
+      monto_entregado={montoEntregado || 0}
+      monto_recibido={montoEntregado || 0}
+      vuelto={0}
+      onImprimir={true}
+    />
+  );
+
+  // Limpiar después de un tiempo
+  setTimeout(() => {
+    root.unmount();
+    document.body.removeChild(ticketDiv);
+  }, 2000);
+};
 
   return (
     <Box
@@ -2173,9 +2192,10 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
                     <p>{item.descripcion}</p>
                     <Tally1 />
                     <p>P. Contado</p>
-                    <p>{item.precio_venta}</p>-<p>P. Mostrador</p>
-                    <p>{item.precio_mostrador}</p>-<p>P. Credito</p>
-                    <p>{item.precio_credito}</p>
+                    <p>{formatNumber(item.precio_venta)}</p>-<p>P. Mostrador</p>
+                    <p>{formatNumber(item.precio_mostrador)}</p>-
+                    <p>P. Credito</p>
+                    <p>{formatNumber(item.precio_credito)}</p>
                     <Tally1 />
                     {item.vencimiento_validacion === 1 ? (
                       <p
@@ -2754,8 +2774,12 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
               <div className="flex flex-col gap-2">
                 <p className="font-bold">
                   Tipo de Documento (1: Nota Común, 2: Factura)
-                </p>  
-                <div className="flex gap-4" ref={tipoDocumentoKCInputRef} tabIndex={2}>
+                </p>
+                <div
+                  className="flex gap-4"
+                  ref={tipoDocumentoKCInputRef}
+                  tabIndex={2}
+                >
                   <button
                     tabIndex={-1}
                     className={`px-4 py-2 rounded-md ${
@@ -2915,7 +2939,11 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
               {/* Tipo de Venta */}
               <div className="flex flex-col gap-2">
                 <p className="font-bold">Tipo de Venta</p>
-                <div className="flex gap-4" ref={tipoVentaKCInputRef} tabIndex={3}>
+                <div
+                  className="flex gap-4"
+                  ref={tipoVentaKCInputRef}
+                  tabIndex={3}
+                >
                   <button
                     tabIndex={-1}
                     className={`px-4 py-2 rounded-md ${
@@ -3349,30 +3377,6 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
         </ModalContent>
       </Modal>
       <Modal
-        isOpen={isImpresionTicketOpen}
-        onClose={onImpresionTicketClose}
-        size="full"
-      >
-        <ModalOverlay />
-        <ModalContent>
-          <ModalCloseButton />
-          <ModalHeader>Impresión de Ticket</ModalHeader>
-          <ModalBody>
-            <ModeloTicket id_venta={134812} onImprimir={imprimirTicketPDF} />
-          </ModalBody>
-          <ModalFooter>
-            <Button
-              colorScheme="blue"
-              onClick={() => {
-                setImprimirTicketPDF(true);
-              }}
-            >
-              Imprimir
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-      <Modal
         isOpen={isImpresionFacturaOpen}
         onClose={onImpresionFacturaClose}
         size="full"
@@ -3382,10 +3386,12 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
           <ModalCloseButton />
           <ModalHeader>Impresión de Factura</ModalHeader>
           <ModalBody>
-            <ModeloFactura id_venta={134812} onImprimir={imprimirFacturaPDF} />
+            <ModeloFactura
+              id_venta={ultimaVentaId || 0}
+              onImprimir={imprimirFacturaPDF}
+            />
           </ModalBody>
           <ModalFooter>
-            .
             <Button
               colorScheme="blue"
               onClick={() => setImprimirFacturaPDF(true)}

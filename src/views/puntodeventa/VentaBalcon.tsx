@@ -52,6 +52,10 @@ import ConsultaPresupuestos from "../presupuestos/ConsultaPresupuesto";
 import ConsultaRemisiones from "../remisiones/ConsultaRemisiones";
 import ResumenVentas from "../ventas/ResumenVentas";
 interface ItemParaVenta {
+  precio_guaranies: number;
+  precio_dolares: number;
+  precio_reales: number;
+  precio_pesos: number;
   deve_articulo: number;
   articulo: string;
   deve_cantidad: number;
@@ -77,6 +81,7 @@ interface ItemParaVenta {
   editar_nombre?: number | null;
   precio_original?: number | null;
 }
+
 
 interface VentaCliente {
   codigo: number;
@@ -188,13 +193,9 @@ const VentaBalconNuevo = () => {
 
   const operador = sessionStorage.getItem("user_id");
 
-  // const [pedidoSeleccionado, setPedidoSeleccionado] = useState<Pedido | null>(
-  //   null
-  // );
-  // const [presupuestoSeleccionado, setPresupuestoSeleccionado] =
-  //   useState<Presupuesto | null>(null);
 
   const [articuloBusqueda, setArticuloBusqueda] = useState<string>("");
+  const [articuloBusquedaId, setArticuloBusquedaId] = useState<string>("");
   const [vendedorBusqueda, setVendedorBusqueda] = useState<number | null>(null);
   const [clienteBusqueda, setClienteBusqueda] = useState<string>("");
 
@@ -211,13 +212,19 @@ const VentaBalconNuevo = () => {
   const [entregaInicialVentaCuotas, setEntregaInicialVentaCuotas] = useState<
     number | null
   >(null);
+
   const [cuotas, setCuotas] = useState<number | null>(1);
 
   const [ultimaVentaId, setUltimaVentaId] = useState<number | null>(null);
 
+  const busquedaPorIdInputRef = useRef<HTMLInputElement>(null);
   const busquedaInputRef = useRef<HTMLInputElement>(null);
   const descuentoInputRef = useRef<HTMLInputElement>(null);
   const cantidadInputRef = useRef<HTMLInputElement>(null);
+
+  const tipoDocumentoKCInputRef = useRef<HTMLInputElement>(null);
+  const tipoVentaKCInputRef = useRef<HTMLInputElement>(null);
+  const montoEntregadoKCInputRef = useRef<HTMLInputElement>(null);
 
   const [cotizacionDolar, setCotizacionDolar] = useState<number>(7770);
   const [cotizacionReal, setCotizacionReal] = useState<number>(1200);
@@ -228,7 +235,16 @@ const VentaBalconNuevo = () => {
   const [imprimirFacturaPDF, setImprimirFacturaPDF] = useState(false);
   const [imprimirTicketPDF, setImprimirTicketPDF] = useState(false);
 
-  const [montoEntregado, setMontoEntregado] = useState<number>(0);
+    const [montoEntregado, setMontoEntregado] = useState<number | null>(null);
+    const [montoEntregadoDolar, setMontoEntregadoDolar] = useState<
+      number | null
+    >(null);
+    const [montoEntregadoReal, setMontoEntregadoReal] = useState<number | null>(
+      null
+    );
+    const [montoEntregadoPeso, setMontoEntregadoPeso] = useState<number | null>(
+      null
+    );
 
   const [hoveredArticulo, setHoveredArticulo] = useState<ArticulosNuevo | null>(
     null
@@ -412,19 +428,23 @@ const VentaBalconNuevo = () => {
     }
   }
 
-  const getArticulos = async (busqueda: string) => {
+  const getArticulos = async (
+    busqueda: string,
+    id_articulo?: string | null
+  ) => {
     setArticulos([]);
     const response = await axios.get(`${api_url}articulos/consulta-articulos`, {
       params: {
+        id_articulo: id_articulo,
         busqueda: busqueda,
         deposito: depositoSeleccionado?.dep_codigo,
-        moneda: monedaSeleccionada?.mo_codigo,
         stock: buscarItemsConStock,
       },
     });
     console.log(response.data.body);
     setArticulos(response.data.body);
   };
+
 
   const getClientes = async (busqueda: string) => {
     const response = await axios.get(`${api_url}clientes/get-clientes`, {
@@ -478,6 +498,21 @@ const VentaBalconNuevo = () => {
     }
   };
 
+  const handleBuscarArticuloPorId = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const busqueda = e.target.value;
+    setArticuloBusquedaId(busqueda);
+    setArticuloSeleccionado(null);
+    if (busqueda.length > 0) {
+      setIsArticuloCardVisible(true);
+      getArticulos("", busqueda);
+    } else {
+      setIsArticuloCardVisible(false);
+      setArticulos([]);
+    }
+  };
+
   const handleBuscarCliente = (e: React.ChangeEvent<HTMLInputElement>) => {
     const busqueda = e.target.value;
     setClienteBusqueda(busqueda);
@@ -511,6 +546,8 @@ const VentaBalconNuevo = () => {
     setIsArticuloCardVisible(false);
     setArticulos([]);
     setHoveredArticulo(null);
+    setArticuloBusqueda("");
+    setArticuloBusquedaId("");
   };
 
   const handleSelectCliente = (cliente: Cliente) => {
@@ -556,38 +593,51 @@ const VentaBalconNuevo = () => {
       return fechaB.getTime() - fechaA.getTime();
     })[0];
 
-    let precioAUsar = 0;
-
+    // 1. Obtener precio base en guaraníes
+    let precioEnGuaranies = 0;
     switch (precioSeleccionado?.lp_codigo) {
       case 1: // Lista precio contado
-        precioAUsar = articuloSeleccionado.precio_venta;
+        precioEnGuaranies = articuloSeleccionado.precio_venta;
         break;
-      case 2: // Lista precio mostrador
-        precioAUsar = articuloSeleccionado.precio_mostrador;
+      case 2: // Lista precio credito
+        precioEnGuaranies = articuloSeleccionado.precio_credito;
         break;
-      case 3: // Lista precio credito
-        precioAUsar = articuloSeleccionado.precio_credito;
+      case 3: // Lista precio mostrador
+        precioEnGuaranies = articuloSeleccionado.precio_mostrador;
         break;
       default:
-        precioAUsar = articuloSeleccionado.precio_venta;
+        precioEnGuaranies = articuloSeleccionado.precio_venta;
     }
 
-        const tasaCambio =
-          monedaSeleccionada?.mo_codigo === 1
-            ? 1 // Guaraníes
-            : monedaSeleccionada?.mo_codigo === 2
-            ? cotizacionDolar // Dólares
-            : monedaSeleccionada?.mo_codigo === 3
-            ? cotizacionReal // Reales
-            : monedaSeleccionada?.mo_codigo === 4
-            ? cotizacionPeso
-            : 1; // Pesos
+    // 2. Calcular precio unitario en la moneda actual
+    let precioUnitarioMonedaActual = precioEnGuaranies;
+    switch (monedaSeleccionada?.mo_codigo) {
+      case 1: // Guaraníes
+        precioUnitarioMonedaActual = precioEnGuaranies;
+        break;
+      case 2: // Dólares
+        precioUnitarioMonedaActual = Number(
+          (precioEnGuaranies / cotizacionDolar).toFixed(2)
+        );
+        break;
+      case 3: // Reales
+        precioUnitarioMonedaActual = Number(
+          (precioEnGuaranies / cotizacionReal).toFixed(2)
+        );
+        break;
+      case 4: // Pesos
+        precioUnitarioMonedaActual = Number(
+          (precioEnGuaranies / cotizacionPeso).toFixed(2)
+        );
+        break;
+      default:
+        precioUnitarioMonedaActual = precioEnGuaranies;
+    }
 
-        const precioEnMonedaActual = Math.round(precioAUsar / tasaCambio);
-        const montoTotal = precioEnMonedaActual * cantidad;
+    // 3. Calcular monto total en la moneda actual
+    const montoTotal = precioUnitarioMonedaActual * cantidad;
 
-
-    // Determinar el tipo de IVA según el campo iva
+    // 4. Calcular IVA en la moneda actual
     let deve_exentas = 0;
     let deve_cinco = 0;
     let deve_diez = 0;
@@ -606,18 +656,22 @@ const VentaBalconNuevo = () => {
         console.warn("Tipo de IVA no reconocido");
     }
 
-
+    // 5. Crear el nuevo item
     const nuevoItem: ItemParaVenta = {
+      precio_guaranies: precioEnGuaranies,
+      precio_dolares: Number((precioEnGuaranies / cotizacionDolar).toFixed(2)),
+      precio_reales: Number((precioEnGuaranies / cotizacionReal).toFixed(2)),
+      precio_pesos: Number((precioEnGuaranies / cotizacionPeso).toFixed(2)),
       cod_barra: articuloSeleccionado.codigo_barra,
       deve_articulo: articuloSeleccionado.id_articulo,
       articulo: articuloSeleccionado.descripcion,
       deve_cantidad: cantidad,
-      deve_precio: precioAUsar,
-      precio_original: precioAUsar,
+      deve_precio: precioUnitarioMonedaActual,
+      precio_original: precioEnGuaranies,
       deve_descuento: descuento || 0,
-      deve_exentas,
-      deve_cinco,
-      deve_diez,
+      deve_exentas: Number(deve_exentas.toFixed(2)),
+      deve_cinco: Number(deve_cinco.toFixed(2)),
+      deve_diez: Number(deve_diez.toFixed(2)),
       deve_devolucion: 0,
       deve_vendedor: Number(vendedorSeleccionado?.op_codigo) || 0,
       deve_color: null,
@@ -626,13 +680,14 @@ const VentaBalconNuevo = () => {
       deve_codioot: null,
       deve_costo: null,
       deve_costo_art: null,
-      deve_cinco_x: deve_cinco / 22,
-      deve_diez_x: deve_diez / 11,
+      deve_cinco_x: deve_cinco > 0 ? Number((deve_cinco * 0.05).toFixed(2)) : 0,
+      deve_diez_x: deve_diez > 0 ? Number((deve_diez * 0.1).toFixed(2)) : 0,
       editar_nombre: articuloSeleccionado.editar_nombre,
       deve_lote: loteSeleccionado.lote,
       loteid: loteSeleccionado.id,
       deve_vencimiento: loteSeleccionado.vencimiento,
     };
+
     setItemsParaVenta([...itemsParaVenta, nuevoItem]);
     setArticuloSeleccionado(null);
     setArticuloBusqueda("");
@@ -711,48 +766,71 @@ const VentaBalconNuevo = () => {
     obtenerDatosFacturacion();
   }, []);
 
-  const totalExentas = itemsParaVenta.reduce(
-    (total, item) => total + item.deve_exentas,
-    0
-  );
-  const totalCinco = itemsParaVenta.reduce(
-    (total, item) => total + item.deve_cinco,
-    0
-  );
-  const totalDiez = itemsParaVenta.reduce(
-    (total, item) => total + item.deve_diez,
-    0
-  );
-  const totalItems = itemsParaVenta.reduce(
-    (total, item) => total + item.deve_cantidad,
-    0
-  );
-  const totalPagar = itemsParaVenta.reduce(
-    (total, item) => total + item.deve_precio * item.deve_cantidad,
-    0
-  );
-  const totalDescuentoItems = itemsParaVenta.reduce(
-    (total, item) =>
-      total +
-      (item.deve_descuento * item.deve_precio * item.deve_cantidad) / 100,
-    0
-  );
-  const totalDescuentoFactura = 0;
-  const totalDescuento = totalDescuentoItems + totalDescuentoFactura;
+const totalExentas = itemsParaVenta.reduce(
+  (total, item) => total + item.deve_exentas,
+  0
+);
+const totalCinco = itemsParaVenta.reduce(
+  (total, item) => total + item.deve_cinco,
+  0
+);
+const totalDiez = itemsParaVenta.reduce(
+  (total, item) => total + item.deve_diez,
+  0
+);
+const totalItems = itemsParaVenta.reduce(
+  (total, item) => total + item.deve_cantidad,
+  0
+);
+const totalPagar = itemsParaVenta.reduce(
+  //siempre en la moneda seleccionada
+  (total, item) => total + item.deve_precio * item.deve_cantidad,
+  0
+);
 
-  const totalPagarFinal = totalPagar - totalDescuento;
-  const totalDolares = totalPagarFinal / cotizacionDolar;
-  const totalReales = totalPagarFinal / cotizacionReal;
-  const totalPesos = totalPagarFinal / cotizacionPeso;
+const totalPagarGuaranies = itemsParaVenta.reduce(
+  (total, item) => total + item.precio_guaranies * item.deve_cantidad,
+  0
+);
+const totalPagarDolares = itemsParaVenta.reduce(
+  (total, item) => total + item.precio_dolares * item.deve_cantidad,
+  0
+);
+const totalPagarReales = itemsParaVenta.reduce(
+  (total, item) => total + item.precio_reales * item.deve_cantidad,
+  0
+);
+const totalPagarPesos = itemsParaVenta.reduce(
+  (total, item) => total + item.precio_pesos * item.deve_cantidad,
+  0
+);
 
-  const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
+const totalDescuentoItems = itemsParaVenta.reduce(
+  (total, item) =>
+    total + (item.deve_descuento * item.deve_precio * item.deve_cantidad) / 100,
+  0
+);
+const totalDescuentoFactura = 0;
+const totalDescuento = totalDescuentoItems + totalDescuentoFactura;
+
+const totalPagarFinal = Math.round(totalPagar - totalDescuento); //siempre en la moneda seleccionada
+
+const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
 
   // Formatear los números con 2 decimales y separador de miles
-  const formatNumber = (num: number) =>
-    num.toLocaleString("es-PY", {
+  const formatNumber = (num: number | string) => {
+    if (typeof num === "string") {
+      num = Number(num);
+      return num.toLocaleString("es-PY", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      });
+    }
+    return num.toLocaleString("es-PY", {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    });
+    }); 
+  };
 
   const formatearDivisasExtranjeras = (num: number) => {
     return num.toLocaleString("es-PY", {
@@ -769,9 +847,9 @@ const VentaBalconNuevo = () => {
   const totalDescuentoItemsFormateado = formatNumber(totalDescuentoItems);
   const totalDescuentoFormateado = formatNumber(totalDescuento);
   const totalPagarFinalFormateado = formatNumber(totalPagarFinal);
-  const totalDolaresFormateado = formatearDivisasExtranjeras(totalDolares);
-  const totalRealesFormateado = formatearDivisasExtranjeras(totalReales);
-  const totalPesosFormateado = formatearDivisasExtranjeras(totalPesos);
+  const totalDolaresFormateado = formatearDivisasExtranjeras(totalPagarDolares);
+  const totalRealesFormateado = formatearDivisasExtranjeras(totalPagarReales);
+  const totalPesosFormateado = formatearDivisasExtranjeras(totalPagarPesos);
   const porcentajeDescuentoFormateado = porcentajeDescuento;
 
   const ResumenVentasCliente = ({
@@ -1540,6 +1618,167 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
       getArticulos(articuloBusqueda);
     }
   };
+  
+  function calcularMontoEntregado(
+    valor: number,
+    moneda: "GS" | "USD" | "BRL" | "ARS"
+  ) {
+    switch (moneda) {
+      case "GS":
+        setMontoEntregado(valor);
+        setMontoEntregadoDolar(Number((valor / cotizacionDolar).toFixed(2)));
+        setMontoEntregadoReal(Number((valor / cotizacionReal).toFixed(2)));
+        setMontoEntregadoPeso(Number((valor / cotizacionPeso).toFixed(2)));
+        break;
+      case "USD":
+        setMontoEntregado(valor * cotizacionDolar);
+        setMontoEntregadoDolar(valor);
+        setMontoEntregadoReal(
+          Number(((valor * cotizacionDolar) / cotizacionReal).toFixed(2))
+        );
+        setMontoEntregadoPeso(
+          Number(((valor * cotizacionDolar) / cotizacionPeso).toFixed(2))
+        );
+        break;
+      case "BRL":
+        setMontoEntregado(valor * cotizacionReal);
+        setMontoEntregadoDolar(
+          Number(((valor * cotizacionReal) / cotizacionDolar).toFixed(2))
+        );
+        setMontoEntregadoReal(valor);
+        setMontoEntregadoPeso(
+          Number(((valor * cotizacionReal) / cotizacionPeso).toFixed(2))
+        );
+        break;
+      case "ARS":
+        setMontoEntregado(valor * cotizacionPeso);
+        setMontoEntregadoDolar(
+          Number(((valor * cotizacionPeso) / cotizacionDolar).toFixed(2))
+        );
+        setMontoEntregadoReal(
+          Number(((valor * cotizacionPeso) / cotizacionReal).toFixed(2))
+        );
+        setMontoEntregadoPeso(valor);
+        break;
+      default:
+        break;
+    }
+  }
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "F6") {
+        e.preventDefault();
+        cantidadInputRef.current?.focus();
+      } else if (e.key === "F5") {
+        e.preventDefault();
+        busquedaPorIdInputRef.current?.focus();
+      } else if (
+        e.key === "+" &&
+        document.activeElement === busquedaPorIdInputRef.current
+      ) {
+        e.preventDefault();
+        busquedaInputRef.current?.focus();
+      } else if (e.key === "F12") {
+        e.preventDefault();
+        // Si el modal de finalización está abierto, finalizar la venta
+        if (isKCOpen) {
+          finalizarVenta();
+        }
+        // Si no está abierto pero hay items y cliente seleccionado, abrir el modal
+        else if (
+          itemsParaVenta.length > 0 &&
+          clienteSeleccionado &&
+          vendedorSeleccionado
+        ) {
+          onKCOpen();
+        }
+        // Si no se cumplen las condiciones, mostrar mensaje de error
+        else {
+          if (!clienteSeleccionado) {
+            toast({
+              title: "Error",
+              description:
+                "No se puede finalizar la venta, falta seleccionar un cliente",
+              status: "error",
+            });
+          } else if (!vendedorSeleccionado) {
+            toast({
+              title: "Error",
+              description:
+                "No se puede finalizar la venta, falta seleccionar un vendedor",
+              status: "error",
+            });
+          } else if (!itemsParaVenta.length) {
+            toast({
+              title: "Error",
+              description:
+                "No se puede finalizar la venta, no hay articulos en la venta",
+              status: "error",
+            });
+          }
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [
+    itemsParaVenta,
+    clienteSeleccionado,
+    vendedorSeleccionado,
+    isKCOpen,
+    onKCOpen,
+    finalizarVenta,
+  ]);
+
+  const handleKCKeyDown = (e: React.KeyboardEvent) => {
+    // Para el input de tipo de documento
+    if (document.activeElement === tipoDocumentoKCInputRef.current) {
+      if (e.key === "1") {
+        setOpcionesFinalizacion({
+          ...opcionesFinalizacion,
+          tipo_documento: "TICKET",
+        });
+        setImprimirFactura(false);
+        setImprimirTicket(true);
+      } else if (e.key === "2") {
+        setOpcionesFinalizacion({
+          ...opcionesFinalizacion,
+          tipo_documento: "FACTURA",
+        });
+        setImprimirFactura(true);
+        setImprimirTicket(false);
+      } else if (e.key === "Tab") {
+        e.preventDefault();
+        tipoVentaKCInputRef.current?.focus();
+      }
+    }
+
+    // Para el input de tipo de venta
+    if (document.activeElement === tipoVentaKCInputRef.current) {
+      if (e.key === "1") {
+        setOpcionesFinalizacion({
+          ...opcionesFinalizacion,
+          tipo_venta: "CONTADO",
+        });
+      } else if (e.key === "2") {
+        setOpcionesFinalizacion({
+          ...opcionesFinalizacion,
+          tipo_venta: "CREDITO",
+        });
+        ``;
+      }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        montoEntregadoKCInputRef.current?.focus();
+      }
+    }
+  };
+
 
   return (
     <Box
@@ -1866,7 +2105,34 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
             shadow="sm"
             rounded="md"
           >
-            <div className="flex flex-row gap-2 p-2 border-b relative">
+            <div
+              className={
+                isMobile
+                  ? "flex flex-col gap-2 p-2 border-b relative"
+                  : "flex flex-row gap-2 p-2 border-b relative"
+              }
+            >
+              <input
+                type="text"
+                value={
+                  articuloSeleccionado
+                    ? articuloSeleccionado.codigo_barra
+                    : articuloBusquedaId ?? ""
+                }
+                className="border rounded-md p-2 flex-1 items-center justify-center w-32 text-center "
+                placeholder=""
+                onClick={() => {
+                  setIsArticuloCardVisible(true);
+                }}
+                onFocus={() => {
+                  setIsArticuloCardVisible(true);
+                }}
+                onChange={(e) => {
+                  handleBuscarArticuloPorId(e);
+                }}
+                onKeyDown={handleKeyPress}
+                ref={busquedaPorIdInputRef}
+              />
               <div className="relative w-full">
                 <input
                   type="text"
@@ -1876,7 +2142,7 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
                       : articuloBusqueda
                   }
                   className="border rounded-md p-2 flex-1 items-center justify-center w-full"
-                  placeholder="Buscar articulo por nombre o codigo"
+                  placeholder="Buscar articulo por nombre o codigo de barras"
                   onClick={() => {
                     setIsArticuloCardVisible(true);
                   }}
@@ -1917,23 +2183,6 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
                 onKeyDown={handleDescuentoKeyPress}
                 ref={descuentoInputRef}
               />
-              <select
-                className="border rounded-md p-2"
-                value={precioSeleccionado?.lp_codigo}
-                onChange={(e) => {
-                  setPrecioSeleccionado(
-                    listaPrecios.find(
-                      (precio) => precio.lp_codigo === parseInt(e.target.value)
-                    ) || null
-                  );
-                }}
-              >
-                {listaPrecios.map((precio) => (
-                  <option key={precio.lp_codigo} value={precio.lp_codigo}>
-                    {precio.lp_descripcion}
-                  </option>
-                ))}
-              </select>
               <input
                 type="number"
                 className="border rounded-md p-2 w-16"
@@ -1946,10 +2195,6 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
                 ref={cantidadInputRef}
                 onKeyDown={handleCantidadKeyPress}
               />
-              <select name="" id="" className="border rounded-md p-2">
-                <option value="1">V</option>
-                <option value="2">B</option>
-              </select>
               <Button colorScheme="green" onClick={agregarItemAVenta}>
                 <Plus />
               </Button>
@@ -1958,10 +2203,18 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
                 items={articulos}
                 onClose={() => setIsArticuloCardVisible(false)}
                 onSelect={handleSelectArticulo}
-                className="absolute top-16 left-0 right-0 z-999"
+                className={
+                  isMobile
+                    ? "absolute top-24 left-0 right-0 z-999"
+                    : "absolute top-16 left-0 right-0 z-999"
+                }
                 renderItem={(item) => (
                   <div
-                    className="flex flex-row gap-2 items-center [&>p]:font-bold"
+                    className={
+                      isMobile
+                        ? "flex flex-row gap-2 items-center [&>p]:font-semibold [&>p]:text-xs"
+                        : "flex flex-row gap-2 items-center [&>p]:font-bold"
+                    }
                     onMouseEnter={() => setHoveredArticulo(item)}
                     onMouseLeave={() => setHoveredArticulo(null)}
                   >
@@ -1970,9 +2223,9 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
                     <p>{item.descripcion}</p>
                     <Tally1 />
                     <p>P. Contado</p>
-                    <p>{item.precio_venta}</p>-<p>P. Mostrador</p>
-                    <p>{item.precio_mostrador}</p>-<p>P. Credito</p>
-                    <p>{item.precio_credito}</p>
+                    <p>{formatNumber(item.precio_venta)}</p>-<p>P. Mostrador</p>
+                    <p>{formatNumber(item.precio_mostrador)}</p>-<p>P. Credito</p>
+                    <p>{formatNumber(item.precio_credito)}</p>
                     <Tally1 />
                     {item.vencimiento_validacion === 1 ? (
                       <p
@@ -2031,7 +2284,7 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
                   {itemsParaVenta.map((item) => (
                     <tr
                       key={item.deve_articulo}
-                      className="[&>td]:px-2 [&>td]:py-1  [&>td]:border [&>td]:border-gray-200"
+                      className="[&>td]:px-2 [&>td]:py-1 [&>td]:border [&>td]:border-gray-200"
                     >
                       <td>{item.cod_barra}</td>
                       <td>
@@ -2042,19 +2295,64 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
                             value={item.articulo}
                             onChange={(e) => {
                               setItemsParaVenta(
-                                itemsParaVenta.map((item) =>
-                                  item.deve_articulo === item.deve_articulo
-                                    ? { ...item, articulo: e.target.value }
-                                    : item
+                                itemsParaVenta.map((currentItem) =>
+                                  currentItem.deve_articulo ===
+                                  item.deve_articulo
+                                    ? {
+                                        ...currentItem,
+                                        articulo: e.target.value,
+                                      }
+                                    : currentItem
                                 )
                               );
                             }}
-                          ></input>
+                          />
                         ) : (
                           item.articulo
                         )}
                       </td>
-                      <td className="text-center">{item.deve_cantidad}</td>
+                      <td className="text-center">
+                        <input
+                          type="number"
+                          min="1"
+                          className="border rounded-md p-1 w-16 text-center"
+                          value={item.deve_cantidad}
+                          onChange={(e) => {
+                            const nuevaCantidad = Number(e.target.value);
+                            const montoTotal = item.deve_precio * nuevaCantidad;
+                            setItemsParaVenta(
+                              itemsParaVenta.map((currentItem) =>
+                                currentItem.deve_articulo === item.deve_articulo
+                                  ? {
+                                      ...currentItem,
+                                      deve_cantidad: nuevaCantidad,
+                                      deve_exentas:
+                                        currentItem.deve_exentas > 0
+                                          ? montoTotal
+                                          : 0,
+                                      deve_cinco:
+                                        currentItem.deve_cinco > 0
+                                          ? montoTotal
+                                          : 0,
+                                      deve_diez:
+                                        currentItem.deve_diez > 0
+                                          ? montoTotal
+                                          : 0,
+                                      deve_cinco_x:
+                                        currentItem.deve_cinco > 0
+                                          ? montoTotal * 0.05
+                                          : 0,
+                                      deve_diez_x:
+                                        currentItem.deve_diez > 0
+                                          ? montoTotal * 0.1
+                                          : 0,
+                                    }
+                                  : currentItem
+                              )
+                            );
+                          }}
+                        />
+                      </td>
                       <td className="text-center">{item.deve_bonificacion}</td>
                       <td className="text-center">{item.deve_lote}</td>
                       <td className="text-center">{item.deve_vencimiento}</td>
@@ -2078,8 +2376,17 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
                                 currentItem.deve_articulo === item.deve_articulo
                                   ? {
                                       ...currentItem,
+                                      precio_guaranies: newPrecio,
+                                      precio_dolares: Number(
+                                        (newPrecio / cotizacionDolar).toFixed(2)
+                                      ),
+                                      precio_reales: Number(
+                                        (newPrecio / cotizacionReal).toFixed(2)
+                                      ),
+                                      precio_pesos: Number(
+                                        (newPrecio / cotizacionPeso).toFixed(2)
+                                      ),
                                       deve_precio: newPrecio,
-                                      // Recalcular los montos de IVA
                                       deve_exentas:
                                         currentItem.deve_exentas === 0
                                           ? 0
@@ -2103,7 +2410,53 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
                         />
                       </td>
                       <td className="text-right">
-                        {formatNumber(item.deve_descuento)}
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          className={`border rounded-md p-1 w-16 text-center ${
+                            permisos_descuento === 0 ? "bg-gray-100" : ""
+                          }`}
+                          value={item.deve_descuento}
+                          disabled={permisos_descuento === 0}
+                          onChange={(e) => {
+                            const nuevoDescuento = Number(e.target.value);
+                            const montoTotal =
+                              item.deve_precio *
+                              item.deve_cantidad *
+                              (1 - nuevoDescuento / 100);
+                            setItemsParaVenta(
+                              itemsParaVenta.map((currentItem) =>
+                                currentItem.deve_articulo === item.deve_articulo
+                                  ? {
+                                      ...currentItem,
+                                      deve_descuento: nuevoDescuento,
+                                      deve_exentas:
+                                        currentItem.deve_exentas > 0
+                                          ? montoTotal
+                                          : 0,
+                                      deve_cinco:
+                                        currentItem.deve_cinco > 0
+                                          ? montoTotal
+                                          : 0,
+                                      deve_diez:
+                                        currentItem.deve_diez > 0
+                                          ? montoTotal
+                                          : 0,
+                                      deve_cinco_x:
+                                        currentItem.deve_cinco > 0
+                                          ? montoTotal * 0.05
+                                          : 0,
+                                      deve_diez_x:
+                                        currentItem.deve_diez > 0
+                                          ? montoTotal * 0.1
+                                          : 0,
+                                    }
+                                  : currentItem
+                              )
+                            );
+                          }}
+                        />
                       </td>
                       <td className="text-right">
                         {formatNumber(item.deve_exentas)}
@@ -2121,7 +2474,7 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
                             item.deve_cantidad
                         )}
                       </td>
-                      <td className="flex  items-center justify-center">
+                      <td className="flex items-center justify-center">
                         <button
                           className="text-red-500"
                           onClick={() => handleEliminarItem(item)}
@@ -2260,6 +2613,15 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
           gap={2}
         >
           <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 [&>p]:text-sm [&>p]:font-bold">
+              <p>F5 para buscar articulo por codigo</p>
+              <p>
+                Para busqueda manual de articulos presione "+" en la barra de
+                busqueda
+              </p>
+              <p>F6 para agregar cantidad</p>
+              <p>F12 para finalizar venta</p>
+            </div>
             <div className="flex flex-row gap-2 items-center justify-center">
               <input
                 type="checkbox"
@@ -2391,16 +2753,23 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
       </Modal>
       <Modal isOpen={isKCOpen} onClose={onCloseKCOpen} size="3xl">
         <ModalOverlay />
-        <ModalContent>
+        <ModalContent onKeyDown={handleKCKeyDown}>
           <ModalHeader>Finalizar Venta</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
             <div className="flex flex-col gap-4">
               {/* Tipo de Documento */}
               <div className="flex flex-col gap-2">
-                <p className="font-bold">Tipo de Documento</p>
-                <div className="flex gap-4">
+                <p className="font-bold">
+                  Tipo de Documento (1: Nota Común, 2: Factura)
+                </p>
+                <div
+                  className="flex gap-4"
+                  ref={tipoDocumentoKCInputRef}
+                  tabIndex={2}
+                >
                   <button
+                    tabIndex={-1}
                     className={`px-4 py-2 rounded-md ${
                       opcionesFinalizacion.tipo_documento === "TICKET"
                         ? "bg-blue-500 text-white"
@@ -2418,6 +2787,7 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
                     Nota Comun
                   </button>
                   <button
+                    tabIndex={-1}
                     className={`px-4 py-2 rounded-md ${
                       opcionesFinalizacion.tipo_documento === "FACTURA"
                         ? "bg-blue-500 text-white"
@@ -2557,8 +2927,13 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
               {/* Tipo de Venta */}
               <div className="flex flex-col gap-2">
                 <p className="font-bold">Tipo de Venta</p>
-                <div className="flex gap-4">
+                <div
+                  className="flex gap-4"
+                  ref={tipoVentaKCInputRef}
+                  tabIndex={3}
+                >
                   <button
+                    tabIndex={-1}
                     className={`px-4 py-2 rounded-md ${
                       opcionesFinalizacion.tipo_venta === "CONTADO"
                         ? "bg-blue-500 text-white"
@@ -2576,6 +2951,7 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
                     Contado
                   </button>
                   <button
+                    tabIndex={-1}
                     className={`px-4 py-2 rounded-md ${
                       opcionesFinalizacion.tipo_venta === "CREDITO"
                         ? "bg-blue-500 text-white"
@@ -2736,51 +3112,245 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
                   <div className="flex flex-row gap-4 bg-blue-200 p-2 rounded-md">
                     <div className="flex flex-col gap-2 w-1/2">
                       <div>
-                        <p className="font-bold text-lg">Monto total:</p>
+                        <p className="font-bold text-lg">Monto total GS:</p>
                         <input
-                          type="number"
-                          value={totalPagarFinal}
+                          type="text"
+                          value={formatNumber(totalPagarGuaranies)}
                           readOnly
-                          className="border rounded-md p-2 text-right bg-white w-full text-black font-bold text-2xl"
+                          className="border rounded-md p-2 text-right bg-blue-700 w-full text-white font-bold text-2xl"
                         />
                       </div>
                       <div>
-                        <p className="font-bold text-lg">Monto entregado:</p>
+                        <p className="font-bold text-lg">Monto total USD:</p>
                         <input
                           type="number"
-                          value={montoEntregado}
-                          onChange={(e) =>
-                            setMontoEntregado(Number(e.target.value))
-                          }
-                          className="border rounded-md p-2 text-right bg-white w-full text-black font-bold text-2xl"
+                          value={totalPagarDolares.toFixed(2)}
+                          readOnly
+                          className="border rounded-md p-2 text-right bg-blue-700 w-full text-white font-bold text-2xl"
+                        />
+                      </div>
+                      <div>
+                        <p className="font-bold text-lg">Monto total BRL:</p>
+                        <input
+                          type="number"
+                          value={totalPagarReales.toFixed(2)}
+                          readOnly
+                          className="border rounded-md p-2 text-right bg-blue-700 w-full text-white font-bold text-2xl"
+                        />
+                      </div>
+                      <div>
+                        <p className="font-bold text-lg">Monto total ARS:</p>
+                        <input
+                          type="number"
+                          value={totalPagarPesos.toFixed(2)}
+                          readOnly
+                          className="border rounded-md p-2 text-right bg-blue-700 w-full text-white font-bold text-2xl"
                         />
                       </div>
                     </div>
                     <div className="flex flex-col gap-2 w-1/2">
                       <div>
-                        <p className="font-bold text-lg">Monto faltante:</p>
+                        <p className="font-bold text-lg">Monto entregado GS:</p>
                         <input
+                          ref={montoEntregadoKCInputRef}
                           type="number"
-                          readOnly
-                          value={
-                            montoEntregado - totalPagarFinal < 0
-                              ? montoEntregado - totalPagarFinal
-                              : 0
-                          }
-                          className="border rounded-md p-2 text-right bg-white w-full text-black font-bold text-2xl"
+                          value={montoEntregado || ""}
+                          onChange={(e) => {
+                            calcularMontoEntregado(
+                              Number(e.target.value),
+                              "GS"
+                            );
+                          }}
+                          className="border rounded-md p-2 text-right bg-black w-full text-green-500 border-green-500  font-bold text-2xl"
                         />
                       </div>
                       <div>
-                        <p className="font-bold text-lg">Cambio:</p>
+                        <p className="font-bold text-lg">
+                          Monto entregado USD:
+                        </p>
                         <input
                           type="number"
+                          value={montoEntregadoDolar || ""}
+                          onChange={(e) => {
+                            calcularMontoEntregado(
+                              Number(e.target.value),
+                              "USD"
+                            );
+                          }}
+                          className="border rounded-md p-2 text-right bg-black w-full text-green-500 border-green-500  font-bold text-2xl"
+                        />
+                      </div>
+                      <div>
+                        <p className="font-bold text-lg">
+                          Monto entregado BRL:
+                        </p>
+                        <input
+                          type="number"
+                          value={montoEntregadoReal || ""}
+                          onChange={(e) => {
+                            calcularMontoEntregado(
+                              Number(e.target.value),
+                              "BRL"
+                            );
+                          }}
+                          className="border rounded-md p-2 text-right bg-black w-full text-green-500 border-green-500  font-bold text-2xl"
+                        />
+                      </div>
+                      <div>
+                        <p className="font-bold text-lg">
+                          Monto entregado ARS:
+                        </p>
+                        <input
+                          type="number"
+                          value={montoEntregadoPeso || ""}
+                          onChange={(e) => {
+                            calcularMontoEntregado(
+                              Number(e.target.value),
+                              "ARS"
+                            );
+                          }}
+                          className="border rounded-md p-2 text-right bg-black w-full text-green-500 border-green-500  font-bold text-2xl"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2 w-1/2">
+                      <div>
+                        <p className="font-bold text-lg">Monto faltante GS:</p>
+                        <input
+                          type="number"
+                          readOnly
                           value={
-                            totalPagarFinal - montoEntregado < 0
-                              ? totalPagarFinal - montoEntregado
+                            montoEntregado &&
+                            montoEntregado - totalPagarGuaranies < 0
+                              ? Math.abs(montoEntregado - totalPagarGuaranies)
+                              : 0
+                          }
+                          className="border rounded-md p-2 text-right bg-white w-full text-red-600 font-bold text-2xl"
+                        />
+                      </div>
+                      <div>
+                        <p className="font-bold text-lg">Monto faltante USD:</p>
+                        <input
+                          type="number"
+                          readOnly
+                          value={
+                            montoEntregadoDolar &&
+                            montoEntregadoDolar - totalPagarDolares < 0
+                              ? Math.abs(
+                                  montoEntregadoDolar - totalPagarDolares
+                                ).toFixed(2)
+                              : 0
+                          }
+                          className="border rounded-md p-2 text-right bg-white w-full text-red-600 font-bold text-2xl"
+                        />
+                      </div>
+                      <div>
+                        <p className="font-bold text-lg">Monto faltante BRL:</p>
+                        <input
+                          type="number"
+                          readOnly
+                          value={
+                            montoEntregadoReal &&
+                            montoEntregadoReal - totalPagarReales < 0
+                              ? Number(
+                                  Math.abs(
+                                    montoEntregadoReal - totalPagarReales
+                                  ).toFixed(2)
+                                )
+                              : 0
+                          }
+                          className="border rounded-md p-2 text-right bg-white w-full text-red-600 font-bold text-2xl"
+                        />
+                      </div>
+                      <div>
+                        <p className="font-bold text-lg">Monto faltante ARS:</p>
+                        <input
+                          type="number"
+                          readOnly
+                          value={
+                            montoEntregadoPeso &&
+                            montoEntregadoPeso - totalPagarPesos < 0
+                              ? Number(
+                                  Math.abs(
+                                    (montoEntregadoPeso - totalPagarPesos) /
+                                      cotizacionPeso
+                                  ).toFixed(2)
+                                )
+                              : 0
+                          }
+                          className="border rounded-md p-2 text-right bg-white w-full text-red-600 font-bold text-2xl"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2 w-1/2">
+                      <div>
+                        <p className="font-bold text-lg">Cambio GS:</p>
+                        <input
+                          type="text"
+                          value={
+                            montoEntregado &&
+                            totalPagarGuaranies - montoEntregado < 0
+                              ? formatNumber(
+                                  Math.abs(totalPagarGuaranies - montoEntregado)
+                                )
                               : 0
                           }
                           readOnly
-                          className="border rounded-md p-2 text-right bg-white w-full text-black font-bold text-2xl"
+                          className="border rounded-md p-2 text-right bg-black w-full text-green-500 border-green-500  font-bold text-2xl"
+                        />
+                      </div>
+                      <div>
+                        <p className="font-bold text-lg">Cambio USD:</p>
+                        <input
+                          type="number"
+                          value={
+                            montoEntregadoDolar &&
+                            totalPagarDolares - montoEntregadoDolar < 0
+                              ? Number(
+                                  Math.abs(
+                                    totalPagarDolares - montoEntregadoDolar
+                                  ).toFixed(2)
+                                )
+                              : 0
+                          }
+                          readOnly
+                          className="border rounded-md p-2 text-right bg-black w-full text-green-500 border-green-500  font-bold text-2xl"
+                        />
+                      </div>
+                      <div>
+                        <p className="font-bold text-lg">Cambio BRL:</p>
+                        <input
+                          type="number"
+                          value={
+                            montoEntregadoReal &&
+                            totalPagarReales - montoEntregadoReal < 0
+                              ? Number(
+                                  Math.abs(
+                                    totalPagarReales - montoEntregadoReal
+                                  ).toFixed(2)
+                                )
+                              : 0
+                          }
+                          readOnly
+                          className="border rounded-md p-2 text-right bg-black w-full text-green-500 border-green-500  font-bold text-2xl"
+                        />
+                      </div>
+                      <div>
+                        <p className="font-bold text-lg">Cambio ARS:</p>
+                        <input
+                          type="number"
+                          value={
+                            montoEntregadoPeso &&
+                            totalPagarPesos - montoEntregadoPeso < 0
+                              ? Number(
+                                  Math.abs(
+                                    totalPagarPesos - montoEntregadoPeso
+                                  ).toFixed(2)
+                                )
+                              : 0
+                          }
+                          readOnly
+                          className="border rounded-md p-2 text-right bg-black w-full text-green-500 border-green-500  font-bold text-2xl"
                         />
                       </div>
                     </div>
@@ -2850,7 +3420,8 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
           <ModalBody>
             <ModeloFactura id_venta={134812} onImprimir={imprimirFacturaPDF} />
           </ModalBody>
-          <ModalFooter>. 
+          <ModalFooter>
+            .
             <Button
               colorScheme="blue"
               onClick={() => setImprimirFacturaPDF(true)}
