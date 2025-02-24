@@ -226,6 +226,9 @@ async function updateConfig(empresa) {
     if (empresa !== "local") {
       await deployToServer(empresa);
     }
+    else if (empresa === "gaesa"){
+      await updateConfig(empresa);
+    }
   } catch (error) {
     console.error("❌ Error en el proceso:", error.message);
     process.exit(1);

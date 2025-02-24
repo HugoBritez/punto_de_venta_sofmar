@@ -155,11 +155,6 @@ const InventarioScanner = () => {
   const [vencimiento, setVencimiento] = useState("");
   const [lote, setLote] = useState("");
   const [codigoBarra, setCodigoBarra] = useState("");
-  // const [talles, setTalles] = useState<Talles[]>([]);
-  // const [talleSeleccionado, setTalleSeleccionado] = useState<Talles | null>(null);
-
-  // const [colores, setColores] = useState<Colores[]>([]);
-  // const [colorSeleccionado, setColorSeleccionado] = useState<Colores | null>(null);
 
   const [observaciones, setObservaciones] = useState("");
   const [fecha] = useState(new Date().toISOString().split("T")[0]);
@@ -1050,7 +1045,7 @@ const Tooltip = ({ text, children, position = "top" }: TooltipProps) => {
                 </div>
               </div>
               <div className="mb-4 flex flex-row gap-4">
-                <div>
+                <div className="w-full">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Fecha Vencimiento
                   </label>
@@ -1070,7 +1065,7 @@ const Tooltip = ({ text, children, position = "top" }: TooltipProps) => {
                     disabled={articuloSeleccionado?.ar_vencimiento === 0}
                   />
                 </div>
-                <div>
+                {/* <div>
                   <label htmlFor="talle">Talle</label>
                   <input
                     type="text"
@@ -1087,7 +1082,7 @@ const Tooltip = ({ text, children, position = "top" }: TooltipProps) => {
                     className="w-full p-2 border rounded"
                     value={articuloSeleccionado?.color}
                   />
-                </div>
+                </div> */}
               </div>
 
               <div className="grid grid-cols-2 gap-4 mb-4">
