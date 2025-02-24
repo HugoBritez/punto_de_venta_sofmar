@@ -2,9 +2,7 @@ import axios from "axios";
 import { api_url } from "@/utils";
 import { useState, useEffect } from "react";
 import { Configuraciones } from "@/types/shared_interfaces";
-import jsPDF from "jspdf";
-import html2canvas from "html2canvas";
-import { Button } from "@chakra-ui/react";
+import { generatePDF } from "@/services/pdfService";
 
 interface PreparacionPedido {
   id_pedido: number;
@@ -34,8 +32,9 @@ const DocumentoPreparacion = ({
   fecha_desde,
   fecha_hasta,
   estado,
-  onRef,
-  onPedidosImpresos,
+  action = "print",
+  onComplete,
+  onError
 }: {
   pedido_id: number | null;
   consolidar: number;
@@ -43,10 +42,10 @@ const DocumentoPreparacion = ({
   fecha_desde: string | null;
   fecha_hasta: string | null;
   estado: number | null;
-  onRef?: (ref: { generarPDF: () => Promise<void> }) => void;
-  onPedidosImpresos?: (ids: number[]) => void;
+  action?: "print" | "generate";
+  onComplete?: () => void;
+  onError?: (error: any) => void;
 }) => {
-  const [pedido, setPedido] = useState<PreparacionPedido[] | null>(null);
   const [configuraciones, setConfiguraciones] = useState<Configuraciones[]>([]);
   const nombreEmpresa = configuraciones[0]?.valor || "N/A";
 
@@ -85,15 +84,23 @@ const DocumentoPreparacion = ({
       });
       console.log(response.data.body);
 
-      setPedido(response.data.body);
+      const data = response.data.body;
+
+      console.log("data", data);
+
+      await generarPDF(data);
     } catch (error) {
       console.log(error);
     }
   };
+
+  useEffect(() => {
+    fetchConfiguraciones();
+  }, []);
+
   useEffect(() => {
     console.log("Pedido ID:", pedido_id);
     if (pedido_id) {
-      fetchConfiguraciones();
       getPedido(
         pedido_id,
         consolidar,
@@ -103,218 +110,145 @@ const DocumentoPreparacion = ({
         estado
       );
     }
-  }, [pedido_id, consolidar, cliente, fecha_desde, fecha_hasta, estado]);
-
-  
-  function concatenarDatos(pedido: PreparacionPedido[]) {
-    if (!pedido) return "";
-    return pedido.map((p) => p.id_pedido).join(", ");
-  }
-  useEffect(() => {
-    if (onRef) {
-      onRef({ generarPDF });
-    }
-  }, [onRef]);
+  }, [pedido_id, consolidar, cliente, fecha_desde, fecha_hasta, estado, configuraciones]);
 
 
-const generarPDF = async () => {
+const generarPDF = async (data: PreparacionPedido[]) => {
   try {
-    // Validación inicial de datos
-    if (!pedido || pedido.length === 0) {
-      console.log("No hay datos de pedidos disponibles para generar el PDF");
-      return;
-    }
+    console.log("Empezando a generar el PDF");
+    console.log("data del pdf", data);
 
-    const elemento = document.getElementById("reporte");
-    if (!elemento) {
-      console.log("Elemento 'reporte' no encontrado");
-      return;
-    }
+    const pedidoData = data[0];
 
-    console.log(
-      "Iniciando generación de PDF para pedidos:",
-      pedido.map((p) => p.id_pedido)
+    const docDefinition = {
+      pageSize: "A4",
+      pageMargins: [20, 20, 20, 20],
+      content: [
+        {
+          columns: [
+            { text: `RUC: ${rucEmpresa}`, width: "auto", fontSize: 8 },
+            {
+              text: nombreEmpresa,
+              alignment: "center",
+              width: "*",
+              fontSize: 8,
+            },
+            {
+              text: fechaCompletaActual,
+              alignment: "right",
+              width: "auto",
+              fontSize: 8,
+            },
+          ],
+        },
+        {
+          text: "SEPARACION DE ARTICULOS PARA PEDIDO",
+          alignment: "center",
+          fontSize: 12,
+          bold: true,
+          margin: [0, 10],
+        },
+        {
+          columns: [
+            {
+              text: `Cliente: ${pedidoData.cliente}`,
+              width: "*",
+              fontSize: 10,
+            },
+            {
+              text: `Pedido Nro.: ${pedidoData.id_pedido}`,
+              width: "*",
+              fontSize: 10,
+            },
+            { text: `Fecha: ${pedidoData.fecha}`, width: "*", fontSize: 10 },
+            {
+              text: `Deposito: ${pedidoData.deposito}`,
+              width: "*",
+              fontSize: 10,
+            },
+            {
+              text: `Sucursal: ${pedidoData.sucursal}`,
+              width: "*",
+              fontSize: 10,
+            },
+          ],
+          margin: [0, 10],
+        },
+        {
+          text: `Operador: ${operador}`,
+          alignment: "right",
+          fontSize: 8,
+          margin: [0, 5],
+        },
+        {
+          table: {
+            headerRows: 1,
+            widths: [
+              "auto",
+              "auto",
+              "*",
+              "auto",
+              "auto",
+              "auto",
+              "auto",
+              "auto",
+            ],
+            body: [
+              [
+                { text: "Codigo Interno", fillColor: "#ecedee", fontSize: 8 },
+                { text: "Codigo Barras", fillColor: "#ecedee", fontSize: 8 },
+                { text: "Descripcion", fillColor: "#ecedee", fontSize: 8 },
+                { text: "Vencimiento", fillColor: "#ecedee", fontSize: 8 },
+                { text: "Lote", fillColor: "#ecedee", fontSize: 8 },
+                { text: "Cantidad", fillColor: "#ecedee", fontSize: 8 },
+                { text: "Ubi./Sub Ubi.", fillColor: "#ecedee", fontSize: 8 },
+                { text: "Stock", fillColor: "#ecedee", fontSize: 8 },
+              ],
+              ...pedidoData.articulos.map((articulo) => [
+                { text: articulo.cod_interno, fontSize: 6 },
+                { text: articulo.cod_barras, fontSize: 6 },
+                { text: articulo.descripcion, fontSize: 6 },
+                { text: articulo.vencimiento, fontSize: 6 },
+                { text: articulo.lote, fontSize: 6 },
+                { text: articulo.cantidad, fontSize: 6 },
+                { text: `${articulo.ubicacion}/${articulo.sububicacion}`, fontSize: 6 },
+                { text: articulo.stock, fontSize: 6 },
+              ]),
+            ],
+          },
+        },
+      ],
+      styles: {
+        tableHeader: {
+          bold: true,
+          fontSize: 8,
+          color: "black",
+        },
+        tableBody: {
+          fontSize: 6,
+        },
+      },
+      defaultStyle: {
+        fontSize: 6,
+      },
+    };
+
+    await generatePDF(
+      docDefinition as any,
+      action === "print" ? "print" : "download"
     );
-
-    const scale = 4;
-
-    // Generar el canvas a partir del elemento
-    const canvas = await html2canvas(elemento, {
-      scale: scale,
-      scrollX: 0,
-      scrollY: 0,
-      windowWidth: elemento.scrollWidth,
-      windowHeight: elemento.scrollHeight,
-    });
-
-    const pdf = new jsPDF("p", "mm", "a4");
-
-    // Dimensiones del PDF
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = pdf.internal.pageSize.getHeight();
-
-    // Dimensiones del canvas
-    const canvasWidth = canvas.width;
-    const canvasHeight = canvas.height;
-
-    let yOffset = 0;
-    const marginTop = 8;
-    const marginBottom = 24;
-
-    while (yOffset < canvasHeight) {
-      // Crear un canvas temporal para la sección de la página actual
-      const pageCanvas = document.createElement("canvas");
-      const pageHeight = Math.min(
-        canvasHeight - yOffset,
-        (canvasWidth * (pdfHeight - marginTop - marginBottom)) / pdfWidth
-      );
-
-      pageCanvas.width = canvasWidth;
-      pageCanvas.height = pageHeight;
-
-      const context = pageCanvas.getContext("2d");
-      if (!context) {
-        throw new Error("No se pudo obtener el contexto 2D del canvas.");
-      }
-
-      context.drawImage(
-        canvas,
-        0,
-        yOffset,
-        canvasWidth,
-        pageHeight,
-        0,
-        0,
-        canvasWidth,
-        pageHeight
-      );
-
-      const pageImgData = pageCanvas.toDataURL("image/png");
-      const pageHeightScaled = (pageHeight * pdfWidth) / canvasWidth;
-
-      if (yOffset > 0) {
-        pdf.addPage();
-      }
-
-      pdf.addImage(
-        pageImgData,
-        "PNG",
-        0,
-        marginTop,
-        pdfWidth,
-        pageHeightScaled - marginBottom
-      );
-
-      yOffset += pageHeight;
-    }
-
-    // Guardar PDF
-    pdf.save(`separacion_pedidos_${fechaCompletaActual}.pdf`);
-
-    // Obtener IDs de pedidos y llamar a la función de actualización
-    const pedidoIds = pedido.map((p) => p.id_pedido);
-    console.log("PDF generado exitosamente, actualizando pedidos:", pedidoIds);
-
-    if (onPedidosImpresos) {
-      await onPedidosImpresos(pedidoIds);
-    } else {
-      console.log("No se proporcionó función onPedidosImpresos");
-    }
+    onComplete?.();
+    console.log("PDF generado con éxito");
   } catch (error) {
     console.error("Error al generar PDF:", error);
-    throw error; 
+    console.log("Error al generar PDF:", error);
+    onError?.(error);
   }
 };
 
-async function handleAceptarButton(){
-  try{
-    generarPDF();
-     await axios.post(
-      `${api_url}pedidos/iniciar-preparacion-pedido`,
-      { pedido_ids: pedido_id }
-    );
-  } catch (error) {
-    console.error("Error al actualizar el estado de los pedidos:", error);
-    throw error;
-  }
-}
 
   return (
-    <div className="w-full flex justify-center">
-
-      <div className="flex flex-col gap-2 w-[80%] px-10" id="reporte">
-        <div className="border border-gray-400  rounded-sm">
-          <div className=" border-b border-gray-400 flex justify-between  text-sm text-gray-600 font-bold">
-            <p>RUC: {rucEmpresa}</p>
-            <p>{nombreEmpresa}</p>
-            <p>{fechaCompletaActual}</p>
-          </div>
-          <div className="border-b border-gray-400">
-            <p className="text-center text-lg font-bold">
-              SEPARACION DE ARTICULOS PARA PEDIDO
-            </p>
-            <div className="flex justify-between px-2 my-4">
-              <p>
-                <strong>Cliente:</strong> {pedido?.[0]?.cliente}
-              </p>
-              <p>
-                <strong>Pedido Nro.:</strong> {concatenarDatos(pedido || [])}
-              </p>
-              <p>
-                <strong>Fecha:</strong> {pedido?.[0]?.fecha}
-              </p>
-              <p>
-                <strong>Deposito:</strong> {pedido?.[0]?.deposito}
-              </p>
-              <p>
-                <strong>Sucursal:</strong> {pedido?.[0]?.sucursal}
-              </p>
-            </div>
-          </div>
-          <p className="text-end text-sm text-gray-600 font-bold">
-            Operador: {operador}
-          </p>
-        </div>
-        <div className="w-full">
-          <table className="w-full">
-            <thead className="border border-gray-400 bg-gray-100">
-              <tr className="text-sm text-gray-600 font-bold border  [&>th]:border [&>th]:border-gray-400">
-                <th>Codigo Interno</th>
-                <th>Codigo Barras</th>
-                <th>Descripcion</th>
-                <th>Vencimiento</th>
-                <th>Lote</th>
-                <th>Cantidad</th>
-                <th>Ubi./Sub Ubi.</th>
-                <th>Stock</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pedido?.flatMap((p) =>
-                p.articulos.map((articulo) => (
-                  <tr
-                    key={`${p.id_pedido}-${articulo.cod_interno}`}
-                    className=" [&>td]:border [&>td]:border-gray-400 [&>td]:px-2"
-                  >
-                    <td className="text-center">{articulo.cod_interno}</td>
-                    <td className="text-center">{articulo.cod_barras}</td>
-                    <td>{articulo.descripcion}</td>
-                    <td className="text-center">{articulo.vencimiento}</td>
-                    <td className="text-center">{articulo.lote}</td>
-                    <td className="text-center">{articulo.cantidad}</td>
-                    <td>
-                      {articulo.ubicacion}/{articulo.sububicacion}
-                    </td>
-                    <td className="text-center">{articulo.stock}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <Button onClick={handleAceptarButton}>Aceptar</Button>
-    </div>
+    null
   );
 };
 

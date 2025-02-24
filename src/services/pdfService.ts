@@ -34,7 +34,7 @@ export const generatePDF = async (
     try {
       const {
         pageSize = {
-          width: 226.77, // Ancho para ticket
+          width: 226.77,
           height: 'auto'
         },
         pageMargins = [5.66, 5.66, 5.66, 5.66],
@@ -48,44 +48,6 @@ export const generatePDF = async (
           header: {
             fontSize: 9,
             bold: true,
-            alignment: 'center',
-          },
-          tHeaderLabel: {
-            fontSize: 8,
-            alignment: 'right',
-          },
-          tHeaderValue: {
-            fontSize: 8,
-            bold: true,
-          },
-          tProductsHeader: {
-            fontSize: 8.5,
-            bold: true,
-          },
-          tProductsBody: {
-            fontSize: 8,
-          },
-          tTotals: {
-            fontSize: 9,
-            bold: true,
-            alignment: 'right',
-          },
-          tClientLabel: {
-            fontSize: 8,
-            alignment: 'right',
-          },
-          tClientValue: {
-            fontSize: 8,
-            bold: true,
-          },
-          text: {
-            fontSize: 8,
-            alignment: 'center',
-          },
-          link: {
-            fontSize: 8,
-            bold: true,
-            margin: [0, 0, 0, 4],
             alignment: 'center',
           },
         },

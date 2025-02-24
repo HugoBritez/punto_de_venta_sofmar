@@ -17,13 +17,6 @@ import {
   Radio,
   Button,
   Spinner,
-  Modal,
-  ModalContent,
-  ModalHeader,
-  ModalOverlay,
-  useDisclosure,
-  ModalCloseButton,
-  ModalBody,
 } from "@chakra-ui/react";
 import { format } from "date-fns";
 import { api_url } from "@/utils";
@@ -35,6 +28,7 @@ import { Moneda, Sucursal, Vendedor } from "@/types/shared_interfaces";
 import DocumentoPreparacion from "./documento-preparacion";
 import FloatingCard from "@/modules/FloatingCard";
 import StickerCajas from "./sticker-cajas";
+import { createRoot } from "react-dom/client";
 
 interface Pedidos {
   codigo: number;
@@ -194,9 +188,6 @@ export default function PreparacionPedido({
 
   const [vendedorBusqueda, setVendedorBusqueda] = useState<string>("");
   const [clienteBusqueda, setClienteBusqueda] = useState<string>("");
-  const [documentoRef, setDocumentoRef] = useState<{
-    generarPDF: () => Promise<void>;
-  } | null>(null);
 
   const [pedidoSeleccionado, setPedidoSeleccionado] =
     useState<PedidosNuevo | null>(null);
@@ -216,11 +207,6 @@ export default function PreparacionPedido({
     }
   }
 
-  const {
-    isOpen: isModalOpen,
-    onOpen: onOpenModal,
-    onClose: onCloseModal,
-  } = useDisclosure();
 
   const getPedidosNuevo = async () => {
     setLoading(true);
@@ -369,26 +355,109 @@ export default function PreparacionPedido({
 
   useEffect(() => {
     console.log("Pedido seleccionado:", pedidoSeleccionado);
-    console.log("DocumentoRef:", documentoRef);
     getSucursales();
     getMonedas();
   }, []);
 
+const imprimirDocumentoPreparacion = async (
+  pedido_id: number | null,
+  consolidar: number | null,
+  cliente: number | null,
+  fecha_desde: string | null,
+  fecha_hasta: string | null,
+  estado: number | null,
+  action: "print" | "generate"
+) =>{
+  return new Promise<void>((resolve, reject)=>{
+    const preparacionDiv = document.createElement("div");
+    document.body.appendChild(preparacionDiv);
 
-  //TODO: pasar la responsabilidad de esta funcion al componente hijo, NUEVA RESPONSABILIDAD: SOLO ABRIR EL MODAL
+    const root = createRoot(preparacionDiv);
+    root.render(
+      <DocumentoPreparacion
+        pedido_id={pedido_id}
+        consolidar={consolidar || 0}
+        cliente={cliente}
+        fecha_desde={fecha_desde}
+        fecha_hasta={fecha_hasta}
+        estado={estado}
+        action={action}
+        onComplete={() => {
+          root.unmount();
+          document.body.removeChild(preparacionDiv);
+          resolve();
+        }}
+        onError={(error) => {
+          root.unmount();
+          document.body.removeChild(preparacionDiv);
+          reject(error);
+        }}
+      />
+    );
+  });
+}
 
-const handleImprimir = async () => {
+const ImprimirComponenteSticker = async (
+  pedidoId: number,
+  action: "print" | "generate"
+) => {
+  return new Promise<void>((resolve, reject) => {
+    const stickerDiv = document.createElement("div");
+    document.body.appendChild(stickerDiv);
+
+    const root = createRoot(stickerDiv);
+    root.render(
+      <StickerCajas
+        pedidoId={pedidoId}
+        action={action}
+        onComplete={() => {
+          root.unmount();
+          document.body.removeChild(stickerDiv);
+          resolve();
+        }}
+        onError={(error) => {
+          root.unmount();
+          document.body.removeChild(stickerDiv);
+          reject(error);
+        }}
+      />
+    );
+  });
+};
+
+const handleImprimir = async (action: "print" | "generate") => {
   if (pedidoSeleccionado) {
     try {
-      onOpenModal();
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      console.log("DocumentoRef:", documentoRef); // Para debug
-
-      if (!documentoRef) {
-        throw new Error("Referencia al documento no disponible");
+      if (
+        pedidoSeleccionado.cantidad_cajas &&
+        pedidoSeleccionado.cantidad_cajas > 0
+      ) {
+        await ImprimirComponenteSticker(
+          pedidoSeleccionado.pedido_id,
+          action
+        );
+      } else {
+        console.log("Imprimiendo documento de preparacion");
+        await actualizarEstadoPedidos([pedidoSeleccionado.pedido_id]);
+        await imprimirDocumentoPreparacion(
+          pedidoSeleccionado.pedido_id,
+          0,
+          null,
+          fechaDesde,
+          fechaHasta,
+          estado,
+          action
+        );
       }
     } catch (error) {
-      console.error("Error detallado:", error);
+      console.error("Error al procesar:", error);
+      toast({
+        title: `Error al ${action === "print" ? "imprimir" : "generar"} PDF`,
+        description: "Hubo un problema al procesar el documento",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
     }
   } else {
     toast({
@@ -401,6 +470,7 @@ const handleImprimir = async () => {
   }
 };
 
+
 //TODO: pasar la responsabilidad de esta funcion al componente hijo, NUEVA RESPONSABILIDAD: SOLO ACTUALIZAR EL ESTADO DE LOS PEDIDOS
 const actualizarEstadoPedidos = async (pedidoIds: number[]) => {
   if (!pedidoIds || pedidoIds.length === 0) {
@@ -411,7 +481,7 @@ const actualizarEstadoPedidos = async (pedidoIds: number[]) => {
     console.log("Actualizando pedidos:", pedidoIds);
     const response = await axios.post(
       `${api_url}pedidos/iniciar-preparacion-pedido`,
-      { pedido_ids: pedidoIds }
+      { pedido_ids: pedidoIds, preparado_por: sessionStorage.getItem("user_id") }
     );
     console.log("Respuesta del servidor:", response.data); // Para debug
     if (response.data.status === "success" || response.status === 200) {
@@ -424,8 +494,6 @@ const actualizarEstadoPedidos = async (pedidoIds: number[]) => {
       });
       // Actualizar la lista de pedidos
       await getPedidosNuevo();
-      // Cerrar el modal después de actualizar
-      onCloseModal();
     } else {
       throw new Error(response.data.message || "Error al actualizar pedidos");
     }
@@ -490,60 +558,84 @@ const actualizarEstadoPedidos = async (pedidoIds: number[]) => {
           </Box>
         </Flex>
         <Flex gap={2} flexDir={isMobile ? "column" : "row"}>
-          <Box>
-            <FormLabel>Fecha hasta:</FormLabel>
-            <Input
-              type="date"
-              value={fechaDesde}
-              onChange={(e) => setFechaDesde(e.target.value)}
-            />
-          </Box>
-          <Box>
-            <FormLabel>Fecha hasta:</FormLabel>
-            <Input
-              type="date"
-              value={fechaHasta}
-              onChange={(e) => setFechaHasta(e.target.value)}
-            />
-          </Box>
-          <Box display={"flex"} flexDir={"column"}>
-            <FormLabel>Sucursal:</FormLabel>
-            <Select
-              value={sucursalSeleccionada || ""}
-              onChange={(e) => setSucursalSeleccionada(e.target.value)}
-              placeholder="Seleccione una sucursal"
-              w={"full"}
+          <div>
+            <div
+              className={
+                isMobile ? "flex flex-col gap-2" : "flex flex-row gap-2"
+              }
             >
-              {sucursales?.map((sucursal, index) => (
-                <option key={index} value={sucursal.id}>
-                  {sucursal.descripcion}
-                </option>
-              ))}
-            </Select>
-          </Box>
-          <Box>
-            <FormLabel>Moneda:</FormLabel>
-            <Select
-              value={monedaSeleccionada || ""}
-              onChange={(e) => setMonedaSeleccionada(Number(e.target.value))}
-              placeholder="Seleccione una moneda"
-              w={"full"}
-            >
-              {monedas?.map((moneda, index) => (
-                <option key={index} value={moneda.mo_codigo}>
-                  {moneda.mo_descripcion}
-                </option>
-              ))}
-            </Select>
-          </Box>
-          <Box>
-            <FormLabel>Nro. Pedido:</FormLabel>
-            <Input
-              placeholder="Buscar por nro. de pedido"
-              value={nroPedido || ""}
-              onChange={(e) => setNroPedido(Number(e.target.value))}
-            />
-          </Box>
+              <Box>
+                <FormLabel>Fecha hasta:</FormLabel>
+                <Input
+                  type="date"
+                  value={fechaDesde}
+                  onChange={(e) => setFechaDesde(e.target.value)}
+                />
+              </Box>
+              <Box>
+                <FormLabel>Fecha hasta:</FormLabel>
+                <Input
+                  type="date"
+                  value={fechaHasta}
+                  onChange={(e) => setFechaHasta(e.target.value)}
+                />
+              </Box>
+              <Box display={"flex"} flexDir={"column"}>
+                <FormLabel>Sucursal:</FormLabel>
+                <Select
+                  value={sucursalSeleccionada || ""}
+                  onChange={(e) => setSucursalSeleccionada(e.target.value)}
+                  placeholder="Seleccione una sucursal"
+                  w={"full"}
+                >
+                  {sucursales?.map((sucursal, index) => (
+                    <option key={index} value={sucursal.id}>
+                      {sucursal.descripcion}
+                    </option>
+                  ))}
+                </Select>
+              </Box>
+              <Box>
+                <FormLabel>Moneda:</FormLabel>
+                <Select
+                  value={monedaSeleccionada || ""}
+                  onChange={(e) =>
+                    setMonedaSeleccionada(Number(e.target.value))
+                  }
+                  placeholder="Seleccione una moneda"
+                  w={"full"}
+                >
+                  {monedas?.map((moneda, index) => (
+                    <option key={index} value={moneda.mo_codigo}>
+                      {moneda.mo_descripcion}
+                    </option>
+                  ))}
+                </Select>
+              </Box>
+              <Box>
+                <FormLabel>Nro. Pedido:</FormLabel>
+                <Input
+                  placeholder="Buscar por nro. de pedido"
+                  value={nroPedido || ""}
+                  onChange={(e) => setNroPedido(Number(e.target.value))}
+                />
+              </Box>
+            </div>
+            <div className="p-2 flex flex-row gap-2 items-center">
+              <div className="flex flex-row gap-2 items-center">
+                <div className="p-4 bg-violet-400 rounded-md"></div>
+                <p className="text-sm font-bold">
+                  Pedido ya impreso para preparacion
+                </p>
+              </div>
+              <div className="flex flex-row gap-2 items-center">
+                <div className="p-4 bg-blue-400 rounded-md"></div>
+                <p className="text-sm font-bold">
+                  Pedido ya verificado y empaquetado
+                </p>
+              </div>
+            </div>
+          </div>
           <div className="border border-gray-300 rounded-md p-2 flex flex-col h-full gap-4 justify-center items-center bg-orange-200">
             <p className="text-md font-bold relative -top-5 -left-24 bg-white px-2">
               Estado
@@ -609,13 +701,23 @@ const actualizarEstadoPedidos = async (pedidoIds: number[]) => {
           </Flex>
           <div className="flex flex-col gap-2">
             <Button
-              onClick={handleImprimir}
+              onClick={() => handleImprimir("print")}
               colorScheme="yellow"
               isLoading={loading}
             >
               <div className="flex flex-row gap-2 px-2 py-2">
                 <p>Imprimir</p>
                 <Printer />
+              </div>
+            </Button>
+            <Button
+              onClick={() => handleImprimir("generate")}
+              colorScheme="orange"
+              isLoading={loading}
+            >
+              <div className="flex flex-row gap-2 px-2 py-2">
+                <p>Generar PDF</p>
+                <SearchIcon />
               </div>
             </Button>
             <Button
@@ -686,15 +788,23 @@ const actualizarEstadoPedidos = async (pedidoIds: number[]) => {
                         className={
                           isMobile
                             ? `border border-gray-200 hover:bg-gray-200 cursor-pointer [&>td]:px-2 [&>td]:text-xs [&>td]:border-r [&>td]:border-gray-200
-                            ${setColor(
-                              pedido.estado,
-                              pedido.imprimir_preparacion
-                            )}`
+                            ${
+                              pedido.cantidad_cajas > 0
+                                ? "bg-violet-400"
+                                : setColor(
+                                    pedido.estado,
+                                    pedido.imprimir_preparacion
+                                  )
+                            }`
                             : `border border-gray-200 hover:bg-gray-200 cursor-pointer [&>td]:px-2 [&>td]:border-r [&>td]:border-gray-200
-                            ${setColor(
-                              pedido.estado,
-                              pedido.imprimir_preparacion
-                            )}`
+                            ${
+                              pedido.cantidad_cajas > 0
+                                ? "bg-blue-400"
+                                : setColor(
+                                    pedido.estado,
+                                    pedido.imprimir_preparacion
+                                  )
+                            }`
                         }
                         onClick={() => handleSelectPedido(pedido)}
                       >
@@ -792,43 +902,6 @@ const actualizarEstadoPedidos = async (pedidoIds: number[]) => {
           </div>
         </div>
       </div>
-      {pedidoSeleccionado?.cantidad_cajas &&
-      pedidoSeleccionado.cantidad_cajas > 0 ? (
-        <Modal isOpen={isModalOpen} onClose={onCloseModal} size="full">
-          <ModalOverlay />
-          <ModalContent>
-            <ModalCloseButton />
-            <ModalHeader>
-              <Heading size={"md"}>Impresion de Stickers</Heading>
-            </ModalHeader>
-            <ModalBody>
-              <StickerCajas pedidoId={pedidoSeleccionado?.pedido_id || null} />
-            </ModalBody>
-          </ModalContent>
-        </Modal>
-      ) : (
-        <Modal isOpen={isModalOpen} onClose={onCloseModal} size="full">
-          <ModalOverlay />
-          <ModalContent>
-            <ModalCloseButton />
-            <ModalHeader>
-              <Heading size={"md"}>Preparacion de Pedido</Heading>
-            </ModalHeader>
-            <ModalBody>
-              <DocumentoPreparacion
-                pedido_id={pedidoSeleccionado?.pedido_id || null}
-                consolidar={consolidarPedidos}
-                cliente={pedidoSeleccionado?.cliente_id || null}
-                fecha_desde={fechaDesde}
-                fecha_hasta={fechaHasta}
-                estado={estado}
-                onRef={setDocumentoRef}
-                onPedidosImpresos={actualizarEstadoPedidos}
-              />
-            </ModalBody>
-          </ModalContent>
-        </Modal>
-      )}
     </Box>
   );
 }

@@ -467,6 +467,7 @@ const verificarTodosLosItems = () => {
       await axios.post(`${api_url}pedidos/registrar-cajas`, {
         pedidoId: pedidoSeleccionado,
         numeroCajas: numeroCajas,
+        verificadoPor: sessionStorage.getItem("user_id"),
       });
       toast({
         title: "Éxito",
@@ -474,7 +475,6 @@ const verificarTodosLosItems = () => {
         status: "success",
         duration: 3000,
       });
-      // Limpiar estados
       getPedidosDisponibles();
       setShowCajasModal(false);
       setPedidoSeleccionado(null);

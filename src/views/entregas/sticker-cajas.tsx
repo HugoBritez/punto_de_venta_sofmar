@@ -1,13 +1,10 @@
 import { api_url } from "@/utils";
 import axios from "axios";
-import jsPDF from "jspdf";
 import { useEffect } from "react";
 import { useState } from "react";
-import html2canvas from "html2canvas";
-import { Button, Input, InputGroup, InputLeftElement, useToast } from "@chakra-ui/react";
-import { Vendedor } from "@/types/shared_interfaces";
-import { SearchIcon } from "@chakra-ui/icons";
-import FloatingCard from "@/modules/FloatingCard";
+import { useToast } from "@chakra-ui/react";
+import { generatePDF } from "@/services/pdfService";
+import GaesaLogo from "@/assets/logos/gaesa_logo.jpg";
 
 interface StickerData {
   pedido_id: number;
@@ -17,251 +14,308 @@ interface StickerData {
   ciudad: string;
   direccion: string;
   barrio: string;
+  zona: string;
+  preparado_por: string;
+  verificado_por: string;
 }
 
 interface StickerCajasProps {
   pedidoId: number | null;
-  preparadoPor ? : String;
+  onComplete?: () => void;
+  onError?: (error: any) => void;
+  action?: "print" | "generate";
 }
 
-const StickerCajas = ({ pedidoId, preparadoPor }: StickerCajasProps) => {
+const StickerCajas = ({
+  pedidoId,
+  onComplete,
+  onError,
+  action = "print",
+}: StickerCajasProps) => {
   const [stickerData, setStickerData] = useState<StickerData | null>(null);
-  const [preparadores, setPreparadores] = useState<Vendedor[]>([]);
-  const [isFloatingCardVisible, setIsFloatingCardVisible] = useState(false);
-  const [preparadorBusqueda, setPreparadorBusqueda] = useState<string>("");
   const toast = useToast();
 
-    const getPreparadores = async (busqueda: string) => {
-      try {
-        const response = await axios.get(`${api_url}usuarios/preparadores`, {
-          params: {
-            buscar: busqueda,
-          },
-        });
-        setPreparadores(response.data.body);
-      } catch (error) {
-        toast({
-          title: "Error al cargar los preparadores",
-          description: "Por favor, intenta de nuevo más tarde",
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
-      }
-    };
+  const convertImageToBase64 = (imgUrl: string): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = "Anonymous";
 
-    
-  const handleBusquedaPreparador = (busqueda: string) => {
-    setPreparadorBusqueda(busqueda);
-    getPreparadores(busqueda);
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = img.width;
+        canvas.height = img.height;
+
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(img, 0, 0);
+
+        try {
+          const dataUrl = canvas.toDataURL("image/jpeg");
+          resolve(dataUrl);
+        } catch (error) {
+          reject(error);
+        }
+      };
+
+      img.onerror = () => reject(new Error("Error loading image"));
+      img.src = imgUrl;
+    });
   };
 
-  const handleSelectPreparador = (preparador: Vendedor) => {
-    setPreparadorBusqueda(preparador.op_nombre);
-    toast({
-      title: "Preparador seleccionado",
-      description: preparador.op_nombre,
-      status: "success",
-      duration: 3000,
-      isClosable: true,
-    });
-    setIsFloatingCardVisible(false);
+  const generarPDF = async (data: StickerData) => {
+    try {
+      console.log("Intentando generar PDF con datos:", data);
+      const gaesaLogoBase64 = await convertImageToBase64(GaesaLogo);
+
+      const stickersContent = Array.from(
+        { length: data.cantidad_cajas },
+        (_, index) => [
+          { text: "\n", fontSize: 2 }, // Espacio más pequeño entre stickers
+          {
+            table: {
+              widths: ["*"],
+              body: [
+                [
+                  {
+                    columns: [
+                      {
+                        text: `Cod. Cliente: ${data.cliente_id}`,
+                        width: "60%",
+                        fontSize: 8,
+                      },
+                      {
+                        text: new Date().toLocaleString(),
+                        width: "40%",
+                        fontSize: 8,
+                        alignment: "right",
+                      },
+                    ],
+                  },
+                ],
+                [
+                  {
+                    text: `Cliente: ${data.cliente}`,
+                    fontSize: 8,
+                    margin: [0, 1, 0, 1],
+                  },
+                ],
+                [
+                  {
+                    text: `Dirección: ${data.direccion}`,
+                    fontSize: 8,
+                    margin: [0, 1, 0, 1],
+                  },
+                ],
+                [
+                  {
+                    text: `Zona: ${data.zona}`,
+                    fontSize: 8,
+                    margin: [0, 1, 0, 1],
+                  },
+                ],
+                [
+                  {
+                    columns: [
+                      {
+                        text: `Pedido Nro. ${data.pedido_id}`,
+                        width: "60%",
+                        fontSize: 8,
+                      },
+                      {
+                        text: `Caja: ${index + 1}/${data.cantidad_cajas}`,
+                        width: "40%",
+                        fontSize: 8,
+                        alignment: "right",
+                      },
+                    ],
+                  },
+                ],
+                [
+                  {
+                    columns: [
+                      {
+                        stack: [
+                          {
+                            text: "Volumen",
+                            fontSize: 8,
+                            alignment: "center",
+                            margin: [0, 0, 0, 2], // Pequeño margen inferior
+                          },
+                          {
+                            table: {
+                              widths: ["*"],
+                              body: [[" "]], // Celda vacía
+                            },
+                            layout: {
+                              hLineWidth: () => 0.5,
+                              vLineWidth: () => 0.5,
+                              hLineColor: () => "#000000",
+                              vLineColor: () => "#000000",
+                            },
+                            margin: [2, 0, 2, 0],
+                            height: 40, 
+                          },
+                        ],
+                        width: "50%",
+                      },
+                      {
+                        stack: [
+                          {
+                            text: "Peso",
+                            fontSize: 8,
+                            alignment: "center",
+                            margin: [0, 0, 0, 2],
+                          },
+                          {
+                            table: {
+                              widths: ["*"],
+                              body: [[" "]], // Celda vacía
+                            },
+                            layout: {
+                              hLineWidth: () => 0.5,
+                              vLineWidth: () => 0.5,
+                              hLineColor: () => "#000000",
+                              vLineColor: () => "#000000",
+                            },
+                            margin: [2, 0, 2, 0],
+                            height: 40,
+                          },
+                        ],
+                        width: "50%",
+                      },
+                    ],
+                    margin: [0, 5, 0, 5],
+                  },
+                ],
+                [
+                  {
+                    columns: [
+                      {
+                        stack: [
+                          {
+                            text: `Preparado por: ${data.preparado_por}`,
+                            fontSize: 8,
+                            margin: [0, 15, 0, 0],
+                          },
+                          {
+                            text: `Verificado por: ${data.verificado_por}`,
+                            fontSize: 8,
+                            margin: [0, 5, 0, 0],
+                          },
+                        ],
+                        width: "*",
+                      },
+                      {
+                        image: gaesaLogoBase64,
+                        width: 50,
+                        height: 15,
+                        alignment: "right",
+                        margin: [0, 15, 0, 0],
+                      },
+                    ],
+                  },
+                ],
+              ],
+            },
+            layout: {
+              hLineWidth: (_i: number) => 0.5,
+              vLineWidth: (_i: number) => 0.5,
+              hLineColor: (_i: number) => "#000000",
+              vLineColor: (_i: number) => "#000000",
+              paddingLeft: (_i: number) => 5,
+              paddingRight: (_i: number) => 5,
+              paddingTop: (_i: number) => 3,
+              paddingBottom: (_i: number) => 3,
+            },
+          },
+          { text: "\n", fontSize: 2 },
+        ]
+      ).flat();
+
+      const docDefinition = {
+        pageSize: { width: 283.46, height: 220.42 }, 
+        pageMargins: [15, 15, 15, 15],
+        content: stickersContent,
+      };
+
+      await generatePDF(
+        docDefinition as any,
+        action === "print" ? "print" : "download"
+      );
+
+      toast({
+        title: "PDF generado con éxito",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+
+      // Llamar al callback de éxito
+      onComplete?.();
+    } catch (error) {
+      console.error("Error al generar PDF:", error);
+      toast({
+        title: "Error al generar PDF",
+        description: "Hubo un problema al generar el documento",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      // Llamar al callback de error
+      console.log("Error al generar PDF:", error);
+      onError?.(error);
+    }
   };
 
   useEffect(() => {
     const fetchStickerData = async () => {
       try {
+        console.log("Fetching sticker data for pedidoId:", pedidoId);
+
+        if (!pedidoId) {
+          throw new Error("ID de pedido no proporcionado");
+        }
+
         const response = await axios.get(`${api_url}pedidos/numero-cajas`, {
-          params: {
-            id: pedidoId,
-          },
+          params: { id: pedidoId },
         });
-        setStickerData(response.data.body[0]);
+
+        console.log("Respuesta del servidor:", response.data);
+
+        if (!response.data.body || !response.data.body[0]) {
+          throw new Error("No se recibieron datos del servidor");
+        }
+
+        const data = response.data.body[0];
+        console.log("Datos procesados:", data);
+
+        setStickerData(data);
+        // Generar PDF con los datos directamente, sin esperar al estado
+        await generarPDF(data);
       } catch (error) {
-        console.error("Error al obtener los datos del sticker:", error);
+        console.error("Error detallado al obtener datos:", error);
+        const errorMessage =
+          error instanceof Error ? error.message : "Error desconocido";
+        toast({
+          title: "Error al obtener datos del sticker",
+          description: errorMessage,
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+        onError?.(error);
       }
     };
-    fetchStickerData();
+
+    if (pedidoId) {
+      fetchStickerData();
+    }
   }, [pedidoId]);
 
   if (!stickerData) {
     return <div>Cargando datos del sticker...</div>;
   }
 
-const generarPDF = async () => {
-  try {
-    const elemento = document.getElementById("sticker-container");
-    if (!elemento) {
-      console.error("Elemento 'sticker-container' no encontrado");
-      return;
-    }
-
-    // Aumentamos el scale para mejor calidad
-    const scale = 2;
-
-    // Configuración específica para html2canvas
-    const canvas = await html2canvas(elemento, {
-      scale: scale,
-      useCORS: true,
-      logging: true,
-      width: elemento.offsetWidth,
-      height: elemento.offsetHeight,
-      windowWidth: elemento.scrollWidth,
-      windowHeight: elemento.scrollHeight,
-    });
-
-    // Crear PDF en formato A4
-    const pdf = new jsPDF({
-      orientation: "portrait",
-      unit: "mm",
-      format: "a4",
-    });
-
-    // Dimensiones de A4 en mm
-    const pageWidth = 210;
-    const pageHeight = 297;
-
-    // Calcular las dimensiones para mantener la proporción
-    const imgWidth = pageWidth - 20; // 10mm de margen en cada lado
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-    // Agregar la imagen al PDF
-    let heightLeft = imgHeight;
-    let position = 10; // Margen superior inicial
-
-    // Primera página
-    pdf.addImage(
-      canvas.toDataURL("image/png"),
-      "PNG",
-      10, // Margen izquierdo
-      position,
-      imgWidth,
-      imgHeight
-    );
-
-    // Si el contenido es más alto que una página, agregar más páginas
-    while (heightLeft >= pageHeight) {
-      position = heightLeft - pageHeight;
-      pdf.addPage();
-      pdf.addImage(
-        canvas.toDataURL("image/png"),
-        "PNG",
-        10,
-        position,
-        imgWidth,
-        imgHeight
-      );
-      heightLeft -= pageHeight;
-    }
-
-    // Guardar el PDF
-    pdf.save(`stickers_pedido_${pedidoId}.pdf`);
-  } catch (error) {
-    console.error("Error al generar PDF:", error);
-    toast({
-      title: "Error al generar PDF",
-      description: "Hubo un problema al generar el documento",
-      status: "error",
-      duration: 3000,
-      isClosable: true,
-    });
-  }
-};
-
-  const stickers = Array.from(
-    { length: stickerData.cantidad_cajas },
-    (_, index) => (
-      <div key={index} className="w-full h-full mb-4">
-        <div
-          style={{
-            width: "25.5cm",
-            height: "16cm",
-            border: "3px solid black",
-            margin: "0",
-            position: "relative",
-          }}
-          className="rounded-md p-2 gap-8"
-        >
-          <div className="flex flex-row items-center border-b border-black gap-2 [&>p]:text-3xl py-4">
-            <p className="font-bold">Cod. Cliente: </p>
-            <p>{stickerData.cliente_id}</p>
-          </div>
-          <div className="flex flex-row items-center border-b border-black gap-2 [&>p]:text-3xl py-4">
-            <p className="font-bold">Cliente:</p>
-            <p>{stickerData.cliente}</p>
-          </div>
-          <div className="flex flex-row items-center border-b border-black gap-2 [&>p]:text-3xl py-4">
-            <p className="font-bold">Direccion:</p>
-            <p>{stickerData.direccion}</p>
-          </div>
-          <div className="flex flex-row items-center justify-between border-b border-black gap-2 py-4">
-            <div className="flex flex-row items-center [&>p]:text-3xl">
-              <p className="font-bold">Pedido Nro.</p>
-              <p>{stickerData.pedido_id}</p>
-            </div>
-            <div className="flex flex-row items-center gap-2 [&>p]:text-3xl">
-              <p className="font-bold">Caja:</p>
-              <p>
-                {index + 1}/{stickerData.cantidad_cajas}
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-row items-center justify-between border-b border-black gap-4 pb-2 [&>div>p]:text-3xl py-4">
-            <div className="flex flex-col items-center w-[50%] ">
-              <p className="font-bold">Volumen</p>
-              <div className="w-full h-20 border border-black"></div>
-            </div>
-            <div className="flex flex-col items-center w-[50%] ">
-              <p className="font-bold">Peso</p>
-              <div className="w-full h-20 border border-black"></div>
-            </div>
-          </div>
-          <div className="flex flex-row items-center justify-between [&>p]:text-3xl py-4">
-            <p className="font-bold">Preparado por:</p>
-            <p>{new Date().toLocaleString()}</p>
-          </div>
-          <div className="flex flex-row items-center mt-6 gap-2 [&>p]:text-3xl">
-            <p className="text-center font-bold">Verificado por:</p>
-            <p>{preparadoPor}</p>
-          </div>
-        </div>
-      </div>
-    )
-  );
-  return (
-    <div className="flex flex-col items-center">
-      <div className="flex flex-row justify-end w-full mb-4">
-        <InputGroup position={"relative"} zIndex={2}>
-          <InputLeftElement pointerEvents="none">
-            <SearchIcon color="gray.300" />
-          </InputLeftElement>
-          <Input
-            placeholder="Buscar preparador"
-            value={preparadorBusqueda}
-            onChange={(e) => handleBusquedaPreparador(e.target.value)}
-            onClick={() => setIsFloatingCardVisible(true)}
-            w={"300px"}
-          />
-          <FloatingCard<Vendedor>
-            isVisible={isFloatingCardVisible}
-            items={preparadores}
-            onClose={() => setIsFloatingCardVisible(false)}
-            onSelect={handleSelectPreparador}
-            renderItem={(item) => <p>{item.op_nombre}</p>}
-          />
-        </InputGroup>
-        <Button onClick={generarPDF} ml={2}>
-          Generar PDF
-        </Button>
-      </div>
-      <div
-        className="w-full  py-4 grid grid-cols-1 md:grid-cols-2 gap-8 auto-rows-max justify-center items-center"
-        id="sticker-container"
-      >
-        {stickers}
-      </div>
-    </div>
-  );
+  return null;
 };
 
 export default StickerCajas;

@@ -46,12 +46,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import FloatingCard from "@/modules/FloatingCard";
 import ArticuloInfoCard from "@/modules/ArticuloInfoCard";
 import ModeloTicket from "../facturacion/ModeloTicket";
-import ModeloFactura from "../facturacion/ModeloFactura";
 import ConsultaPedidos from "../pedidos/ConsultaPedidos";
 import ConsultaPresupuestos from "../presupuestos/ConsultaPresupuesto";
 import ConsultaRemisiones from "../remisiones/ConsultaRemisiones";
 import ResumenVentas from "../ventas/ResumenVentas";
 import { createRoot } from "react-dom/client";
+import ModeloFacturaNuevo from "../facturacion/ModeloFacturaNuevo";
 interface ItemParaVenta {
   precio_guaranies: number;
   precio_dolares: number;
@@ -230,8 +230,6 @@ const PuntoDeVentaNuevo = () => {
   const [articuloSeleccionado, setArticuloSeleccionado] =
     useState<ArticulosNuevo | null>(null);
 
-  const [imprimirFacturaPDF, setImprimirFacturaPDF] = useState(false);
-
   const [montoEntregado, setMontoEntregado] = useState<number | null    >(null);
   const [montoEntregadoDolar, setMontoEntregadoDolar] = useState<number | null>(null);
   const [montoEntregadoReal, setMontoEntregadoReal] = useState<number | null>(null);
@@ -298,11 +296,6 @@ const PuntoDeVentaNuevo = () => {
 
   const [ventaIdEdicion, setVentaIdEdicion] = useState<number | null>(null);
 
-  const {
-    isOpen: isImpresionFacturaOpen,
-    onOpen: onImpresionFacturaOpen,
-    onClose: onImpresionFacturaClose,
-  } = useDisclosure();
 
   const configuraciones = JSON.parse(
     sessionStorage.getItem("configuraciones") || "[]"
@@ -1178,8 +1171,7 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
         );
 
         if (imprimirFactura) {
-          setImprimirFacturaPDF(true);
-          onImpresionFacturaOpen();
+            await imprimirFacturaComponente(response.data.body.ventaId);
         }
         if (imprimirTicket) {
            await imprimirTicketComponente(response.data.body.ventaId);
@@ -1749,6 +1741,22 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
     }
   };
 
+const imprimirFacturaComponente = async (ventaId: number) => {
+  const facturaDiv = document.createElement('div');
+  facturaDiv.style.display = "none";
+  document.body.appendChild(facturaDiv);
+
+  const root = createRoot(facturaDiv);
+  root.render(
+    <ModeloFacturaNuevo id_venta={ventaId} monto_entregado={montoEntregado || 0} monto_recibido={montoEntregado || 0} vuelto={0} onImprimir={true} />
+  );
+
+  setTimeout(() => {
+    root.unmount();
+    document.body.removeChild(facturaDiv);
+  }, 2000);
+}
+
 const imprimirTicketComponente = async (ventaId: number) => {
   // Componente oculto que solo se usa para generar el PDF
   const ticketDiv = document.createElement("div");
@@ -1765,8 +1773,6 @@ const imprimirTicketComponente = async (ventaId: number) => {
       onImprimir={true}
     />
   );
-
-  // Limpiar después de un tiempo
   setTimeout(() => {
     root.unmount();
     document.body.removeChild(ticketDiv);
@@ -3372,31 +3378,6 @@ const imprimirTicketComponente = async (ventaId: number) => {
             </Button>
             <Button variant="ghost" onClick={onCloseKCOpen}>
               Cancelar
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-      <Modal
-        isOpen={isImpresionFacturaOpen}
-        onClose={onImpresionFacturaClose}
-        size="full"
-      >
-        <ModalOverlay />
-        <ModalContent>
-          <ModalCloseButton />
-          <ModalHeader>Impresión de Factura</ModalHeader>
-          <ModalBody>
-            <ModeloFactura
-              id_venta={ultimaVentaId || 0}
-              onImprimir={imprimirFacturaPDF}
-            />
-          </ModalBody>
-          <ModalFooter>
-            <Button
-              colorScheme="blue"
-              onClick={() => setImprimirFacturaPDF(true)}
-            >
-              Imprimir
             </Button>
           </ModalFooter>
         </ModalContent>
