@@ -29,6 +29,7 @@ import DocumentoPreparacion from "./documento-preparacion";
 import FloatingCard from "@/modules/FloatingCard";
 import StickerCajas from "./sticker-cajas";
 import { createRoot } from "react-dom/client";
+import ReporteEntregasExcel from "./ReporteEntregasExcel";
 
 interface Pedidos {
   codigo: number;
@@ -359,6 +360,24 @@ export default function PreparacionPedido({
     getMonedas();
   }, []);
 
+const generarReporteExcel = async (
+  fechaDesde: string, fechaHasta: string
+) => {
+  return new Promise<void>(()=>{
+    const reporteDiv = document.createElement("div");
+    document.body.appendChild(reporteDiv);
+
+    const root = createRoot(reporteDiv);
+
+    root.render(
+      <ReporteEntregasExcel
+        fechaDesde={fechaDesde}
+        fechaHasta={fechaHasta} 
+      />
+    )
+  })
+}
+
 const imprimirDocumentoPreparacion = async (
   pedido_id: number | null,
   consolidar: number | null,
@@ -424,6 +443,10 @@ const ImprimirComponenteSticker = async (
     );
   });
 };
+
+const handleGenerarReporteExcel = async () => {
+    await generarReporteExcel(fechaDesde, fechaHasta);
+}
 
 const handleImprimir = async (action: "print" | "generate") => {
   if (pedidoSeleccionado) {
@@ -633,6 +656,14 @@ const actualizarEstadoPedidos = async (pedidoIds: number[]) => {
                 <p className="text-sm font-bold">
                   Pedido ya verificado y empaquetado
                 </p>
+              </div>
+              <div>
+                <button
+                  className="bg-green-600 text-white px-4 py-2 rounded-md"
+                  onClick={handleGenerarReporteExcel}
+                >
+                  <p className="text-sm font-bold">Generar Reporte en Excel</p>
+                </button>
               </div>
             </div>
           </div>

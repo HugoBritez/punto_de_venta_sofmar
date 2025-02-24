@@ -96,6 +96,12 @@ const configs = {
     version: "1.0",
     title: "Buda",
   },
+  zimer: {
+    api_url: "https://node.sofmar.com.py:4001/api/",
+    db: "zimer",
+    version: "1.0",
+    title: "Zimmer",
+  },
 };
 
 function executeCommand(command) {

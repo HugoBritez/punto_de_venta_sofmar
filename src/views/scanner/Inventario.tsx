@@ -17,7 +17,7 @@ import { motion, AnimatePresence } from "framer-motion";
 interface Articulo {
   ar_codigo: number;
   ar_codbarra: string;
-
+  al_codbarra: string;
   ar_descripcion: string;
   ar_pvg: number;
   ar_pcg: number;
@@ -454,7 +454,7 @@ const ReconteoInventarioScanner = () => {
                   className="bg-white p-4 rounded-lg shadow cursor-pointer"
                 >
                   <p className="text-xs text-gray-500">
-                    Cod. Barras: {item.ar_codbarra}
+                    Cod. Barras: {item.al_codbarra}
                   </p>
                   <p className="text-xs text-gray-500">Lote: {item.al_lote}</p>
                   <p className="text-xs text-gray-500">
