@@ -294,7 +294,7 @@ return (
           h={"100vh"}
         >
           <div
-            className="flex flex-col gap-2 w-[85%] h-full px-8 items-center"
+            className="flex flex-col gap-2 w-[85%] h-full px-8 items-center overflow-y-auto"
             id="reporte"
           >
             <table className="w-full">
@@ -309,7 +309,6 @@ return (
                   <th className="text-center">Cantidad Inicial</th>
                   <th className="text-center">Diferencia</th>
                 </tr>
-
               </thead>
               <tbody>
                 {reporte[0].items.map((item, index) => (
