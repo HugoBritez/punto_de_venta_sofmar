@@ -1,9 +1,10 @@
 import { Configuraciones } from "@/types/shared_interfaces";
 import { api_url } from "@/utils";
 import axios from "axios";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 import React, { useState, useEffect } from "react";
 import { Flex } from "@chakra-ui/react";
-import { generatePDF } from "@/services/pdfService";
 
 interface ReporteAnomaliasProps {
   numeroInventario: number;
@@ -94,156 +95,147 @@ useEffect(() => {
   }, [reporte]);
 
 
-const generarPDF = async (data: ReporteAnomalias[]) => {
-  try{
-    const docDefinicion = {
-      pageSize: "A4",
-      pageMargins: [20, 110, 20, 10],
-      header: {
-        margin: [10, 10, 10, 0],
-        stack: [
-          {
-            columns: [
-              {
-                text: `${rucEmpresa}`,
-                width: "auto",
-                fontSize: 8,
-              },
-              {
-                text: `${nombreEmpresa}`,
-                width: "*",
-                fontSize: 8,
-                alignment: "center",
-              },
-              {
-                text: `${fechaCompletaActual}`,
-                width: "auto",
-                fontSize: 8,
-                alignment: "right",
-              },
-            ],
-          },
-          {
-            text: "REPORTE DE ANOMALIAS DE INVENTARIO",
-            alignment: "center",
-            fontSize: 12,
-            bold: true,
-            margin: [0, 10],
-          },
-          {
-            columns: [
-              {
-                text: `Sucursal: ${data[0].nombre_sucursal}`,
-                width: "*",
-                fontSize: 10,
-              },
-              {
-                text: `Deposito: ${data[0].nombre_deposito}`,
-                width: "*",
-                fontSize: 10,
-              },
-              {
-                text: `Inventario Nro: ${numeroInventario}`,
-                width: "*",
-                fontSize: 10,
-              },
-              {
-                text: `Estado: ${data[0].estado_inventario}`,
-                width: "*",
-                fontSize: 10,
-              },
-            ],
-            margin: [0, 10],
-          },
-          {
-            text: `Operador: ${data[0].operador_nombre}`,
-            alignment: "right",
-            fontSize: 8,
-            margin: [0, 5],
-          },
-          {
-            canvas: [
-              {
-                type: "line",
-                x1: 0,
-                y1: 5,
-                x2: 575,
-                y2: 5,
-                lineWidth: 1,
-                lineColor: "#CCCCCC",
-              },
-            ],
-          },
-        ],
-      },
-      content: [
-        {
-          table: {
-            headerRows: 1,
-            widths: [
-              "auto",
-              "auto",
-              "*",
-              "auto",
-              "auto",
-              "auto",
-              "auto",
-              "auto",
-            ],
-            body: [
-              [
-                { text: "Ubi/Sub-Ubi", fillColor: "#ecedee", fontSize: 8 },
-                { text: "Codigo Interno", fillColor: "#ecedee", fontSize: 8 },
-                { text: "Articulo", fillColor: "#ecedee", fontSize: 8 },
-                { text: "Lote", fillColor: "#ecedee", fontSize: 8 },
-                { text: "Vencimiento", fillColor: "#ecedee", fontSize: 8 },
-                { text: "Cantidad Scanner", fillColor: "#ecedee", fontSize: 8 },
-                { text: "Cantidad Inicial", fillColor: "#ecedee", fontSize: 8 },
-                { text: "Diferencia", fillColor: "#ecedee", fontSize: 8 },
-              ],
-              ...data[0].items.map((item) => [
-                {
-                  text: `${item.ubicacion}/${item.sub_ubicacion}`,
-                  fontSize: 8,
-                },
-                { text: item.cod_interno, fontSize: 8 },
-                { text: item.articulo, fontSize: 8 },
-                { text: item.lote, fontSize: 8 },
-                { text: item.vencimiento, fontSize: 8 },
-                { text: item.cantidad_scanner || 0, fontSize: 8 },
-                { text: item.cantidad_inicial || 0, fontSize: 8 },
-                { text: item.diferencia || 0, fontSize: 8 },
-              ]),
-            ],
-          },
-        },
-        {
-          text: `Total de articulos: ${data[0].items.length}`,
-          alignment: "right",
-          fontSize: 8,
-          margin: [0, 5],
-        },
-      ],
-      styles: {
-        tableHeader: {
-          bold: true,
-          fontSize: 8,
-          color: "black",
-        },
-        tableBody: {
-          fontSize: 8,
-        },
-      },
-      defaultStyle: {
-        fontSize: 8,
-      },
-    };
+  const generarPDF = async () => {
+    const elemento = document.getElementById("reporte");
+    if (!elemento) return;
 
-    await generatePDF( docDefinicion as any, "download")
-  } catch (error) {
-    console.error("Error al generar el PDF:", error);
-  }
-}
+    const scale = 4;
+
+    // Generar el canvas a partir del elemento
+    const canvas = await html2canvas(elemento, {
+      scale: scale,
+      scrollX: 0,
+      scrollY: 0,
+      windowWidth: elemento.scrollWidth,
+      windowHeight: elemento.scrollHeight,
+    });
+
+    const pdf = new jsPDF("p", "mm", "a4");
+
+    // Dimensiones del PDF
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+
+    // Dimensiones del canvas
+    const canvasWidth = canvas.width;
+    const canvasHeight = canvas.height;
+
+    let yOffset = 0; // Posición vertical para empezar a recortar
+    const marginTop = 8; // Margen superior para las páginas adicionales
+    const marginBottom = 24; // Margen inferior
+    let pageNumber = 1; // Número de página inicial
+
+    while (yOffset < canvasHeight) {
+      // Crear un canvas temporal para la sección de la página actual
+      const pageCanvas = document.createElement("canvas");
+      // Ajustar el tamaño de la página con margen inferior
+      const pageHeight = Math.min(
+        canvasHeight - yOffset,
+        (canvasWidth * (pdfHeight - marginTop - marginBottom)) / pdfWidth
+      );
+
+      pageCanvas.width = canvasWidth;
+      pageCanvas.height = pageHeight;
+
+      const context = pageCanvas.getContext("2d");
+      if (!context) {
+        console.error("No se pudo obtener el contexto 2D del canvas.");
+        return;
+      }
+
+      context.drawImage(
+        canvas,
+        0,
+        yOffset,
+        canvasWidth,
+        pageHeight, // Parte del canvas original
+        0,
+        0,
+        canvasWidth,
+        pageHeight // Dibujo en el nuevo canvas
+      );
+
+      const pageImgData = pageCanvas.toDataURL("image/png");
+      const pageHeightScaled = (pageHeight * pdfWidth) / canvasWidth;
+
+      if (yOffset > 0) {
+        pdf.addPage();
+      }
+
+      // Dibujar líneas y cuadros
+      pdf.setDrawColor(145, 158, 181);
+      pdf.setLineWidth(0.3);
+      pdf.rect(5, marginTop - 5, pdfWidth - 10, 38); // Cuadro principal
+      pdf.line(5, marginTop + 2, pdfWidth - 5, marginTop + 2); // Línea debajo de la cabecera
+      pdf.line(5, marginTop + 30, pdfWidth - 5, marginTop + 30); // Línea debajo de la información adicional
+
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(6);
+      pdf.text(`Empresa: ${nombreEmpresa}`, 15, marginTop);
+      pdf.text(`RUC: ${rucEmpresa}`, pdfWidth / 2, marginTop);
+      pdf.text(
+        `${fechaCompletaActual} - ${sessionStorage.getItem("user_name")}`,
+        pdfWidth - 40,
+        marginTop
+      );
+
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Informe de anomalias de inventario", pdfWidth / 2, marginTop + 8, {
+        align: "center",
+      });
+
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(6);
+      pdf.text(`Fecha: ${reporte[0].fecha}, ${reporte[0].hora}`, 10, marginTop + 12);
+      pdf.text(
+        `Sucursal: ${
+          reporte[0].nombre_sucursal
+        }`,
+        10,
+        marginTop + 16
+      );
+
+      pdf.text(
+        `Deposito: ${
+          reporte[0].nombre_deposito
+        }`,
+        10,
+        marginTop + 20
+      );
+
+
+      pdf.text(
+        `Estado: ${
+          reporte[0].estado_inventario
+        }`,
+        10,
+        marginTop + 24
+
+      );
+      pdf.text(
+        `Inventario Nro: ${numeroInventario}`,
+        10,
+        marginTop + 28
+      );
+
+      pdf.text(`Página: ${pageNumber}`, 10, marginTop + 32);
+      pageNumber++;
+      // Agregar la imagen de la página
+      pdf.addImage(
+        pageImgData,
+        "PNG",
+        0,
+        marginTop + 34,
+        pdfWidth,
+        pageHeightScaled - marginBottom
+      );
+
+      yOffset += pageHeight;
+    }
+
+    pdf.save(`reporte_anomalias_${fechaCompletaActual}.pdf`);
+  };
 
 return (
   <div className="flex flex-col gap-2 w-full h-full items-center justify-center">
@@ -294,7 +286,7 @@ return (
           h={"100vh"}
         >
           <div
-            className="flex flex-col gap-2 w-[85%] h-full px-8 items-center overflow-y-auto"
+            className="flex flex-col gap-2 w-[85%] h-full px-8 items-center"
             id="reporte"
           >
             <table className="w-full">
@@ -309,6 +301,7 @@ return (
                   <th className="text-center">Cantidad Inicial</th>
                   <th className="text-center">Diferencia</th>
                 </tr>
+
               </thead>
               <tbody>
                 {reporte[0].items.map((item, index) => (
@@ -337,7 +330,7 @@ return (
         <div className="flex flex-row gap-2 w-full items-end justify-end mt-8">
           <button
             className="bg-blue-500 text-white p-2 rounded-md"
-            onClick={() => generarPDF(reporte)}
+            onClick={generarPDF}
           >
             Generar PDF
           </button>
