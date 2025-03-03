@@ -31,24 +31,29 @@ interface AutorizacionAjusteDeStock {
   nombre_sucursal: string;
   nombre_deposito: string;
   estado_inventario: string;
-  costo_total_sobrante: number;
-  costo_total_faltante: number;
-  cantidad_items_sobrantes: number;
-  cantidad_items_faltantes: number;
   items: [
     {
       articulo_id: number;
       articulo: string;
-      lote_id: number;
-      lote: string;
-      vencimiento: string;
+      cod_interno: string;
+      items_lotes: [
+        {
+          cod_barras: string;
+          vencimiento: string;
+          lote_id: number;
+          lote: string;
+          cantidad_inicial: number;
+          cantidad_scanner: number;
+          diferencia: number;
+          costo_diferencia: number;
+        }
+      ];
       ubicacion: string;
       sub_ubicacion: string;
-      cantidad_inicial: number;
-      cantidad_scanner: number;
-      diferencia: number;
-      costo: number;
-      costo_diferencia: number;
+      cantidad_inicial_total: number;
+      cantidad_scanner_total: number;
+      diferencia_total: number;
+      costo_diferencia_total: number;
     }
   ];
 }
@@ -361,7 +366,6 @@ const AutorizacionAjusteDeStock = () => {
       </motion.div>
     );
   };
-
   return (
     <Flex direction="column" gap={2} w="full" h="100vh" bg="gray.100" p={2}>
       <HeaderComponent
@@ -489,10 +493,9 @@ const AutorizacionAjusteDeStock = () => {
                 <tr className="border-2 border-gray-300 [&>th]:border [&>th]:border-gray-300">
                   <th>Codigo</th>
                   <th>Articulo</th>
-                  <th>Lote</th>
+                  <th>Cantidad Inicial</th>
+                  <th>Cantidad Scanneada</th>
                   <th>Diferencia</th>
-                  <th>Cantidad</th>
-                  <th>Costo Gs.</th>
                   <th>Costo Total Gs.</th>
                 </tr>
               </thead>
@@ -500,38 +503,37 @@ const AutorizacionAjusteDeStock = () => {
                 {autorizaciones[0].items
                   .sort((a, b) => {
                     if (
-                      (a.diferencia < 0 && b.diferencia >= 0) ||
-                      (a.diferencia >= 0 && b.diferencia < 0)
+                      (a.diferencia_total < 0 && b.diferencia_total >= 0) ||
+                      (a.diferencia_total >= 0 && b.diferencia_total < 0)
                     ) {
-                      return a.diferencia < 0 ? -1 : 1;
+                      return a.diferencia_total < 0 ? -1 : 1;
                     }
                     // Si son del mismo tipo (ambos faltantes o ambos sobrantes),
                     // ordenamos por el valor absoluto de la diferencia (mayor a menor)
-                    return Math.abs(b.diferencia) - Math.abs(a.diferencia);
+                    return Math.abs(b.diferencia_total) - Math.abs(a.diferencia_total);
                   })
                   .map((item) => (
                     <tr
-                      key={item.lote_id}
+                      key={item.cod_interno}
                       className={`border-2 border-gray-300 [&>td]:p-2 [&>td]:text-sm [&>td]:text-gray-700 [&>td]:border [&>td]:border-gray-300 
                       ${
-                        item.diferencia < 0
+                        item.diferencia_total < 0
                           ? "bg-red-50"
-                          : item.diferencia > 0
+                          : item.diferencia_total > 0
                           ? "bg-green-50"
                           : ""
                       }`}
                     >
-                      <td>{item.articulo_id}</td>
+                      <td>{item.cod_interno}</td>
                       <td>{item.articulo}</td>
-                      <td className="text-center">{item.lote}</td>
                       <td className="text-center">
-                        {item.diferencia}
+                        {item.cantidad_inicial_total}
                       </td>
                       <td className="text-center">
-                        {item.cantidad_scanner || 0}
+                        {item.cantidad_scanner_total || 0}
                       </td>
-                      <td className="text-right">{item.costo}</td>
-                      <td className="text-right">{item.costo_diferencia}</td>
+                      <td className="text-right">{item.diferencia_total}</td>
+                      <td className="text-right">{item.costo_diferencia_total}</td>
                     </tr>
                   ))}
               </tbody>
@@ -540,19 +542,19 @@ const AutorizacionAjusteDeStock = () => {
           <div className="flex flex-col border border-gray-400 p-2 rounded-md">
             <p>
               <strong>Total items faltantes:</strong>{" "}
-              {autorizaciones[0].cantidad_items_faltantes}
+              {autorizaciones[0].items.reduce((acc, item) => acc + item.diferencia_total, 0)}
             </p>
             <p>
               <strong>Total items sobrantes:</strong>{" "}
-              {autorizaciones[0].cantidad_items_sobrantes}
+              {autorizaciones[0].items.reduce((acc, item) => acc + item.diferencia_total, 0)}
             </p>
             <p>
               <strong>Total costo items faltante:</strong>{" "}
-              {autorizaciones[0].costo_total_faltante}
+              {autorizaciones[0].items.reduce((acc, item) => acc + item.costo_diferencia_total, 0)}
             </p>
             <p>
               <strong>Total costo items sobrante:</strong>{" "}
-              {autorizaciones[0].costo_total_sobrante}
+              {autorizaciones[0].items.reduce((acc, item) => acc + item.costo_diferencia_total, 0)}
             </p>
           </div>
         </div>

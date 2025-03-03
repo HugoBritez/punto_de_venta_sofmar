@@ -149,10 +149,11 @@ const generarPDF = async (data: ReporteAnomalias[]) => {
           // Encabezado del artículo
           {
             table: {
-              widths: ["auto", "*", "auto", "auto", "auto"],
+              widths: ["auto", "auto", "*", "auto", "auto", "auto"],
               body: [
                 [
                   { text: item.cod_interno, bold: true, fontSize: 8 },
+                  { text: item.ubicacion + " / " + item.sub_ubicacion, bold: true, fontSize: 8 },
                   { text: item.articulo, bold: true, fontSize: 8 },
                   { text: "Stock Total:" + item.cantidad_inicial_total, bold: true, alignment: "right", fontSize: 8 },
                   { text: "Scanner Total:" + item.cantidad_scanner_total, bold: true, alignment: "right", fontSize: 8 },
@@ -160,9 +161,16 @@ const generarPDF = async (data: ReporteAnomalias[]) => {
                 ],
               ],
             },
-            layout: "noBorders",
             fillColor: "#f0f0f0",
             margin: [0, 5, 0, 5],
+            layout:{
+              hLineWidth: function () {
+                return 0.5;
+              },
+              vLineWidth: function () {
+                return 0.5;
+              },
+            }
           },
           // Tabla de lotes
           {
@@ -296,54 +304,67 @@ const generarPDF = async (data: ReporteAnomalias[]) => {
             px={16}
             mt={4}
             w={"100%"}
-            h={"100vh"}
+            h={"60vh"}
+            overflowY={"auto"}
           >
-            {/* <div
-              className="flex flex-col gap-2 w-[85%] h-full px-8 items-center"
+            <div
+              className="flex flex-col gap-2 w-full h-full px-8 items-center"
               id="reporte"
             >
-              <table className="w-full">
-                <thead className="bg-gray-200">
-                  <tr>
-                    <th className="text-left">Ubi/Sub-Ubi</th>
-                    <th className="text-left">Codigo Interno</th>
-                    <th className="text-left">Articulo</th>
-                    <th className="text-left">Lote</th>
-                    <th className="text-left">Vencimiento</th>
-                    <th className="text-center">Cantidad Scanner</th>
-                    <th className="text-center">Cantidad Inicial</th>
-                    <th className="text-center">Diferencia</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reporte[0].items.map((item, index) => (
-                    <tr key={index}>
-                      <td>
-                        {item.ubicacion} / {item.sub_ubicacion}
-                      </td>
-                      <td>{item.cod_interno}</td>
-                      <td>{item.articulo}</td>
-                      <td>{item.items_lote[0].lote}</td>
-                      <td>{item.vencimiento}</td>
-                      <td className="text-center">
-                        {item.items_lote[0].cantidad_scanner || 0}
-                      </td>
-                        <td className="text-center">
-                        {item.items_lote[0].cantidad_inicial || 0}
-                      </td>
-                      <td className="text-center">
-                        {item.items_lote[0].diferencia || 0}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              {reporte[0].items.map((item) => (
+                <div className="w-full">
+                  <div className="flex flex-row  w-full border border-gray-200 bg-gray-100 [&>div]:px-2">
+                    <div className="border border-b-black border-t-black border-l-black flex w-auto ">
+                      <p>{item.cod_interno}</p>
+                    </div>
+                    <div className="border border-b-black border-t-black border-l-black flex w-auto ">
+                      <p>{item.ubicacion + " / " + item.sub_ubicacion}</p>
+                    </div>
+                    <div className="border border-b-black border-t-black flex flex-1 border-l-black ">
+                      <p>{item.articulo}</p>
+                    </div>
+                    <div className="border border-b-black border-t-black flex border-l-black  w-auto">
+                      <p>Stock Inicial Total: {item.cantidad_inicial_total}</p>
+                    </div>
+                    <div className="border border-b-black border-t-black flex border-l-black  w-auto">
+                      <p>Stock Scanner Total: {item.cantidad_scanner_total}</p>
+                    </div>
+                    <div className="border border-b-black border-t-black border-l-black  border-r-black flex w-auto">
+                      <p>Diferencia Total: {item.diferencia_total}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <table className="border-2 border-gray-400 mt-2">
+                      <thead className="border-2 border-gray-400 ">
+                        <tr className="[&>th]:border-2 [&>th]:border-gray-400 [&>th]:px-2">
+                          <th>Lote</th>
+                          <th>Vencimiento</th>
+                          <th>Stock</th>
+                          <th>Scanner</th>
+                          <th>Diferencia</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {item.items_lotes.map((lote) => (
+                          <tr className="[&>td]:border-2 [&>td]:border-gray-400 [&>td]:px-2">
+                            <td>{lote.lote}</td>
+                            <td>{lote.vencimiento}</td>
+                            <td className="text-center">{lote.cantidad_inicial || 0}</td>
+                            <td className="text-center">{lote.cantidad_scanner || 0}</td>
+                            <td className="text-center">{lote.diferencia || 0}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ))}
               <div className="flex flex-col border border-gray-200 w-full p-2">
                 <p className="font-bold ">
-                  Total de articulos: {reporte[0].items.length}
+                  Total de articulos: {reporte[0].items.reduce((acc, item) => acc + item.items_lotes.length, 0)}
                 </p>
               </div>
-            </div> */}
+            </div>
           </Flex>
           <div className="flex flex-row gap-2 w-full items-end justify-end mt-8">
             <button
