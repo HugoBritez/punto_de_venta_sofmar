@@ -37,11 +37,17 @@ interface VentaTicket {
     precio: number;
     total: number;
   }[];
+  sucursal_data: {
+    sucursal_direccion: string;
+    sucursal_telefono: string;
+    sucursal_empresa: string;
+    sucursal_ruc: string;
+    sucursal_matriz: string;
+  }[];
 }
 
 const ModeloTicket = ({
   id_venta = 134812,
-  monto_entregado = 0,
   monto_recibido = 0,
   vuelto = 0,
   onImprimir = false,
@@ -53,8 +59,6 @@ const ModeloTicket = ({
   const [prevOnImprimir, setPrevOnImprimir] = useState(false);
   const toast = useToast();
 
-  const nombreEmpresa = configuraciones?.[0]?.valor || "N/A";
-  const rucEmpresa = configuraciones?.[30]?.valor || "N/A";
   const fechaActual = new Date().toLocaleDateString("es-PY", {
     day: "2-digit",
     month: "2-digit",
@@ -91,22 +95,78 @@ const generarPDF = async () => {
           keywords: "venta, ticket",
         },
         content: [
-          { text: nombreEmpresa, style: "header" },
-          { text: `RUC: ${rucEmpresa}`, style: "text" },
-          { text: fechaActual, style: "text" },
+          {
+            text: venta?.sucursal_data[0].sucursal_empresa,
+            style: "header",
+            alignment: "center",
+            fontSize: 16,
+          },
+          {
+            text: `RUC: ${venta?.sucursal_data[0].sucursal_ruc}`,
+            style: "text",
+            alignment: "center",
+          },
+
           { text: "\n" },
           {
+            text: "--------------------------------------------------------",
+            style: "text",
+            fontSize: 14,
+          },
+          {
             columns: [
-              { text: `Venta Nro: ${venta?.codigo}`, style: "tHeaderValue" },
-              { text: `Tipo: ${venta?.tipo_venta}`, style: "tHeaderValue" },
+              {
+                text: fechaActual,
+                style: "text",
+                alignment: "center",
+              },
+              {
+                text: `Venta Nro: ${venta?.codigo}`,
+                style: "tHeaderValue",
+                alignment: "center",
+              },
+              {
+                text: `Tipo: ${venta?.tipo_venta}`,
+                style: "tHeaderValue",
+                alignment: "center",
+              },
             ],
           },
-          { text: `Vencimiento: ${venta?.fecha_vencimiento}`, style: "text" },
-          { text: `Cajero: ${venta?.cajero}`, style: "text" },
-          { text: `Vendedor: ${venta?.vendedor}`, style: "text" },
-          { text: `Cliente: ${venta?.cliente}`, style: "text" },
-          { text: `Dirección: ${venta?.direccion}`, style: "text" },
-          { text: `Teléfono: ${venta?.telefono}`, style: "text" },
+          {
+            text: `Vencimiento: ${venta?.fecha_vencimiento}`,
+            style: "text",
+            alignment: "center",
+          },
+          {
+            text: `Cajero: ${venta?.cajero}`,
+            style: "text",
+            alignment: "center",
+          },
+          {
+            text: `Vendedor: ${venta?.vendedor}`,
+            style: "text",
+            alignment: "center",
+          },
+          {
+            text: `Cliente: ${venta?.cliente}`,
+            style: "text",
+            alignment: "center",
+          },
+          {
+            text: `Dirección: ${venta?.direccion}`,
+            style: "text",
+            alignment: "center",
+          },
+          {
+            text: `Teléfono: ${venta?.telefono}`,
+            style: "text",
+            alignment: "center",
+          },
+          {
+            text: "--------------------------------------------------------",
+            style: "text",
+            fontSize: 14,
+          },
           { text: "\n" },
           {
             table: {
@@ -124,6 +184,13 @@ const generarPDF = async () => {
                 ),
               ],
             },
+            layout: "noBorders",
+          },
+          { text: "\n" },
+          {
+            text: "--------------------------------------------------------",
+            style: "text",
+            fontSize: 14,
           },
           { text: "\n" },
           {
@@ -161,15 +228,25 @@ const generarPDF = async () => {
                         style: "tTotals",
                       },
                     ],
-                    [
-                      { text: "Monto entregado:", style: "tTotals" },
-                      {
-                        text: `${(Number(monto_entregado) || 0).toLocaleString(
-                          "es-PY"
-                        )} Gs.`,
-                        style: "tTotals",
-                      },
-                    ],
+                  ],
+                },
+                layout: "noBorders",
+              },
+            ],
+          },
+          { 
+            text: "--------------------------------------------------------",
+            style: "text",
+            fontSize: 14,
+          },
+          {
+            alignment: "right",
+            columns: [
+              {},
+              {
+                width: "auto",
+                table: {
+                  body: [
                     [
                       { text: "Monto recibido:", style: "tTotals" },
                       {
@@ -195,12 +272,23 @@ const generarPDF = async () => {
             ],
           },
           { text: "\n" },
-          { text: "No válido como comprobante fiscal", style: "text" },
+          {
+            text: "--------------------------------------------------------",
+            style: "text",
+            fontSize: 14,
+          },
+          { text: "\n" },
+          {
+            text: "No válido como comprobante fiscal",
+            style: "text",
+            alignment: "center",
+          },
           {
             text: "Pasadas las 24hs, no se aceptan cambios ni devoluciones",
             style: "text",
+            alignment: "center",
           },
-          { text: "Gracias por su compra", style: "text" },
+          { text: "Gracias por su compra", style: "text", alignment: "center" },
         ],
       },
       "print"

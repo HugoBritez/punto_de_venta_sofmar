@@ -41,12 +41,17 @@ interface VentaTicket {
     precio: number;
     total: number;
   }[];
+  sucursal_data: {
+    sucursal_direccion: string;
+    sucursal_telefono: string;
+    sucursal_empresa: string;
+    sucursal_ruc: string;
+    sucursal_matriz: string;
+  }[];
 }
-
 
 const ModeloFacturaNuevo = ({
   id_venta,
-  monto_entregado = 0,
   monto_recibido = 0,
   vuelto = 0,
   onImprimir = false,
@@ -57,10 +62,6 @@ const ModeloFacturaNuevo = ({
   >(null);
   const [prevOnImprimir, setPrevOnImprimir] = useState(false);
   const toast = useToast();
-
-  const nombreEmpresa = configuraciones?.[0]?.valor || "N/A";
-  const rucEmpresa = configuraciones?.[30]?.valor || "N/A";
-  const telefonoEmpresa = configuraciones?.[2]?.valor || "N/A";
   const fechaActual = new Date().toLocaleDateString("es-PY", {
     day: "2-digit",
     month: "2-digit",
@@ -72,7 +73,9 @@ const ModeloFacturaNuevo = ({
   });
 
   const formatNumber = (number: number) => {
-    return number.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.').replace('.', ',');
+    // Verificar que el valor sea un número válido
+    const validNumber = typeof number === 'number' && !isNaN(number) ? number : 0;
+    return validNumber.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.').replace('.', ',');
   }
 
   const generarPDF = async () => {
@@ -90,7 +93,7 @@ const ModeloFacturaNuevo = ({
       await generatePDF(
         {
           pageSize: {
-            width: 226.77,
+            width: 350,
             height: "auto",
           },
           pageMargins: [0, 0, 0, 0],
@@ -101,54 +104,161 @@ const ModeloFacturaNuevo = ({
             keywords: "venta, factura",
           },
           content: [
-            { text: nombreEmpresa, style: "header" },
-            { text: `RUC: ${rucEmpresa}`, style: "text" },
-            { text: fechaActual, style: "text" },
-            { text: `Telefono: ${telefonoEmpresa}`, style: "text" },
+            {
+              text: venta?.sucursal_data[0].sucursal_empresa,
+              style: "header",
+              alignment: "center",
+              fontSize: 18,
+            },
+            {
+              text: `RUC: ${venta?.sucursal_data[0].sucursal_ruc}`,
+              style: "text",
+              alignment: "center",
+              fontSize: 16,
+            },
+            {
+              text: `${venta?.sucursal_data[0].sucursal_matriz} :${venta?.sucursal_data[0].sucursal_direccion}`,
+              style: "text",
+              alignment: "center",
+              fontSize: 16,
+            },
+            {
+              text: `Telefono: ${venta?.sucursal_data[0].sucursal_telefono}`,
+              style: "text",
+              alignment: "center",
+              fontSize: 16,
+            },
             { text: "\n" },
             {
+              text: "------------------------------------------------------------------------------------",
+              style: "text",
+              fontSize: 14,
+            },
+            {
               columns: [
-                { text: `Venta Nro: ${venta?.codigo}`, style: "tHeaderValue" },
-                { text: `Tipo: ${venta?.tipo_venta}`, style: "tHeaderValue" },
+                {
+                  text: `Venta Nro: ${venta?.codigo}`,
+                  style: "tHeaderValue",
+                  alignment: "center",
+                  fontSize: 16,
+                },
+                {
+                  text: `Tipo: ${venta?.tipo_venta}`,
+                  style: "tHeaderValue",
+                  alignment: "center",
+                  fontSize: 16,
+                },
               ],
             },
-            { text: `Timbrado: ${venta?.timbrado}`, style: "text" },
+            {
+              text: `Timbrado: ${venta?.timbrado}`,
+              style: "text",
+              alignment: "center",
+              fontSize: 16,
+            },
             {
               text: `Valido desde: ${venta?.factura_valido_desde}`,
               style: "text",
+              alignment: "center",
+              fontSize: 16,
             },
             {
               text: `Valido hasta: ${venta?.factura_valido_hasta}`,
               style: "text",
+              alignment: "center",
+              fontSize: 16,
             },
-            { text: `Nro: ${venta?.factura}`, style: "text" },
-            { text: ` *** IVA INCLUIDO ***`, style: "text" },
-            { text: `Fecha Emision: ${fechaActual}`, style: "text" },
-            { text: `Cajero: ${venta?.cajero}`, style: "text" },
-            { text: `Vendedor: ${venta?.vendedor}`, style: "text" },
-            { text: `Cliente: ${venta?.cliente}`, style: "text" },
-            { text: `RUC: ${venta?.ruc}`, style: "text" },
-            { text: `Dirección: ${venta?.direccion}`, style: "text" },
-            { text: `Teléfono: ${venta?.telefono}`, style: "text" },
+            {
+              text: `Nro: ${venta?.factura}`,
+              style: "text",
+              alignment: "center",
+              fontSize: 16,
+            },
+            {
+              text: ` *** IVA INCLUIDO ***`,
+              style: "text",
+              alignment: "center",
+              fontSize: 16,
+            },
+            {
+              text: "------------------------------------------------------------------------------------",
+              style: "text",
+              fontSize: 14,
+            },
+            {
+              text: `Fecha Emision: ${fechaActual}`,
+              style: "text",
+              alignment: "center",
+              fontSize: 16,
+            },
+            {
+              text: `Cajero: ${venta?.cajero}`,
+              style: "text",
+              alignment: "center",
+              fontSize: 16,
+            },
+            {
+              text: `Cliente: ${venta?.cliente}`,
+              style: "text",
+              alignment: "center",
+              fontSize: 16,
+            },
+            {
+              text: `RUC: ${venta?.ruc}`,
+              style: "text",
+              alignment: "center",
+              fontSize: 16,
+            },
+            {
+              text: `Dirección: ${venta?.direccion}`,
+              style: "text",
+              alignment: "center",
+              fontSize: 16,
+            },
+            {
+              text: `Teléfono: ${venta?.telefono}`,
+              style: "text",
+              alignment: "center",
+              fontSize: 16,
+            },
             { text: "\n" },
+            {
+              text: "------------------------------------------------------------------------------------",
+              style: "text",
+              fontSize: 14,
+            },
             {
               table: {
                 headerRows: 1,
                 widths: ["*", "auto", "auto", "auto"],
                 body: [
                   [
-                    { text: "Artículo", style: "tProductsHeader" },
-                    { text: "Cant.", style: "tProductsHeader" },
-                    { text: "Precio", style: "tProductsHeader" },
-                    { text: "Total", style: "tProductsHeader" },
+                    {
+                      text: "Artículo",
+                      style: "tProductsHeader",
+                      fontSize: 16,
+                    },
+                    { text: "Cant.", style: "tProductsHeader", fontSize: 16 },
+                    { text: "Precio", style: "tProductsHeader", fontSize: 16 },
+                    { text: "Total", style: "tProductsHeader", fontSize: 16 },
                   ],
                   ...detallesVenta.map((row) =>
-                    row.map((cell) => ({ text: cell, style: "tProductsBody" }))
+                    row.map((cell) => ({
+                      text: cell,
+                      style: "tProductsBody",
+                      fontSize: 16,
+                    }))
                   ),
                 ],
               },
+              layout: "noBorders",
             },
             { text: "\n" },
+            {
+              text: "------------------------------------------------------------------------------------",
+              style: "text",
+              fontSize: 14,
+            },
             {
               alignment: "right",
               columns: [
@@ -158,57 +268,37 @@ const ModeloFacturaNuevo = ({
                   table: {
                     body: [
                       [
-                        { text: "Subtotal:", style: "tTotals" },
+                        { text: "GRAN TOTAL:", style: "tTotals", fontSize: 16 },
                         {
                           text: `${(
                             Number(venta?.subtotal) || 0
                           ).toLocaleString("es-PY")} Gs.`,
                           style: "tTotals",
+                          fontSize: 16,
                         },
                       ],
                       [
-                        { text: "Descuento:", style: "tTotals" },
+                        { text: "DESCUENTO:", style: "tTotals", fontSize: 16 },
                         {
                           text: `${(
                             Number(venta?.total_descuento) || 0
                           ).toLocaleString("es-PY")} Gs.`,
                           style: "tTotals",
+                          fontSize: 16,
                         },
                       ],
                       [
-                        { text: "Total a pagar:", style: "tTotals" },
+                        {
+                          text: "TOTAL A PAGAR:",
+                          style: "tTotals",
+                          fontSize: 16,
+                        },
                         {
                           text: `${(
                             Number(venta?.total_a_pagar) || 0
                           ).toLocaleString("es-PY")} Gs.`,
                           style: "tTotals",
-                        },
-                      ],
-                      [
-                        { text: "Monto entregado:", style: "tTotals" },
-                        {
-                          text: `${(
-                            Number(monto_entregado) || 0
-                          ).toLocaleString("es-PY")} Gs.`,
-                          style: "tTotals",
-                        },
-                      ],
-                      [
-                        { text: "Monto recibido:", style: "tTotals" },
-                        {
-                          text: `${(Number(monto_recibido) || 0).toLocaleString(
-                            "es-PY"
-                          )} Gs.`,
-                          style: "tTotals",
-                        },
-                      ],
-                      [
-                        { text: "Vuelto:", style: "tTotals" },
-                        {
-                          text: `${(Number(vuelto) || 0).toLocaleString(
-                            "es-PY"
-                          )} Gs.`,
-                          style: "tTotals",
+                          fontSize: 16,
                         },
                       ],
                     ],
@@ -217,39 +307,140 @@ const ModeloFacturaNuevo = ({
                 },
               ],
             },
-            { text: "DETALLE POR CONCEPTOS", style: "text" },
             {
-              text: "----------------------------------------------",
+              text: "------------------------------------------------------------------------------------",
               style: "text",
+              fontSize: 14,
+            },
+            {
+              alignment: "right",
+              columns: [
+                {},
+                {
+                  width: "auto",
+                  table: {
+                    body: [
+                      [
+                        {
+                          text: "Monto recibido:",
+                          style: "tTotals",
+                          fontSize: 16,
+                        },
+                        {
+                          text: `${(Number(monto_recibido) || 0).toLocaleString(
+                            "es-PY"
+                          )} Gs.`,
+                          style: "tTotals",
+                          fontSize: 16,
+                        },
+                      ],
+                      [
+                        { text: "Vuelto:", style: "tTotals", fontSize: 16 },
+                        {
+                          text: `${(Number(vuelto) || 0).toLocaleString(
+                            "es-PY"
+                          )} Gs.`,
+                          style: "tTotals",
+                          fontSize: 16,
+                        },
+                      ],
+                    ],
+                  },
+                  layout: "noBorders",
+                },
+              ],
+            },
+            {
+              text: "------------------------------------------------------------------------------------",
+              style: "text",
+              fontSize: 14,
+            },
+            { text: "DETALLE POR CONCEPTOS", style: "text", fontSize: 16 },
+            {
+              text: "------------------------------------------------------------------------------------",
+              style: "text",
+              fontSize: 14,
             },
             { text: "\n" },
-            { text: `T. Exentas: Gs. ${venta?.total_exentas}` },
-            { text: `T. Gravadas 10%: Gs. ${venta?.total_diez}` },
-            { text: `T. Gravadas 5%: Gs. ${venta?.total_cinco}` },
             {
-              text: `Liq. IVA 5%: Gs. ${
-                venta?.total_cinco ? formatNumber(venta.total_cinco / 22) : 0
-              }`,
+              table: {
+                widths: ["*"],
+                body: [
+                  [
+                    {
+                      text: `T. Exentas: Gs. ${formatNumber(
+                        venta?.total_exentas || 0
+                      )}`,
+                      fontSize: 16,
+                    },
+                  ],
+                  [
+                    {
+                      text: `T. Gravadas 10%: Gs. ${formatNumber(
+                        venta?.total_diez || 0
+                      )}`,
+                      fontSize: 16,
+                    },
+                  ],
+                  [
+                    {
+                      text: `T. Gravadas 5%: Gs. ${formatNumber(
+                        venta?.total_cinco || 0
+                      )}`,
+                      fontSize: 16,
+                    },
+                  ],
+                  [
+                    {
+                      text: `Liq. IVA 5%: Gs. ${
+                        venta?.total_cinco
+                          ? formatNumber(Number(venta.total_cinco) / 22)
+                          : 0
+                      }`,
+                      fontSize: 16,
+                    },
+                  ],
+                  [
+                    {
+                      text: `Liq. IVA 10%: Gs. ${
+                        venta?.total_diez
+                          ? formatNumber(Number(venta.total_diez) / 11)
+                          : 0
+                      }`,
+                      fontSize: 16,
+                    },
+                  ],
+                  [
+                    {
+                      text: `Total Liq. IVA Gs. ${formatNumber(
+                        (venta?.total_cinco
+                          ? Number(venta.total_cinco) / 22
+                          : 0) +
+                          (venta?.total_diez
+                            ? Number(venta.total_diez) / 11
+                            : 0)
+                      )}`,
+                      fontSize: 16,
+                    },
+                  ],
+                ],
+              },
+              layout: "noBorders",
             },
             {
-              text: `Liq. IVA 10%: Gs. ${
-                venta?.total_diez ? formatNumber(venta.total_diez / 11) : 0
-              }`,
-            },
-            {
-              text: `Total Liq. IVA Gs. ${
-                formatNumber((venta?.total_cinco ? venta.total_cinco / 22 : 0) +
-                (venta?.total_diez ? venta.total_diez / 11 : 0))
-              }`,
-            },
-            {
-              text: "----------------------------------------------",
+              text: "------------------------------------------------------------------------------------",
               style: "text",
+              fontSize: 14,
             },
-            { text: "GRACIAS POR SU COMPRA", style: "text" },
+            {
+              text: "***GRACIAS POR SU PREFERENCIA***",
+              style: "text",
+              fontSize: 16,
+            },
             {
               text: "DUPLICADO ARCHIVO TRIBUTARIO",
               style: "text",
+              fontSize: 16,
             },
             { text: "ORIGINAL CLIENTE", style: "text" },
           ],

@@ -11,13 +11,15 @@ import {
   ClipboardCheck,
   ChartColumn,
   ListStart,
+  Camera,
 } from "lucide-react";
 
 import { motion, AnimatePresence } from "framer-motion";
+import BarcodeScannerComponent from "react-qr-barcode-scanner";
 
 interface Articulo {
   ar_codigo: number;
-  ar_codbarra: string;
+  al_codbarra: string;
   ar_descripcion: string;
   ar_pvg: number;
   ar_pcg: number;
@@ -28,8 +30,9 @@ interface Articulo {
   ar_sububicacion: number;
   al_lote: string;
   ar_vencimiento: number;
-  talle: string;
-  color: string;
+  al_talle: string;
+  al_color: string;
+  cod_interno: string;
 }
 
 interface Deposito {
@@ -54,15 +57,15 @@ interface Sububicaciones {
   s_descripcion: string;
 }
 
-// interface Talles {
-//   codigo: number;
-//   descripcion: string;
-// }
+interface Talles {
+  t_codigo: number;
+  t_descripcion: string;
+}
 
-// interface Colores {
-//   codigo: number;
-//   descripcion: string;
-// }
+interface Colores {
+  c_codigo: number;
+  c_descripcion: string;
+}
 
 interface TooltipProps {
   text: string;
@@ -155,37 +158,36 @@ const InventarioScanner = () => {
   const [vencimiento, setVencimiento] = useState("");
   const [lote, setLote] = useState("");
   const [codigoBarra, setCodigoBarra] = useState("");
+  const [talles, setTalles] = useState<Talles[]>([]);
+  const [talleSeleccionado, setTalleSeleccionado] = useState<Talles | null>(null);
 
-  const [observaciones, setObservaciones] = useState("");
+  const [colores, setColores] = useState<Colores[]>([]);
+  const [colorSeleccionado, setColorSeleccionado] = useState<Colores | null>(null);
+
+  const [observaciones, ] = useState("");
   const [fecha] = useState(new Date().toISOString().split("T")[0]);
   const [ultimoNroInventario, setUltimoNroInventario] = useState(1);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const [ubicaciones, setUbicaciones] = useState<Ubicaciones[]>([]);
+  const cantidadInputRef = useRef<HTMLInputElement>(null);
+  const [, setUbicaciones] = useState<Ubicaciones[]>([]);
   const [ubicacion, setUbicacion] = useState<number | null>(null);
   const [sububicacion, setSububicacion] = useState<number | null>(null);
-  const [sububicaciones, setSububicaciones] = useState<Sububicaciones[]>([]);
+  const [, setSububicaciones] = useState<Sububicaciones[]>([]);
   const [prevVencimiento, setPrevVencimiento] = useState("");
   const [prevLote, setPrevLote] = useState("");
   const token = sessionStorage.getItem("token");
   const toast = useToast();
   const [showInventarioCard, setShowInventarioCard] = useState(false);
+  const [stopStream, setStopStream] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+    const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
+    const [selectedCamera, setSelectedCamera] = useState<string>("");
   const [inventariosDisponibles, setInventariosDisponibles] = useState<
     Array<{ id: number; fecha: string }>
   >([]);
   const [inventarioSeleccionado, setInventarioSeleccionado] = useState<
     number | null
   >(null);
-
-
-  const handleVencimientoChange = (nuevoVencimiento: string) => {
-    setPrevVencimiento(vencimiento);
-    setVencimiento(formatearVencimiento(nuevoVencimiento));
-  };
-
-  const handleLoteChange = (nuevoLote: string) => {
-    setPrevLote(lote);
-    setLote(nuevoLote);
-  };
 
 const handleEditarArticulo = (articulo: Articulo) => {
   setArticuloSeleccionado(articulo);
@@ -198,7 +200,7 @@ const handleEditarArticulo = (articulo: Articulo) => {
     setPrevVencimiento(formatearVencimiento(articulo.al_vencimiento));
     setLote(articulo.al_lote || "");
     setPrevLote(articulo.al_lote || "");
-    setCodigoBarra(articulo.ar_codbarra || "");
+    setCodigoBarra(articulo.al_codbarra || "");
     setUbicacion(articulo.ar_ubicacicion || null);
     setSububicacion(articulo.ar_sububicacion || null);
   } else {
@@ -211,7 +213,7 @@ const handleEditarArticulo = (articulo: Articulo) => {
     setPrevVencimiento(articuloVencimiento);
     setLote(articuloLote);
     setPrevLote(articuloLote);
-    setCodigoBarra(articulo.ar_codbarra);
+    setCodigoBarra(articulo.al_codbarra);
     setUbicacion(articulo.ar_ubicacicion);
     setSububicacion(articulo.ar_sububicacion);
   }
@@ -229,7 +231,7 @@ const handleEditarArticulo = (articulo: Articulo) => {
 useEffect(() => {
   const fetchSucursalesYDepositos = async () => {
     try {
-      const [sucursalesRes, depositosRes] = await Promise.all([
+      const [sucursalesRes, depositosRes, tallesRes, coloresRes] = await Promise.all([
         axios.get(`${api_url}sucursales/listar`),
         axios.get(`${api_url}depositos/`),
         axios.get(`${api_url}talles/`),
@@ -238,14 +240,14 @@ useEffect(() => {
 
       const sucursalesData = sucursalesRes.data;
       const depositosData = depositosRes.data;
-      // const tallesData = tallesRes.data;
-      // const coloresData = coloresRes.data;
+      const tallesData = tallesRes.data;
+      const coloresData = coloresRes.data;
 
 
       setSucursales(sucursalesData.body || []);
       setDepositos(depositosData.body || []);
-      // setTalles(tallesData.body || []);
-      // setColores(coloresData.body || []);
+      setTalles(tallesData.body || []);
+      setColores(coloresData.body || []);
 
       const defaultDeposito = depositosData.body[0];
       if (defaultDeposito) {
@@ -363,17 +365,21 @@ useEffect(() => {
   };
 
 const handleBusqueda = (texto: string) => {
-  setArticuloBusqueda(texto);
-  if (!texto || texto.trim() === "") {
+  // Eliminar el 0 inicial si existe
+  const textoLimpio = texto.startsWith("0") ? texto.substring(1) : texto;
+
+  setArticuloBusqueda(textoLimpio);
+  if (!textoLimpio || textoLimpio.trim() === "") {
     setArticulos([]);
     return;
   }
+
   const timeoutId = setTimeout(() => {
     if (buscarPorInventario && inventarioSeleccionado) {
       // Asegurarse de que se pase el inventarioSeleccionado
-      buscarItemsPorInventario(String(inventarioSeleccionado), texto);
+      buscarItemsPorInventario(String(inventarioSeleccionado), textoLimpio);
     } else {
-      buscarArticuloPorCodigo(texto);
+      buscarArticuloPorCodigo(textoLimpio);
     }
   }, 300);
   return () => clearTimeout(timeoutId);
@@ -514,6 +520,8 @@ const handleBusqueda = (texto: string) => {
             ubicacion: getUbicacionCodigo(ubicacion),
             sububicacion: sububicacion,
             control_vencimiento: articuloSeleccionado?.ar_vencimiento,
+            talle: talleSeleccionado?.t_codigo || null,
+            color: colorSeleccionado?.c_codigo || null,
             vencimientos: [
               {
                 lote: lote || "SIN LOTE",
@@ -587,6 +595,8 @@ const scannearItemInventarioAuxiliar = async () => {
       id_articulo: articuloSeleccionado?.ar_codigo,
       id_lote: articuloSeleccionado?.al_codigo,
       cantidad: Number(existenciaFisica),
+      lote: lote,
+      codigo_barras: codigoBarra,
     })
     toast({
       title: "Item cargado correctamente",
@@ -596,11 +606,17 @@ const scannearItemInventarioAuxiliar = async () => {
     });
     setModalVisible(false);
         if (articuloBusqueda) {
-          handleBusqueda(articuloBusqueda);
+          handleBusqueda(articuloBusqueda)
+          setArticuloBusqueda("");
+          setArticulos([]);
+          searchInputRef.current?.focus();
         } else if (inventarioSeleccionado) {
           // Si no hay búsqueda pero hay un inventario seleccionado,
           // traer todos los items de ese inventario
-          buscarItemsPorInventario(String(inventarioSeleccionado));
+          buscarItemsPorInventario(String(inventarioSeleccionado))
+          setArticuloBusqueda("");
+          setArticulos([]);
+          searchInputRef.current?.focus();
         }
 
   } catch (error) {
@@ -656,6 +672,30 @@ const scannearItemInventarioAuxiliar = async () => {
     }
   };
 
+    const handleScannerUpdate = (err: any, result: any) => {
+      if (result) {
+        const scannedCode = result.text;
+        setArticuloBusqueda(scannedCode);
+        handleBusqueda(scannedCode);
+        // Detener el stream antes de cerrar el scanner
+        setStopStream(true);
+        setTimeout(() => {
+          setIsScanning(false);
+          setStopStream(false);
+        }, 0);
+      } else {
+        console.error("Error al escanear el código:", err);
+      }
+    };
+
+    const handleCloseScanner = () => {
+      setStopStream(true);
+      setTimeout(() => {
+        setIsScanning(false);
+        setStopStream(false);
+      }, 0);
+    };
+
 const Tooltip = ({ text, children, position = "top" }: TooltipProps) => {
   const [isVisible, setIsVisible] = useState(false);
 
@@ -709,6 +749,48 @@ const Tooltip = ({ text, children, position = "top" }: TooltipProps) => {
     </div>
   );
 };
+
+  const getCameras = async () => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(
+        (device) => device.kind === "videoinput"
+      );
+      setCameras(videoDevices);
+
+      // Seleccionar la primera cámara por defecto
+      if (videoDevices.length > 0 && !selectedCamera) {
+        setSelectedCamera(videoDevices[0].deviceId);
+      }
+    } catch (error) {
+      console.error("Error getting cameras:", error);
+    }
+  };
+
+  const activateScanner = async() => {
+    await getCameras();
+    setIsScanning(true);
+    setStopStream(false);
+  };
+
+
+const handleEnterCantidad = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  if (e.key === "Enter") {
+    if (buscarPorInventario) {
+      scannearItemInventarioAuxiliar();
+    } else {
+      cargarItemInventario();
+    }
+  }
+};
+
+
+useEffect(() => {
+  if (modalVisible && cantidadInputRef.current) {
+    cantidadInputRef.current.focus();
+  }
+}, [modalVisible]);
+
 
   return (
     <div className="h-screen w-full flex flex-col overflow-hidden">
@@ -777,6 +859,13 @@ const Tooltip = ({ text, children, position = "top" }: TooltipProps) => {
               onChange={(e) => handleBusqueda(e.target.value)}
               onClick={handleInputClick}
             />
+            <button
+              onClick={activateScanner}
+              className="p-3 text-gray-500 hover:text-gray-700 flex items-center justify-center"
+              title="Escanear código de barras"
+            >
+              <Camera size={24} /> {/* O el ScanIcon que estés usando */}
+            </button>
           </div>
           {buscarPorInventario && (
             <div className="relative">
@@ -830,26 +919,22 @@ const Tooltip = ({ text, children, position = "top" }: TooltipProps) => {
                   onClick={() => handleEditarArticulo(item)}
                   className="bg-white p-4 rounded-lg shadow cursor-pointer"
                 >
-                  <p className="text-xs text-gray-500">
-                    Cod. Barras: {item.ar_codbarra}
+                  <p className="text-md text-gray-500 font-semibold">
+                    Cod. Barras: {item.al_codbarra}
                   </p>
-                  <p className="text-xs text-gray-500">Lote: {item.al_lote}</p>
-                  <p className="text-xs text-gray-500">
-                    Vto.: {formatearVencimiento(item.al_vencimiento)}
-                  </p>
+                  <p className="text-md text-gray-500">Cod. Ref: {item.cod_interno}</p>
                   <p className="font-bold my-1">{item.ar_descripcion}</p>
                   <p className="text-sm text-blue-500">
                     {
-                      ubicaciones.find(
-                        (ubicacion) =>
-                          ubicacion.ub_codigo === item.ar_ubicacicion
-                      )?.ub_descripcion
+                      colores.find(
+                        (color) => color.c_codigo === Number(item.al_color)
+                      )?.c_descripcion
                     }{" "}
                     -{" "}
                     {
-                      sububicaciones.find(
-                        (sub) => sub.s_codigo === item.ar_sububicacion
-                      )?.s_descripcion
+                      talles.find(
+                        (talle) => talle.t_codigo === Number(item.al_talle)
+                      )?.t_descripcion
                     }
                   </p>
                 </motion.div>
@@ -1009,16 +1094,15 @@ const Tooltip = ({ text, children, position = "top" }: TooltipProps) => {
               </div>
               <div className="bg-gray-50 p-4 rounded-lg mb-4">
                 <p className="text-sm text-gray-500">
-                  Inventario nro: {ultimoNroInventario}
+                  Cod. Ref: 
                 </p>
                 <div className="flex space-x-14">
-                  <p className="font-bold">{articuloSeleccionado?.ar_codigo}</p>
+                  <p className="font-bold">{articuloSeleccionado?.cod_interno}</p>
                   <p className="text-lg">
                     {articuloSeleccionado?.ar_descripcion}
                   </p>
                 </div>
               </div>
-
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1041,11 +1125,13 @@ const Tooltip = ({ text, children, position = "top" }: TooltipProps) => {
                     className="w-full p-2 border rounded"
                     value={existenciaFisica}
                     onChange={(e) => setExistenciaFisica(e.target.value)}
+                    onKeyDown={handleEnterCantidad}
+                    ref={cantidadInputRef}
                   />
                 </div>
               </div>
               <div className="mb-4 flex flex-row gap-4">
-                <div className="w-full">
+                {/* <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Fecha Vencimiento
                   </label>
@@ -1064,27 +1150,51 @@ const Tooltip = ({ text, children, position = "top" }: TooltipProps) => {
                     onChange={(e) => handleVencimientoChange(e.target.value)}
                     disabled={articuloSeleccionado?.ar_vencimiento === 0}
                   />
-                </div>
-                {/* <div>
+                </div> */}
+                <div>
                   <label htmlFor="talle">Talle</label>
-                  <input
-                    type="text"
+                  <select
+                    name="talle"
                     id="talle"
                     className="w-full p-2 border rounded"
-                    value={articuloSeleccionado?.talle}
-                  />
+                    onChange={(e) => {
+                      const selected = talles.find(
+                        (t) => t.t_codigo === Number(e.target.value)
+                      );
+                      setTalleSeleccionado(selected || null);
+                    }}
+                    value={articuloSeleccionado?.al_talle}  
+                  >
+                    {talles.map((talle) => (
+                      <option key={talle.t_codigo} value={talle.t_codigo}>
+                        {talle.t_descripcion}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label htmlFor="talle">Color</label>
-                  <input
-                    type="text"
-                    id="talle"
+                  <select
+                    name="color"
+                    id="color"
                     className="w-full p-2 border rounded"
-                    value={articuloSeleccionado?.color}
-                  />
-                </div> */}
+                    onChange={(e) => {
+                      const selected = colores.find(
+                        (c) => c.c_codigo === Number(e.target.value)
+                      );
+                      setColorSeleccionado(selected || null);
+                    }}
+                    value={articuloSeleccionado?.al_color}
+                  >
+                    {colores.map((color) => (
+                      <option key={color.c_codigo} value={color.c_codigo}>
+                        {color.c_descripcion}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
-
+{/* 
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1094,6 +1204,7 @@ const Tooltip = ({ text, children, position = "top" }: TooltipProps) => {
                     className="w-full p-2 border rounded"
                     value={ubicacion || ""}
                     onChange={(e) => setUbicacion(Number(e.target.value))}
+                    disabled
                   >
                     {ubicaciones.map((ub: Ubicaciones) => (
                       <option key={ub.ub_codigo} value={ub.ub_codigo}>
@@ -1110,6 +1221,7 @@ const Tooltip = ({ text, children, position = "top" }: TooltipProps) => {
                     className="w-full p-2 border rounded"
                     value={sububicacion || ""}
                     onChange={(e) => setSububicacion(Number(e.target.value))}
+                    disabled
                   >
                     {sububicaciones.map((sub) => (
                       <option key={sub.s_codigo} value={sub.s_codigo}>
@@ -1118,9 +1230,9 @@ const Tooltip = ({ text, children, position = "top" }: TooltipProps) => {
                     ))}
                   </select>
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div>
+              </div> */}
+              <div className="flex flex-row gap-4 mb-4">
+                {/* <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Lote
                   </label>
@@ -1136,8 +1248,8 @@ const Tooltip = ({ text, children, position = "top" }: TooltipProps) => {
                     onChange={(e) => handleLoteChange(e.target.value)}
                     disabled={articuloSeleccionado?.ar_vencimiento === 0}
                   />
-                </div>
-                <div>
+                </div> */}
+                <div className="w-full">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Código de barras
                   </label>
@@ -1149,7 +1261,7 @@ const Tooltip = ({ text, children, position = "top" }: TooltipProps) => {
                   />
                 </div>
               </div>
-              <div className="mb-4">
+              {/* <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Observaciones
                 </label>
@@ -1159,7 +1271,7 @@ const Tooltip = ({ text, children, position = "top" }: TooltipProps) => {
                   value={observaciones}
                   onChange={(e) => setObservaciones(e.target.value)}
                 />
-              </div>
+              </div> */}
               <button
                 onClick={
                   buscarPorInventario === true
@@ -1174,6 +1286,100 @@ const Tooltip = ({ text, children, position = "top" }: TooltipProps) => {
           </div>
         </div>
       )}
+      <AnimatePresence>
+        {isScanning && (
+          <>
+            <motion.div
+              className="fixed inset-0 bg-black bg-opacity-50 z-50"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={handleCloseScanner}
+            />
+            <motion.div
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="bg-white rounded-lg w-full max-w-sm overflow-hidden">
+                <div className="p-4 bg-gray-50 flex justify-between items-center">
+                  <h3 className="font-semibold">Escanear código</h3>
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={selectedCamera}
+                      onChange={(e) => {
+                        setSelectedCamera(e.target.value);
+                        setStopStream(true);
+                        setTimeout(() => setStopStream(false), 100);
+                      }}
+                      className="text-sm p-1 rounded border"
+                    >
+                      {cameras.map((camera) => (
+                        <option key={camera.deviceId} value={camera.deviceId}>
+                          {camera.label ||
+                            `Cámara ${cameras.indexOf(camera) + 1}`}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      onClick={handleCloseScanner}
+                      className="text-gray-500 hover:text-gray-700"
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+                <div className="relative aspect-square w-full bg-black">
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="absolute inset-0">
+                      <BarcodeScannerComponent
+                        width="100%"
+                        height="100%"
+                        onUpdate={handleScannerUpdate}
+                        stopStream={stopStream}
+                        videoConstraints={{
+                          deviceId: selectedCamera,
+                        }}
+                        delay={500}
+                        torch={false}
+                        onError={(error) => {
+                          console.error(error);
+                          if (
+                            error instanceof DOMException &&
+                            error.name === "NotAllowedError"
+                          ) {
+                            alert(
+                              "Por favor, permite el acceso a la cámara para escanear códigos de barras"
+                            );
+                            handleCloseScanner();
+                          }
+                        }}
+                      />
+                    </div>
+                    {/* Área de escaneo más pequeña */}
+                    <div className="relative w-48 h-32">
+                      {" "}
+                      {/* Ajusta estos valores según necesites */}
+                      {/* Bordes del área de escaneo */}
+                      <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-blue-500"></div>
+                      <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-blue-500"></div>
+                      <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-blue-500"></div>
+                      <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-blue-500"></div>
+                      {/* Línea de escaneo animada */}
+                      <div className="absolute top-0 left-0 w-full h-0.5 bg-red-500 animate-scan"></div>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-4 text-center text-sm text-gray-500">
+                  Centra el código de barras en el recuadro
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

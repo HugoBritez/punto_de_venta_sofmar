@@ -52,6 +52,7 @@ import ConsultaRemisiones from "../remisiones/ConsultaRemisiones";
 import ResumenVentas from "../ventas/ResumenVentas";
 import { createRoot } from "react-dom/client";
 import ModeloFacturaNuevo from "../facturacion/ModeloFacturaNuevo";
+import ModeloNotaComun from "../facturacion/ModeloNotaComun";
 interface ItemParaVenta {
   precio_guaranies: number;
   precio_dolares: number;
@@ -486,10 +487,8 @@ const handleBuscarArticuloPorId = (e: React.ChangeEvent<HTMLInputElement>) => {
   setArticuloBusquedaId(busqueda);
   setArticuloSeleccionado(null);
   if (busqueda.length > 0) {
-    setIsArticuloCardVisible(true);
     getArticulos("", busqueda);
   } else {
-    setIsArticuloCardVisible(false);
     setArticulos([]);
   }
 };
@@ -1176,6 +1175,9 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
         if (imprimirTicket) {
            await imprimirTicketComponente(response.data.body.ventaId);
         }
+        if (imprimirNotaInterna) {
+            await imprimirNotaComponente(response.data.body.ventaId);
+        }
       }
     } catch (error) {
       console.error("Error al finalizar la venta:", error);
@@ -1741,6 +1743,12 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
     }
   };
 
+  const calcularVueltoGuaranies = () => {
+    const vueltoBruto = (totalPagar || 0) - (montoEntregado || 0);
+    const vuelto = Math.abs(vueltoBruto);
+    return vuelto;
+  }
+
 const imprimirFacturaComponente = async (ventaId: number) => {
   const facturaDiv = document.createElement('div');
   facturaDiv.style.display = "none";
@@ -1748,12 +1756,28 @@ const imprimirFacturaComponente = async (ventaId: number) => {
 
   const root = createRoot(facturaDiv);
   root.render(
-    <ModeloFacturaNuevo id_venta={ventaId} monto_entregado={montoEntregado || 0} monto_recibido={montoEntregado || 0} vuelto={0} onImprimir={true} />
+    <ModeloFacturaNuevo id_venta={ventaId} monto_entregado={montoEntregado || 0} monto_recibido={montoEntregado || 0} vuelto={calcularVueltoGuaranies()} onImprimir={true} />
   );
 
   setTimeout(() => {
     root.unmount();
     document.body.removeChild(facturaDiv);
+  }, 2000);
+}
+
+const imprimirNotaComponente = async (ventaId: number) => {
+  const notaDiv = document.createElement("div");
+  notaDiv.style.display = "none";
+  document.body.appendChild(notaDiv);
+  
+  const root = createRoot(notaDiv);
+  root.render(
+    <ModeloNotaComun id_venta={ventaId} monto_entregado={montoEntregado || 0} monto_recibido={montoEntregado || 0} vuelto={calcularVueltoGuaranies()} onImprimir={true} />
+  );
+
+  setTimeout(() => {  
+    root.unmount();
+    document.body.removeChild(notaDiv);
   }, 2000);
 }
 
@@ -1769,7 +1793,7 @@ const imprimirTicketComponente = async (ventaId: number) => {
       id_venta={ventaId}
       monto_entregado={montoEntregado || 0}
       monto_recibido={montoEntregado || 0}
-      vuelto={0}
+      vuelto={calcularVueltoGuaranies()}
       onImprimir={true}
     />
   );
@@ -2096,12 +2120,6 @@ const imprimirTicketComponente = async (ventaId: number) => {
                 }
                 className="border rounded-md p-2 flex-1 items-center justify-center w-32 text-center "
                 placeholder=""
-                onClick={() => {
-                  setIsArticuloCardVisible(true);
-                }}
-                onFocus={() => {
-                  setIsArticuloCardVisible(true);
-                }}
                 onChange={(e) => {
                   handleBuscarArticuloPorId(e);
                 }}

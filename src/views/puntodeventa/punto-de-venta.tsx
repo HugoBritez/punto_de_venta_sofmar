@@ -61,6 +61,7 @@ import ConsultaPedidos from "../pedidos/ConsultaPedidos";
 import DrawerContextual from "../../modules/drawerContextual";
 import ResumenVentas from "../ventas/ResumenVentas";
 
+
 interface Sucursal {
   id: number;
   descripcion: string;

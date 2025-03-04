@@ -91,8 +91,6 @@ interface DetalleVenta {
 }
 
 
-
-
 interface ConsultaDeVentasProps {
   clienteSeleccionado?: Cliente | null;
   onSelectVenta?: (venta: Venta, detalleVenta: DetalleVenta[]) => void;

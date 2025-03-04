@@ -46,11 +46,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import FloatingCard from "@/modules/FloatingCard";
 import ArticuloInfoCard from "@/modules/ArticuloInfoCard";
 import ModeloTicket from "../facturacion/ModeloTicket";
-import ModeloFactura from "../facturacion/ModeloFactura";
+import ModeloFacturaNuevo from "../facturacion/ModeloFacturaNuevo";
 import ConsultaPedidos from "../pedidos/ConsultaPedidos";
 import ConsultaPresupuestos from "../presupuestos/ConsultaPresupuesto";
 import ConsultaRemisiones from "../remisiones/ConsultaRemisiones";
 import ResumenVentas from "../ventas/ResumenVentas";
+import { createRoot } from "react-dom/client";
 interface ItemParaVenta {
   precio_guaranies: number;
   precio_dolares: number;
@@ -81,7 +82,6 @@ interface ItemParaVenta {
   editar_nombre?: number | null;
   precio_original?: number | null;
 }
-
 
 interface VentaCliente {
   codigo: number;
@@ -217,6 +217,9 @@ const VentaBalconNuevo = () => {
 
   const [ultimaVentaId, setUltimaVentaId] = useState<number | null>(null);
 
+  const clienteCodigoRef = useRef<HTMLInputElement>(null);
+  const clienteNombreRef = useRef<HTMLInputElement>(null);
+
   const busquedaPorIdInputRef = useRef<HTMLInputElement>(null);
   const busquedaInputRef = useRef<HTMLInputElement>(null);
   const descuentoInputRef = useRef<HTMLInputElement>(null);
@@ -231,9 +234,6 @@ const VentaBalconNuevo = () => {
   const [cotizacionPeso, setCotizacionPeso] = useState<number>(5);
   const [articuloSeleccionado, setArticuloSeleccionado] =
     useState<ArticulosNuevo | null>(null);
-
-  const [imprimirFacturaPDF, setImprimirFacturaPDF] = useState(false);
-  const [imprimirTicketPDF, setImprimirTicketPDF] = useState(false);
 
     const [montoEntregado, setMontoEntregado] = useState<number | null>(null);
     const [montoEntregadoDolar, setMontoEntregadoDolar] = useState<
@@ -273,12 +273,6 @@ const VentaBalconNuevo = () => {
   } = useDisclosure();
 
   const {
-    isOpen: isImpresionTicketOpen,
-    onOpen: onImpresionTicketOpen,
-    onClose: onImpresionTicketClose,
-  } = useDisclosure();
-
-  const {
     isOpen: isPedidoModalOpen,
     onOpen: onPedidoModalOpen,
     onClose: onPedidoModalClose,
@@ -311,13 +305,6 @@ const VentaBalconNuevo = () => {
 
   const [ventaIdEdicion, setVentaIdEdicion] = useState<number | null>(null);
 
-
-
-  const {
-    isOpen: isImpresionFacturaOpen,
-    onOpen: onImpresionFacturaOpen,
-    onClose: onImpresionFacturaClose,
-  } = useDisclosure();
 
   const configuraciones = JSON.parse(
     sessionStorage.getItem("configuraciones") || "[]"
@@ -505,7 +492,6 @@ const VentaBalconNuevo = () => {
     setArticuloBusquedaId(busqueda);
     setArticuloSeleccionado(null);
     if (busqueda.length > 0) {
-      setIsArticuloCardVisible(true);
       getArticulos("", busqueda);
     } else {
       setIsArticuloCardVisible(false);
@@ -745,7 +731,7 @@ const VentaBalconNuevo = () => {
       }
       setCantidad(1);
       setDescuento(0);
-      busquedaInputRef.current?.focus();
+      busquedaPorIdInputRef.current?.focus();
     }
   };
 
@@ -1187,6 +1173,9 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
 
         handleCancelarVenta();
 
+        setClienteBusqueda("");
+        setClienteSeleccionado(null);
+
         setUltimaVentaId(response.data.body.ventaId);
 
         actualizarUltimaFactura(
@@ -1195,14 +1184,14 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
         );
 
         if (imprimirFactura) {
-          setImprimirFacturaPDF(true);
-          onImpresionFacturaOpen();
+          await imprimirFacturaComponente(response.data.body.ventaId);
         }
         if (imprimirTicket) {
-          setImprimirTicketPDF(true);
-          onImpresionTicketOpen();
+          await imprimirTicketCompontente(response.data.body.ventaId);
         }
       }
+
+      clienteCodigoRef.current?.focus();
     } catch (error) {
       console.error("Error al finalizar la venta:", error);
       toast({
@@ -1667,7 +1656,10 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "F6") {
+      if(e.key === " ") {
+        e.preventDefault();
+        clienteCodigoRef.current?.focus();
+      } else if (e.key === "F6") {
         e.preventDefault();
         cantidadInputRef.current?.focus();
       } else if (e.key === "F5") {
@@ -1778,6 +1770,51 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
       }
     }
   };
+
+  const imprimirFacturaComponente = async (ventaId: number) => {
+    const facturaDiv = document.createElement("div");
+    facturaDiv.style.display = "none";
+    document.body.appendChild(facturaDiv);
+
+    const root = createRoot(facturaDiv);
+    root.render(
+      <ModeloFacturaNuevo
+        id_venta={ventaId}
+        monto_entregado={montoEntregado || 0}
+        monto_recibido={montoEntregado || 0}
+        vuelto={0}
+        onImprimir={true}
+      />
+    );
+
+    setTimeout(() => {
+      root.unmount();
+      document.body.removeChild(facturaDiv);
+    }, 2000);
+  }
+
+
+  const imprimirTicketCompontente = async (ventaId: number) => {
+    const ticketDiv = document.createElement("div");
+    ticketDiv.style.display = "none";
+    document.body.appendChild(ticketDiv);
+
+    const root = createRoot(ticketDiv);
+    root.render(
+      <ModeloTicket
+        id_venta={ventaId}
+        monto_entregado={montoEntregado || 0}
+        monto_recibido={montoEntregado || 0}
+        vuelto={0}
+        onImprimir={true}
+      />
+    );
+  
+    setTimeout(() => {
+      root.unmount();
+      document.body.removeChild(ticketDiv);
+    }, 2000);
+  }
 
 
   return (
@@ -1941,6 +1978,7 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
                 <p className="text-sm font-bold">Cliente:</p>
                 <div className="flex flex-row gap-2">
                   <input
+                    ref={clienteCodigoRef}
                     type="number"
                     name=""
                     id=""
@@ -1950,6 +1988,7 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
                     }}
                   />
                   <input
+                    ref={clienteNombreRef}
                     type="text"
                     name=""
                     id=""
@@ -2121,12 +2160,6 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
                 }
                 className="border rounded-md p-2 flex-1 items-center justify-center w-32 text-center "
                 placeholder=""
-                onClick={() => {
-                  setIsArticuloCardVisible(true);
-                }}
-                onFocus={() => {
-                  setIsArticuloCardVisible(true);
-                }}
                 onChange={(e) => {
                   handleBuscarArticuloPorId(e);
                 }}
@@ -3380,53 +3413,6 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
             </Button>
             <Button variant="ghost" onClick={onCloseKCOpen}>
               Cancelar
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-      <Modal
-        isOpen={isImpresionTicketOpen}
-        onClose={onImpresionTicketClose}
-        size="full"
-      >
-        <ModalOverlay />
-        <ModalContent>
-          <ModalCloseButton />
-          <ModalHeader>Impresión de Ticket</ModalHeader>
-          <ModalBody>
-            <ModeloTicket id_venta={134812} onImprimir={imprimirTicketPDF} />
-          </ModalBody>
-          <ModalFooter>
-            <Button
-              colorScheme="blue"
-              onClick={() => {
-                setImprimirTicketPDF(true);
-              }}
-            >
-              Imprimir
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-      <Modal
-        isOpen={isImpresionFacturaOpen}
-        onClose={onImpresionFacturaClose}
-        size="full"
-      >
-        <ModalOverlay />
-        <ModalContent>
-          <ModalCloseButton />
-          <ModalHeader>Impresión de Factura</ModalHeader>
-          <ModalBody>
-            <ModeloFactura id_venta={134812} onImprimir={imprimirFacturaPDF} />
-          </ModalBody>
-          <ModalFooter>
-            .
-            <Button
-              colorScheme="blue"
-              onClick={() => setImprimirFacturaPDF(true)}
-            >
-              Imprimir
             </Button>
           </ModalFooter>
         </ModalContent>

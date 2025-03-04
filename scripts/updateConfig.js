@@ -93,15 +93,21 @@ const configs = {
   buda: {
     api_url: "https://node.sofmar.com.py:4027/api/",
     db: "buda",
-    version: "1.0",
+    version: "1.2",
     title: "Buda",
   },
   zimer: {
     api_url: "https://node.sofmar.com.py:4001/api/",
     db: "zimer",
-    version: "1.0",
+    version: "1.2",
     title: "Zimmer",
   },
+  mersan: {
+    api_url: "https://node.sofmar.com.py:4005/api/",
+    db: "mersan",
+    version: "1.2",
+    title: "Mersan",
+  }
 };
 
 function executeCommand(command) {

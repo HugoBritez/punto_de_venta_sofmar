@@ -69,7 +69,7 @@ const FloatingCard = <T extends object>({
 
   return (
     <div
-      className={`absolute z-[9999] bg-white shadow-lg rounded-md border border-gray-200 p-4 w-full min-h-[100px] max-h-[200px] overflow-y-auto mt-2
+      className={`absolute z-[9999] bg-white shadow-xs rounded-md border border-gray-200 p-4 w-full min-h-[100px] max-h-[200px] overflow-y-auto mt-2
         transition-all duration-400 ease-out origin-top
         ${
           isVisible
