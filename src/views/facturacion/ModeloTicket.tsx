@@ -105,6 +105,7 @@ const generarPDF = async () => {
             text: `RUC: ${venta?.sucursal_data[0].sucursal_ruc}`,
             style: "text",
             alignment: "center",
+            fontSize: 16,
           },
 
           { text: "\n" },
@@ -126,7 +127,7 @@ const generarPDF = async () => {
                 alignment: "center",
               },
               {
-                text: `Tipo: ${venta?.tipo_venta}`,
+                text: `C. Venta: ${venta?.tipo_venta}`,
                 style: "tHeaderValue",
                 alignment: "center",
               },
@@ -279,16 +280,16 @@ const generarPDF = async () => {
           },
           { text: "\n" },
           {
-            text: "No válido como comprobante fiscal",
+            text: "<<<No válido como comprobante fiscal>>>",
             style: "text",
             alignment: "center",
           },
           {
-            text: "Pasadas las 24hs, no se aceptan cambios ni devoluciones",
+            text: "<<<Pasadas las 24hs, no se aceptan cambios ni devoluciones>>>",
             style: "text",
             alignment: "center",
           },
-          { text: "Gracias por su compra", style: "text", alignment: "center" },
+          { text: "<<<Gracias por su compra>>>", style: "text", alignment: "center" },
         ],
       },
       "print"

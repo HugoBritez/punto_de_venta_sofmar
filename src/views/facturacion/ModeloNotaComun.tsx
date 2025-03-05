@@ -2,7 +2,7 @@ import { Configuraciones } from "@/types/shared_interfaces";
 import axios from "axios";
 import { api_url } from "@/utils";
 import { useState, useEffect } from "react";
-import { useToast } from "@chakra-ui/react";
+import {  useToast } from "@chakra-ui/react";
 import { generatePDF } from "@/services/pdfService";
 
 interface ModeloNotaComunProps {
@@ -34,6 +34,10 @@ interface VentaTicket {
   factura: string;
   factura_valido_desde: string;
   factura_valido_hasta: string;
+  moneda: string;
+  deposito: string;
+  observacion: string;
+  cotizacion: number;
   detalles: {
     codigo: number;
     descripcion: string;
@@ -43,11 +47,13 @@ interface VentaTicket {
     total: number;
   }[];
   sucursal_data: {
+    sucursal_nombre: string;
     sucursal_direccion: string;
     sucursal_telefono: string;
     sucursal_empresa: string;
     sucursal_ruc: string;
     sucursal_matriz: string;
+    sucursal_ciudad: string;
   }[];
 }
 
@@ -62,34 +68,49 @@ const ModeloNotaComun = ({
   >(null);
   const [prevOnImprimir, setPrevOnImprimir] = useState(false);
   const toast = useToast();
-  const fechaActual = new Date().toLocaleDateString("es-PY", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true,
-  });
+
+  // const fechaActual = new Date().toLocaleDateString("es-PY", {
+  //   day: "2-digit",
+  //   month: "2-digit",
+  //   year: "numeric",
+  //   hour: "2-digit",
+  //   minute: "2-digit",
+  //   second: "2-digit",
+  //   hour12: true,
+  // });
 
   const generarPDF = async () => {
     try {
+      console.log("empezando a generar pdf");
       const detallesVenta =
         venta?.detalles.map((detalle) => [
           detalle.codigo.toString(),
           detalle.descripcion,
           detalle.cantidad.toString(),
           `${(Number(detalle.precio) || 0).toLocaleString("es-PY")}`,
+          `${(Number(detalle.descuento) || 0).toLocaleString("es-PY")}`,
           detalle.total
             ? `${Number(detalle.total).toLocaleString("es-PY")}`
             : "0",
-        ]) || [];
 
+        ]) || [];
+        
+      // Asegurar altura mínima de 5.5 cm (aproximadamente 8-10 filas)
+      const minFilasRequeridas = 10;
+      const filasActuales = detallesVenta.length;
+      
+      // Si tenemos menos filas que el mínimo, añadir filas vacías
+      if (filasActuales < minFilasRequeridas) {
+        const filasVaciasNecesarias = minFilasRequeridas - filasActuales;
+        for (let i = 0; i < filasVaciasNecesarias; i++) {
+          detallesVenta.push(["", "", "", "", "", ""]);
+        }
+      }
 
       await generatePDF(
         {
           pageSize: { width: 595.28, height: 841.89 },
-          pageMargins: [40, 20, 40, 20],
+          pageMargins: [10, 10, 10, 10],
           info: {
             title: `Nota ${venta?.codigo}`,
             author: "Sistema de Ventas",
@@ -97,304 +118,261 @@ const ModeloNotaComun = ({
             keywords: "venta, nota",
           },
           content: [
-            // Cabecera
+            {
+              canvas: [
+                {
+                  type: "line", 
+                  x1: 0,
+                  y1: 0, 
+                  x2: 595.28,
+                  y2: 0, 
+                  dash: { length: 4, space: 3 }, 
+                  lineWidth: 1, 
+                },
+              ],
+            },
+            //cabecera
             {
               columns: [
                 {
-                  width: "50%",
                   stack: [
                     {
-                      text: venta?.sucursal_data[0].sucursal_empresa,
-                      style: "header",
-                      alignment: "left",
-                      fontSize: 18,
-                      bold: true,
-                      margin: [0, 0, 0, 5],
+                      text: `Usuario: ${sessionStorage.getItem("user_name")}`,
+                      fontSize: 10,
                     },
                     {
-                      text: venta?.sucursal_data[0].sucursal_ruc,
-                      style: "header",
-                      alignment: "left",
-                      fontSize: 16,
-                      bold: true,
+                      text: `Filial: ${venta?.sucursal_data[0].sucursal_empresa}`,
+                      fontSize: 10,
                     },
                   ],
                 },
                 {
-                  width: "50%",
                   stack: [
                     {
-                      text: venta?.sucursal_data[0].sucursal_telefono,
-                      style: "header",
-                      alignment: "right",
-                      fontSize: 12,
-                      bold: true,
-                      margin: [0, 0, 0, 5],
+                      text: `CONTROL INTERNO`,
+                      fontSize: 10,
                     },
                     {
-                      text: fechaActual,
-                      style: "header",
-                      alignment: "right",
-                      fontSize: 12,
-                      bold: true,
+                      text: `Ciudad: ${venta?.sucursal_data[0].sucursal_ciudad}`,
+                      fontSize: 10,
+                    },
+                  ],
+                },
+                {
+                  stack: [
+                    {
+                      text: `Venta: ${venta?.tipo_venta}`,
+                      fontSize: 10,
+                    },
+                    {
+                      text: `Telefono: ${venta?.sucursal_data[0].sucursal_telefono}`,
+                      fontSize: 10,
                     },
                   ],
                 },
               ],
+              margin: [0, 10, 0, 10],
+              fontSize: 10,
             },
-            // Información de la factura en dos columnas
+            {
+              canvas: [
+                {
+                  type: "line", // Tipo: línea
+                  x1: 0,
+                  y1: 0, // Punto de inicio
+                  x2: 595.28,
+                  y2: 0, // Punto final (ancho de la línea)
+                  dash: { length: 4, space: 3 }, // Patrón de puntos
+                  lineWidth: 1, // Grosor de la línea
+                },
+              ],
+            },
             {
               columns: [
-                // Columna izquierda
                 {
-                  width: "50%",
                   stack: [
                     {
-                      text: `Fecha Venta: ${venta?.fecha_venta}`,
+                      text: `Fecha: ${venta?.fecha_venta}`,
                       fontSize: 10,
                     },
-                    { text: `Venta Nro: ${venta?.codigo}`, fontSize: 10 },
-                    { text: `Cliente: ${venta?.cliente}`, fontSize: 10 },
-                    { text: `Ruc: ${venta?.ruc}`, fontSize: 10 },
                     {
-                      text: `Dirección: ${venta?.direccion || "N/A"}`,
+                      text: `Moneda: ${venta?.moneda}`,
                       fontSize: 10,
-                      alignment: "left",
                     },
                     {
-                      text: `Telef: ${venta?.telefono || "N/A"}`,
+                      text: `Cliente: ${venta?.cliente}`,
                       fontSize: 10,
-                      alignment: "left",
+                    },
+                    {
+                      text: `RUC: ${venta?.ruc}`,
+                      fontSize: 10,
                     },
                   ],
                 },
-                // Columna derecha
                 {
-                  width: "50%",
                   stack: [
                     {
-                      text: `${venta?.tipo_venta || "N/A"}`,
+                      text: `Deposito: ${venta?.deposito}`,
                       fontSize: 10,
-                      alignment: "right",
                     },
                     {
-                      text: `Vencimiento: ${venta?.fecha_vencimiento || "N/A"}`,
+                      text: `Vendedor: ${venta?.vendedor}`,
                       fontSize: 10,
-                      alignment: "right",
                     },
                     {
-                      text: `Vendedor: ${venta?.vendedor || "Vendedor"}`,
+                      text: `Ciudad: ${venta?.sucursal_data[0].sucursal_ciudad}`,
                       fontSize: 10,
-                      alignment: "right",
                     },
                     {
-                      text: `Agente Venta: ${venta?.cajero || "admin"}`,
+                      text: `Direccion: ${venta?.direccion}`,
                       fontSize: 10,
-                      alignment: "right",
+                    },
+                  ],
+                },
+                {
+                  stack: [
+                    {
+                      text: `Registro: 0000${id_venta}`,
+                      fontSize: 10,
+                    },
+                    {
+                      text: `Sucursal: ${venta?.sucursal_data[0].sucursal_nombre}`,
+                      fontSize: 10,
+                    },
+                    {
+                      text: `Telefono: ${venta?.sucursal_data[0].sucursal_telefono}`,
+                      fontSize: 10,
+                    },
+                    {
+                      text: `Ag. Venta: ${venta?.cajero}`,
+                      fontSize: 10,
                     },
                   ],
                 },
               ],
-            },
-            // Tabla de productos
-            {
               margin: [0, 10, 0, 0],
+              fontSize: 10,
+            },
+            {
               table: {
                 headerRows: 1,
-                widths: ["auto", "*", "auto", "auto", "auto", "auto"],
+                widths: ["10%", "*", "12%", "12%", "12%", "15%"],
                 body: [
                   [
-                    {
-                      text: "Cód.Barra",
-                      style: "tableHeader",
-                      fontSize: 10,
-                      bold: true,
-                    },
-                    {
-                      text: "Descripción",
-                      style: "tableHeader",
-                      fontSize: 10,
-                      bold: true,
-                    },
-                    {
-                      text: "Cantidad",
-                      style: "tableHeader",
-                      fontSize: 10,
-                      bold: true,
-                    },
-                    {
-                      text: "Precio U.",
-                      style: "tableHeader",
-                      fontSize: 10,
-                      bold: true,
-                    },
-                    {
-                      text: "Descuento",
-                      style: "tableHeader",
-                      fontSize: 10,
-                      bold: true,
-                    },
-                    {
-                      text: "Subtotal",
-                      style: "tableHeader",
-                      fontSize: 10,
-                      bold: true,
-                    },
+                    "Cod. Barra",
+                    "Producto",
+                    "Cantidad",
+                    "Precio U.",
+                    "Descuento",
+                    "Valor",
                   ],
-                  ...detallesVenta.map((row) =>
-                    row.map((cell, index) => ({
-                      text: cell,
-                      fontSize: 10,
-                      alignment: index === 1 ? "left" : "right",
-                    }))
-                  ),
+                  ...detallesVenta,
                 ],
               },
+              margin: [0, 10, 0, 10],
+              fontSize: 10,
               layout: {
                 hLineWidth: function (i: number, node: any) {
-                  return i === 0 || i === 1 || i === node.table.body.length
-                    ? 1
-                    : 0.5;
+                  return i === 0 || i === 1 || i === node.table.body.length ? 1 : 0;
                 },
-                vLineWidth: function (i: number, node: any) {
-                  return i === 0 || i === node.table.widths.length ? 1 : 0.5;
-                },
-                hLineColor: function (i: number, node: any) {
-                  return i === 0 || i === 1 || i === node.table.body.length
-                    ? "black"
-                    : "gray";
-                },
-                vLineColor: function (i: number, node: any) {
-                  return i === 0 || i === node.table.widths.length
-                    ? "black"
-                    : "gray";
+                vLineWidth: function () {
+                  return 0;
                 },
                 hLineStyle: function () {
-                  // Aplicar estilo dashed a todas las líneas, incluyendo bordes
-                  return { dash: { length: 10, space: 4 } };
+                  return { dash: { length: 4, space: 3 } };
                 },
-                vLineStyle: function () {
-                  // Aplicar estilo dashed a todas las líneas, incluyendo bordes
-                  return { dash: { length: 4 } };
+                paddingLeft: function () {
+                  return 0;
+                },
+                paddingRight: function () {
+                  return 0;
+                },
+                paddingTop: function () {
+                  return 3;
+                },
+                paddingBottom: function () {
+                  return 3;
                 },
               },
             },
-            // Totales
-            {
-              columns: [
-                {
-                  width: "60%",
-                  text: "",
-                },
-                {
-                  width: "40%",
-                  stack: [
-                    {
-                      columns: [
-                        {
-                          text: "SubTotal/Sin D:",
-                          fontSize: 10,
-                          alignment: "right",
-                          width: "60%",
-                        },
-                        {
-                          text: `${(
-                            Number(venta?.subtotal) || 0
-                          ).toLocaleString("es-PY")}`,
-                          fontSize: 10,
-                          alignment: "right",
-                          width: "40%",
-                        },
-                      ],
-                      margin: [0, 5, 0, 0],
-                    },
-                    {
-                      columns: [
-                        {
-                          text: "SubTotal/Con D:",
-                          fontSize: 10,
-                          alignment: "right",
-                          width: "60%",
-                        },
-                        {
-                          text: `${(
-                            Number(venta?.subtotal) || 0
-                          ).toLocaleString("es-PY")}`,
-                          fontSize: 10,
-                          alignment: "right",
-                          width: "40%",
-                        },
-                      ],
-                      margin: [0, 2, 0, 0],
-                    },
-                    {
-                      columns: [
-                        {
-                          text: "Descuento:",
-                          fontSize: 10,
-                          alignment: "right",
-                          width: "60%",
-                        },
-                        {
-                          text: `${(
-                            Number(venta?.total_descuento) || 0
-                          ).toLocaleString("es-PY")}`,
-                          fontSize: 10,
-                          alignment: "right",
-                          width: "40%",
-                        },
-                      ],
-                      margin: [0, 2, 0, 0],
-                    },
-                    {
-                      columns: [
-                        {
-                          text: "Total:",
-                          fontSize: 10,
-                          alignment: "right",
-                          bold: true,
-                          width: "60%",
-                        },
-                        {
-                          text: `${(
-                            Number(venta?.total_a_pagar) || 0
-                          ).toLocaleString("es-PY")}`,
-                          fontSize: 10,
-                          alignment: "right",
-                          bold: true,
-                          width: "40%",
-                        },
-                      ],
-                      margin: [0, 2, 0, 0],
-                    },
-                  ],
-                },
-              ],
-            },
-            // Pie de nota
             {
               stack: [
                 {
-                  text: "<<Pasado las 48 hs. no se acepta mas devoluciones>>",
-                  fontSize: 10,
-                  alignment: "center",
-                  margin: [0, 15, 0, 0],
+                  columns: [
+                    {
+                      text: `Items: ${venta?.detalles.length}`,
+                      fontSize: 10,
+                    },
+                    {
+                      text: `Obs: ${venta?.observacion}`,
+                      fontSize: 10,
+                    },
+                  ],
                 },
                 {
                   columns: [
                     {
-                      text: "<<Gracias por su preferencia>>",
+                      text: `Cot: ${Number(venta?.cotizacion).toLocaleString("es-PY")}`,
                       fontSize: 10,
-                      alignment: "left",
                     },
                     {
-                      text: "<<Comprobante no válido como nota fiscal>>",
+                      text: `Total US$: ${Number((venta?.total_a_pagar || 0) / (venta?.cotizacion || 0)).toFixed(3)}`,
+                      fontSize: 10,
+                    },
+                    {
+                      text: `SubTotal/sin. Desc: ${Number(venta?.subtotal || 0).toLocaleString("es-PY")}`,
+                      fontSize: 10,
+                    },
+                    {
+                      text: `SubTotal/con. Desc: ${(Number(venta?.total_a_pagar || 0).toLocaleString("es-PY"))}`,
                       fontSize: 10,
                       alignment: "right",
                     },
                   ],
-                  margin: [0, 15, 0, 0],
                 },
+                {
+                  columns: [
+                    {
+                      text: "<< Pasadas las 48 hs. no se aceptan devoluciones >>",
+                      fontSize: 10,
+                      width: "*"
+                    },
+                    {
+                      text: `(-) Descuento: ${Number(venta?.total_descuento).toLocaleString("es-PY")}`,
+                      fontSize: 10,
+                      alignment: "right",
+                      width: "*"
+                    },
+                  ],
+                },
+                {
+                  columns: [
+                    {
+                      text: "<< Gracias por su preferencia >>",
+                      fontSize: 10,
+                      width: "*"
+                    },
+                    {
+                      text: `Vlr. Liquido: ${Number(venta?.total_a_pagar).toLocaleString("es-PY")}`,
+                      fontSize: 10,
+                      alignment: "right",
+                      width: "*"
+                    },
+                  ],
+                },
+                {
+                  columns: [
+                    {
+                      text: "<< Comprobante no valido para nota fiscal >>",
+                      fontSize: 10,
+                    },
+                    {
+                      text: `Firma: ___________________________`,
+                      fontSize: 10,
+                    },
+                  ],
+                },
+                
               ],
             },
           ],

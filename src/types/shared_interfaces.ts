@@ -454,6 +454,7 @@ export interface ArticulosNuevo {
   proveedor: string;
   editar_nombre: number;
   estado_vencimiento: string;
+  stock_negativo: number;
 }
 
 export interface ListaPrecios {

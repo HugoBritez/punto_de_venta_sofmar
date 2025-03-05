@@ -52,6 +52,7 @@ import ConsultaPresupuestos from "../presupuestos/ConsultaPresupuesto";
 import ConsultaRemisiones from "../remisiones/ConsultaRemisiones";
 import ResumenVentas from "../ventas/ResumenVentas";
 import { createRoot } from "react-dom/client";
+import ModeloNotaComun from "../facturacion/ModeloNotaComun";
 interface ItemParaVenta {
   precio_guaranies: number;
   precio_dolares: number;
@@ -548,6 +549,15 @@ const VentaBalconNuevo = () => {
   const agregarItemAVenta = () => {
     if (!articuloSeleccionado) return;
 
+    if (articuloSeleccionado.stock_negativo === 0 && cantidad > articuloSeleccionado.stock) {
+      toast({
+        title: "Error",
+        description: "No hay stock disponible para este artículo",
+        status: "error",
+      });
+      return;
+    }
+
     if (!articuloSeleccionado.lotes?.length) {
       toast({
         title: "Error",
@@ -569,6 +579,9 @@ const VentaBalconNuevo = () => {
       });
       return;
     }
+
+
+    
 
     // Ordenar lotes por fecha de vencimiento y obtener el más cercano
     const loteSeleccionado = lotesDeposito.sort((a, b) => {
@@ -1151,8 +1164,6 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
         deve_descripcion_editada:
           item.editar_nombre === 1 ? item.articulo : null,
       }));
-
-
       // Enviar datos al backend
       const response = await axios.post(`${api_url}venta/agregar-venta-nuevo`, {
         venta,
@@ -1188,6 +1199,9 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
         }
         if (imprimirTicket) {
           await imprimirTicketCompontente(response.data.body.ventaId);
+        }
+        if (imprimirNotaInterna) {
+          await imprimirNotaComunComponente(response.data.body.ventaId);
         }
       }
 
@@ -1656,10 +1670,7 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if(e.key === " ") {
-        e.preventDefault();
-        clienteCodigoRef.current?.focus();
-      } else if (e.key === "F6") {
+      if (e.key === "F6") {
         e.preventDefault();
         cantidadInputRef.current?.focus();
       } else if (e.key === "F5") {
@@ -1770,6 +1781,25 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
       }
     }
   };
+
+  const imprimirNotaComunComponente = async (ventaId: number) => {
+    const notaComunDiv = document.createElement("div");
+    notaComunDiv.style.display = "none";
+    document.body.appendChild(notaComunDiv);
+    
+    const root = createRoot(notaComunDiv);
+    root.render(
+      <ModeloNotaComun
+        id_venta={ventaId}
+        onImprimir={true}
+      />
+    );
+
+    setTimeout(() => {
+      root.unmount();
+      document.body.removeChild(notaComunDiv);
+    }, 2000);
+  }
 
   const imprimirFacturaComponente = async (ventaId: number) => {
     const facturaDiv = document.createElement("div");
@@ -1906,6 +1936,7 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
                 <select
                   className="border rounded-md p-2"
                   value={precioSeleccionado?.lp_codigo}
+                  disabled 
                   name=""
                   id=""
                   onChange={(e) => {
@@ -2216,6 +2247,25 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
                 onKeyDown={handleDescuentoKeyPress}
                 ref={descuentoInputRef}
               />
+              <select
+                className="border rounded-md p-2"
+                value={precioSeleccionado?.lp_codigo}
+                name=""
+                id=""
+                onChange={(e) => {
+                  setPrecioSeleccionado(
+                    listaPrecios.find(
+                      (precio) => precio.lp_codigo === parseInt(e.target.value)
+                    ) || null
+                  );
+                }}
+              >
+                {listaPrecios.map((precio) => (
+                  <option value={precio.lp_codigo}>
+                    {precio.lp_descripcion}
+                  </option>
+                ))}
+              </select>
               <input
                 type="number"
                 className="border rounded-md p-2 w-16"
@@ -2257,7 +2307,8 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
                     <Tally1 />
                     <p>P. Contado</p>
                     <p>{formatNumber(item.precio_venta)}</p>-<p>P. Mostrador</p>
-                    <p>{formatNumber(item.precio_mostrador)}</p>-<p>P. Credito</p>
+                    <p>{formatNumber(item.precio_mostrador)}</p>-
+                    <p>P. Credito</p>
                     <p>{formatNumber(item.precio_credito)}</p>
                     <Tally1 />
                     {item.vencimiento_validacion === 1 ? (
@@ -2647,11 +2698,6 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
         >
           <div className="flex flex-col gap-2">
             <div className="flex flex-col gap-2 [&>p]:text-sm [&>p]:font-bold">
-              <p>F5 para buscar articulo por codigo</p>
-              <p>
-                Para busqueda manual de articulos presione "+" en la barra de
-                busqueda
-              </p>
               <p>F6 para agregar cantidad</p>
               <p>F12 para finalizar venta</p>
             </div>

@@ -366,6 +366,47 @@ const AutorizacionAjusteDeStock = () => {
       </motion.div>
     );
   };
+
+  // Verificar si hay autorizaciones disponibles antes de calcular totales
+  const hayAutorizaciones = autorizaciones.length > 0;
+  
+  // Calcular totales solo si hay autorizaciones
+  const totalItemsFaltantes = hayAutorizaciones
+    ? autorizaciones[0].items.filter(item => {
+        const diferencia = typeof item.diferencia_total === 'string' 
+          ? parseFloat(item.diferencia_total) 
+          : item.diferencia_total;
+        return diferencia < 0;
+      }).length
+    : 0;
+    
+  const totalItemsSobrantes = hayAutorizaciones
+    ? autorizaciones[0].items.filter(item => {
+        const diferencia = typeof item.diferencia_total === 'string' 
+          ? parseFloat(item.diferencia_total) 
+          : item.diferencia_total;
+        return diferencia > 0;
+      }).length
+    : 0;
+    
+  const totalCostoItemsFaltantes = hayAutorizaciones
+    ? autorizaciones[0].items.reduce((acc, item) => {
+        const costoDiferencia = typeof item.costo_diferencia_total === 'string' 
+          ? Math.abs(parseFloat(String(item.costo_diferencia_total).replace(/\./g, '').replace(',', '.'))) 
+          : Math.abs(item.costo_diferencia_total);
+        return item.diferencia_total < 0 ? acc + costoDiferencia : acc;
+      }, 0)
+    : 0;
+    
+  const totalCostoItemsSobrantes = hayAutorizaciones
+    ? autorizaciones[0].items.reduce((acc, item) => {
+        const costoDiferencia = typeof item.costo_diferencia_total === 'string' 
+          ? parseFloat(String(item.costo_diferencia_total).replace(/\./g, '').replace(',', '.')) 
+          : item.costo_diferencia_total;
+        return item.diferencia_total > 0 ? acc + costoDiferencia : acc;
+      }, 0)
+    : 0;
+  
   return (
     <Flex direction="column" gap={2} w="full" h="100vh" bg="gray.100" p={2}>
       <HeaderComponent
@@ -541,20 +582,26 @@ const AutorizacionAjusteDeStock = () => {
           </div>
           <div className="flex flex-col border border-gray-400 p-2 rounded-md">
             <p>
-              <strong>Total items faltantes:</strong>{" "}
-              {autorizaciones[0].items.reduce((acc, item) => acc + item.diferencia_total, 0)}
+              <strong>Número de artículos faltantes:</strong>{" "}
+              {totalItemsFaltantes}
             </p>
             <p>
-              <strong>Total items sobrantes:</strong>{" "}
-              {autorizaciones[0].items.reduce((acc, item) => acc + item.diferencia_total, 0)}
+              <strong>Número de artículos sobrantes:</strong>{" "}
+              {totalItemsSobrantes}
             </p>
             <p>
               <strong>Total costo items faltante:</strong>{" "}
-              {autorizaciones[0].items.reduce((acc, item) => acc + item.costo_diferencia_total, 0)}
+              {totalCostoItemsFaltantes.toLocaleString('es-PY', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+              })}
             </p>
             <p>
               <strong>Total costo items sobrante:</strong>{" "}
-              {autorizaciones[0].items.reduce((acc, item) => acc + item.costo_diferencia_total, 0)}
+              {totalCostoItemsSobrantes.toLocaleString('es-PY', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+              })}
             </p>
           </div>
         </div>

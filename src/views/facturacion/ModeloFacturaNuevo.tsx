@@ -135,22 +135,6 @@ const ModeloFacturaNuevo = ({
               fontSize: 14,
             },
             {
-              columns: [
-                {
-                  text: `Venta Nro: ${venta?.codigo}`,
-                  style: "tHeaderValue",
-                  alignment: "center",
-                  fontSize: 16,
-                },
-                {
-                  text: `Tipo: ${venta?.tipo_venta}`,
-                  style: "tHeaderValue",
-                  alignment: "center",
-                  fontSize: 16,
-                },
-              ],
-            },
-            {
               text: `Timbrado: ${venta?.timbrado}`,
               style: "text",
               alignment: "center",
@@ -165,6 +149,12 @@ const ModeloFacturaNuevo = ({
             {
               text: `Valido hasta: ${venta?.factura_valido_hasta}`,
               style: "text",
+              alignment: "center",
+              fontSize: 16,
+            },
+            {
+              text: `FACTURA ${venta?.tipo_venta}`,
+              style: "tHeaderValue",
               alignment: "center",
               fontSize: 16,
             },
