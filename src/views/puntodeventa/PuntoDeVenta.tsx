@@ -53,6 +53,7 @@ import ResumenVentas from "../ventas/ResumenVentas";
 import { createRoot } from "react-dom/client";
 import ModeloFacturaNuevo from "../facturacion/ModeloFacturaNuevo";
 import ModeloNotaComun from "../facturacion/ModeloNotaComun";
+import Auditar from "@/services/AuditoriaHook";
 interface ItemParaVenta {
   precio_guaranies: number;
   precio_dolares: number;
@@ -1161,6 +1162,13 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
         onCloseKCOpen();
 
         handleCancelarVenta();
+        Auditar(
+          5,
+          8,
+          response.data.body.ventaId,
+          operador ? parseInt(operador) : 0,
+          `Venta ID ${response.data.body.ventaId} realizada por ${operador}`
+        );
 
         setUltimaVentaId(response.data.body.ventaId);
 

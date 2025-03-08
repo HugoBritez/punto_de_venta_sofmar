@@ -74,9 +74,13 @@ const ModeloFacturaNuevo = ({
 
   const formatNumber = (number: number) => {
     // Verificar que el valor sea un número válido
-    const validNumber = typeof number === 'number' && !isNaN(number) ? number : 0;
-    return validNumber.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, '.').replace('.', ',');
-  }
+    const validNumber =
+      typeof number === "number" && !isNaN(number) ? number : 0;
+    return validNumber
+      .toFixed(0)
+      .replace(/\B(?=(\d{3})+(?!\d))/g, ".")
+      .replace(".", ",");
+  };
 
   const generarPDF = async () => {
     try {
@@ -96,7 +100,7 @@ const ModeloFacturaNuevo = ({
             width: 350,
             height: "auto",
           },
-          pageMargins: [0, 0, 0, 0],
+          pageMargins: [0, 0, 10, 0],
           info: {
             title: `Factura ${venta?.codigo}`,
             author: "Sistema de Ventas",
@@ -345,7 +349,7 @@ const ModeloFacturaNuevo = ({
               style: "text",
               fontSize: 14,
             },
-            { text: "DETALLE POR CONCEPTOS", style: "text", fontSize: 16 },
+            { text: "DETALLE LIQUIDACION IVA", style: "text", fontSize: 16 },
             {
               text: "------------------------------------------------------------------------------------",
               style: "text",
@@ -354,63 +358,81 @@ const ModeloFacturaNuevo = ({
             { text: "\n" },
             {
               table: {
-                widths: ["*"],
+                widths: ["60%", "40%"],
                 body: [
                   [
                     {
-                      text: `T. Exentas: Gs. ${formatNumber(
-                        venta?.total_exentas || 0
+                      text: "T. Exentas:",
+                      fontSize: 16,
+                      alignment: "left",
+                    },
+                    {
+                      text: `Gs. ${formatNumber(Number(venta?.total_exentas) || 0)}`,
+                      fontSize: 16,
+                      alignment: "right",
+                    },
+                  ],
+                  [
+                    {
+                      text: "T. Gravadas 10%:",
+                      fontSize: 16,
+                      alignment: "left",
+                    },
+                    {
+                      text: `Gs. ${formatNumber(Number(venta?.total_diez) || 0)}`,
+                      fontSize: 16,
+                      alignment: "right",
+                    },
+                  ],
+                  [
+                    {
+                      text: "T. Gravadas 5%:",
+                      fontSize: 16,
+                      alignment: "left",
+                    },
+                    {
+                      text: `Gs. ${formatNumber(Number(venta?.total_cinco) || 0)}`,
+                      fontSize: 16,
+                      alignment: "right",
+                    },
+                  ],
+                  [
+                    {
+                      text: "Liq. IVA 5%:",
+                      fontSize: 16,
+                      alignment: "left",
+                    },
+                    {
+                      text: `Gs. ${venta?.total_cinco ? formatNumber(Number(venta.total_cinco) / 22) : 0}`,
+                      fontSize: 16,
+                      alignment: "right",
+                    },
+                  ],
+                  [
+                    {
+                      text: "Liq. IVA 10%:",
+                      fontSize: 16,
+                      alignment: "left",
+                    },
+                    {
+                      text: `Gs. ${venta?.total_diez ? formatNumber(Number(venta.total_diez) / 11) : 0}`,
+                      fontSize: 16,
+                      alignment: "right",
+                    },
+                  ],
+                  [
+                    {
+                      text: "Total Liq. IVA:",
+                      fontSize: 16,
+                      alignment: "left",
+                    },
+                    {
+                      text: `Gs. ${formatNumber(
+                        (venta?.total_cinco ? Number(venta.total_cinco) / 22 : 0) +
+                        (venta?.total_diez ? Number(venta.total_diez) / 11 : 0)
                       )}`,
                       fontSize: 16,
-                    },
-                  ],
-                  [
-                    {
-                      text: `T. Gravadas 10%: Gs. ${formatNumber(
-                        venta?.total_diez || 0
-                      )}`,
-                      fontSize: 16,
-                    },
-                  ],
-                  [
-                    {
-                      text: `T. Gravadas 5%: Gs. ${formatNumber(
-                        venta?.total_cinco || 0
-                      )}`,
-                      fontSize: 16,
-                    },
-                  ],
-                  [
-                    {
-                      text: `Liq. IVA 5%: Gs. ${
-                        venta?.total_cinco
-                          ? formatNumber(Number(venta.total_cinco) / 22)
-                          : 0
-                      }`,
-                      fontSize: 16,
-                    },
-                  ],
-                  [
-                    {
-                      text: `Liq. IVA 10%: Gs. ${
-                        venta?.total_diez
-                          ? formatNumber(Number(venta.total_diez) / 11)
-                          : 0
-                      }`,
-                      fontSize: 16,
-                    },
-                  ],
-                  [
-                    {
-                      text: `Total Liq. IVA Gs. ${formatNumber(
-                        (venta?.total_cinco
-                          ? Number(venta.total_cinco) / 22
-                          : 0) +
-                          (venta?.total_diez
-                            ? Number(venta.total_diez) / 11
-                            : 0)
-                      )}`,
-                      fontSize: 16,
+                      alignment: "right",
                     },
                   ],
                 ],
@@ -426,13 +448,20 @@ const ModeloFacturaNuevo = ({
               text: "***GRACIAS POR SU PREFERENCIA***",
               style: "text",
               fontSize: 16,
+              alignment: "center",
+            },
+            {
+              text: "ORIGINAL CLIENTE",
+              style: "text",
+              fontSize: 16,
+              alignment: "center",
             },
             {
               text: "DUPLICADO ARCHIVO TRIBUTARIO",
               style: "text",
               fontSize: 16,
+              alignment: "center",
             },
-            { text: "ORIGINAL CLIENTE", style: "text" },
           ],
         },
         "print"

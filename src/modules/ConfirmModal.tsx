@@ -49,6 +49,8 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
       onConfirm();
     }
     onClose();
+    setUsername("");
+    setPassword("");
   };
 
   const renderIcon = () => {

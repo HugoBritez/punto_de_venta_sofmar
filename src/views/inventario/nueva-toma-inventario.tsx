@@ -31,6 +31,7 @@ import { AlertTriangle, ArchiveRestore,  RotateCcw, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import ReporteAnomalias from "./reporte-anomalias";
 import { motion, AnimatePresence } from "framer-motion";
+import Auditar from "@/services/AuditoriaHook";
 
 
 interface ArticulosCategoria {
@@ -711,6 +712,13 @@ const handleAnularInventario = async () => {
         duration: 3000,
         isClosable: true,
       });
+      Auditar(
+        1,
+        1,
+        inventarioAuxiliar?.id || null,
+        Number(localStorage.getItem("user_id") || 1),
+        "Inició un nuevo inventario con la app"
+      );
     } catch (error) {
       console.error(error);
       toast({

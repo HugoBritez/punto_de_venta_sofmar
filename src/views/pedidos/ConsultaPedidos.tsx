@@ -469,7 +469,7 @@ export default function ConsultaPedidos({
         </Flex>
         <Flex gap={2} flexDir={isMobile ? "column" : "row"}>
           <Box>
-            <FormLabel>Fecha hasta:</FormLabel>
+            <FormLabel>Fecha desde:</FormLabel>
             <Input
               type="date"
               value={fechaDesde}
@@ -886,7 +886,6 @@ export default function ConsultaPedidos({
           </div>
         </div>
       </div>
-
       {isSwitchOn ? (
         <PedidoModalEstilizado
           isOpen={isModalOpen}

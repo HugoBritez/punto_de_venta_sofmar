@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 
 import { motion, AnimatePresence } from "framer-motion";
-import BarcodeScannerComponent from "react-qr-barcode-scanner";
 import Auditar from "@/services/AuditoriaHook";
 
 interface Articulo {
@@ -175,9 +174,9 @@ const InventarioScanner = () => {
   const token = sessionStorage.getItem("token");
   const toast = useToast();
   const [showInventarioCard, setShowInventarioCard] = useState(false);
-  const [stopStream, setStopStream] = useState(false);
-  const [isScanning, setIsScanning] = useState(false);
-  const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
+  const [, setStopStream] = useState(false);
+  const [, setIsScanning] = useState(false);
+  const [, setCameras] = useState<MediaDeviceInfo[]>([]);
   const [selectedCamera, setSelectedCamera] = useState<string>("");
   const [inventariosDisponibles, setInventariosDisponibles] = useState<
     Array<{ id: number; fecha: string; deposito: string; sucursal: string }>
@@ -678,29 +677,7 @@ const InventarioScanner = () => {
     }
   };
 
-  const handleScannerUpdate = (err: any, result: any) => {
-    if (result) {
-      const scannedCode = result.text;
-      setArticuloBusqueda(scannedCode);
-      handleBusqueda(scannedCode);
-      // Detener el stream antes de cerrar el scanner
-      setStopStream(true);
-      setTimeout(() => {
-        setIsScanning(false);
-        setStopStream(false);
-      }, 0);
-    } else {
-      console.error("Error al escanear el código:", err);
-    }
-  };
 
-  const handleCloseScanner = () => {
-    setStopStream(true);
-    setTimeout(() => {
-      setIsScanning(false);
-      setStopStream(false);
-    }, 0);
-  };
 
   const Tooltip = ({ text, children, position = "top" }: TooltipProps) => {
     const [isVisible, setIsVisible] = useState(false);
@@ -1241,100 +1218,7 @@ const InventarioScanner = () => {
           </div>
         </div>
       )}
-      <AnimatePresence>
-        {isScanning && (
-          <>
-            <motion.div
-              className="fixed inset-0 bg-black bg-opacity-50 z-50"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={handleCloseScanner}
-            />
-            <motion.div
-              className="fixed inset-0 z-50 flex items-center justify-center p-4"
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="bg-white rounded-lg w-full max-w-sm overflow-hidden">
-                <div className="p-4 bg-gray-50 flex justify-between items-center">
-                  <h3 className="font-semibold">Escanear código</h3>
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={selectedCamera}
-                      onChange={(e) => {
-                        setSelectedCamera(e.target.value);
-                        setStopStream(true);
-                        setTimeout(() => setStopStream(false), 100);
-                      }}
-                      className="text-sm p-1 rounded border"
-                    >
-                      {cameras.map((camera) => (
-                        <option key={camera.deviceId} value={camera.deviceId}>
-                          {camera.label ||
-                            `Cámara ${cameras.indexOf(camera) + 1}`}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      onClick={handleCloseScanner}
-                      className="text-gray-500 hover:text-gray-700"
-                    >
-                      ×
-                    </button>
-                  </div>
-                </div>
-                <div className="relative aspect-square w-full bg-black">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="absolute inset-0">
-                      <BarcodeScannerComponent
-                        width="100%"
-                        height="100%"
-                        onUpdate={handleScannerUpdate}
-                        stopStream={stopStream}
-                        videoConstraints={{
-                          deviceId: selectedCamera,
-                        }}
-                        delay={500}
-                        torch={false}
-                        onError={(error) => {
-                          console.error(error);
-                          if (
-                            error instanceof DOMException &&
-                            error.name === "NotAllowedError"
-                          ) {
-                            alert(
-                              "Por favor, permite el acceso a la cámara para escanear códigos de barras"
-                            );
-                            handleCloseScanner();
-                          }
-                        }}
-                      />
-                    </div>
-                    {/* Área de escaneo más pequeña */}
-                    <div className="relative w-48 h-32">
-                      {" "}
-                      {/* Ajusta estos valores según necesites */}
-                      {/* Bordes del área de escaneo */}
-                      <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-blue-500"></div>
-                      <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-blue-500"></div>
-                      <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-blue-500"></div>
-                      <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-blue-500"></div>
-                      {/* Línea de escaneo animada */}
-                      <div className="absolute top-0 left-0 w-full h-0.5 bg-red-500 animate-scan"></div>
-                    </div>
-                  </div>
-                </div>
-                <div className="p-4 text-center text-sm text-gray-500">
-                  Centra el código de barras en el recuadro
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      
     </div>
   );
 };

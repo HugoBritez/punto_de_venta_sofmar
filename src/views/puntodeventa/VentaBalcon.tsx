@@ -40,6 +40,7 @@ import {
   CassetteTape,
   Coins,
   FileSearch,
+  Printer,
 } from "lucide-react";
 import { ShoppingCart } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -53,6 +54,10 @@ import ConsultaRemisiones from "../remisiones/ConsultaRemisiones";
 import ResumenVentas from "../ventas/ResumenVentas";
 import { createRoot } from "react-dom/client";
 import ModeloNotaComun from "../facturacion/ModeloNotaComun";
+import ItemsFaltantesDoc from "./pdf/impresion_articulos_faltantes";
+import Auditar from "@/services/AuditoriaHook";
+
+
 interface ItemParaVenta {
   precio_guaranies: number;
   precio_dolares: number;
@@ -114,7 +119,7 @@ interface OpcionesFinalizacionVenta {
   nro_establecimiento?: number;
   nro_emision?: number;
   timbrado?: string;
-  fecha_vencimiento_timbrado?: string;
+  fecha_vencimiento?: string;
   cantidad_cuotas?: number;
   entrega_inicial?: number;
   observacion?: string;
@@ -155,6 +160,22 @@ interface EditarVentaModalProps {
   onClose: () => void;
 }
 
+interface ItemFaltante {
+  articulo: number;
+  descripcion: string;
+  faltante: number;
+  lote: string;
+  vencimiento: string;
+  cantidad: number;
+  cod_barra: string;
+}
+
+interface ItemsFaltantesModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  items: ItemFaltante[];
+}
+
 const VentaBalconNuevo = () => {
   const [isMobile] = useMediaQuery("(max-width: 768px)");
 
@@ -193,7 +214,6 @@ const VentaBalconNuevo = () => {
   const [cantidad, setCantidad] = useState(1);
 
   const operador = sessionStorage.getItem("user_id");
-
 
   const [articuloBusqueda, setArticuloBusqueda] = useState<string>("");
   const [articuloBusquedaId, setArticuloBusquedaId] = useState<string>("");
@@ -236,22 +256,26 @@ const VentaBalconNuevo = () => {
   const [articuloSeleccionado, setArticuloSeleccionado] =
     useState<ArticulosNuevo | null>(null);
 
-    const [montoEntregado, setMontoEntregado] = useState<number | null>(null);
-    const [montoEntregadoDolar, setMontoEntregadoDolar] = useState<
-      number | null
-    >(null);
-    const [montoEntregadoReal, setMontoEntregadoReal] = useState<number | null>(
-      null
-    );
-    const [montoEntregadoPeso, setMontoEntregadoPeso] = useState<number | null>(
-      null
-    );
+  const [montoEntregado, setMontoEntregado] = useState<number | null>(null);
+  const [montoEntregadoDolar, setMontoEntregadoDolar] = useState<number | null>(
+    null
+  );
+  const [montoEntregadoReal, setMontoEntregadoReal] = useState<number | null>(
+    null
+  );
+  const [montoEntregadoPeso, setMontoEntregadoPeso] = useState<number | null>(
+    null
+  );
 
   const [hoveredArticulo, setHoveredArticulo] = useState<ArticulosNuevo | null>(
     null
   );
 
   const [d_codigo, setD_codigo] = useState<number>(0);
+  
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+
 
   const [cuotasList, setCuotasList] = useState<
     Array<{
@@ -306,7 +330,6 @@ const VentaBalconNuevo = () => {
 
   const [ventaIdEdicion, setVentaIdEdicion] = useState<number | null>(null);
 
-
   const configuraciones = JSON.parse(
     sessionStorage.getItem("configuraciones") || "[]"
   );
@@ -326,6 +349,8 @@ const VentaBalconNuevo = () => {
       tipo_venta: "CREDITO",
       tipo_documento: tipoImpresion === "1" ? "FACTURA" : "TICKET",
     });
+
+  const [itemsFaltantes, setItemsFaltantes] = useState<ItemFaltante[]>([]);
 
   const toast = useToast();
 
@@ -418,12 +443,14 @@ const VentaBalconNuevo = () => {
 
   const getArticulos = async (
     busqueda: string,
-    id_articulo?: string | null
+    id_articulo?: string | null,
+    codigo_barra?: string | null
   ) => {
     setArticulos([]);
     const response = await axios.get(`${api_url}articulos/consulta-articulos`, {
       params: {
-        id_articulo: id_articulo,
+        articulo_id: id_articulo,
+        codigo_barra: codigo_barra,
         busqueda: busqueda,
         deposito: depositoSeleccionado?.dep_codigo,
         stock: buscarItemsConStock,
@@ -432,7 +459,6 @@ const VentaBalconNuevo = () => {
     console.log(response.data.body);
     setArticulos(response.data.body);
   };
-
 
   const getClientes = async (busqueda: string) => {
     const response = await axios.get(`${api_url}clientes/get-clientes`, {
@@ -444,14 +470,18 @@ const VentaBalconNuevo = () => {
     setClientes(response.data.body);
   };
 
-  const getClientePorId = async (id: number) => {
+  const getClientePorId = async (id: number | null, id_cliente: number | null) => {
+    console.log('Buscando cliente', id);
     try {
       const response = await axios.get(`${api_url}clientes/get-clientes`, {
         params: {
+          id_cliente: id_cliente,
           id: id,
         },
       });
+      console.log('Respuesta de cliente', response.data.body);
       setClienteSeleccionado(response.data.body[0]);
+      console.log('Cliente seleccionado', response.data.body[0]);
     } catch (error) {
       console.error(error);
     }
@@ -464,11 +494,13 @@ const VentaBalconNuevo = () => {
   }, [clienteSeleccionado]);
 
   const getVendedores = async (busqueda: number) => {
+    console.log('Buscando vendedores', busqueda);
     const response = await axios.get(`${api_url}usuarios/vendedores`, {
       params: {
         id_vendedor: busqueda,
       },
     });
+    console.log('Respuesta de vendedores', response.data.body);
     setVendedores(response.data.body);
     setVendedorSeleccionado(response.data.body[0]);
   };
@@ -493,7 +525,7 @@ const VentaBalconNuevo = () => {
     setArticuloBusquedaId(busqueda);
     setArticuloSeleccionado(null);
     if (busqueda.length > 0) {
-      getArticulos("", busqueda);
+      getArticulos("", null,busqueda);
     } else {
       setIsArticuloCardVisible(false);
       setArticulos([]);
@@ -515,7 +547,7 @@ const VentaBalconNuevo = () => {
   const handleBuscarClientePorId = (e: React.ChangeEvent<HTMLInputElement>) => {
     const busqueda = e.target.value;
     if (busqueda.length > 0) {
-      getClientePorId(Number(busqueda));
+      getClientePorId(Number(busqueda), null);
     } else {
       setClienteSeleccionado(null);
     }
@@ -546,28 +578,35 @@ const VentaBalconNuevo = () => {
     );
   };
 
-  const agregarItemAVenta = () => {
-    if (!articuloSeleccionado) return;
-
-    if (articuloSeleccionado.stock_negativo === 0 && cantidad > articuloSeleccionado.stock) {
+  const crearItemValidado = (
+    articulo: ArticulosNuevo,
+    cantidad: number,
+    precio: number,
+    descuento: number = 0,
+    vendedor: number = 0
+  ): ItemParaVenta | null => {
+    // 1. Validaciones de stock
+    if (articulo.stock_negativo === 0 && cantidad > articulo.stock) {
       toast({
         title: "Error",
         description: "No hay stock disponible para este artículo",
         status: "error",
       });
-      return;
+      return null;
     }
 
-    if (!articuloSeleccionado.lotes?.length) {
+    // 2. Validación de lotes
+    if (!articulo.lotes?.length) {
       toast({
         title: "Error",
         description: "No hay lotes disponibles para este artículo",
         status: "error",
       });
-      return;
+      return null;
     }
 
-    const lotesDeposito = articuloSeleccionado.lotes.filter((lote) => {
+    // 3. Filtrado de lotes por depósito
+    const lotesDeposito = articulo.lotes.filter((lote) => {
       return Number(lote.deposito) === Number(depositoSeleccionado?.dep_codigo);
     });
 
@@ -577,13 +616,10 @@ const VentaBalconNuevo = () => {
         description: "No hay lotes disponibles en el depósito seleccionado",
         status: "error",
       });
-      return;
+      return null;
     }
 
-
-    
-
-    // Ordenar lotes por fecha de vencimiento y obtener el más cercano
+    // 4. Selección del lote más adecuado
     const loteSeleccionado = lotesDeposito.sort((a, b) => {
       if (a.cantidad > 0 && b.cantidad === 0) return -1;
       if (a.cantidad === 0 && b.cantidad > 0) return 1;
@@ -592,56 +628,49 @@ const VentaBalconNuevo = () => {
       return fechaB.getTime() - fechaA.getTime();
     })[0];
 
-    // 1. Obtener precio base en guaraníes
+    // 5. Cálculo de precios según lista seleccionada
     let precioEnGuaranies = 0;
     switch (precioSeleccionado?.lp_codigo) {
       case 1: // Lista precio contado
-        precioEnGuaranies = articuloSeleccionado.precio_venta;
+        precioEnGuaranies = articulo.precio_venta;
         break;
       case 2: // Lista precio credito
-        precioEnGuaranies = articuloSeleccionado.precio_credito;
+        precioEnGuaranies = articulo.precio_credito;
         break;
       case 3: // Lista precio mostrador
-        precioEnGuaranies = articuloSeleccionado.precio_mostrador;
+        precioEnGuaranies = articulo.precio_mostrador;
         break;
       default:
-        precioEnGuaranies = articuloSeleccionado.precio_venta;
+        precioEnGuaranies = articulo.precio_venta;
     }
 
-    // 2. Calcular precio unitario en la moneda actual
+    // 6. Cálculo de precio en moneda actual
     let precioUnitarioMonedaActual = precioEnGuaranies;
-    switch (monedaSeleccionada?.mo_codigo) {
-      case 1: // Guaraníes
-        precioUnitarioMonedaActual = precioEnGuaranies;
-        break;
-      case 2: // Dólares
-        precioUnitarioMonedaActual = Number(
-          (precioEnGuaranies / cotizacionDolar).toFixed(2)
-        );
-        break;
-      case 3: // Reales
-        precioUnitarioMonedaActual = Number(
-          (precioEnGuaranies / cotizacionReal).toFixed(2)
-        );
-        break;
-      case 4: // Pesos
-        precioUnitarioMonedaActual = Number(
-          (precioEnGuaranies / cotizacionPeso).toFixed(2)
-        );
-        break;
-      default:
-        precioUnitarioMonedaActual = precioEnGuaranies;
+    if (monedaSeleccionada?.mo_codigo !== 1) {
+      // Conversión a moneda extranjera
+      switch (monedaSeleccionada?.mo_codigo) {
+        case 2: // Dólares
+          precioUnitarioMonedaActual = precioEnGuaranies / cotizacionDolar;
+          break;
+        case 3: // Reales
+          precioUnitarioMonedaActual = precioEnGuaranies / cotizacionReal;
+          break;
+        case 4: // Pesos
+          precioUnitarioMonedaActual = precioEnGuaranies / cotizacionPeso;
+          break;
+      }
     }
 
-    // 3. Calcular monto total en la moneda actual
-    const montoTotal = precioUnitarioMonedaActual * cantidad;
+    // 7. Cálculo de montos con descuento
+    const montoDescuento = (precio * cantidad * descuento) / 100;
+    const montoTotal = precio * cantidad - montoDescuento;
 
-    // 4. Calcular IVA en la moneda actual
+    // 8. Cálculo de impuestos
     let deve_exentas = 0;
     let deve_cinco = 0;
     let deve_diez = 0;
 
-    switch (articuloSeleccionado.iva) {
+    switch (articulo.iva) {
       case 1: // Exento
         deve_exentas = montoTotal;
         break;
@@ -651,19 +680,17 @@ const VentaBalconNuevo = () => {
       case 3: // IVA 5%
         deve_cinco = montoTotal;
         break;
-      default:
-        console.warn("Tipo de IVA no reconocido");
     }
 
-    // 5. Crear el nuevo item
-    const nuevoItem: ItemParaVenta = {
+    // 9. Crear el item con todas las validaciones aplicadas
+    return {
       precio_guaranies: precioEnGuaranies,
       precio_dolares: Number((precioEnGuaranies / cotizacionDolar).toFixed(2)),
       precio_reales: Number((precioEnGuaranies / cotizacionReal).toFixed(2)),
       precio_pesos: Number((precioEnGuaranies / cotizacionPeso).toFixed(2)),
-      cod_barra: articuloSeleccionado.codigo_barra,
-      deve_articulo: articuloSeleccionado.id_articulo,
-      articulo: articuloSeleccionado.descripcion,
+      cod_barra: articulo.codigo_barra,
+      deve_articulo: articulo.id_articulo,
+      articulo: articulo.descripcion,
       deve_cantidad: cantidad,
       deve_precio: precioUnitarioMonedaActual,
       precio_original: precioEnGuaranies,
@@ -672,7 +699,7 @@ const VentaBalconNuevo = () => {
       deve_cinco: Number(deve_cinco.toFixed(2)),
       deve_diez: Number(deve_diez.toFixed(2)),
       deve_devolucion: 0,
-      deve_vendedor: Number(vendedorSeleccionado?.op_codigo) || 0,
+      deve_vendedor: vendedor || Number(vendedorSeleccionado?.op_codigo) || 0,
       deve_color: null,
       deve_bonificacion: null,
       deve_talle: null,
@@ -681,18 +708,33 @@ const VentaBalconNuevo = () => {
       deve_costo_art: null,
       deve_cinco_x: deve_cinco > 0 ? Number((deve_cinco * 0.05).toFixed(2)) : 0,
       deve_diez_x: deve_diez > 0 ? Number((deve_diez * 0.1).toFixed(2)) : 0,
-      editar_nombre: articuloSeleccionado.editar_nombre,
+      editar_nombre: articulo.editar_nombre,
       deve_lote: loteSeleccionado.lote,
       loteid: loteSeleccionado.id,
       deve_vencimiento: loteSeleccionado.vencimiento,
     };
-
-    setItemsParaVenta([...itemsParaVenta, nuevoItem]);
-    setArticuloSeleccionado(null);
-    setArticuloBusqueda("");
-    setCantidad(1);
-    setDescuento(null);
   };
+
+  const agregarItemAVenta = () => {
+    if (!articuloSeleccionado) return;
+
+    const nuevoItem = crearItemValidado(
+      articuloSeleccionado,
+      cantidad,
+      articuloSeleccionado.precio_venta,
+      descuento || 0
+    );
+
+    if (nuevoItem) {
+      setItemsParaVenta([...itemsParaVenta, nuevoItem]);
+      setArticuloSeleccionado(null);
+      setArticuloBusqueda("");
+      setCantidad(1);
+      setDescuento(null);
+    }
+  };
+
+
 
   const handleEliminarItem = (articulo: ItemParaVenta) => {
     setItemsParaVenta(itemsParaVenta.filter((item) => item !== articulo));
@@ -765,56 +807,57 @@ const VentaBalconNuevo = () => {
     obtenerDatosFacturacion();
   }, []);
 
-const totalExentas = itemsParaVenta.reduce(
-  (total, item) => total + item.deve_exentas,
-  0
-);
-const totalCinco = itemsParaVenta.reduce(
-  (total, item) => total + item.deve_cinco,
-  0
-);
-const totalDiez = itemsParaVenta.reduce(
-  (total, item) => total + item.deve_diez,
-  0
-);
-const totalItems = itemsParaVenta.reduce(
-  (total, item) => total + item.deve_cantidad,
-  0
-);
-const totalPagar = itemsParaVenta.reduce(
-  //siempre en la moneda seleccionada
-  (total, item) => total + item.deve_precio * item.deve_cantidad,
-  0
-);
+  const totalExentas = itemsParaVenta.reduce(
+    (total, item) => total + item.deve_exentas,
+    0
+  );
+  const totalCinco = itemsParaVenta.reduce(
+    (total, item) => total + item.deve_cinco,
+    0
+  );
+  const totalDiez = itemsParaVenta.reduce(
+    (total, item) => total + item.deve_diez,
+    0
+  );
+  const totalItems = itemsParaVenta.reduce(
+    (total, item) => total + item.deve_cantidad,
+    0
+  );
+  const totalPagar = itemsParaVenta.reduce(
+    //siempre en la moneda seleccionada
+    (total, item) => total + item.deve_precio * item.deve_cantidad,
+    0
+  );
 
-const totalPagarGuaranies = itemsParaVenta.reduce(
-  (total, item) => total + item.precio_guaranies * item.deve_cantidad,
-  0
-);
-const totalPagarDolares = itemsParaVenta.reduce(
-  (total, item) => total + item.precio_dolares * item.deve_cantidad,
-  0
-);
-const totalPagarReales = itemsParaVenta.reduce(
-  (total, item) => total + item.precio_reales * item.deve_cantidad,
-  0
-);
-const totalPagarPesos = itemsParaVenta.reduce(
-  (total, item) => total + item.precio_pesos * item.deve_cantidad,
-  0
-);
+  const totalPagarGuaranies = itemsParaVenta.reduce(
+    (total, item) => total + item.precio_guaranies * item.deve_cantidad,
+    0
+  );
+  const totalPagarDolares = itemsParaVenta.reduce(
+    (total, item) => total + item.precio_dolares * item.deve_cantidad,
+    0
+  );
+  const totalPagarReales = itemsParaVenta.reduce(
+    (total, item) => total + item.precio_reales * item.deve_cantidad,
+    0
+  );
+  const totalPagarPesos = itemsParaVenta.reduce(
+    (total, item) => total + item.precio_pesos * item.deve_cantidad,
+    0
+  );
 
-const totalDescuentoItems = itemsParaVenta.reduce(
-  (total, item) =>
-    total + (item.deve_descuento * item.deve_precio * item.deve_cantidad) / 100,
-  0
-);
-const totalDescuentoFactura = 0;
-const totalDescuento = totalDescuentoItems + totalDescuentoFactura;
+  const totalDescuentoItems = itemsParaVenta.reduce(
+    (total, item) =>
+      total +
+      (item.deve_descuento * item.deve_precio * item.deve_cantidad) / 100,
+    0
+  );
+  const totalDescuentoFactura = 0;
+  const totalDescuento = totalDescuentoItems + totalDescuentoFactura;
 
-const totalPagarFinal = Math.round(totalPagar - totalDescuento); //siempre en la moneda seleccionada
+  const totalPagarFinal = Math.round(totalPagar - totalDescuento); //siempre en la moneda seleccionada
 
-const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
+  const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
 
   // Formatear los números con 2 decimales y separador de miles
   const formatNumber = (num: number | string) => {
@@ -828,7 +871,7 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
     return num.toLocaleString("es-PY", {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }); 
+    });
   };
 
   const formatearDivisasExtranjeras = (num: number) => {
@@ -854,7 +897,7 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
   const ResumenVentasCliente = ({
     cliente,
     onClose,
-    isModal 
+    isModal,
   }: {
     cliente: Cliente;
     onClose: () => void;
@@ -949,7 +992,6 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
                     onClick={() => {
                       setVentaSeleccionada(venta.codigo);
                       fetchDetalleVenta(venta.codigo);
-
                     }}
                   >
                     <td className="p-2">{venta.codigo}</td>
@@ -969,9 +1011,13 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
                     <td className="p-2">{venta.estado_desc}</td>
                     <td>
                       {isModal && (
-                        <Button onClick={() => {
-                          onEditarVentaOpen();
-                        }}>Editar</Button>
+                        <Button
+                          onClick={() => {
+                            onEditarVentaOpen();
+                          }}
+                        >
+                          Editar
+                        </Button>
                       )}
                     </td>
                   </tr>
@@ -1028,7 +1074,7 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
   const calcularCuotas = useCallback(() => {
     if (
       !opcionesFinalizacion.cantidad_cuotas ||
-      !opcionesFinalizacion.fecha_vencimiento_timbrado ||
+      !opcionesFinalizacion.fecha_vencimiento ||
       !totalPagarFinal
     ) {
       setCuotasList([]);
@@ -1041,7 +1087,7 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
       montoTotal / opcionesFinalizacion.cantidad_cuotas
     );
     const fechaInicial = new Date(
-      opcionesFinalizacion.fecha_vencimiento_timbrado
+      opcionesFinalizacion.fecha_vencimiento
     );
 
     const nuevasCuotas = [];
@@ -1063,7 +1109,7 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
     setCuotasList(nuevasCuotas);
   }, [
     opcionesFinalizacion.cantidad_cuotas,
-    opcionesFinalizacion.fecha_vencimiento_timbrado,
+    opcionesFinalizacion.fecha_vencimiento,
     opcionesFinalizacion.entrega_inicial,
     totalPagarFinal,
   ]);
@@ -1088,17 +1134,26 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
         });
         return;
       }
+      if (opcionesFinalizacion.tipo_venta === "CREDITO" && !opcionesFinalizacion.cantidad_cuotas) {
+        toast({
+          title: "Error",
+          description: "Faltan datos requeridos para la venta",
+          status: "error",
+          duration: 3000,
+        });
+        return;
+      }
 
-          const tasaCambio =
-            monedaSeleccionada?.mo_codigo === 1
-              ? 1
-              : monedaSeleccionada?.mo_codigo === 2
-              ? cotizacionDolar
-              : monedaSeleccionada?.mo_codigo === 3
-              ? cotizacionReal
-              : monedaSeleccionada?.mo_codigo === 4
-              ? cotizacionPeso
-              : 1;
+      const tasaCambio =
+        monedaSeleccionada?.mo_codigo === 1
+          ? 1
+          : monedaSeleccionada?.mo_codigo === 2
+          ? cotizacionDolar
+          : monedaSeleccionada?.mo_codigo === 3
+          ? cotizacionReal
+          : monedaSeleccionada?.mo_codigo === 4
+          ? cotizacionPeso
+          : 1;
       // Preparar objeto de venta
       const venta = {
         ventaId: ventaIdEdicion || null,
@@ -1118,9 +1173,10 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
         credito: opcionesFinalizacion.tipo_venta === "CREDITO" ? 1 : 0,
         saldo:
           opcionesFinalizacion.tipo_venta === "CREDITO"
-            ? (totalPagarFinal  - (opcionesFinalizacion.entrega_inicial || 0)) * tasaCambio
+            ? (totalPagarFinal - (opcionesFinalizacion.entrega_inicial || 0)) *
+              tasaCambio
             : totalPagarFinal * tasaCambio,
-        vencimiento: opcionesFinalizacion.fecha_vencimiento_timbrado || null,
+        vencimiento: opcionesFinalizacion.fecha_vencimiento || null,
         descuento: totalDescuento * tasaCambio,
         total: totalPagarFinal * tasaCambio,
         cuotas: opcionesFinalizacion.tipo_venta === "CREDITO" ? 1 : 0,
@@ -1165,6 +1221,8 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
           item.editar_nombre === 1 ? item.articulo : null,
       }));
       // Enviar datos al backend
+
+      console.log('Detalle ventas: ', detalleVentas)
       const response = await axios.post(`${api_url}venta/agregar-venta-nuevo`, {
         venta,
         detalle_ventas: detalleVentas,
@@ -1181,6 +1239,14 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
         });
 
         onCloseKCOpen();
+
+        Auditar(
+          5,
+          8,
+          response.data.body.ventaId,
+          operador ? parseInt(operador) : 0,
+          `Venta ID ${response.data.body.ventaId} realizada por ${operador}`
+        );
 
         handleCancelarVenta();
 
@@ -1217,25 +1283,25 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
     }
   };
 
+
+
+
 async function convertirDocumentoAVenta(documento: DocumentoBase) {
   try {
-    // Limpiar estado actual
     handleCancelarVenta();
+    let faltantesAcumulados: ItemFaltante[] = [];
 
-    // Obtener datos del cliente
-    await getClientePorId(documento.cliente);
+    await getClientePorId(null, documento.cliente);
+    console.log("Seleccionando cliente", documento.cliente);
 
-    // Obtener datos del vendedor
     if (documento.vendedor) {
       await getVendedores(documento.vendedor);
+      console.log("Seleccionando vendedor", documento.vendedor);
     }
 
-    // Procesar cada item
     for (const item of documento.items) {
       try {
-
-        // Buscar artículo
-        console.log('Getting un item', item);
+        console.log("Getting un item", item);
         const response = await axios.get(
           `${api_url}articulos/consulta-articulos`,
           {
@@ -1246,43 +1312,89 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
           }
         );
 
-        console.log(response.data.body);
-
         if (response.data.body.length > 0) {
           const articulo = response.data.body[0];
 
-          // Crear el nuevo item directamente
-          const nuevoItem = {
-            deve_articulo: articulo.id_articulo,
-            deve_cantidad: item.cantidad,
-            deve_precio: item.precio,
-            deve_descuento: item.descuento || 0,
-            deve_exentas: articulo.iva === 1 ? item.precio : 0,
-            deve_cinco: articulo.iva === 3 ? item.precio : 0,
-            deve_diez: articulo.iva === 2 ? item.precio : 0,
-            deve_color: null,
-            deve_bonificacion: 0 || 0,
-            deve_vendedor: documento.vendedor || 0,
-            deve_codioot: 0 || 0,
-            deve_costo: articulo.costo || 0,
-            deve_costo_art: articulo.costo || 0,
-            deve_cinco_x: articulo.iva === 3  ? item.precio * 0.05 : 0,
-            deve_diez_x: articulo.iva === 2 ? item.precio * 0.1 : 0,
-            deve_lote: item.lote || "",
-            loteid: item.loteid || 0,
-            editar_nombre: 0,
-            articulo: articulo.descripcion,
-            deve_devolucion: 0,
-            deve_vencimiento: null,
-            deve_talle: null,
-          };
+          // Si permite stock negativo, crear item directamente
+          if (articulo.stock_negativo === 1) {
+            console.log(
+              "Artículo permite stock negativo, creando item sin validar stock"
+            );
+            const nuevoItem = crearItemValidado(
+              articulo,
+              item.cantidad,
+              item.precio,
+              item.descuento,
+              documento.vendedor || 0
+            );
 
-          console.log('Nuevo item', nuevoItem);
+            if (nuevoItem) {
+              setItemsParaVenta((prev) => [...prev, nuevoItem]);
+              await new Promise((resolve) => setTimeout(resolve, 100));
+            }
+            continue;
+          }
 
-          setItemsParaVenta((prev) => [...prev, nuevoItem as ItemParaVenta]);
+          // Buscar el lote específico usando loteid
+          const loteEspecifico = articulo.lotes?.find(
+            (lote: any) =>
+              Number(lote.id) === Number(item.loteid));
 
+          console.log("Lote específico encontrado:", loteEspecifico);
+          const stockDisponible = loteEspecifico ? loteEspecifico.cantidad : 0;
+          console.log("Stock disponible en lote específico:", stockDisponible);
 
-          await new Promise((resolve) => setTimeout(resolve, 100));
+          if (stockDisponible < item.cantidad) {
+            console.log("Agregando a items faltantes:", articulo.descripcion);
+            faltantesAcumulados.push({
+              articulo: articulo.id_articulo,
+              descripcion: articulo.descripcion,
+              cantidad: item.cantidad,
+              cod_barra: articulo.codigo_barra,
+              lote: item.lote || "",
+              vencimiento: loteEspecifico?.vencimiento || "",
+              faltante: item.cantidad - stockDisponible,
+            });
+            // Si hay algo de stock en el lote específico, crear item con esa cantidad
+            if (stockDisponible > 0) {
+              console.log(
+                "Creando item con stock disponible del lote:",
+                stockDisponible
+              );
+              const nuevoItem = crearItemValidado(
+                articulo,
+                stockDisponible,
+                item.precio,
+                item.descuento,
+                documento.vendedor || 0
+              );
+
+              if (nuevoItem) {
+                // Asegurarnos de mantener el loteid y lote específico
+                nuevoItem.loteid = item.loteid;
+                nuevoItem.deve_lote = item.lote;
+                setItemsParaVenta((prev) => [...prev, nuevoItem]);
+                await new Promise((resolve) => setTimeout(resolve, 100));
+              }
+            }
+          } else {
+            // Stock suficiente en el lote específico
+            const nuevoItem = crearItemValidado(
+              articulo,
+              item.cantidad,
+              item.precio,
+              item.descuento,
+              documento.vendedor || 0
+            );
+
+            if (nuevoItem) {
+              // Asegurarnos de mantener el loteid y lote específico
+              nuevoItem.loteid = item.loteid;
+              nuevoItem.deve_lote = item.lote;
+              setItemsParaVenta((prev) => [...prev, nuevoItem]);
+              await new Promise((resolve) => setTimeout(resolve, 100));
+            }
+          }
         } else {
           toast({
             title: "Error",
@@ -1300,11 +1412,18 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
       }
     }
 
-    toast({
-      title: "Éxito",
-      description: `${documento.tipo} convertido a venta correctamente`,
-      status: "success",
-    });
+    if (faltantesAcumulados.length > 0) {
+      setItemsFaltantes(faltantesAcumulados);
+      console.log("Items faltantes acumulados:", faltantesAcumulados);
+   
+      toast({
+        title: "Advertencia",
+        description: `Hay ${faltantesAcumulados.length} artículos con stock insuficiente`,
+        status: "warning",
+        duration: 5000,
+      });
+      setIsModalOpen(true);
+    }
   } catch (error) {
     console.error("Error al convertir documento a venta:", error);
     toast({
@@ -1355,17 +1474,13 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
 
   async function obtenerYConvertirPedido(pedido_id: number) {
     try {
-
       setNumeroPedido(pedido_id);
 
       const response = await axios.get(`${api_url}pedidos/obtener`, {
         params: { id: pedido_id },
       });
-
-      // La respuesta viene como un array, tomamos el primer elemento
       const pedidoData = response.data.body[0];
-
-    
+      console.log("Datos del pedido", pedidoData);
       if (!pedidoData) {
         throw new Error("No se encontró el pedido");
       }
@@ -1382,6 +1497,8 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
           descuento: item.descuento || 0,
           lote: item.lote || "",
           loteid: item.loteid,
+          vencimiento: item.vencimiento || null,
+          codbarras: item.cod_barras || null,
         })),
       };
 
@@ -1475,12 +1592,14 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
         description: "No se pudo obtener la remision",
         status: "error",
         duration: 3000,
-
       });
     }
   }
 
-  const EditarVentaModal : React.FC<EditarVentaModalProps> = ({ isOpen, onClose }) => {
+  const EditarVentaModal: React.FC<EditarVentaModalProps> = ({
+    isOpen,
+    onClose,
+  }) => {
     const handleSelectVenta = (venta: Venta) => {
       obtenerYEditarVenta(venta.codigo);
       onClose();
@@ -1502,9 +1621,9 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
         </ModalContent>
       </Modal>
     );
-  }
+  };
 
-  const RemisionModal : React.FC<RemisionModalProps> = ({ isOpen, onClose }) => {
+  const RemisionModal: React.FC<RemisionModalProps> = ({ isOpen, onClose }) => {
     const handleSelectRemision = (remision: Remisiones) => {
       obtenerYConvertirRemision(remision.id);
       onClose();
@@ -1526,10 +1645,12 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
         </ModalContent>
       </Modal>
     );
-  }
+  };
 
-  const PresupuestoModal : React.FC<PresupuestoModalProps> = ({ isOpen, onClose }) => {
-
+  const PresupuestoModal: React.FC<PresupuestoModalProps> = ({
+    isOpen,
+    onClose,
+  }) => {
     const handleSelectPresupuesto = (presupuesto: Presupuesto) => {
       obtenerYConvertirPresupuesto(presupuesto.codigo);
       onClose();
@@ -1621,7 +1742,7 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
       getArticulos(articuloBusqueda);
     }
   };
-  
+
   function calcularMontoEntregado(
     valor: number,
     moneda: "GS" | "USD" | "BRL" | "ARS"
@@ -1780,26 +1901,21 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
         montoEntregadoKCInputRef.current?.focus();
       }
     }
-  };
+  }
 
   const imprimirNotaComunComponente = async (ventaId: number) => {
     const notaComunDiv = document.createElement("div");
     notaComunDiv.style.display = "none";
     document.body.appendChild(notaComunDiv);
-    
+
     const root = createRoot(notaComunDiv);
-    root.render(
-      <ModeloNotaComun
-        id_venta={ventaId}
-        onImprimir={true}
-      />
-    );
+    root.render(<ModeloNotaComun id_venta={ventaId} onImprimir={true} />);
 
     setTimeout(() => {
       root.unmount();
       document.body.removeChild(notaComunDiv);
     }, 2000);
-  }
+  };
 
   const imprimirFacturaComponente = async (ventaId: number) => {
     const facturaDiv = document.createElement("div");
@@ -1821,8 +1937,7 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
       root.unmount();
       document.body.removeChild(facturaDiv);
     }, 2000);
-  }
-
+  };
 
   const imprimirTicketCompontente = async (ventaId: number) => {
     const ticketDiv = document.createElement("div");
@@ -1839,12 +1954,126 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
         onImprimir={true}
       />
     );
-  
+
     setTimeout(() => {
       root.unmount();
       document.body.removeChild(ticketDiv);
     }, 2000);
-  }
+  };
+
+  const ItemsFaltantesModal: React.FC<ItemsFaltantesModalProps> = ({
+    isOpen,
+    onClose,
+    items,
+  }) => {
+    if (!isOpen) return null;
+
+    const handleImprimir = () => {
+      const articulosFaltantesDiv = document.createElement("div");
+      articulosFaltantesDiv.style.display = "none";
+      document.body.appendChild(articulosFaltantesDiv);
+
+      const root = createRoot(articulosFaltantesDiv);
+      root.render(
+        <ItemsFaltantesDoc
+          id_pedido={numeroPedido || 0}
+          fecha_pedido={fecha}
+          vendedor={vendedorSeleccionado?.op_nombre || ""}
+          cliente={clienteSeleccionado?.cli_razon || ""}
+          items={items.map((item) => ({
+            codigo_barra: item.cod_barra,
+            descripcion: item.descripcion,
+            cantidad: item.cantidad,
+            lote: item.lote,
+            vencimiento: item.vencimiento,
+          }))}
+          onComplete={() => {
+            root.unmount();
+            document.body.removeChild(articulosFaltantesDiv);
+            onClose();
+          }}
+          onError={(error) => {
+            console.error("Error al imprimir:", error);
+            root.unmount();
+            document.body.removeChild(articulosFaltantesDiv);
+          }}
+        />
+      );
+
+      setTimeout(() => {
+        root.unmount();
+        document.body.removeChild(articulosFaltantesDiv);
+      }, 2000);
+    };
+
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center">
+        {/* Overlay */}
+        <div
+          className="fixed inset-0 bg-black opacity-50"
+          onClick={onClose}
+        ></div>
+
+        {/* Modal */}
+        <div className="relative bg-white rounded-lg shadow-xl w-full max-w-4xl m-4">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 border-b">
+            <h2 className="text-xl font-semibold">
+              Artículos con Stock Insuficiente
+            </h2>
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <span className="text-2xl">&times;</span>
+            </button>
+          </div>
+
+          {/* Body */}
+          <div className="p-4">
+            <table className="min-w-full">
+              <thead>
+                <tr className="bg-gray-50">
+                  <th className="p-2 text-left">Cod. Barras</th>
+                  <th className="p-2 text-left">Cantidad</th>
+                  <th className="p-2 text-left">Descripción</th>
+                  <th className="p-2 text-right">Lote</th>
+                  <th className="p-2 text-right">Vencimiento</th>
+                </tr>
+              </thead>
+              <tbody>
+                {items.map((item) => (
+                  <tr key={item.articulo} className="border-b hover:bg-gray-50">
+                    <td className="p-2">{item.cod_barra}</td>
+                    <td className="p-2 text-right">{item.cantidad}</td>
+                    <td className="p-2 text-right">{item.descripcion}</td>
+                    <td className="p-2 text-right">{item.lote}</td>
+                    <td className="p-2 text-right">{item.vencimiento}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Footer */}
+          <div className="flex justify-end p-4 border-t gap-2">
+            <button
+              onClick={handleImprimir}
+              className="px-4 py-2 bg-sky-600 text-white rounded hover:bg-sky-700 flex items-center gap-2"
+            >
+              <Printer /> Imprimir
+            </button>
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Aceptar
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
 
   return (
@@ -1936,7 +2165,7 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
                 <select
                   className="border rounded-md p-2"
                   value={precioSeleccionado?.lp_codigo}
-                  disabled 
+                  disabled
                   name=""
                   id=""
                   onChange={(e) => {
@@ -3117,13 +3346,13 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
                             clienteSeleccionado.cli_limitecredito <= 0
                           }
                           value={
-                            opcionesFinalizacion.fecha_vencimiento_timbrado ||
+                            opcionesFinalizacion.fecha_vencimiento ||
                             ""
                           }
                           onChange={(e) =>
                             setOpcionesFinalizacion({
                               ...opcionesFinalizacion,
-                              fecha_vencimiento_timbrado: e.target.value,
+                              fecha_vencimiento: e.target.value,
                             })
                           }
                         />
@@ -3476,6 +3705,11 @@ async function convertirDocumentoAVenta(documento: DocumentoBase) {
         isOpen={isEditarVentaOpen}
         onClose={onEditarVentaClose}
       />
+      <ItemsFaltantesModal
+        isOpen= {isModalOpen}
+        onClose = {() => setIsModalOpen(false)}
+        items = {itemsFaltantes}
+        />
     </Box>
   );
 };

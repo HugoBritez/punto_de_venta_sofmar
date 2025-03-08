@@ -9,9 +9,11 @@ import {
   ChartColumn,
   Check,
   Search,
+  Printer,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import ReporteItemsScaneados from "./pdfs/reporte-items-scanneados";
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -198,6 +200,8 @@ const AutorizacionAjusteDeStock = () => {
 
   const toast = useToast();
 
+  const [mostrarReporte, setMostrarReporte] = useState(false);
+
   const fetchInventariosDisponibles = async () => {
     const response = await axios.get(
       `${api_url}articulos/inventarios-disponibles`,
@@ -368,8 +372,9 @@ const AutorizacionAjusteDeStock = () => {
   };
 
   // Verificar si hay autorizaciones disponibles antes de calcular totales
-  const hayAutorizaciones = autorizaciones.length > 0;
-  
+  const hayAutorizaciones =
+    autorizaciones && autorizaciones[0] && autorizaciones[0].items && autorizaciones.length > 0 && autorizaciones[0].items.length > 0;
+
   // Calcular totales solo si hay autorizaciones
   const totalItemsFaltantes = hayAutorizaciones
     ? autorizaciones[0].items.filter(item => {
@@ -407,6 +412,22 @@ const AutorizacionAjusteDeStock = () => {
       }, 0)
     : 0;
   
+  const generarPDF = async () => {
+    try {
+
+      setMostrarReporte(true);
+    } catch (error) {
+      console.error("Error al generar PDF:", error);
+      toast({
+        title: "Error",
+        description: "Error al generar el PDF",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
   return (
     <Flex direction="column" gap={2} w="full" h="100vh" bg="gray.100" p={2}>
       <HeaderComponent
@@ -497,6 +518,14 @@ const AutorizacionAjusteDeStock = () => {
             message="Esta acción autorizará el ajuste de stock y no podrá ser revertida."
           />
         </div>
+        <div className="flex flex-row gap-2">
+          <Button onClick={generarPDF} colorScheme="teal">
+            <div className="flex flex-row gap-2">
+              Imprimir
+              <Printer size={20} />
+            </div>
+          </Button>
+        </div>
       </div>
       {autorizaciones.length > 0 ? (
         <div className="flex flex-col gap-2 w-full bg-white p-2 rounded-md">
@@ -528,35 +557,40 @@ const AutorizacionAjusteDeStock = () => {
               <strong>Operador:</strong> {autorizaciones[0].operador_nombre}
             </p>
           </div>
-          <div className="flex flex-col gap-2 w-full border-2 border-gray-300 rounded-md p-2">
-            <table className="w-full border-2 border-gray-300">
-              <thead className="bg-gray-200 [&>th]:p-2 [&>th]:text-center [&>th]:text-sm [&>th]:font-bold [&>th]:text-gray-700 [&>th]:border-2 [&>th]:border-gray-300">
-                <tr className="border-2 border-gray-300 [&>th]:border [&>th]:border-gray-300">
-                  <th>Codigo</th>
-                  <th>Articulo</th>
-                  <th>Cantidad Inicial</th>
-                  <th>Cantidad Scanneada</th>
-                  <th>Diferencia</th>
-                  <th>Costo Total Gs.</th>
-                </tr>
-              </thead>
-              <tbody>
-                {autorizaciones[0].items
-                  .sort((a, b) => {
-                    if (
-                      (a.diferencia_total < 0 && b.diferencia_total >= 0) ||
-                      (a.diferencia_total >= 0 && b.diferencia_total < 0)
-                    ) {
-                      return a.diferencia_total < 0 ? -1 : 1;
-                    }
-                    // Si son del mismo tipo (ambos faltantes o ambos sobrantes),
-                    // ordenamos por el valor absoluto de la diferencia (mayor a menor)
-                    return Math.abs(b.diferencia_total) - Math.abs(a.diferencia_total);
-                  })
-                  .map((item) => (
-                    <tr
-                      key={item.cod_interno}
-                      className={`border-2 border-gray-300 [&>td]:p-2 [&>td]:text-sm [&>td]:text-gray-700 [&>td]:border [&>td]:border-gray-300 
+           {autorizaciones && autorizaciones[0] && autorizaciones[0].items && autorizaciones[0].items.length > 0 ? (
+            <>
+              <div className="flex flex-col gap-2 w-full border-2 border-gray-300 rounded-md p-2">
+                <table className="w-full border-2 border-gray-300">
+                  <thead className="bg-gray-200 [&>th]:p-2 [&>th]:text-center [&>th]:text-sm [&>th]:font-bold [&>th]:text-gray-700 [&>th]:border-2 [&>th]:border-gray-300">
+                    <tr className="border-2 border-gray-300 [&>th]:border [&>th]:border-gray-300">
+                      <th>Codigo</th>
+                      <th>Articulo</th>
+                      <th>Cantidad Inicial</th>
+                      <th>Cantidad Scanneada</th>
+                      <th>Diferencia</th>
+                      <th>Costo Total Gs.</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {autorizaciones[0].items
+                      .sort((a, b) => {
+                        if (
+                          (a.diferencia_total < 0 && b.diferencia_total >= 0) ||
+                          (a.diferencia_total >= 0 && b.diferencia_total < 0)
+                        ) {
+                          return a.diferencia_total < 0 ? -1 : 1;
+                        }
+                        // Si son del mismo tipo (ambos faltantes o ambos sobrantes),
+                        // ordenamos por el valor absoluto de la diferencia (mayor a menor)
+                        return (
+                          Math.abs(b.diferencia_total) -
+                          Math.abs(a.diferencia_total)
+                        );
+                      })
+                      .map((item) => (
+                        <tr
+                          key={item.cod_interno}
+                          className={`border-2 border-gray-300 [&>td]:p-2 [&>td]:text-sm [&>td]:text-gray-700 [&>td]:border [&>td]:border-gray-300 
                       ${
                         item.diferencia_total < 0
                           ? "bg-red-50"
@@ -564,46 +598,59 @@ const AutorizacionAjusteDeStock = () => {
                           ? "bg-green-50"
                           : ""
                       }`}
-                    >
-                      <td>{item.cod_interno}</td>
-                      <td>{item.articulo}</td>
-                      <td className="text-center">
-                        {item.cantidad_inicial_total}
-                      </td>
-                      <td className="text-center">
-                        {item.cantidad_scanner_total || 0}
-                      </td>
-                      <td className="text-right">{item.diferencia_total}</td>
-                      <td className="text-right">{item.costo_diferencia_total}</td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="flex flex-col border border-gray-400 p-2 rounded-md">
-            <p>
-              <strong>Número de artículos faltantes:</strong>{" "}
-              {totalItemsFaltantes}
-            </p>
-            <p>
-              <strong>Número de artículos sobrantes:</strong>{" "}
-              {totalItemsSobrantes}
-            </p>
-            <p>
-              <strong>Total costo items faltante:</strong>{" "}
-              {totalCostoItemsFaltantes.toLocaleString('es-PY', {
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 0
-              })}
-            </p>
-            <p>
-              <strong>Total costo items sobrante:</strong>{" "}
-              {totalCostoItemsSobrantes.toLocaleString('es-PY', {
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 0
-              })}
-            </p>
-          </div>
+                        >
+                          <td>{item.cod_interno}</td>
+                          <td>{item.articulo}</td>
+                          <td className="text-center">
+                            {item.cantidad_inicial_total}
+                          </td>
+                          <td className="text-center">
+                            {item.cantidad_scanner_total || 0}
+                          </td>
+                          <td className="text-right">
+                            {item.diferencia_total}
+                          </td>
+                          <td className="text-right">
+                            {item.costo_diferencia_total}
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex flex-col border border-gray-400 p-2 rounded-md">
+                <p>
+                  <strong>Número de artículos faltantes:</strong>{" "}
+                  {totalItemsFaltantes}
+                </p>
+                <p>
+                  <strong>Número de artículos sobrantes:</strong>{" "}
+                  {totalItemsSobrantes}
+                </p>
+                <p>
+                  <strong>Total costo items faltante:</strong>{" "}
+                  {totalCostoItemsFaltantes.toLocaleString("es-PY", {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  })}
+                </p>
+                <p>
+                  <strong>Total costo items sobrante:</strong>{" "}
+                  {totalCostoItemsSobrantes.toLocaleString("es-PY", {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0,
+                  })}
+                </p>
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-col gap-2 items-center justify-center p-4 text-gray-500">
+              <p>No hay datos para mostrar</p>
+              <p className="text-sm">
+                Este inventario no tiene tiene items para ajustar
+              </p>
+            </div>
+          )}
         </div>
       ) : (
         <div className="flex flex-col gap-2 items-center justify-center p-4 text-gray-500">
@@ -612,6 +659,33 @@ const AutorizacionAjusteDeStock = () => {
             Seleccione un inventario para ver los detalles
           </p>
         </div>
+      )}
+      {mostrarReporte && (
+        <ReporteItemsScaneados
+          nro_inventario={inventarioSeleccionado || 0}
+          sucursal={sucursaleSeleccionada?.id || 0}
+          deposito={depositoSeleccionado?.dep_codigo || 0}
+          onComplete={() => {
+            setMostrarReporte(false);
+            toast({
+              title: "Éxito",
+              description: "PDF generado correctamente",
+              status: "success",
+              duration: 3000,
+              isClosable: true,
+            });
+          }}
+          onError={() => {
+            setMostrarReporte(false);
+            toast({
+              title: "Error",
+              description: "Error al generar el PDF",
+              status: "error",
+              duration: 3000,
+              isClosable: true,
+            });
+          }}
+        />
       )}
     </Flex>
   );

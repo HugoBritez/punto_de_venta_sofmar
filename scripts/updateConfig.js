@@ -143,9 +143,12 @@ async function deployToServer(empresa) {
     const username = prompt("Usuario SSH: ");
     const password = prompt("Contraseña SSH: ");
 
-    console.log("\n📦 Conectando al servidor...");
+    // Determinar el host según la empresa
+    const host = empresa === "gaesa" ? "192.168.102.7" : "192.168.200.3";
+    
+    console.log(`\n📦 Conectando al servidor ${host}...`);
     await ssh.connect({
-      host: "192.168.200.3",
+      host,
       username,
       password,
       tryKeyboard: true,
@@ -166,6 +169,11 @@ async function deployToServer(empresa) {
 
     await ssh.dispose();
     console.log("✅ Despliegue completado exitosamente");
+
+    // Volver a configuración local después del despliegue
+    console.log("\n🔄 Volviendo a configuración local...");
+    await updateConfig("local");
+    
   } catch (error) {
     console.error("❌ Error en el proceso de despliegue:", error);
     if (ssh) ssh.dispose();
@@ -185,7 +193,6 @@ async function updateConfig(empresa) {
   const indexPath = path.join(__dirname, "../index.html");
 
   try {
-    // Actualizar utils.ts
     let content = fs.readFileSync(configPath, "utf8");
     const config = configs[empresa];
     const currentDate = getCurrentDate();
@@ -221,6 +228,7 @@ async function updateConfig(empresa) {
     fs.writeFileSync(indexPath, indexContent, "utf8");
 
     console.log(`✅ Configuración actualizada exitosamente para ${empresa}`);
+    console.log('Host: ', host)
     console.log("Valores actualizados:");
     console.log(`- API URL: ${config.api_url}`);
     console.log(`- DB: ${config.db}`);
@@ -228,7 +236,7 @@ async function updateConfig(empresa) {
     console.log(`- Fecha Release: ${currentDate}`);
     console.log(`- Título: ${config.title}`);
 
-    // Ejecutar el despliegue solo si no es local
+
     if (empresa !== "local") {
       await deployToServer(empresa);
     }
