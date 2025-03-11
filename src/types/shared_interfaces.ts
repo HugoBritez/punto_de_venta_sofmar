@@ -623,4 +623,15 @@ export interface VentaTicket {
 }
 
 
+export interface SucursalData {
+  id: number;
+  descripcion: string;
+  direccion: string;
+  tel: string;
+  nombre_emp: string;
+  ruc_emp: string;
+  matriz: number;
+}
+
+
 

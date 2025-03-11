@@ -44,6 +44,9 @@ import { DetallesVentasCliente } from "./ui/DetallesVentasCliente";
 import FloatingCard from "@/modules/FloatingCard";
 import ArticuloInfoCard from "@/modules/ArticuloInfoCard";
 import { PresupuestosPendientes } from "./ui/PresupuestosPendientes";
+import { NotaPresupuesto } from "./pdf/NotaPresupuesto";
+import { createRoot } from "react-dom/client";
+
 
 interface ItemParaPresupuesto {
   depre_articulo: number;
@@ -188,7 +191,7 @@ const FormularioPresupuestos = () => {
   const [codigoPresupuesto, setCodigoPresupuesto] = useState<number | null>(null);
 
   const [busquedaClienteId, setBusquedaClienteId] = useState<number | null>(null);
-  const [busquedaOperadorId, setBusquedaOperadorId] = useState<number | null>(null);
+  const [busquedaVendedorId, setBusquedaVendedorId] = useState<number | null>(null);
 
   const {
     onOpen: onOpenDetallesVentasCliente,
@@ -342,6 +345,7 @@ const FormularioPresupuestos = () => {
       setClienteSeleccionado(null);
     } else if (busqueda) {
       getClientePorId(null, Number(busqueda) );
+      setBusquedaClienteId(Number(busqueda));
     } else {
       setClienteSeleccionado(null);
     }
@@ -356,6 +360,7 @@ const FormularioPresupuestos = () => {
       setVendedorSeleccionado(null);
     } else if (busqueda) {
       getVendedoresPorId(Number(busqueda));
+      setBusquedaVendedorId(Number(busqueda));
     } else {
       setVendedorSeleccionado(null);
     }
@@ -806,7 +811,7 @@ const FormularioPresupuestos = () => {
         }
       );
 
-      console.log(response);
+      console.log( 'la respuesta del servidor es',response.data);
       toast({
         title: "Presupuesto guardado",
         description: "Presupuesto guardado correctamente",
@@ -820,6 +825,8 @@ const FormularioPresupuestos = () => {
         operadorCodigo ? parseInt(operadorCodigo) : 0,
         `Presupuesto ID ${response.data.body.presupuestoId} realizado por ${operadorNombre}`
       );
+
+      imprimirNotaPresupuestoComponente(response.data.body.id);
 
       handleCancelarPresupuesto();
     } catch (error) {
@@ -887,6 +894,23 @@ const FormularioPresupuestos = () => {
         description: "Error al recuperar el presupuesto",
       });
     }
+  }
+
+  const imprimirNotaPresupuestoComponente = async (presupuesto: number) =>{
+    const notaPresupuestoDiv = document.createElement('div');
+    notaPresupuestoDiv.style.display = 'none';
+    document.body.appendChild(notaPresupuestoDiv);
+
+    const root = createRoot(notaPresupuestoDiv);
+    root.render(<NotaPresupuesto presupuesto={presupuesto} 
+    onComplete={() => {}} 
+    onError={() => {}} 
+    action="print" />);
+
+    setTimeout(() => {
+      root.unmount();
+      document.body.removeChild(notaPresupuestoDiv);
+    }, 2000);
   }
 
   return (
@@ -1039,6 +1063,7 @@ const FormularioPresupuestos = () => {
                 id="cliente_id"
                 className="bg-white rounded-md p-2"
                 placeholder="Buscar cliente por id"
+                value={busquedaClienteId || ''}
                 onChange={(e) => handleBuscarClientePorId(e)}
               />
               <input
@@ -1079,6 +1104,7 @@ const FormularioPresupuestos = () => {
                 id="vendedor_id"
                 className="bg-white rounded-md p-2"
                 placeholder="Buscar vendedor por id"
+                value={busquedaVendedorId || ''}
                 onChange={(e) => handleBuscarVendedorPorId(e)}
               />
               <input
@@ -1170,6 +1196,8 @@ const FormularioPresupuestos = () => {
                 id="operador_id"
                 className="bg-white rounded-md p-2 w-10"
                 onChange={(e) => handleBuscarOperadorPorId(e)}
+                value={operadorSeleccionado?.op_codigo || ''}
+                disabled
               />
               <input
                 type="text"

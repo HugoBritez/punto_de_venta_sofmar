@@ -17,6 +17,7 @@ interface PDFProps {
   styles?: Record<string, any>;
   content: any[];
   header?: any[];
+  footer?: any[];
 }
 
 type OutputType = 'print' | 'b64' | 'download';
@@ -53,7 +54,8 @@ export const generatePDF = async (
           },
         },
         content,
-        header
+        header,
+        footer
       } = props;
 
       const docDefinition = {
@@ -62,7 +64,8 @@ export const generatePDF = async (
         info,
         content,
         styles,
-        header
+        header,
+        footer
       };
 
       const pdfDoc = pdfMake.createPdf(docDefinition as any);
