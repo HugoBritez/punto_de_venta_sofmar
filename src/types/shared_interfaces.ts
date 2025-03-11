@@ -414,6 +414,28 @@ export interface ArticulosDirecta {
   descripcion: string;
 }
 
+
+export interface LoteArticulo {
+  id_lote: number;
+  lote: string;
+  id_articulo: number;
+  codigo_barra: string;
+  descripcion: string;
+  stock_negativo: number;
+  vencimiento_lote: string;
+  cantidad_lote: number;
+  deposito: number;
+  ubicacion: string;
+  sub_ubicacion: string;
+  marca: string;
+  subcategoria: string;
+  categoria: string;
+  iva: number;
+  vencimiento_validacion: number;
+  iva_descripcion: string;
+  editar_nombre: number;
+}
+
 export interface ArticulosNuevo {
   id_articulo: number;
   codigo_barra: string;

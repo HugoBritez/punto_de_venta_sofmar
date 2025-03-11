@@ -65,7 +65,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const [auth, setAuth] = useState<AuthState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [lastActivity, setLastActivity] = useState(new Date().getTime());
-  const INACTIVITY_THRESHOLD = 10 * 60 * 1000;
+  const INACTIVITY_THRESHOLD = 30 * 60 * 1000; // 30 minutos
 
   useEffect(() => {
     const loadAuthState = () => {

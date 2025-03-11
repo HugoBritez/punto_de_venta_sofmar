@@ -144,11 +144,10 @@ async function deployToServer(empresa) {
     const password = prompt("Contraseña SSH: ");
 
     // Determinar el host según la empresa
-    const host = empresa === "gaesa" ? "192.168.102.7" : "192.168.200.3";
     
-    console.log(`\n📦 Conectando al servidor ${host}...`);
+    console.log(`\n📦 Conectando al servidor...`);
     await ssh.connect({
-      host,
+      host: "192.168.200.3",
       username,
       password,
       tryKeyboard: true,
@@ -228,7 +227,6 @@ async function updateConfig(empresa) {
     fs.writeFileSync(indexPath, indexContent, "utf8");
 
     console.log(`✅ Configuración actualizada exitosamente para ${empresa}`);
-    console.log('Host: ', host)
     console.log("Valores actualizados:");
     console.log(`- API URL: ${config.api_url}`);
     console.log(`- DB: ${config.db}`);

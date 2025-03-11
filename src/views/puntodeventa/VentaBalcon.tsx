@@ -275,8 +275,6 @@ const VentaBalconNuevo = () => {
   
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-
-
   const [cuotasList, setCuotasList] = useState<
     Array<{
       fecha: string;
