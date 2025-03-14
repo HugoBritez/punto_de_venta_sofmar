@@ -78,6 +78,8 @@ export interface Vendedor {
     id: number
     op_nombre: string
     op_codigo: string
+    op_documento: string;
+    op_rol: string;
 }
 
 export interface Cliente {
@@ -89,6 +91,19 @@ export interface Cliente {
     deuda_actual: number
     credito_disponible: number
     vendedor_cliente: number
+    cli_direccion: string;
+    cli_ciudad: number;
+    cli_tel: string;
+    cli_mail: string;
+    cli_ci: string;
+    cli_tipo_doc: number;
+    cli_descripcion: string;
+    cli_departamento: number;
+    dep_descripcion: string;
+    cli_barrio: number;
+    cli_distrito: number;
+    cli_distrito_descripcion: string;
+    cli_ciudad_descripcion: string;
 }
 
 export interface Nota {
@@ -415,7 +430,7 @@ export interface ArticulosDirecta {
 }
 
 
-export interface LoteArticulo {
+export interface ArticuloBusqueda {
   id_lote: number;
   lote: string;
   id_articulo: number;
@@ -431,9 +446,34 @@ export interface LoteArticulo {
   subcategoria: string;
   categoria: string;
   iva: number;
-  vencimiento_validacion: number;
   iva_descripcion: string;
+  vencimiento_validacion: number;
   editar_nombre: number;
+  proveedor: string;
+  fecha_ultima_venta: string;
+  fecha_ultima_compra: string;
+  estado_vencimiento: string;
+  lotes: [
+    {
+      id: number;
+      lote: string;
+      cantidad: number;
+      vencimiento: string;
+      deposito: number;
+    }
+  ];
+  depositos: [
+    {
+      codigo: number;
+      descripcion: string;
+      stock: number;
+    }
+  ];
+  precio_costo: number;
+  precio_venta: number;
+  precio_credito: number;
+  precio_mostrador: number;
+  precio_4: number;
 }
 
 export interface ArticulosNuevo {

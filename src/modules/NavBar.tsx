@@ -36,6 +36,7 @@ import {
   FileBox,
   Home,
   ScanQrCode,
+  Settings,
 } from "lucide-react";
 import { useAuth } from "@/services/AuthContext";
 import { db, fechaRelease, version } from "@/utils";
@@ -414,6 +415,15 @@ const Sidebar = () => {
           enabled: true,
         },
       ],
+    },
+    {
+      grupo: 2,
+      orden: 31,
+      id: 69,
+      name: "Configuraciones",
+      icon: Settings,
+      path: "/configuraciones",
+      enabled: true,
     },
   ];
 

@@ -17,13 +17,9 @@ export const api_url = 'https://localhost:4000/api/'
 /* Aqui va la fecha del release, la version y la db */
 
 
-export const version = '0.9.7'
+export const version = '1.2.4'
 
 
-
-
-
-
-export const fechaRelease = '11/03/2025'
+export const fechaRelease = '12/03/2025'
 export const db = 'local'
 export const userName = sessionStorage.getItem('userName')

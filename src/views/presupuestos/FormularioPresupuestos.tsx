@@ -17,7 +17,7 @@ import {
 } from "@chakra-ui/react";
 import { useListaPreciosStore } from "@/stores/listaPreciosStore";
 import {
-  ArticulosNuevo,
+  ArticuloBusqueda,
   Cliente,
   Deposito,
   ListaPrecios,
@@ -46,7 +46,6 @@ import ArticuloInfoCard from "@/modules/ArticuloInfoCard";
 import { PresupuestosPendientes } from "./ui/PresupuestosPendientes";
 import { NotaPresupuesto } from "./pdf/NotaPresupuesto";
 import { createRoot } from "react-dom/client";
-
 
 interface ItemParaPresupuesto {
   depre_articulo: number;
@@ -102,7 +101,7 @@ const FormularioPresupuestos = () => {
   const [fecha, setFecha] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
-  const [articulos, setArticulos] = useState<ArticulosNuevo[]>([]);
+  const [articulos, setArticulos] = useState<ArticuloBusqueda[]>([]);
 
   //estados para todo lo seleccionado
   const [sucursalSeleccionada, setSucursalSeleccionada] =
@@ -124,7 +123,7 @@ const FormularioPresupuestos = () => {
   const [validezOferta, setValidezOferta] = useState<string>("");
   const [plazoEntrega, setPlazoEntrega] = useState<string>("");
   const [articuloSeleccionado, setArticuloSeleccionado] =
-    useState<ArticulosNuevo | null>(null);
+    useState<ArticuloBusqueda | null>(null);
   const [tipoFlete, setTipoFlete] = useState<string>("");
   const [detalleAdicional, setDetalleAdicional] = useState<boolean>(false);
   const [detalleAdicionalText, setDetalleAdicionalText] = useState<string>("");
@@ -145,7 +144,7 @@ const FormularioPresupuestos = () => {
     useState<boolean>(false);
   const [, setVendedorBusquedaId] = useState<string>("");
 
-  const [hoveredArticulo, setHoveredArticulo] = useState<ArticulosNuevo | null>(
+  const [hoveredArticulo, setHoveredArticulo] = useState<ArticuloBusqueda | null>(
     null
   );
 
@@ -180,7 +179,9 @@ const FormularioPresupuestos = () => {
   const operadorCodigo = sessionStorage.getItem("user_id");
   const operadorNombre = sessionStorage.getItem("user_name");
 
-  const [, setPresupuestoRecuperado] = useState<PresupuestoRecuperado | null>(null);
+  const [, setPresupuestoRecuperado] = useState<PresupuestoRecuperado | null>(
+    null
+  );
 
   const [isMobile] = useMediaQuery("(max-width: 768px)");
 
@@ -188,10 +189,23 @@ const FormularioPresupuestos = () => {
 
   const [nuevaDescripcionItem, setNuevaDescripcionItem] = useState<string>("");
 
-  const [codigoPresupuesto, setCodigoPresupuesto] = useState<number | null>(null);
+  const [codigoPresupuesto, setCodigoPresupuesto] = useState<number | null>(
+    null
+  );
 
-  const [busquedaClienteId, setBusquedaClienteId] = useState<number | null>(null);
-  const [busquedaVendedorId, setBusquedaVendedorId] = useState<number | null>(null);
+  const [busquedaClienteId, setBusquedaClienteId] = useState<number | null>(
+    null
+  );
+  const [busquedaVendedorId, setBusquedaVendedorId] = useState<number | null>(
+    null
+  );
+
+  const [mostrarSubtotalCheck, setMostrarSubtotalCheck] = useState<boolean>(true);
+  const [mostrarTotalCheck, setMostrarTotalCheck] = useState<boolean>(true);
+  const [mostrarMarcaCheck, setMostrarMarcaCheck] = useState<boolean>(true);
+  const [impresoraCheck, setImpresoraCheck] = useState<boolean>(true);
+  const [pdfCheck, setPdfCheck] = useState<boolean>(false);
+
 
   const {
     onOpen: onOpenDetallesVentasCliente,
@@ -218,15 +232,17 @@ const FormularioPresupuestos = () => {
   ) {
     try {
       const response = await axios.get(
-        `${api_url}articulos/consulta-articulos`,
+        `${api_url}articulos/buscar-articulos`,
         {
           params: {
             articulo_id: id_articulo,
             codigo_barra: codigo_barra,
             busqueda: busqueda,
+            stock  : true
           },
         }
       );
+      console.log("Respuesta de articulos", response.data.body);
       setArticulos(response.data.body);
     } catch (error) {
       setTimeout(() => {
@@ -287,7 +303,7 @@ const FormularioPresupuestos = () => {
     });
     setOperadores(response.data.body);
     setOperadorSeleccionado(response.data.body[0]);
-  }
+  };
 
   const buscarVendedores = async (busqueda: string) => {
     const response = await axios.get(`${api_url}usuarios/vendedores`, {
@@ -297,7 +313,6 @@ const FormularioPresupuestos = () => {
     });
     setVendedores(response.data.body);
   };
-
 
   const handleBuscarArticulos = (e: React.ChangeEvent<HTMLInputElement>) => {
     const busqueda = e.target.value;
@@ -344,7 +359,7 @@ const FormularioPresupuestos = () => {
     if (busqueda === "" || busqueda === null) {
       setClienteSeleccionado(null);
     } else if (busqueda) {
-      getClientePorId(null, Number(busqueda) );
+      getClientePorId(null, Number(busqueda));
       setBusquedaClienteId(Number(busqueda));
     } else {
       setClienteSeleccionado(null);
@@ -366,7 +381,9 @@ const FormularioPresupuestos = () => {
     }
   };
 
-  const handleBuscarOperadorPorId = (e: React.ChangeEvent<HTMLInputElement> | number) => {
+  const handleBuscarOperadorPorId = (
+    e: React.ChangeEvent<HTMLInputElement> | number
+  ) => {
     console.log("Buscando operador por id", e);
     const busqueda = typeof e === "number" ? e : e.target.value;
     if (busqueda === "" || busqueda === null) {
@@ -405,8 +422,7 @@ const FormularioPresupuestos = () => {
     setVendedores([]);
   };
 
-
-  const handleSelectArticulo = (item: ArticulosNuevo) => {
+  const handleSelectArticulo = (item: ArticuloBusqueda) => {
     setArticuloSeleccionado(item);
     setIsArticuloCardVisible(false);
     setArticulos([]);
@@ -416,13 +432,13 @@ const FormularioPresupuestos = () => {
   };
 
   const crearItemValidado = (
-    articulo: ArticulosNuevo,
+    articulo: ArticuloBusqueda,
     cantidad: number,
     precio: number,
     descuento: number = 0
   ): ItemParaPresupuesto | null => {
     // 1. Validaciones de stock
-    if (articulo.stock_negativo === 0 && cantidad > articulo.stock) {
+    if (articulo.stock_negativo === 0 && cantidad > articulo.cantidad_lote && articulo.editar_nombre === 0) {
       toast({
         title: "Error",
         description: "No hay stock disponible para este artículo",
@@ -430,39 +446,6 @@ const FormularioPresupuestos = () => {
       });
       return null;
     }
-
-    // 2. Validación de lotes
-    if (!articulo.lotes?.length) {
-      toast({
-        title: "Error",
-        description: "No hay lotes disponibles para este artículo",
-        status: "error",
-      });
-      return null;
-    }
-
-    // 3. Filtrado de lotes por depósito
-    const lotesDeposito = articulo.lotes.filter((lote) => {
-      return Number(lote.deposito) === Number(depositoSeleccionado?.dep_codigo);
-    });
-
-    if (lotesDeposito.length === 0) {
-      toast({
-        title: "Error",
-        description: "No hay lotes disponibles en el depósito seleccionado",
-        status: "error",
-      });
-      return null;
-    }
-
-    // 4. Selección del lote más adecuado
-    const loteSeleccionado = lotesDeposito.sort((a, b) => {
-      if (a.cantidad > 0 && b.cantidad === 0) return -1;
-      if (a.cantidad === 0 && b.cantidad > 0) return 1;
-      const fechaA = new Date(a.vencimiento.split("/").reverse().join("-"));
-      const fechaB = new Date(b.vencimiento.split("/").reverse().join("-"));
-      return fechaB.getTime() - fechaA.getTime();
-    })[0];
 
     // 5. Cálculo de precios según lista seleccionada
     let precioEnGuaranies = 0;
@@ -544,10 +527,10 @@ const FormularioPresupuestos = () => {
       depre_cinco: Number(deve_cinco.toFixed(2)),
       depre_diez: Number(deve_diez.toFixed(2)),
       editar_nombre: articulo.editar_nombre,
-      depre_lote: loteSeleccionado.lote,
-      depre_codlote: loteSeleccionado.id,
-      depre_vence: loteSeleccionado.vencimiento,
-      depre_descripcio_art: articulo.descripcion,
+      depre_lote: articulo.lote,
+      depre_codlote: articulo.id_lote,
+      depre_vence: articulo.vencimiento_lote,
+      depre_descripcio_art: nuevaDescripcionItem,
       depre_obs: null,
       depre_procesado: null,
       depre_altura: null,
@@ -572,6 +555,11 @@ const FormularioPresupuestos = () => {
       setArticuloSeleccionado(null);
       setCantidadParaItem(1);
       setDescuentoParaItem(0);
+      if(nuevoItem.editar_nombre === 1){
+        setNuevaDescripcionItem(nuevoItem.descripcion);
+      } else {
+        setNuevaDescripcionItem('');
+      }
     }
   };
 
@@ -649,13 +637,19 @@ const FormularioPresupuestos = () => {
     setVendedorBusquedaId("");
     setCodigoPresupuesto(null);
     setPresupuestoRecuperado(null);
-    setObservacionPresupuesto('');
-    setPlazoEntrega('');
-    setValidezOferta('');
-    setTipoFlete('');
-    setCondicionPago('');
+    setObservacionPresupuesto("");
+    setPlazoEntrega("");
+    setValidezOferta("");
+    setTipoFlete("");
+    setCondicionPago("");
     setMonedaSeleccionada(null);
     setSucursalSeleccionada(null);
+    setNuevaDescripcionItem('');
+    setBusquedaClienteId(null);
+    setClienteSeleccionado(null);
+    setBusquedaVendedorId(null);
+    setVendedorSeleccionado(null);
+
   };
 
   useEffect(() => {
@@ -678,7 +672,7 @@ const FormularioPresupuestos = () => {
       setListaPrecioSeleccionada(listaPrecios[0]);
     }
     if (!monedaSeleccionada) {
-      console.log('monedas', monedas)
+      console.log("monedas", monedas);
       setMonedaSeleccionada(monedas[0]);
     }
   }, [sucursales, depositos]);
@@ -713,6 +707,10 @@ const FormularioPresupuestos = () => {
     totalPagarFactura - totalDescuentoItems - (totalDescuentoFactura || 0);
 
   const formatNumber = (num: number | string) => {
+    if (num === undefined || num === null) {
+      return "0";
+    }
+    
     if (typeof num === "string") {
       num = Number(num);
       return num.toLocaleString("es-PY", {
@@ -773,12 +771,14 @@ const FormularioPresupuestos = () => {
         pre_vendedor: vendedorSeleccionado?.op_codigo,
         pre_hora: new Date().toLocaleTimeString(),
         pre_obs: observacionPresupuesto,
-        pre_plazo: plazoEntrega || '8 Dias',
-        pre_validez: validezOferta || '8 Dias',
-        pre_flete: tipoFlete || '',
-        pre_condicion: condicionPago || '8 Dias',
+        pre_plazo: plazoEntrega || "8 Dias",
+        pre_validez: validezOferta || "8 Dias",
+        pre_flete: tipoFlete || "",
+        pre_condicion: condicionPago || "8 Dias",
         pre_sucursal: sucursalSeleccionada?.id,
         pre_deposito: depositoSeleccionado?.dep_codigo,
+        detalle_adicional: detalleAdicional === true ? 1 : 0,
+        detalle_adicional_texto: detalleAdicionalText,
       };
 
       const detallesPresupuesto = itemParaPresupuesto.map((item) => ({
@@ -811,7 +811,7 @@ const FormularioPresupuestos = () => {
         }
       );
 
-      console.log( 'la respuesta del servidor es',response.data);
+      console.log("la respuesta del servidor es", response.data);
       toast({
         title: "Presupuesto guardado",
         description: "Presupuesto guardado correctamente",
@@ -848,7 +848,7 @@ const FormularioPresupuestos = () => {
   }
 
   function handleGuardarDetalleAdicional() {
-    if(detalleAdicionalText.trim() === ""){
+    if (detalleAdicionalText.trim() === "") {
       toast({
         title: "Error",
         description: "El detalle adicional no puede estar vacío",
@@ -864,54 +864,106 @@ const FormularioPresupuestos = () => {
     onCloseDetalleAdicional();
     setDetalleAdicional(false);
   }
-  
+
   async function handleRecuperarPresupuesto(presupuesto: number) {
-    try{
-      const response = await axios.get(`${api_url}presupuestos/recuperar-presupuesto`,
+    try {
+      const response = await axios.get(
+        `${api_url}presupuestos/recuperar-presupuesto`,
         {
           params: {
-            id: presupuesto
-          }
+            id: presupuesto,
+          },
         }
-      )
+      );
+      
+      // Guardamos el código del presupuesto
       setCodigoPresupuesto(response.data.body.pre_codigo);
+      
+      // Guardamos el presupuesto completo
       setPresupuestoRecuperado(response.data.body);
-      console.log(response.data.body);
-      setItemParaPresupuesto(response.data.body.items);
+      
+      // Asignamos los items directamente desde la respuesta
+      // Aseguramos que items sea un array
+      const items = Array.isArray(response.data.body.items) ? response.data.body.items : [];
+      setItemParaPresupuesto(items);
+      
+      // Buscamos el cliente, operador y vendedor por sus IDs
       handleBuscarClientePorId(response.data.body.pre_cliente);
       handleBuscarOperadorPorId(response.data.body.pre_operador);
       handleBuscarVendedorPorId(response.data.body.pre_vendedor);
-      setMonedaSeleccionada(monedas.find(moneda => moneda.mo_codigo === response.data.body.pre_moneda) || null);
-      setObservacionPresupuesto(response.data.body.pre_obs);
-      setPlazoEntrega(response.data.body.pre_plazo); 
-      setValidezOferta(response.data.body.pre_validez);
-      setTipoFlete(response.data.body.pre_flete);
-      setCondicionPago(response.data.body.pre_condicion);
-    }catch(error){
+      
+      // Seleccionamos la moneda correspondiente
+      setMonedaSeleccionada(
+        monedas.find(
+          (moneda) => moneda.mo_codigo === response.data.body.pre_moneda
+        ) || null
+      );
+      
+      // Asignamos los demás campos del presupuesto
+      setObservacionPresupuesto(response.data.body.pre_obs || "");
+      setPlazoEntrega(response.data.body.pre_plazo || "8 Dias");
+      setValidezOferta(response.data.body.pre_validez || "8 Dias");
+      setTipoFlete(response.data.body.pre_flete || "");
+      setCondicionPago(response.data.body.pre_condicion || "8 Dias");
+      
+      // Seleccionamos la sucursal y depósito correspondientes
+      setSucursalSeleccionada(
+        sucursales.find(
+          (sucursal) => sucursal.id === response.data.body.pre_sucursal
+        ) || null
+      );
+      setDepositoSeleccionado(
+        depositos.find(
+          (deposito) => deposito.dep_codigo === response.data.body.pre_deposito
+        ) || null
+      );
+      
+      // Si hay un item con editar_nombre = 1, actualizamos la descripción
+      const itemEditable = items.find((item: ItemParaPresupuesto) => item.editar_nombre === 1);
+      if (itemEditable) {
+        setNuevaDescripcionItem(itemEditable.depre_descripcio_art || "");
+      }
+      
+      toast({
+        title: "Presupuesto recuperado",
+        description: `Presupuesto #${response.data.body.pre_codigo} recuperado correctamente`,
+        status: "success",
+        duration: 3000,
+      });
+    } catch (error) {
       console.error("Error al recuperar el presupuesto", error);
       toast({
         title: "Error",
         description: "Error al recuperar el presupuesto",
+        status: "error",
+        duration: 3000,
       });
     }
   }
 
-  const imprimirNotaPresupuestoComponente = async (presupuesto: number) =>{
-    const notaPresupuestoDiv = document.createElement('div');
-    notaPresupuestoDiv.style.display = 'none';
+  const imprimirNotaPresupuestoComponente = async (presupuesto: number) => {
+    const notaPresupuestoDiv = document.createElement("div");
+    notaPresupuestoDiv.style.display = "none";
     document.body.appendChild(notaPresupuestoDiv);
 
     const root = createRoot(notaPresupuestoDiv);
-    root.render(<NotaPresupuesto presupuesto={presupuesto} 
-    onComplete={() => {}} 
-    onError={() => {}} 
-    action="print" />);
+    root.render(
+      <NotaPresupuesto
+        presupuesto={presupuesto}
+        onComplete={() => {}}
+        onError={() => {}}
+        mostrarSubtotal={mostrarSubtotalCheck}
+        mostrarTotal={mostrarTotalCheck}
+        mostrarMarca={mostrarMarcaCheck}
+        action={impresoraCheck ? "print" : pdfCheck ? "download" : "print"}
+      />
+    );
 
     setTimeout(() => {
       root.unmount();
       document.body.removeChild(notaPresupuestoDiv);
     }, 2000);
-  }
+  };
 
   return (
     <Box
@@ -972,7 +1024,7 @@ const FormularioPresupuestos = () => {
             ? mostrarFiltros
               ? "bg-blue-100 rounded-md h-[80%] p-2 flex flex-col gap-2 overflow-y-auto transition-all duration-500 ease-in-out opacity-100"
               : "bg-blue-100 rounded-md flex flex-col gap-2 transition-all duration-500 ease-in-out opacity-0 max-h-0 overflow-hidden pointer-events-none"
-            : "bg-blue-100 rounded-md h-[20%] p-2 flex flex-col gap-2 transition-all duration-500 ease-in-out opacity-100"
+            : "bg-blue-100 rounded-md h-[25%] p-2 flex flex-col gap-2 transition-all duration-500 ease-in-out opacity-100"
         }
       >
         <div
@@ -1063,7 +1115,7 @@ const FormularioPresupuestos = () => {
                 id="cliente_id"
                 className="bg-white rounded-md p-2"
                 placeholder="Buscar cliente por id"
-                value={busquedaClienteId || ''}
+                value={busquedaClienteId || ""}
                 onChange={(e) => handleBuscarClientePorId(e)}
               />
               <input
@@ -1104,7 +1156,7 @@ const FormularioPresupuestos = () => {
                 id="vendedor_id"
                 className="bg-white rounded-md p-2"
                 placeholder="Buscar vendedor por id"
-                value={busquedaVendedorId || ''}
+                value={busquedaVendedorId || ""}
                 onChange={(e) => handleBuscarVendedorPorId(e)}
               />
               <input
@@ -1196,7 +1248,7 @@ const FormularioPresupuestos = () => {
                 id="operador_id"
                 className="bg-white rounded-md p-2 w-10"
                 onChange={(e) => handleBuscarOperadorPorId(e)}
-                value={operadorSeleccionado?.op_codigo || ''}
+                value={operadorSeleccionado?.op_codigo || ""}
                 disabled
               />
               <input
@@ -1330,9 +1382,12 @@ const FormularioPresupuestos = () => {
               >
                 Recuperar presupuestos
               </button>
-              <input type="text" className="bg-white rounded-md p-2 w-1/2" value={codigoPresupuesto || ''} />
+              <input
+                type="text"
+                className="bg-white rounded-md p-2 w-1/2"
+                value={codigoPresupuesto || ""}
+              />
             </div>
-
             <button
               onClick={() => {
                 onOpenDetallesVentasCliente();
@@ -1533,7 +1588,9 @@ const FormularioPresupuestos = () => {
               }
               placeholder="Lote"
               value={
-                articuloSeleccionado ? articuloSeleccionado.lotes[0].lote : ""
+                articuloSeleccionado 
+                  ? articuloSeleccionado.lote || "N/A"
+                  : "N/A"
               }
               disabled
             />
@@ -1638,6 +1695,9 @@ const FormularioPresupuestos = () => {
                 <p>{formatNumber(item.precio_mostrador)}</p>-<p>P. Credito</p>
                 <p>{formatNumber(item.precio_credito)}</p>
                 <Tally1 />
+                <p>Lote:</p>
+                <p>{item.lote}</p>
+                <Tally1 />
                 {item.vencimiento_validacion === 1 ? (
                   <p
                     className={
@@ -1648,22 +1708,12 @@ const FormularioPresupuestos = () => {
                         : "text-red-500"
                     }
                   >
-                    {item.lotes
-                      .filter((lote) => lote.cantidad > 0)
-                      .sort((a, b) => {
-                        const fechaA = new Date(
-                          a.vencimiento.split("/").reverse().join("-")
-                        );
-                        const fechaB = new Date(
-                          b.vencimiento.split("/").reverse().join("-")
-                        );
-                        return fechaA.getTime() - fechaB.getTime();
-                      })[0]?.vencimiento || "0001-01-01"}
+                    {item.vencimiento_lote}
                   </p>
                 ) : null}
                 <Tally1 />
                 <p>Stock</p>
-                <p>{item.stock}</p>
+                <p>{item.cantidad_lote}</p>
               </div>
             )}
           />
@@ -1708,7 +1758,7 @@ const FormularioPresupuestos = () => {
                     <input
                       type="text"
                       className="bg-white rounded-md p-2 w-full"
-                      value={item.depre_descripcio_art}
+                      value={nuevaDescripcionItem}
                       onChange={(e) => setNuevaDescripcionItem(e.target.value)}
                     />
                   ) : (
@@ -1782,6 +1832,8 @@ const FormularioPresupuestos = () => {
                 name="mostrar_subtotal"
                 id="mostrar_subtotal"
                 className="bg-white rounded-md p-2"
+                checked={mostrarSubtotalCheck}
+                onChange={(e) => setMostrarSubtotalCheck(e.target.checked)}
               />
             </div>
             <div className="flex flex-row gap-2 items-center">
@@ -1791,6 +1843,8 @@ const FormularioPresupuestos = () => {
                 name="mostrar_total"
                 id="mostrar_total"
                 className="bg-white rounded-md p-2"
+                checked={mostrarTotalCheck}
+                onChange={(e) => setMostrarTotalCheck(e.target.checked)}
               />
             </div>
             <div className="flex flex-row gap-2 items-center">
@@ -1800,6 +1854,8 @@ const FormularioPresupuestos = () => {
                 name="mostrar_total"
                 id="mostrar_total"
                 className="bg-white rounded-md p-2"
+                checked={mostrarMarcaCheck}
+                onChange={(e) => setMostrarMarcaCheck(e.target.checked)}
               />
             </div>
           </div>
@@ -1811,6 +1867,11 @@ const FormularioPresupuestos = () => {
                   name="mostrar_total"
                   id="mostrar_total"
                   className="bg-white rounded-md p-2"
+                  checked={impresoraCheck}
+                  onChange={(e) => {
+                    setImpresoraCheck(e.target.checked);
+                    setPdfCheck(false);
+                  }}
                 />
                 <p className="text-black font-bold">Impresora</p>
               </div>
@@ -1823,6 +1884,11 @@ const FormularioPresupuestos = () => {
                   name="mostrar_total"
                   id="mostrar_total"
                   className="bg-white rounded-md p-2"
+                  checked={pdfCheck}
+                  onChange={(e) => {
+                    setPdfCheck(e.target.checked);
+                    setImpresoraCheck(false);
+                  }}
                 />
                 <p className="text-black font-bold">PDF</p>
               </div>
@@ -2051,7 +2117,10 @@ const FormularioPresupuestos = () => {
             <p className="text-black font-bold">Presupuestos Pendientes</p>
           </ModalHeader>
           <ModalBody className="bg-blue-100 rounded-md">
-            <PresupuestosPendientes onClose={onClosePresupuestosPendientes} onSelect={handleRecuperarPresupuesto} />
+            <PresupuestosPendientes
+              onClose={onClosePresupuestosPendientes}
+              onSelect={handleRecuperarPresupuesto}
+            />
           </ModalBody>
         </ModalContent>
       </Modal>

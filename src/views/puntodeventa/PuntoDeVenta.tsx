@@ -44,7 +44,6 @@ import {
 import { ShoppingCart } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import FloatingCard from "@/modules/FloatingCard";
-import ArticuloInfoCard from "@/modules/ArticuloInfoCard";
 import ModeloTicket from "../facturacion/ModeloTicket";
 import ConsultaPedidos from "../pedidos/ConsultaPedidos";
 import ConsultaPresupuestos from "../presupuestos/ConsultaPresupuesto";
@@ -54,6 +53,11 @@ import { createRoot } from "react-dom/client";
 import ModeloFacturaNuevo from "../facturacion/ModeloFacturaNuevo";
 import ModeloNotaComun from "../facturacion/ModeloNotaComun";
 import Auditar from "@/services/AuditoriaHook";
+import ArticuloInfoCardOld from "@/modules/ArticuloInfoCardOld";
+import { FacturaSendResponse } from "@/types/factura_electronica/types";
+import { useFacturaSendTesting } from "@/hooks/useFacturaSendTesting";
+
+
 interface ItemParaVenta {
   precio_guaranies: number;
   precio_dolares: number;
@@ -83,6 +87,7 @@ interface ItemParaVenta {
   cod_barra?: string | null;
   editar_nombre?: number | null;
   precio_original?: number | null;
+  ar_unidad_medida?: number | null;
 }
 
 interface VentaCliente {
@@ -320,6 +325,7 @@ const PuntoDeVentaNuevo = () => {
     });
 
   const toast = useToast();
+  const { enviarFactura } = useFacturaSendTesting();
 
   async function getDatos() {
     try {
@@ -1053,19 +1059,35 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
   const finalizarVenta = async () => {
     try {
       if (
-        !clienteSeleccionado ||
-        !vendedorSeleccionado ||
         itemsParaVenta.length === 0
       ) {
         toast({
           title: "Error",
-          description: "Faltan datos requeridos para la venta",
+          description: "No se han seleccionado articulos para la venta",
           status: "error",
           duration: 3000,
         });
         return;
       }
 
+      if(!clienteSeleccionado){
+        toast({
+          title: "Error",
+          description: "No se ha seleccionado un cliente",
+          status: "error",
+          duration: 3000,
+        });
+        return;
+      }
+      if(!vendedorSeleccionado){
+        toast({
+          title: "Error",
+          description: "No se ha seleccionado un vendedor",
+          status: "error",
+          duration: 3000,
+        });
+        return;
+      }
       const tasaCambio =
         monedaSeleccionada?.mo_codigo === 1
           ? 1
@@ -1158,6 +1180,311 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
           status: "success",
           duration: 3000,
         });
+
+        const documentoTipo = (() => {
+          switch (clienteSeleccionado.cli_tipo_doc) {
+            case 1:
+              return 1;
+            case 2:
+              return 1;
+            case 3:
+              return 2;
+            case 4:
+              return 3;
+            case 5:
+              return 1;
+            case 6:
+              return 6;
+            case 7:
+              return 9;
+            case 8:
+              return 1;
+          }
+        })();
+
+        const dataFacturaSend: FacturaSendResponse = {
+          tipoDocumento: 1,
+          establecimiento: opcionesFinalizacion.nro_establecimiento || 0,
+          punto: opcionesFinalizacion.nro_emision || 0,
+          numero: opcionesFinalizacion.nro_factura || 0,
+          observacion: "",
+          fecha: new Date().toISOString().split(".")[0],
+          tipoEmision: 1,
+          tipoTransaccion: 1,
+          tipoImpuesto: 1,
+          moneda:
+            monedaSeleccionada?.mo_codigo === 1
+              ? "PYG"
+              : monedaSeleccionada?.mo_codigo === 2
+              ? "USD"
+              : monedaSeleccionada?.mo_codigo === 3
+              ? "BRL"
+              : monedaSeleccionada?.mo_codigo === 4
+              ? "ARS"
+              : "PYG",
+          cambio: 0,
+          cliente: {
+            contribuyente:
+              clienteSeleccionado.cli_tipo_doc === 1 ||
+              clienteSeleccionado.cli_tipo_doc === 18
+                ? true
+                : false,
+            ruc:
+              clienteSeleccionado.cli_tipo_doc === 1
+                ? clienteSeleccionado.cli_ruc
+                : null,
+            razonSocial: clienteSeleccionado.cli_razon,
+            nombreFantasia: clienteSeleccionado.cli_descripcion,
+            tipoOperacion:
+              clienteSeleccionado.cli_tipo_doc === 1
+                ? 1
+                : clienteSeleccionado.cli_tipo_doc === 18
+                ? 3
+                : 2,
+            numeroCasa: "001",
+            departamento: clienteSeleccionado.cli_departamento || 1,
+            departamentoDescripcion: clienteSeleccionado.dep_descripcion || "",
+            distrito: clienteSeleccionado.cli_distrito || 1,
+            distritoDescripcion:
+              clienteSeleccionado.cli_distrito_descripcion || "",
+            direccion: clienteSeleccionado.cli_direccion || "",
+            ciudad: clienteSeleccionado.cli_ciudad || 1,
+            ciudadDescripcion: clienteSeleccionado.cli_ciudad_descripcion || "",
+            pais: "PRY",
+            paisDescripcion: "Paraguay",
+            tipoContribuyente: 1,
+            documentoTipo: documentoTipo,
+            telefono: clienteSeleccionado.cli_tel || "",
+            celular: clienteSeleccionado.cli_tel || "",
+            email: clienteSeleccionado.cli_mail || "",
+            codigo: clienteSeleccionado.cli_interno,
+          },
+          usuario: {
+            documentoTipo: 1,
+            documentoNumero: vendedorSeleccionado?.op_documento || "",
+            nombre: vendedorSeleccionado?.op_nombre || "",
+            cargo: "Vendedor",
+          },
+          factura: {
+            presencia: 1,
+          },
+          // condicion: {
+          //   tipo: opcionesFinalizacion.tipo_venta === "CREDITO" ? 2 : 1,
+          //   entregas:
+          //     opcionesFinalizacion.tipo_venta === "CONTADO"
+          //       ? [
+          //           {
+          //             tipo: 1, // Efectivo
+          //             monto: totalPagarFinal.toString(),
+          //             moneda:
+          //               monedaSeleccionada?.mo_codigo === 1
+          //                 ? "PYG"
+          //                 : monedaSeleccionada?.mo_codigo === 2
+          //                 ? "USD"
+          //                 : monedaSeleccionada?.mo_codigo === 3
+          //                 ? "BRL"
+          //                 : monedaSeleccionada?.mo_codigo === 4
+          //                 ? "ARS"
+          //                 : "PYG",
+          //             cambio: 0.0,
+          //           },
+          //         ]
+          //       : [],
+          //   credito:
+          //     opcionesFinalizacion.tipo_venta === "CREDITO"
+          //       ? {
+          //           tipo: 1, // Plazo
+          //           plazo: `${
+          //             opcionesFinalizacion.cantidad_cuotas || 1
+          //           } cuotas`,
+          //           cuotas: opcionesFinalizacion.cantidad_cuotas || 1,
+          //           infoCuotas: Array.from(
+          //             { length: opcionesFinalizacion.cantidad_cuotas || 1 },
+          //             (_, i) => {
+          //               const montoTotal =
+          //                 totalPagarFinal -
+          //                 (opcionesFinalizacion.entrega_inicial || 0);
+          //               const montoCuota =
+          //                 montoTotal /
+          //                 (opcionesFinalizacion.cantidad_cuotas || 1);
+          //               const fechaVencimiento = new Date();
+          //               fechaVencimiento.setDate(
+          //                 fechaVencimiento.getDate() + 30 * (i + 1)
+          //               );
+
+          //               return {
+          //                 moneda:
+          //                   monedaSeleccionada?.mo_codigo === 1
+          //                     ? "PYG"
+          //                     : monedaSeleccionada?.mo_codigo === 2
+          //                     ? "USD"
+          //                     : monedaSeleccionada?.mo_codigo === 3
+          //                     ? "BRL"
+          //                     : monedaSeleccionada?.mo_codigo === 4
+          //                     ? "ARS"
+          //                     : "PYG",
+          //                 monto: montoCuota,
+          //                 vencimiento: fechaVencimiento
+          //                   .toISOString()
+          //                   .split("T")[0],
+          //               };
+          //             }
+          //           ),
+          //         }
+          //       : null,
+          // },
+          condicion: {
+            tipo: opcionesFinalizacion.tipo_venta === "CREDITO" ? 2 : 1,
+
+            // Para CONTADO
+            entregas:
+              opcionesFinalizacion.tipo_venta === "CONTADO"
+                ? [
+                    {
+                      tipo: 1, // Efectivo
+                      monto: totalPagarFinal.toString(),
+                      moneda:
+                        monedaSeleccionada?.mo_codigo === 1
+                          ? "PYG"
+                          : monedaSeleccionada?.mo_codigo === 2
+                          ? "USD"
+                          : monedaSeleccionada?.mo_codigo === 3
+                          ? "BRL"
+                          : monedaSeleccionada?.mo_codigo === 4
+                          ? "ARS"
+                          : "PYG",
+                      monedaDescripcion:
+                        monedaSeleccionada?.mo_descripcion || "Guaraníes",
+                      cambio: 0.0,
+                    },
+                  ]
+                : [],
+
+            // Para CRÉDITO
+            credito:
+              opcionesFinalizacion.tipo_venta === "CREDITO"
+                ? {
+                    tipo: 1, // Plazo
+                    plazo: `${
+                      opcionesFinalizacion.cantidad_cuotas || 1
+                    } cuotas`,
+                    cuotas: opcionesFinalizacion.cantidad_cuotas || 1,
+                    montoEntrega: opcionesFinalizacion.entrega_inicial || 0,
+                    infoCuotas: Array.from(
+                      { length: opcionesFinalizacion.cantidad_cuotas || 1 },
+                      (_) => {
+                        return {
+                          moneda:
+                            monedaSeleccionada?.mo_codigo === 1
+                              ? "PYG"
+                              : monedaSeleccionada?.mo_codigo === 2
+                              ? "USD"
+                              : monedaSeleccionada?.mo_codigo === 3
+                              ? "BRL"
+                              : monedaSeleccionada?.mo_codigo === 4
+                              ? "ARS"
+                              : "PYG",
+                          monto: 0,
+                          vencimiento: "",
+                        };
+                      }
+                    ),
+                  }
+                : null,
+          },
+          items: itemsParaVenta.map((item) => {
+            // Variables para el cálculo de IVA
+            let ivaTipo = 1; // Por defecto, Gravado IVA
+            let ivaBase = 100;
+            let ivaPorcentaje = 10;
+            let IVa5 = 0;
+            let IVa10 = 0;
+            let vartotal = 0;
+            let VGravada = 0;
+            let vporc = 0;
+            if (item.deve_cinco > 0 && item.deve_exentas > 0) {
+              // CASE vcinco > 0 AND vexentas > 0
+              IVa5 = Math.round((item.deve_cinco / 21) * 100) / 100;
+              vartotal = item.deve_cinco + item.deve_exentas - IVa5;
+              ivaTipo = 4;
+              ivaPorcentaje = 5;
+              VGravada = Math.round((item.deve_cinco / 1.05) * 100) / 100;
+              vporc = (VGravada * 100) / vartotal;
+              ivaBase = parseFloat(vporc.toFixed(8));
+            } else if (item.deve_diez > 0 && item.deve_exentas > 0) {
+              // CASE vdiez > 0 AND vexentas > 0
+              IVa10 = Math.round((item.deve_diez / 11) * 100) / 100;
+              vartotal = item.deve_diez + item.deve_exentas - IVa10;
+              ivaTipo = 4;
+              ivaPorcentaje = 10;
+              VGravada = Math.round((item.deve_diez / 1.1) * 100) / 100;
+              vporc = (VGravada * 100) / vartotal;
+              ivaBase = parseFloat(vporc.toFixed(8));
+            } else if (item.deve_cinco > 0) {
+              // CASE vcinco > 0
+              ivaTipo = 1;
+              ivaPorcentaje = 5;
+              ivaBase = 100;
+            } else if (item.deve_diez > 0) {
+              // CASE vdiez > 0
+              ivaTipo = 1;
+              ivaPorcentaje = 10;
+              ivaBase = 100;
+            } else if (
+              item.deve_cinco === 0 &&
+              item.deve_diez === 0 &&
+              item.deve_exentas > 0
+            ) {
+              // Caso para productos exentos
+              ivaTipo = 3; // Exento
+              ivaPorcentaje = 0;
+              ivaBase = 0;
+            }
+
+            return {
+              codigo: item.deve_articulo,
+              descripcion: item.articulo,
+              observacion: "",
+              unidadMedida: item.ar_unidad_medida || 1, // Unidad
+              cantidad: item.deve_cantidad,
+              precioUnitario: item.deve_precio,
+              cambio: 0.0,
+              ivaTipo: ivaTipo,
+              ivaBase: ivaBase,
+              iva: ivaPorcentaje,
+              lote: item.deve_lote || "",
+              vencimiento: item.deve_vencimiento || "",
+            };
+          }),
+        };
+
+        console.log("Factura send: ", dataFacturaSend);
+        const responseFacturaSend = await enviarFactura(dataFacturaSend);
+        console.log("Respuesta factura send: ", responseFacturaSend);
+
+        if(responseFacturaSend.success === true){
+          toast({
+            title: "Éxito",
+            description: "Factura Electronica emitida correctamente",
+            status: "info",
+            duration: 3000,
+            isClosable: true,
+          })
+        } else if( responseFacturaSend.success === false){
+          toast({
+            title: "Error al emitir la factura electronica",
+            description: `Error:${responseFacturaSend.error}`,
+            status: "warning",
+            duration: 5000,
+          })
+        } else {
+          toast({
+            title: "Error",
+            description: `Error desconocido al emitir la factura electronica`,
+            status: "error",
+            duration: 5000,
+          })
+        }
 
         onCloseKCOpen();
 
@@ -2258,7 +2585,7 @@ const imprimirTicketComponente = async (ventaId: number) => {
                   </div>
                 )}
               />
-              <ArticuloInfoCard
+              <ArticuloInfoCardOld
                 articulo={hoveredArticulo}
                 isVisible={hoveredArticulo !== null}
               />

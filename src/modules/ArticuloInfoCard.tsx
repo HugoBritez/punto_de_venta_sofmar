@@ -1,4 +1,4 @@
-import { ArticulosNuevo } from "@/types/shared_interfaces";
+import { ArticuloBusqueda } from "@/types/shared_interfaces";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BarChart2,
@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 
 interface ArticuloInfoCardProps {
-  articulo: ArticulosNuevo | null;
+  articulo: ArticuloBusqueda | null;
   isVisible: boolean;
 }
 

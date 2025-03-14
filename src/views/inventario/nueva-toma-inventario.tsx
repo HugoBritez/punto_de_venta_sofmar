@@ -1451,13 +1451,27 @@ const handleAnularInventario = async () => {
                           </div>
                         ) : (
                           <div
-                            className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded"
-                            onClick={() =>
-                              setItemEnEdicion({
-                                lote_id: item.lote_id,
-                                cantidad: item.stock,
-                              })
-                            }
+                            className={`px-2 py-1 rounded ${
+                              inventarioAuxiliar?.estado === 0 
+                                ? "cursor-pointer hover:bg-gray-100" 
+                                : "cursor-not-allowed text-gray-500"
+                            }`}
+                            onClick={() => {
+                              if (inventarioAuxiliar?.estado === 0) {
+                                setItemEnEdicion({
+                                  lote_id: item.lote_id,
+                                  cantidad: item.stock,
+                                });
+                              } else {
+                                toast({
+                                  title: inventarioAuxiliar?.estado === 1 ? "Inventario cerrado" : "Inventario anulado",
+                                  description: `No se puede editar un inventario que ya está ${inventarioAuxiliar?.estado === 1 ? "cerrado" : "anulado"}`,
+                                  status: "warning",
+                                  duration: 3000,
+                                  isClosable: true,
+                                });
+                              }
+                            }}
                           >
                             {item.stock}
                           </div>

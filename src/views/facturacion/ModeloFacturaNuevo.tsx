@@ -34,6 +34,9 @@ interface VentaTicket {
   factura: string;
   factura_valido_desde: string;
   factura_valido_hasta: string;
+  ve_qr?: string;
+  ve_cdc: string;
+  usa_fe: number;
   detalles: {
     codigo: number;
     descripcion: string;
@@ -94,6 +97,438 @@ const ModeloFacturaNuevo = ({
           `${(Number(detalle.total) || 0).toLocaleString("es-PY")} Gs.`,
         ]) || [];
 
+      // Crear el contenido base del PDF
+      const contenidoPDF = [
+        {
+          text: venta?.sucursal_data[0].sucursal_empresa,
+          style: "header",
+          alignment: "center",
+          fontSize: 18,
+        },
+        {
+          text: `RUC: ${venta?.sucursal_data[0].sucursal_ruc}`,
+          style: "text",
+          alignment: "center",
+          fontSize: 16,
+        },
+        {
+          text: `${venta?.sucursal_data[0].sucursal_matriz} :${venta?.sucursal_data[0].sucursal_direccion}`,
+          style: "text",
+          alignment: "center",
+          fontSize: 16,
+        },
+        {
+          text: `Telefono: ${venta?.sucursal_data[0].sucursal_telefono}`,
+          style: "text",
+          alignment: "center",
+          fontSize: 16,
+        },
+        { text: "\n" },
+        {
+          text: "------------------------------------------------------------------------------------",
+          style: "text",
+          fontSize: 14,
+        },
+        {
+          text: `Timbrado: ${venta?.timbrado}`,
+          style: "text",
+          alignment: "center",
+          fontSize: 16,
+        },
+        {
+          text: `Valido desde: ${venta?.factura_valido_desde}`,
+          style: "text",
+          alignment: "center",
+          fontSize: 16,
+        },
+        {
+          text: `Valido hasta: ${venta?.factura_valido_hasta}`,
+          style: "text",
+          alignment: "center",
+          fontSize: 16,
+        },
+        {
+          text: `FACTURA ${venta?.tipo_venta}`,
+          style: "tHeaderValue",
+          alignment: "center",
+          fontSize: 16,
+        },
+        {
+          text: `Nro: ${venta?.factura}`,
+          style: "text",
+          alignment: "center",
+          fontSize: 16,
+        },
+        {
+          text: ` *** IVA INCLUIDO ***`,
+          style: "text",
+          alignment: "center",
+          fontSize: 16,
+        },
+        {
+          text: "------------------------------------------------------------------------------------",
+          style: "text",
+          fontSize: 14,
+        },
+        {
+          text: `Fecha Emision: ${fechaActual}`,
+          style: "text",
+          alignment: "center",
+          fontSize: 16,
+        },
+        {
+          text: `Cajero: ${venta?.cajero}`,
+          style: "text",
+          alignment: "center",
+          fontSize: 16,
+        },
+        {
+          text: `Cliente: ${venta?.cliente}`,
+          style: "text",
+          alignment: "center",
+          fontSize: 16,
+        },
+        {
+          text: `RUC: ${venta?.ruc}`,
+          style: "text",
+          alignment: "center",
+          fontSize: 16,
+        },
+        {
+          text: `Dirección: ${venta?.direccion}`,
+          style: "text",
+          alignment: "center",
+          fontSize: 16,
+        },
+        {
+          text: `Teléfono: ${venta?.telefono}`,
+          style: "text",
+          alignment: "center",
+          fontSize: 16,
+        },
+        { text: "\n" },
+        {
+          text: "------------------------------------------------------------------------------------",
+          style: "text",
+          fontSize: 14,
+        },
+        {
+          table: {
+            headerRows: 1,
+            widths: ["*", "auto", "auto", "auto"],
+            body: [
+              [
+                {
+                  text: "Artículo",
+                  style: "tProductsHeader",
+                  fontSize: 16,
+                },
+                { text: "Cant.", style: "tProductsHeader", fontSize: 16 },
+                { text: "Precio", style: "tProductsHeader", fontSize: 16 },
+                { text: "Total", style: "tProductsHeader", fontSize: 16 },
+              ],
+              ...detallesVenta.map((row) =>
+                row.map((cell) => ({
+                  text: cell,
+                  style: "tProductsBody",
+                  fontSize: 16,
+                }))
+              ),
+            ],
+          },
+          layout: "noBorders",
+        },
+        { text: "\n" },
+        {
+          text: "------------------------------------------------------------------------------------",
+          style: "text",
+          fontSize: 14,
+        },
+        {
+          alignment: "right",
+          columns: [
+            {},
+            {
+              width: "auto",
+              table: {
+                body: [
+                  [
+                    { text: "GRAN TOTAL:", style: "tTotals", fontSize: 16 },
+                    {
+                      text: `${(
+                        Number(venta?.subtotal) || 0
+                      ).toLocaleString("es-PY")} Gs.`,
+                      style: "tTotals",
+                      fontSize: 16,
+                    },
+                  ],
+                  [
+                    { text: "DESCUENTO:", style: "tTotals", fontSize: 16 },
+                    {
+                      text: `${(
+                        Number(venta?.total_descuento) || 0
+                      ).toLocaleString("es-PY")} Gs.`,
+                      style: "tTotals",
+                      fontSize: 16,
+                    },
+                  ],
+                  [
+                    {
+                      text: "TOTAL A PAGAR:",
+                      style: "tTotals",
+                      fontSize: 16,
+                    },
+                    {
+                      text: `${(
+                        Number(venta?.total_a_pagar) || 0
+                      ).toLocaleString("es-PY")} Gs.`,
+                      style: "tTotals",
+                      fontSize: 16,
+                    },
+                  ],
+                ],
+              },
+              layout: "noBorders",
+            },
+          ],
+        },
+        {
+          text: "------------------------------------------------------------------------------------",
+          style: "text",
+          fontSize: 14,
+        },
+        {
+          alignment: "right",
+          columns: [
+            {},
+            {
+              width: "auto",
+              table: {
+                body: [
+                  [
+                    {
+                      text: "Monto recibido:",
+                      style: "tTotals",
+                      fontSize: 16,
+                    },
+                    {
+                      text: `${(Number(monto_recibido) || 0).toLocaleString(
+                        "es-PY"
+                      )} Gs.`,
+                      style: "tTotals",
+                      fontSize: 16,
+                    },
+                  ],
+                  [
+                    { text: "Vuelto:", style: "tTotals", fontSize: 16 },
+                    {
+                      text: `${(Number(vuelto) || 0).toLocaleString(
+                        "es-PY"
+                      )} Gs.`,
+                      style: "tTotals",
+                      fontSize: 16,
+                    },
+                  ],
+                ],
+              },
+              layout: "noBorders",
+            },
+          ],
+        },
+        {
+          text: "------------------------------------------------------------------------------------",
+          style: "text",
+          fontSize: 14,
+        },
+        { text: "DETALLE LIQUIDACION IVA", style: "text", fontSize: 16 },
+        {
+          text: "------------------------------------------------------------------------------------",
+          style: "text",
+          fontSize: 14,
+        },
+        { text: "\n" },
+        {
+          table: {
+            widths: ["60%", "40%"],
+            body: [
+              [
+                {
+                  text: "T. Exentas:",
+                  fontSize: 16,
+                  alignment: "left",
+                },
+                {
+                  text: `Gs. ${formatNumber(
+                    Number(venta?.total_exentas) || 0
+                  )}`,
+                  fontSize: 16,
+                  alignment: "right",
+                },
+              ],
+              [
+                {
+                  text: "T. Gravadas 10%:",
+                  fontSize: 16,
+                  alignment: "left",
+                },
+                {
+                  text: `Gs. ${formatNumber(
+                    Number(venta?.total_diez) || 0
+                  )}`,
+                  fontSize: 16,
+                  alignment: "right",
+                },
+              ],
+              [
+                {
+                  text: "T. Gravadas 5%:",
+                  fontSize: 16,
+                  alignment: "left",
+                },
+                {
+                  text: `Gs. ${formatNumber(
+                    Number(venta?.total_cinco) || 0
+                  )}`,
+                  fontSize: 16,
+                  alignment: "right",
+                },
+              ],
+              [
+                {
+                  text: "Liq. IVA 5%:",
+                  fontSize: 16,
+                  alignment: "left",
+                },
+                {
+                  text: `Gs. ${
+                    venta?.total_cinco
+                      ? formatNumber(Number(venta.total_cinco) / 22)
+                      : 0
+                  }`,
+                  fontSize: 16,
+                  alignment: "right",
+                },
+              ],
+              [
+                {
+                  text: "Liq. IVA 10%:",
+                  fontSize: 16,
+                  alignment: "left",
+                },
+                {
+                  text: `Gs. ${
+                    venta?.total_diez
+                      ? formatNumber(Number(venta.total_diez) / 11)
+                      : 0
+                  }`,
+                  fontSize: 16,
+                  alignment: "right",
+                },
+              ],
+              [
+                {
+                  text: "Total Liq. IVA:",
+                  fontSize: 16,
+                  alignment: "left",
+                },
+                {
+                  text: `Gs. ${formatNumber(
+                    (venta?.total_cinco
+                      ? Number(venta.total_cinco) / 22
+                      : 0) +
+                      (venta?.total_diez
+                        ? Number(venta.total_diez) / 11
+                        : 0)
+                  )}`,
+                  fontSize: 16,
+                  alignment: "right",
+                },
+              ],
+            ],
+          },
+          layout: "noBorders",
+        },
+        {
+          text: "------------------------------------------------------------------------------------",
+          style: "text",
+          fontSize: 14,
+        },
+        {
+          text: "***GRACIAS POR SU PREFERENCIA***",
+          style: "text",
+          fontSize: 16,
+          alignment: "center",
+        },
+        {
+          text: "ORIGINAL CLIENTE",
+          style: "text",
+          fontSize: 16,
+          alignment: "center",
+        },
+        {
+          text: "DUPLICADO ARCHIVO TRIBUTARIO",
+          style: "text",
+          fontSize: 16,
+          alignment: "center",
+        },
+        {
+          text: "------------------------------------------------------------------------------------",
+          style: "text",
+          fontSize: 14,
+        },
+      ];
+
+      // Agregar contenido condicional para factura electrónica
+      if (venta?.usa_fe === 1) {
+        contenidoPDF.push(
+          { text: "\n" },
+          {
+            qr: `${venta?.ve_qr}`,
+            fit: 300,
+            alignment: "center",
+          } as any,
+          { text: "\n" },
+          {
+            text: "Consulte la validez de este Documento Electronico con el numero de CDC impreso",
+            style: "text",
+            fontSize: 16,
+            alignment: "center",
+          },
+          { text: "\n" },
+          {
+            text: "https://ekuatia.set.gov.py/consultas/",
+            style: "text",
+            fontSize: 16,
+            alignment: "center",
+          },
+          { text: "\n" },
+          {
+            text: `CDC: ${venta?.ve_cdc}`,
+            style: "text",
+            fontSize: 16,
+            alignment: "center",
+            bold: true,
+          } as any,
+          { text: "\n" },
+          {
+            text: `ESTE DOCUMENTO ES UNA REPRESENTACION GRAFICA DE UN DOCUMENTO ELECTRONICO (XML)`,
+            style: "text",
+            fontSize: 12,
+            alignment: "center",
+            bold: true,
+          } as any,
+          { text: "\n" },
+          {
+            text: `Si su documento electronico presenta algun error, puede solicitar la modificacion dentro de las 72 horas siguientes de la emision de este comprobante.`,
+            style: "text",
+            fontSize: 12,
+            alignment: "center",
+            bold: true,
+          } as any
+        );
+      }
+
+      // Generar el PDF con el contenido preparado
       await generatePDF(
         {
           pageSize: {
@@ -107,362 +542,7 @@ const ModeloFacturaNuevo = ({
             subject: "Factura de Venta",
             keywords: "venta, factura",
           },
-          content: [
-            {
-              text: venta?.sucursal_data[0].sucursal_empresa,
-              style: "header",
-              alignment: "center",
-              fontSize: 18,
-            },
-            {
-              text: `RUC: ${venta?.sucursal_data[0].sucursal_ruc}`,
-              style: "text",
-              alignment: "center",
-              fontSize: 16,
-            },
-            {
-              text: `${venta?.sucursal_data[0].sucursal_matriz} :${venta?.sucursal_data[0].sucursal_direccion}`,
-              style: "text",
-              alignment: "center",
-              fontSize: 16,
-            },
-            {
-              text: `Telefono: ${venta?.sucursal_data[0].sucursal_telefono}`,
-              style: "text",
-              alignment: "center",
-              fontSize: 16,
-            },
-            { text: "\n" },
-            {
-              text: "------------------------------------------------------------------------------------",
-              style: "text",
-              fontSize: 14,
-            },
-            {
-              text: `Timbrado: ${venta?.timbrado}`,
-              style: "text",
-              alignment: "center",
-              fontSize: 16,
-            },
-            {
-              text: `Valido desde: ${venta?.factura_valido_desde}`,
-              style: "text",
-              alignment: "center",
-              fontSize: 16,
-            },
-            {
-              text: `Valido hasta: ${venta?.factura_valido_hasta}`,
-              style: "text",
-              alignment: "center",
-              fontSize: 16,
-            },
-            {
-              text: `FACTURA ${venta?.tipo_venta}`,
-              style: "tHeaderValue",
-              alignment: "center",
-              fontSize: 16,
-            },
-            {
-              text: `Nro: ${venta?.factura}`,
-              style: "text",
-              alignment: "center",
-              fontSize: 16,
-            },
-            {
-              text: ` *** IVA INCLUIDO ***`,
-              style: "text",
-              alignment: "center",
-              fontSize: 16,
-            },
-            {
-              text: "------------------------------------------------------------------------------------",
-              style: "text",
-              fontSize: 14,
-            },
-            {
-              text: `Fecha Emision: ${fechaActual}`,
-              style: "text",
-              alignment: "center",
-              fontSize: 16,
-            },
-            {
-              text: `Cajero: ${venta?.cajero}`,
-              style: "text",
-              alignment: "center",
-              fontSize: 16,
-            },
-            {
-              text: `Cliente: ${venta?.cliente}`,
-              style: "text",
-              alignment: "center",
-              fontSize: 16,
-            },
-            {
-              text: `RUC: ${venta?.ruc}`,
-              style: "text",
-              alignment: "center",
-              fontSize: 16,
-            },
-            {
-              text: `Dirección: ${venta?.direccion}`,
-              style: "text",
-              alignment: "center",
-              fontSize: 16,
-            },
-            {
-              text: `Teléfono: ${venta?.telefono}`,
-              style: "text",
-              alignment: "center",
-              fontSize: 16,
-            },
-            { text: "\n" },
-            {
-              text: "------------------------------------------------------------------------------------",
-              style: "text",
-              fontSize: 14,
-            },
-            {
-              table: {
-                headerRows: 1,
-                widths: ["*", "auto", "auto", "auto"],
-                body: [
-                  [
-                    {
-                      text: "Artículo",
-                      style: "tProductsHeader",
-                      fontSize: 16,
-                    },
-                    { text: "Cant.", style: "tProductsHeader", fontSize: 16 },
-                    { text: "Precio", style: "tProductsHeader", fontSize: 16 },
-                    { text: "Total", style: "tProductsHeader", fontSize: 16 },
-                  ],
-                  ...detallesVenta.map((row) =>
-                    row.map((cell) => ({
-                      text: cell,
-                      style: "tProductsBody",
-                      fontSize: 16,
-                    }))
-                  ),
-                ],
-              },
-              layout: "noBorders",
-            },
-            { text: "\n" },
-            {
-              text: "------------------------------------------------------------------------------------",
-              style: "text",
-              fontSize: 14,
-            },
-            {
-              alignment: "right",
-              columns: [
-                {},
-                {
-                  width: "auto",
-                  table: {
-                    body: [
-                      [
-                        { text: "GRAN TOTAL:", style: "tTotals", fontSize: 16 },
-                        {
-                          text: `${(
-                            Number(venta?.subtotal) || 0
-                          ).toLocaleString("es-PY")} Gs.`,
-                          style: "tTotals",
-                          fontSize: 16,
-                        },
-                      ],
-                      [
-                        { text: "DESCUENTO:", style: "tTotals", fontSize: 16 },
-                        {
-                          text: `${(
-                            Number(venta?.total_descuento) || 0
-                          ).toLocaleString("es-PY")} Gs.`,
-                          style: "tTotals",
-                          fontSize: 16,
-                        },
-                      ],
-                      [
-                        {
-                          text: "TOTAL A PAGAR:",
-                          style: "tTotals",
-                          fontSize: 16,
-                        },
-                        {
-                          text: `${(
-                            Number(venta?.total_a_pagar) || 0
-                          ).toLocaleString("es-PY")} Gs.`,
-                          style: "tTotals",
-                          fontSize: 16,
-                        },
-                      ],
-                    ],
-                  },
-                  layout: "noBorders",
-                },
-              ],
-            },
-            {
-              text: "------------------------------------------------------------------------------------",
-              style: "text",
-              fontSize: 14,
-            },
-            {
-              alignment: "right",
-              columns: [
-                {},
-                {
-                  width: "auto",
-                  table: {
-                    body: [
-                      [
-                        {
-                          text: "Monto recibido:",
-                          style: "tTotals",
-                          fontSize: 16,
-                        },
-                        {
-                          text: `${(Number(monto_recibido) || 0).toLocaleString(
-                            "es-PY"
-                          )} Gs.`,
-                          style: "tTotals",
-                          fontSize: 16,
-                        },
-                      ],
-                      [
-                        { text: "Vuelto:", style: "tTotals", fontSize: 16 },
-                        {
-                          text: `${(Number(vuelto) || 0).toLocaleString(
-                            "es-PY"
-                          )} Gs.`,
-                          style: "tTotals",
-                          fontSize: 16,
-                        },
-                      ],
-                    ],
-                  },
-                  layout: "noBorders",
-                },
-              ],
-            },
-            {
-              text: "------------------------------------------------------------------------------------",
-              style: "text",
-              fontSize: 14,
-            },
-            { text: "DETALLE LIQUIDACION IVA", style: "text", fontSize: 16 },
-            {
-              text: "------------------------------------------------------------------------------------",
-              style: "text",
-              fontSize: 14,
-            },
-            { text: "\n" },
-            {
-              table: {
-                widths: ["60%", "40%"],
-                body: [
-                  [
-                    {
-                      text: "T. Exentas:",
-                      fontSize: 16,
-                      alignment: "left",
-                    },
-                    {
-                      text: `Gs. ${formatNumber(Number(venta?.total_exentas) || 0)}`,
-                      fontSize: 16,
-                      alignment: "right",
-                    },
-                  ],
-                  [
-                    {
-                      text: "T. Gravadas 10%:",
-                      fontSize: 16,
-                      alignment: "left",
-                    },
-                    {
-                      text: `Gs. ${formatNumber(Number(venta?.total_diez) || 0)}`,
-                      fontSize: 16,
-                      alignment: "right",
-                    },
-                  ],
-                  [
-                    {
-                      text: "T. Gravadas 5%:",
-                      fontSize: 16,
-                      alignment: "left",
-                    },
-                    {
-                      text: `Gs. ${formatNumber(Number(venta?.total_cinco) || 0)}`,
-                      fontSize: 16,
-                      alignment: "right",
-                    },
-                  ],
-                  [
-                    {
-                      text: "Liq. IVA 5%:",
-                      fontSize: 16,
-                      alignment: "left",
-                    },
-                    {
-                      text: `Gs. ${venta?.total_cinco ? formatNumber(Number(venta.total_cinco) / 22) : 0}`,
-                      fontSize: 16,
-                      alignment: "right",
-                    },
-                  ],
-                  [
-                    {
-                      text: "Liq. IVA 10%:",
-                      fontSize: 16,
-                      alignment: "left",
-                    },
-                    {
-                      text: `Gs. ${venta?.total_diez ? formatNumber(Number(venta.total_diez) / 11) : 0}`,
-                      fontSize: 16,
-                      alignment: "right",
-                    },
-                  ],
-                  [
-                    {
-                      text: "Total Liq. IVA:",
-                      fontSize: 16,
-                      alignment: "left",
-                    },
-                    {
-                      text: `Gs. ${formatNumber(
-                        (venta?.total_cinco ? Number(venta.total_cinco) / 22 : 0) +
-                        (venta?.total_diez ? Number(venta.total_diez) / 11 : 0)
-                      )}`,
-                      fontSize: 16,
-                      alignment: "right",
-                    },
-                  ],
-                ],
-              },
-              layout: "noBorders",
-            },
-            {
-              text: "------------------------------------------------------------------------------------",
-              style: "text",
-              fontSize: 14,
-            },
-            {
-              text: "***GRACIAS POR SU PREFERENCIA***",
-              style: "text",
-              fontSize: 16,
-              alignment: "center",
-            },
-            {
-              text: "ORIGINAL CLIENTE",
-              style: "text",
-              fontSize: 16,
-              alignment: "center",
-            },
-            {
-              text: "DUPLICADO ARCHIVO TRIBUTARIO",
-              style: "text",
-              fontSize: 16,
-              alignment: "center",
-            },
-          ],
+          content: contenidoPDF,
         },
         "print"
       );
