@@ -55,8 +55,8 @@ import ModeloNotaComun from "../facturacion/ModeloNotaComun";
 import Auditar from "@/services/AuditoriaHook";
 import ArticuloInfoCardOld from "@/modules/ArticuloInfoCardOld";
 import { FacturaSendResponse } from "@/types/factura_electronica/types";
-import { useFacturaSendTesting } from "@/hooks/useFacturaSendTesting";
-
+import { useFacturacionElectronicaStore } from "@/stores/facturacionElectronicaStore";
+import { useFacturaSend } from "@/hooks/useFacturaSend";
 
 interface ItemParaVenta {
   precio_guaranies: number;
@@ -167,7 +167,7 @@ const PuntoDeVentaNuevo = () => {
   const [fecha, setFecha] = useState(new Date().toISOString().split("T")[0]);
 
   const [sucursales, setSucursales] = useState<Sucursal[]>([]);
-  const [, setSucursalSeleccionada] = useState<Sucursal | null>(null);
+  const [sucursalSeleccionada, setSucursalSeleccionada] = useState<Sucursal | null>(null);
 
   const [depositos, setDepositos] = useState<Deposito[]>([]);
   const [depositoSeleccionado, setDepositoSeleccionado] =
@@ -200,7 +200,6 @@ const PuntoDeVentaNuevo = () => {
 
   const operador = sessionStorage.getItem("user_id");
 
-
   const [articuloBusqueda, setArticuloBusqueda] = useState<string>("");
   const [articuloBusquedaId, setArticuloBusquedaId] = useState<string | null>(
     null
@@ -218,7 +217,6 @@ const PuntoDeVentaNuevo = () => {
 
   const [itemsParaVenta, setItemsParaVenta] = useState<ItemParaVenta[]>([]);
 
-
   const [ultimaVentaId, setUltimaVentaId] = useState<number | null>(null);
 
   const busquedaPorIdInputRef = useRef<HTMLInputElement>(null);
@@ -230,6 +228,7 @@ const PuntoDeVentaNuevo = () => {
   const tipoDocumentoKCInputRef = useRef<HTMLInputElement>(null);
   const tipoVentaKCInputRef = useRef<HTMLInputElement>(null);
   const montoEntregadoKCInputRef = useRef<HTMLInputElement>(null);
+  
 
   const [cotizacionDolar, setCotizacionDolar] = useState<number>(7770);
   const [cotizacionReal, setCotizacionReal] = useState<number>(1200);
@@ -237,10 +236,16 @@ const PuntoDeVentaNuevo = () => {
   const [articuloSeleccionado, setArticuloSeleccionado] =
     useState<ArticulosNuevo | null>(null);
 
-  const [montoEntregado, setMontoEntregado] = useState<number | null    >(null);
-  const [montoEntregadoDolar, setMontoEntregadoDolar] = useState<number | null>(null);
-  const [montoEntregadoReal, setMontoEntregadoReal] = useState<number | null>(null);
-  const [montoEntregadoPeso, setMontoEntregadoPeso] = useState<number | null>(null);
+  const [montoEntregado, setMontoEntregado] = useState<number | null>(null);
+  const [montoEntregadoDolar, setMontoEntregadoDolar] = useState<number | null>(
+    null
+  );
+  const [montoEntregadoReal, setMontoEntregadoReal] = useState<number | null>(
+    null
+  );
+  const [montoEntregadoPeso, setMontoEntregadoPeso] = useState<number | null>(
+    null
+  );
 
   const [hoveredArticulo, setHoveredArticulo] = useState<ArticulosNuevo | null>(
     null
@@ -267,8 +272,6 @@ const PuntoDeVentaNuevo = () => {
     onOpen: onKCOpen,
     onClose: onCloseKCOpen,
   } = useDisclosure();
-
-
 
   const {
     isOpen: isPedidoModalOpen,
@@ -302,7 +305,7 @@ const PuntoDeVentaNuevo = () => {
   const [, setNumeroPresupuesto] = useState<number | null>(null);
 
   const [ventaIdEdicion, setVentaIdEdicion] = useState<number | null>(null);
-
+  const [clienteBusquedaId, setClienteBusquedaId] = useState<number | null>(null);
 
   const configuraciones = JSON.parse(
     sessionStorage.getItem("configuraciones") || "[]"
@@ -311,7 +314,12 @@ const PuntoDeVentaNuevo = () => {
     sessionStorage.getItem("permisos_descuento") || "[]"
   );
 
+  const { usaFacturaElectronica, fetchUsaFacturaElectronica } =
+    useFacturacionElectronicaStore();
+
   const tipoImpresion = configuraciones[5].valor || 0;
+
+  const cajero_id = sessionStorage.getItem("user_id");
 
   const [imprimirFactura, setImprimirFactura] = useState<boolean>(true);
   const [imprimirTicket, setImprimirTicket] = useState<boolean>(false);
@@ -325,7 +333,7 @@ const PuntoDeVentaNuevo = () => {
     });
 
   const toast = useToast();
-  const { enviarFactura } = useFacturaSendTesting();
+  const { enviarFacturas } = useFacturaSend();
 
   async function getDatos() {
     try {
@@ -367,14 +375,16 @@ const PuntoDeVentaNuevo = () => {
       setCotizacionPeso(responseCotizaciones.data.body[0].ars_venta);
       setCotizacionReal(responseCotizaciones.data.body[0].brl_venta);
 
-      const responseClientePorDefecto = await axios.get(`${api_url}clientes/get-clientes`, {
-        params: {
-          id_cliente: 1,
-        },
-      });
-      console.log('Cliente por defecto', responseClientePorDefecto.data.body);
+      const responseClientePorDefecto = await axios.get(
+        `${api_url}clientes/get-clientes`,
+        {
+          params: {
+            id_cliente: 1,
+          },
+        }
+      );
+      console.log("Cliente por defecto", responseClientePorDefecto.data.body);
       setClienteSeleccionado(responseClientePorDefecto.data.body[0]);
-
     } catch (error) {
       toast({
         title: "Error al obtener los datos",
@@ -423,7 +433,10 @@ const PuntoDeVentaNuevo = () => {
     }
   }
 
-  const getArticulos = async (busqueda: string, id_articulo?: string | null) => {
+  const getArticulos = async (
+    busqueda: string,
+    id_articulo?: string | null
+  ) => {
     setArticulos([]);
     const response = await axios.get(`${api_url}articulos/consulta-articulos`, {
       params: {
@@ -437,6 +450,13 @@ const PuntoDeVentaNuevo = () => {
     setArticulos(response.data.body);
   };
 
+
+  useEffect(() => {
+    console.log('vendedorSeleccionado', vendedorSeleccionado)
+  }, [vendedorSeleccionado])
+
+
+
   const getClientes = async (busqueda: string) => {
     const response = await axios.get(`${api_url}clientes/get-clientes`, {
       params: {
@@ -447,24 +467,26 @@ const PuntoDeVentaNuevo = () => {
     setClientes(response.data.body);
   };
 
-  const getClientePorId = async (id: number) => {
+  const getClientePorId = async (
+    id: number | null,
+    id_cliente: number | null
+  ) => {
+    console.log("Buscando cliente", id);
     try {
       const response = await axios.get(`${api_url}clientes/get-clientes`, {
         params: {
+          id_cliente: id_cliente,
           id: id,
         },
       });
+      console.log("Respuesta de cliente", response.data.body);
       setClienteSeleccionado(response.data.body[0]);
+      console.log("Cliente seleccionado", response.data.body[0]);
     } catch (error) {
       console.error(error);
     }
   };
 
-  useEffect(() => {
-    if (clienteSeleccionado) {
-      getVendedores(clienteSeleccionado.vendedor_cliente);
-    }
-  }, [clienteSeleccionado]);
 
   const getVendedores = async (busqueda: number) => {
     const response = await axios.get(`${api_url}usuarios/vendedores`, {
@@ -475,6 +497,11 @@ const PuntoDeVentaNuevo = () => {
     setVendedores(response.data.body);
     setVendedorSeleccionado(response.data.body[0]);
   };
+
+ useEffect(()=>{
+   getVendedores(Number(cajero_id))
+ }, [cajero_id])
+
 
   const handleBuscarArticulo = (e: React.ChangeEvent<HTMLInputElement>) => {
     const busqueda = e.target.value;
@@ -489,16 +516,18 @@ const PuntoDeVentaNuevo = () => {
     }
   };
 
-const handleBuscarArticuloPorId = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const busqueda = e.target.value;
-  setArticuloBusquedaId(busqueda);
-  setArticuloSeleccionado(null);
-  if (busqueda.length > 0) {
-    getArticulos("", busqueda);
-  } else {
-    setArticulos([]);
-  }
-};
+  const handleBuscarArticuloPorId = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const busqueda = e.target.value;
+    setArticuloBusquedaId(busqueda);
+    setArticuloSeleccionado(null);
+    if (busqueda.length > 0) {
+      getArticulos("", busqueda);
+    } else {
+      setArticulos([]);
+    }
+  };
 
   const handleBuscarCliente = (e: React.ChangeEvent<HTMLInputElement>) => {
     const busqueda = e.target.value;
@@ -513,9 +542,13 @@ const handleBuscarArticuloPorId = (e: React.ChangeEvent<HTMLInputElement>) => {
   };
 
   const handleBuscarClientePorId = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const busqueda = e.target.value;
-    if (busqueda.length > 0) {
-      getClientePorId(Number(busqueda));
+    console.log("Buscando cliente por id", e);
+    const busqueda = typeof e === "number" ? e : e.target.value;
+    if (busqueda === "" || busqueda === null) {
+      setClienteSeleccionado(null);
+    } else if (busqueda) {
+      getClientePorId(null, Number(busqueda));
+      setClienteBusquedaId(Number(busqueda));
     } else {
       setClienteSeleccionado(null);
     }
@@ -541,141 +574,141 @@ const handleBuscarArticuloPorId = (e: React.ChangeEvent<HTMLInputElement>) => {
     setClienteSeleccionado(cliente);
   };
 
-const agregarItemAVenta = () => {
-  if (!articuloSeleccionado) return;
+  const agregarItemAVenta = () => {
+    if (!articuloSeleccionado) return;
 
-  if (!articuloSeleccionado.lotes?.length) {
-    toast({
-      title: "Error",
-      description: "No hay lotes disponibles para este artículo",
-      status: "error",
+    if (!articuloSeleccionado.lotes?.length) {
+      toast({
+        title: "Error",
+        description: "No hay lotes disponibles para este artículo",
+        status: "error",
+      });
+      return;
+    }
+
+    const lotesDeposito = articuloSeleccionado.lotes.filter((lote) => {
+      return Number(lote.deposito) === Number(depositoSeleccionado?.dep_codigo);
     });
-    return;
-  }
 
-  const lotesDeposito = articuloSeleccionado.lotes.filter((lote) => {
-    return Number(lote.deposito) === Number(depositoSeleccionado?.dep_codigo);
-  });
+    if (lotesDeposito.length === 0) {
+      toast({
+        title: "Error",
+        description: "No hay lotes disponibles en el depósito seleccionado",
+        status: "error",
+      });
+      return;
+    }
 
-  if (lotesDeposito.length === 0) {
-    toast({
-      title: "Error",
-      description: "No hay lotes disponibles en el depósito seleccionado",
-      status: "error",
-    });
-    return;
-  }
+    // Ordenar lotes por fecha de vencimiento y obtener el más cercano
+    const loteSeleccionado = lotesDeposito.sort((a, b) => {
+      if (a.cantidad > 0 && b.cantidad === 0) return -1;
+      if (a.cantidad === 0 && b.cantidad > 0) return 1;
+      const fechaA = new Date(a.vencimiento.split("/").reverse().join("-"));
+      const fechaB = new Date(b.vencimiento.split("/").reverse().join("-"));
+      return fechaB.getTime() - fechaA.getTime();
+    })[0];
 
-  // Ordenar lotes por fecha de vencimiento y obtener el más cercano
-  const loteSeleccionado = lotesDeposito.sort((a, b) => {
-    if (a.cantidad > 0 && b.cantidad === 0) return -1;
-    if (a.cantidad === 0 && b.cantidad > 0) return 1;
-    const fechaA = new Date(a.vencimiento.split("/").reverse().join("-"));
-    const fechaB = new Date(b.vencimiento.split("/").reverse().join("-"));
-    return fechaB.getTime() - fechaA.getTime();
-  })[0];
+    // 1. Obtener precio base en guaraníes
+    let precioEnGuaranies = 0;
+    switch (precioSeleccionado?.lp_codigo) {
+      case 1: // Lista precio contado
+        precioEnGuaranies = articuloSeleccionado.precio_venta;
+        break;
+      case 2: // Lista precio credito
+        precioEnGuaranies = articuloSeleccionado.precio_credito;
+        break;
+      case 3: // Lista precio mostrador
+        precioEnGuaranies = articuloSeleccionado.precio_mostrador;
+        break;
+      default:
+        precioEnGuaranies = articuloSeleccionado.precio_venta;
+    }
 
-  // 1. Obtener precio base en guaraníes
-  let precioEnGuaranies = 0;
-  switch (precioSeleccionado?.lp_codigo) {
-    case 1: // Lista precio contado
-      precioEnGuaranies = articuloSeleccionado.precio_venta;
-      break;
-    case 2: // Lista precio credito
-      precioEnGuaranies = articuloSeleccionado.precio_credito;
-      break;
-    case 3: // Lista precio mostrador
-      precioEnGuaranies = articuloSeleccionado.precio_mostrador;
-      break;
-    default:
-      precioEnGuaranies = articuloSeleccionado.precio_venta;
-  }
+    // 2. Calcular precio unitario en la moneda actual
+    let precioUnitarioMonedaActual = precioEnGuaranies;
+    switch (monedaSeleccionada?.mo_codigo) {
+      case 1: // Guaraníes
+        precioUnitarioMonedaActual = precioEnGuaranies;
+        break;
+      case 2: // Dólares
+        precioUnitarioMonedaActual = Number(
+          (precioEnGuaranies / cotizacionDolar).toFixed(2)
+        );
+        break;
+      case 3: // Reales
+        precioUnitarioMonedaActual = Number(
+          (precioEnGuaranies / cotizacionReal).toFixed(2)
+        );
+        break;
+      case 4: // Pesos
+        precioUnitarioMonedaActual = Number(
+          (precioEnGuaranies / cotizacionPeso).toFixed(2)
+        );
+        break;
+      default:
+        precioUnitarioMonedaActual = precioEnGuaranies;
+    }
 
-  // 2. Calcular precio unitario en la moneda actual
-  let precioUnitarioMonedaActual = precioEnGuaranies;
-  switch (monedaSeleccionada?.mo_codigo) {
-    case 1: // Guaraníes
-      precioUnitarioMonedaActual = precioEnGuaranies;
-      break;
-    case 2: // Dólares
-      precioUnitarioMonedaActual = Number(
-        (precioEnGuaranies / cotizacionDolar).toFixed(2)
-      );
-      break;
-    case 3: // Reales
-      precioUnitarioMonedaActual = Number(
-        (precioEnGuaranies / cotizacionReal).toFixed(2)
-      );
-      break;
-    case 4: // Pesos
-      precioUnitarioMonedaActual = Number(
-        (precioEnGuaranies / cotizacionPeso).toFixed(2)
-      );
-      break;
-    default:
-      precioUnitarioMonedaActual = precioEnGuaranies;
-  }
+    // 3. Calcular monto total en la moneda actual
+    const montoTotal = precioUnitarioMonedaActual * cantidad;
 
-  // 3. Calcular monto total en la moneda actual
-  const montoTotal = precioUnitarioMonedaActual * cantidad;
+    // 4. Calcular IVA en la moneda actual
+    let deve_exentas = 0;
+    let deve_cinco = 0;
+    let deve_diez = 0;
 
-  // 4. Calcular IVA en la moneda actual
-  let deve_exentas = 0;
-  let deve_cinco = 0;
-  let deve_diez = 0;
+    switch (articuloSeleccionado.iva) {
+      case 1: // Exento
+        deve_exentas = montoTotal;
+        break;
+      case 2: // IVA 10%
+        deve_diez = montoTotal;
+        break;
+      case 3: // IVA 5%
+        deve_cinco = montoTotal;
+        break;
+      default:
+        console.warn("Tipo de IVA no reconocido");
+    }
 
-  switch (articuloSeleccionado.iva) {
-    case 1: // Exento
-      deve_exentas = montoTotal;
-      break;
-    case 2: // IVA 10%
-      deve_diez = montoTotal;
-      break;
-    case 3: // IVA 5%
-      deve_cinco = montoTotal;
-      break;
-    default:
-      console.warn("Tipo de IVA no reconocido");
-  }
+    // 5. Crear el nuevo item
+    const nuevoItem: ItemParaVenta = {
+      precio_guaranies: precioEnGuaranies,
+      precio_dolares: Number((precioEnGuaranies / cotizacionDolar).toFixed(2)),
+      precio_reales: Number((precioEnGuaranies / cotizacionReal).toFixed(2)),
+      precio_pesos: Number((precioEnGuaranies / cotizacionPeso).toFixed(2)),
+      cod_barra: articuloSeleccionado.codigo_barra,
+      deve_articulo: articuloSeleccionado.id_articulo,
+      articulo: articuloSeleccionado.descripcion,
+      deve_cantidad: cantidad,
+      deve_precio: precioUnitarioMonedaActual,
+      precio_original: precioEnGuaranies,
+      deve_descuento: descuento || 0,
+      deve_exentas: Number(deve_exentas.toFixed(2)),
+      deve_cinco: Number(deve_cinco.toFixed(2)),
+      deve_diez: Number(deve_diez.toFixed(2)),
+      deve_devolucion: 0,
+      deve_vendedor: Number(vendedorSeleccionado?.op_codigo) || 0,
+      deve_color: null,
+      deve_bonificacion: null,
+      deve_talle: null,
+      deve_codioot: null,
+      deve_costo: null,
+      deve_costo_art: null,
+      deve_cinco_x: deve_cinco > 0 ? Number((deve_cinco * 0.05).toFixed(2)) : 0,
+      deve_diez_x: deve_diez > 0 ? Number((deve_diez * 0.1).toFixed(2)) : 0,
+      editar_nombre: articuloSeleccionado.editar_nombre,
+      deve_lote: loteSeleccionado.lote,
+      loteid: loteSeleccionado.id,
+      deve_vencimiento: loteSeleccionado.vencimiento,
+    };
 
-  // 5. Crear el nuevo item
-  const nuevoItem: ItemParaVenta = {
-    precio_guaranies: precioEnGuaranies,
-    precio_dolares: Number((precioEnGuaranies / cotizacionDolar).toFixed(2)),
-    precio_reales: Number((precioEnGuaranies / cotizacionReal).toFixed(2)),
-    precio_pesos: Number((precioEnGuaranies / cotizacionPeso).toFixed(2)),
-    cod_barra: articuloSeleccionado.codigo_barra,
-    deve_articulo: articuloSeleccionado.id_articulo,
-    articulo: articuloSeleccionado.descripcion,
-    deve_cantidad: cantidad,
-    deve_precio: precioUnitarioMonedaActual,
-    precio_original: precioEnGuaranies,
-    deve_descuento: descuento || 0,
-    deve_exentas: Number(deve_exentas.toFixed(2)),
-    deve_cinco: Number(deve_cinco.toFixed(2)),
-    deve_diez: Number(deve_diez.toFixed(2)),
-    deve_devolucion: 0,
-    deve_vendedor: Number(vendedorSeleccionado?.op_codigo) || 0,
-    deve_color: null,
-    deve_bonificacion: null,
-    deve_talle: null,
-    deve_codioot: null,
-    deve_costo: null,
-    deve_costo_art: null,
-    deve_cinco_x: deve_cinco > 0 ? Number((deve_cinco * 0.05).toFixed(2)) : 0,
-    deve_diez_x: deve_diez > 0 ? Number((deve_diez * 0.1).toFixed(2)) : 0,
-    editar_nombre: articuloSeleccionado.editar_nombre,
-    deve_lote: loteSeleccionado.lote,
-    loteid: loteSeleccionado.id,
-    deve_vencimiento: loteSeleccionado.vencimiento,
+    setItemsParaVenta([...itemsParaVenta, nuevoItem]);
+    setArticuloSeleccionado(null);
+    setArticuloBusqueda("");
+    setCantidad(1);
+    setDescuento(null);
   };
-
-  setItemsParaVenta([...itemsParaVenta, nuevoItem]);
-  setArticuloSeleccionado(null);
-  setArticuloBusqueda("");
-  setCantidad(1);
-  setDescuento(null);
-};
 
   const handleEliminarItem = (articulo: ItemParaVenta) => {
     setItemsParaVenta(itemsParaVenta.filter((item) => item !== articulo));
@@ -737,12 +770,21 @@ const agregarItemAVenta = () => {
     setArticuloBusqueda("");
     setCantidad(1);
     setDescuento(0);
+    setClienteSeleccionado(null);
+    setClienteBusqueda("");
+    setClienteBusquedaId(null);
   };
 
   useEffect(() => {
     getDatos();
     obtenerDatosFacturacion();
   }, []);
+
+  useEffect(() => {
+    if (sucursalSeleccionada) {
+      fetchUsaFacturaElectronica(sucursalSeleccionada.id);
+    }
+  }, [sucursalSeleccionada]);
 
   const totalExentas = itemsParaVenta.reduce(
     (total, item) => total + item.deve_exentas,
@@ -760,7 +802,8 @@ const agregarItemAVenta = () => {
     (total, item) => total + item.deve_cantidad,
     0
   );
-  const totalPagar = itemsParaVenta.reduce( //siempre en la moneda seleccionada
+  const totalPagar = itemsParaVenta.reduce(
+    //siempre en la moneda seleccionada
     (total, item) => total + item.deve_precio * item.deve_cantidad,
     0
   );
@@ -791,10 +834,9 @@ const agregarItemAVenta = () => {
   const totalDescuentoFactura = 0;
   const totalDescuento = totalDescuentoItems + totalDescuentoFactura;
 
-const totalPagarFinal = (totalPagar - totalDescuento); //siempre en la moneda seleccionada
+  const totalPagarFinal = totalPagar - totalDescuento; //siempre en la moneda seleccionada
 
-
-const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
+  const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
 
   // Formatear los números con 2 decimales y separador de miles
   const formatNumber = (num: number | string) => {
@@ -826,9 +868,12 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
   const totalDescuentoItemsFormateado = formatNumber(totalDescuentoItems);
   const totalDescuentoFormateado = formatNumber(totalDescuento);
   const totalPagarGuaraniesFormateado = formatNumber(totalPagarGuaranies);
-  const totalPagarDolaresFormateado = formatearDivisasExtranjeras(totalPagarDolares);
-  const totalPagarRealesFormateado = formatearDivisasExtranjeras(totalPagarReales);
-  const totalPagarPesosFormateado = formatearDivisasExtranjeras(totalPagarPesos);
+  const totalPagarDolaresFormateado =
+    formatearDivisasExtranjeras(totalPagarDolares);
+  const totalPagarRealesFormateado =
+    formatearDivisasExtranjeras(totalPagarReales);
+  const totalPagarPesosFormateado =
+    formatearDivisasExtranjeras(totalPagarPesos);
   const porcentajeDescuentoFormateado = porcentajeDescuento;
 
   const ResumenVentasCliente = ({
@@ -1058,9 +1103,7 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
 
   const finalizarVenta = async () => {
     try {
-      if (
-        itemsParaVenta.length === 0
-      ) {
+      if (itemsParaVenta.length === 0) {
         toast({
           title: "Error",
           description: "No se han seleccionado articulos para la venta",
@@ -1070,7 +1113,7 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
         return;
       }
 
-      if(!clienteSeleccionado){
+      if (!clienteSeleccionado) {
         toast({
           title: "Error",
           description: "No se ha seleccionado un cliente",
@@ -1079,7 +1122,7 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
         });
         return;
       }
-      if(!vendedorSeleccionado){
+      if (!vendedorSeleccionado) {
         toast({
           title: "Error",
           description: "No se ha seleccionado un vendedor",
@@ -1088,6 +1131,313 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
         });
         return;
       }
+
+      const documentoTipo = (() => {
+        switch (clienteSeleccionado.cli_tipo_doc) {
+          case 1:
+            return 1;
+          case 2:
+            return 1;
+          case 3:
+            return 2;
+          case 4:
+            return 3;
+          case 5:
+            return 1;
+          case 6:
+            return 6;
+          case 7:
+            return 9;
+          case 8:
+            return 1;
+        }
+      })();
+
+      const dataFacturaSend: FacturaSendResponse = {
+        tipoDocumento: 1,
+        establecimiento: opcionesFinalizacion.nro_establecimiento || 0,
+        punto: opcionesFinalizacion.nro_emision || 0,
+        numero: opcionesFinalizacion.nro_factura || 0,
+        observacion: "",
+        fecha: new Date().toISOString().split(".")[0],
+        tipoEmision: 1,
+        tipoTransaccion: 1,
+        tipoImpuesto: 1,
+        moneda:
+          monedaSeleccionada?.mo_codigo === 1
+            ? "PYG"
+            : monedaSeleccionada?.mo_codigo === 2
+            ? "USD"
+            : monedaSeleccionada?.mo_codigo === 3
+            ? "BRL"
+            : monedaSeleccionada?.mo_codigo === 4
+            ? "ARS"
+            : "PYG",
+        cambio: 0,
+        cliente: {
+          contribuyente:
+            clienteSeleccionado.cli_tipo_doc === 1 ||
+            clienteSeleccionado.cli_tipo_doc === 18
+              ? true
+              : false,
+          ruc:
+            clienteSeleccionado.cli_tipo_doc === 1
+              ? clienteSeleccionado.cli_ruc
+              : null,
+          razonSocial: clienteSeleccionado.cli_razon,
+          nombreFantasia: clienteSeleccionado.cli_descripcion,
+          tipoOperacion:
+            clienteSeleccionado.cli_tipo_doc === 1
+              ? 1
+              : clienteSeleccionado.cli_tipo_doc === 18
+              ? 3
+              : 2,
+          numeroCasa: "001",
+          departamento: clienteSeleccionado.cli_departamento || 1,
+          departamentoDescripcion: clienteSeleccionado.dep_descripcion || "",
+          distrito: clienteSeleccionado.cli_distrito || 1,
+          distritoDescripcion:
+            clienteSeleccionado.cli_distrito_descripcion || "",
+          direccion: clienteSeleccionado.cli_direccion || "",
+          ciudad: clienteSeleccionado.cli_ciudad || 1,
+          ciudadDescripcion: clienteSeleccionado.cli_ciudad_descripcion || "",
+          pais: "PRY",
+          paisDescripcion: "Paraguay",
+          tipoContribuyente: 1,
+          documentoTipo: documentoTipo,
+          telefono: clienteSeleccionado.cli_tel || "",
+          celular: clienteSeleccionado.cli_tel || "",
+          email: clienteSeleccionado.cli_mail || "",
+          codigo: clienteSeleccionado.cli_interno,
+        },
+        usuario: {
+          documentoTipo: 1,
+          documentoNumero: vendedorSeleccionado?.op_documento || "",
+          nombre: vendedorSeleccionado?.op_nombre || "",
+          cargo: "Vendedor",
+        },
+        factura: {
+          presencia: 1,
+        },
+        // condicion: {
+        //   tipo: opcionesFinalizacion.tipo_venta === "CREDITO" ? 2 : 1,
+        //   entregas:
+        //     opcionesFinalizacion.tipo_venta === "CONTADO"
+        //       ? [
+        //           {
+        //             tipo: 1, // Efectivo
+        //             monto: totalPagarFinal.toString(),
+        //             moneda:
+        //               monedaSeleccionada?.mo_codigo === 1
+        //                 ? "PYG"
+        //                 : monedaSeleccionada?.mo_codigo === 2
+        //                 ? "USD"
+        //                 : monedaSeleccionada?.mo_codigo === 3
+        //                 ? "BRL"
+        //                 : monedaSeleccionada?.mo_codigo === 4
+        //                 ? "ARS"
+        //                 : "PYG",
+        //             cambio: 0.0,
+        //           },
+        //         ]
+        //       : [],
+        //   credito:
+        //     opcionesFinalizacion.tipo_venta === "CREDITO"
+        //       ? {
+        //           tipo: 1, // Plazo
+        //           plazo: `${
+        //             opcionesFinalizacion.cantidad_cuotas || 1
+        //           } cuotas`,
+        //           cuotas: opcionesFinalizacion.cantidad_cuotas || 1,
+        //           infoCuotas: Array.from(
+        //             { length: opcionesFinalizacion.cantidad_cuotas || 1 },
+        //             (_, i) => {
+        //               const montoTotal =
+        //                 totalPagarFinal -
+        //                 (opcionesFinalizacion.entrega_inicial || 0);
+        //               const montoCuota =
+        //                 montoTotal /
+        //                 (opcionesFinalizacion.cantidad_cuotas || 1);
+        //               const fechaVencimiento = new Date();
+        //               fechaVencimiento.setDate(
+        //                 fechaVencimiento.getDate() + 30 * (i + 1)
+        //               );
+
+        //               return {
+        //                 moneda:
+        //                   monedaSeleccionada?.mo_codigo === 1
+        //                     ? "PYG"
+        //                     : monedaSeleccionada?.mo_codigo === 2
+        //                     ? "USD"
+        //                     : monedaSeleccionada?.mo_codigo === 3
+        //                     ? "BRL"
+        //                     : monedaSeleccionada?.mo_codigo === 4
+        //                     ? "ARS"
+        //                     : "PYG",
+        //                 monto: montoCuota,
+        //                 vencimiento: fechaVencimiento
+        //                   .toISOString()
+        //                   .split("T")[0],
+        //               };
+        //             }
+        //           ),
+        //         }
+        //       : null,
+        // },
+        condicion: {
+          tipo: opcionesFinalizacion.tipo_venta === "CREDITO" ? 2 : 1,
+
+          // Para CONTADO
+          entregas:
+            opcionesFinalizacion.tipo_venta === "CONTADO"
+              ? [
+                  {
+                    tipo: 1, // Efectivo
+                    monto: totalPagarFinal.toString(),
+                    moneda:
+                      monedaSeleccionada?.mo_codigo === 1
+                        ? "PYG"
+                        : monedaSeleccionada?.mo_codigo === 2
+                        ? "USD"
+                        : monedaSeleccionada?.mo_codigo === 3
+                        ? "BRL"
+                        : monedaSeleccionada?.mo_codigo === 4
+                        ? "ARS"
+                        : "PYG",
+                    monedaDescripcion:
+                      monedaSeleccionada?.mo_descripcion || "Guaraníes",
+                    cambio: 0.0,
+                  },
+                ]
+              : [],
+
+          // Para CRÉDITO
+          credito:
+            opcionesFinalizacion.tipo_venta === "CREDITO"
+              ? {
+                  tipo: 1, // Plazo
+                  plazo: `${opcionesFinalizacion.cantidad_cuotas || 1} cuotas`,
+                  cuotas: opcionesFinalizacion.cantidad_cuotas || 1,
+                  montoEntrega: opcionesFinalizacion.entrega_inicial || 0,
+                  infoCuotas: Array.from(
+                    { length: opcionesFinalizacion.cantidad_cuotas || 1 },
+                    (_) => {
+                      return {
+                        moneda:
+                          monedaSeleccionada?.mo_codigo === 1
+                            ? "PYG"
+                            : monedaSeleccionada?.mo_codigo === 2
+                            ? "USD"
+                            : monedaSeleccionada?.mo_codigo === 3
+                            ? "BRL"
+                            : monedaSeleccionada?.mo_codigo === 4
+                            ? "ARS"
+                            : "PYG",
+                        monto: 0,
+                        vencimiento: "",
+                      };
+                    }
+                  ),
+                }
+              : null,
+        },
+        items: itemsParaVenta.map((item) => {
+          // Variables para el cálculo de IVA
+          let ivaTipo = 1; // Por defecto, Gravado IVA
+          let ivaBase = 100;
+          let ivaPorcentaje = 10;
+          let IVa5 = 0;
+          let IVa10 = 0;
+          let vartotal = 0;
+          let VGravada = 0;
+          let vporc = 0;
+          if (item.deve_cinco > 0 && item.deve_exentas > 0) {
+            // CASE vcinco > 0 AND vexentas > 0
+            IVa5 = Math.round((item.deve_cinco / 21) * 100) / 100;
+            vartotal = item.deve_cinco + item.deve_exentas - IVa5;
+            ivaTipo = 4;
+            ivaPorcentaje = 5;
+            VGravada = Math.round((item.deve_cinco / 1.05) * 100) / 100;
+            vporc = (VGravada * 100) / vartotal;
+            ivaBase = parseFloat(vporc.toFixed(8));
+          } else if (item.deve_diez > 0 && item.deve_exentas > 0) {
+            // CASE vdiez > 0 AND vexentas > 0
+            IVa10 = Math.round((item.deve_diez / 11) * 100) / 100;
+            vartotal = item.deve_diez + item.deve_exentas - IVa10;
+            ivaTipo = 4;
+            ivaPorcentaje = 10;
+            VGravada = Math.round((item.deve_diez / 1.1) * 100) / 100;
+            vporc = (VGravada * 100) / vartotal;
+            ivaBase = parseFloat(vporc.toFixed(8));
+          } else if (item.deve_cinco > 0) {
+            // CASE vcinco > 0
+            ivaTipo = 1;
+            ivaPorcentaje = 5;
+            ivaBase = 100;
+          } else if (item.deve_diez > 0) {
+            // CASE vdiez > 0
+            ivaTipo = 1;
+            ivaPorcentaje = 10;
+            ivaBase = 100;
+          } else if (
+            item.deve_cinco === 0 &&
+            item.deve_diez === 0 &&
+            item.deve_exentas > 0
+          ) {
+            // Caso para productos exentos
+            ivaTipo = 3; // Exento
+            ivaPorcentaje = 0;
+            ivaBase = 0;
+          }
+
+          return {
+            codigo: item.deve_articulo,
+            descripcion: item.articulo,
+            observacion: "",
+            unidadMedida: item.ar_unidad_medida || 77, // Unidad
+            cantidad: item.deve_cantidad,
+            precioUnitario: item.deve_precio,
+            cambio: 0.0,
+            ivaTipo: ivaTipo,
+            ivaBase: ivaBase,
+            iva: ivaPorcentaje,
+            lote: item.deve_lote || "",
+            vencimiento: item.deve_vencimiento || "",
+          };
+        }),
+      };
+
+      let responseFacturaSend: any = null;
+
+      if (usaFacturaElectronica === 1 && opcionesFinalizacion.tipo_documento === "FACTURA") {
+        console.log("Factura send: ", dataFacturaSend);
+        responseFacturaSend = await enviarFacturas([dataFacturaSend]);
+        console.log("Respuesta factura send: ", responseFacturaSend);
+        if (responseFacturaSend.success === true) {
+          toast({
+            title: "Éxito",
+            description: "Factura Electronica emitida correctamente",
+            status: "info",
+            duration: 3000,
+          });
+        } else if (responseFacturaSend.success === false) {
+          toast({
+            title: "Error al emitir la factura electronica",
+            description: `Error:${responseFacturaSend.error}`,
+            status: "warning",
+            duration: 50000,
+            isClosable: true,
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: `Error desconocido al emitir la factura electronica`,
+            status: "error",
+            duration: 3000,
+          });
+        }
+      }
+
       const tasaCambio =
         monedaSeleccionada?.mo_codigo === 1
           ? 1
@@ -1121,8 +1471,8 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
               tasaCambio
             : 0,
         vencimiento: opcionesFinalizacion.fecha_vencimiento_timbrado || null,
-        descuento: totalDescuento ,
-        total: totalPagarFinal ,
+        descuento: totalDescuento,
+        total: totalPagarFinal,
         cuotas: opcionesFinalizacion.tipo_venta === "CREDITO" ? 1 : 0,
         cantCuotas: opcionesFinalizacion.cantidad_cuotas || 0,
         obs: opcionesFinalizacion.observacion || "",
@@ -1138,6 +1488,12 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
         situacion: 1,
         chofer: null,
         metodo: metodoPagoSeleccionado?.me_codigo || 1,
+        ve_cdc: usaFacturaElectronica
+          ? responseFacturaSend?.result?.deList[0]?.cdc || ""
+          : "",
+        ve_qr: usaFacturaElectronica
+          ? responseFacturaSend?.result?.deList[0]?.qr || ""
+          : "",
       };
 
       // Preparar detalles de venta
@@ -1181,311 +1537,6 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
           duration: 3000,
         });
 
-        const documentoTipo = (() => {
-          switch (clienteSeleccionado.cli_tipo_doc) {
-            case 1:
-              return 1;
-            case 2:
-              return 1;
-            case 3:
-              return 2;
-            case 4:
-              return 3;
-            case 5:
-              return 1;
-            case 6:
-              return 6;
-            case 7:
-              return 9;
-            case 8:
-              return 1;
-          }
-        })();
-
-        const dataFacturaSend: FacturaSendResponse = {
-          tipoDocumento: 1,
-          establecimiento: opcionesFinalizacion.nro_establecimiento || 0,
-          punto: opcionesFinalizacion.nro_emision || 0,
-          numero: opcionesFinalizacion.nro_factura || 0,
-          observacion: "",
-          fecha: new Date().toISOString().split(".")[0],
-          tipoEmision: 1,
-          tipoTransaccion: 1,
-          tipoImpuesto: 1,
-          moneda:
-            monedaSeleccionada?.mo_codigo === 1
-              ? "PYG"
-              : monedaSeleccionada?.mo_codigo === 2
-              ? "USD"
-              : monedaSeleccionada?.mo_codigo === 3
-              ? "BRL"
-              : monedaSeleccionada?.mo_codigo === 4
-              ? "ARS"
-              : "PYG",
-          cambio: 0,
-          cliente: {
-            contribuyente:
-              clienteSeleccionado.cli_tipo_doc === 1 ||
-              clienteSeleccionado.cli_tipo_doc === 18
-                ? true
-                : false,
-            ruc:
-              clienteSeleccionado.cli_tipo_doc === 1
-                ? clienteSeleccionado.cli_ruc
-                : null,
-            razonSocial: clienteSeleccionado.cli_razon,
-            nombreFantasia: clienteSeleccionado.cli_descripcion,
-            tipoOperacion:
-              clienteSeleccionado.cli_tipo_doc === 1
-                ? 1
-                : clienteSeleccionado.cli_tipo_doc === 18
-                ? 3
-                : 2,
-            numeroCasa: "001",
-            departamento: clienteSeleccionado.cli_departamento || 1,
-            departamentoDescripcion: clienteSeleccionado.dep_descripcion || "",
-            distrito: clienteSeleccionado.cli_distrito || 1,
-            distritoDescripcion:
-              clienteSeleccionado.cli_distrito_descripcion || "",
-            direccion: clienteSeleccionado.cli_direccion || "",
-            ciudad: clienteSeleccionado.cli_ciudad || 1,
-            ciudadDescripcion: clienteSeleccionado.cli_ciudad_descripcion || "",
-            pais: "PRY",
-            paisDescripcion: "Paraguay",
-            tipoContribuyente: 1,
-            documentoTipo: documentoTipo,
-            telefono: clienteSeleccionado.cli_tel || "",
-            celular: clienteSeleccionado.cli_tel || "",
-            email: clienteSeleccionado.cli_mail || "",
-            codigo: clienteSeleccionado.cli_interno,
-          },
-          usuario: {
-            documentoTipo: 1,
-            documentoNumero: vendedorSeleccionado?.op_documento || "",
-            nombre: vendedorSeleccionado?.op_nombre || "",
-            cargo: "Vendedor",
-          },
-          factura: {
-            presencia: 1,
-          },
-          // condicion: {
-          //   tipo: opcionesFinalizacion.tipo_venta === "CREDITO" ? 2 : 1,
-          //   entregas:
-          //     opcionesFinalizacion.tipo_venta === "CONTADO"
-          //       ? [
-          //           {
-          //             tipo: 1, // Efectivo
-          //             monto: totalPagarFinal.toString(),
-          //             moneda:
-          //               monedaSeleccionada?.mo_codigo === 1
-          //                 ? "PYG"
-          //                 : monedaSeleccionada?.mo_codigo === 2
-          //                 ? "USD"
-          //                 : monedaSeleccionada?.mo_codigo === 3
-          //                 ? "BRL"
-          //                 : monedaSeleccionada?.mo_codigo === 4
-          //                 ? "ARS"
-          //                 : "PYG",
-          //             cambio: 0.0,
-          //           },
-          //         ]
-          //       : [],
-          //   credito:
-          //     opcionesFinalizacion.tipo_venta === "CREDITO"
-          //       ? {
-          //           tipo: 1, // Plazo
-          //           plazo: `${
-          //             opcionesFinalizacion.cantidad_cuotas || 1
-          //           } cuotas`,
-          //           cuotas: opcionesFinalizacion.cantidad_cuotas || 1,
-          //           infoCuotas: Array.from(
-          //             { length: opcionesFinalizacion.cantidad_cuotas || 1 },
-          //             (_, i) => {
-          //               const montoTotal =
-          //                 totalPagarFinal -
-          //                 (opcionesFinalizacion.entrega_inicial || 0);
-          //               const montoCuota =
-          //                 montoTotal /
-          //                 (opcionesFinalizacion.cantidad_cuotas || 1);
-          //               const fechaVencimiento = new Date();
-          //               fechaVencimiento.setDate(
-          //                 fechaVencimiento.getDate() + 30 * (i + 1)
-          //               );
-
-          //               return {
-          //                 moneda:
-          //                   monedaSeleccionada?.mo_codigo === 1
-          //                     ? "PYG"
-          //                     : monedaSeleccionada?.mo_codigo === 2
-          //                     ? "USD"
-          //                     : monedaSeleccionada?.mo_codigo === 3
-          //                     ? "BRL"
-          //                     : monedaSeleccionada?.mo_codigo === 4
-          //                     ? "ARS"
-          //                     : "PYG",
-          //                 monto: montoCuota,
-          //                 vencimiento: fechaVencimiento
-          //                   .toISOString()
-          //                   .split("T")[0],
-          //               };
-          //             }
-          //           ),
-          //         }
-          //       : null,
-          // },
-          condicion: {
-            tipo: opcionesFinalizacion.tipo_venta === "CREDITO" ? 2 : 1,
-
-            // Para CONTADO
-            entregas:
-              opcionesFinalizacion.tipo_venta === "CONTADO"
-                ? [
-                    {
-                      tipo: 1, // Efectivo
-                      monto: totalPagarFinal.toString(),
-                      moneda:
-                        monedaSeleccionada?.mo_codigo === 1
-                          ? "PYG"
-                          : monedaSeleccionada?.mo_codigo === 2
-                          ? "USD"
-                          : monedaSeleccionada?.mo_codigo === 3
-                          ? "BRL"
-                          : monedaSeleccionada?.mo_codigo === 4
-                          ? "ARS"
-                          : "PYG",
-                      monedaDescripcion:
-                        monedaSeleccionada?.mo_descripcion || "Guaraníes",
-                      cambio: 0.0,
-                    },
-                  ]
-                : [],
-
-            // Para CRÉDITO
-            credito:
-              opcionesFinalizacion.tipo_venta === "CREDITO"
-                ? {
-                    tipo: 1, // Plazo
-                    plazo: `${
-                      opcionesFinalizacion.cantidad_cuotas || 1
-                    } cuotas`,
-                    cuotas: opcionesFinalizacion.cantidad_cuotas || 1,
-                    montoEntrega: opcionesFinalizacion.entrega_inicial || 0,
-                    infoCuotas: Array.from(
-                      { length: opcionesFinalizacion.cantidad_cuotas || 1 },
-                      (_) => {
-                        return {
-                          moneda:
-                            monedaSeleccionada?.mo_codigo === 1
-                              ? "PYG"
-                              : monedaSeleccionada?.mo_codigo === 2
-                              ? "USD"
-                              : monedaSeleccionada?.mo_codigo === 3
-                              ? "BRL"
-                              : monedaSeleccionada?.mo_codigo === 4
-                              ? "ARS"
-                              : "PYG",
-                          monto: 0,
-                          vencimiento: "",
-                        };
-                      }
-                    ),
-                  }
-                : null,
-          },
-          items: itemsParaVenta.map((item) => {
-            // Variables para el cálculo de IVA
-            let ivaTipo = 1; // Por defecto, Gravado IVA
-            let ivaBase = 100;
-            let ivaPorcentaje = 10;
-            let IVa5 = 0;
-            let IVa10 = 0;
-            let vartotal = 0;
-            let VGravada = 0;
-            let vporc = 0;
-            if (item.deve_cinco > 0 && item.deve_exentas > 0) {
-              // CASE vcinco > 0 AND vexentas > 0
-              IVa5 = Math.round((item.deve_cinco / 21) * 100) / 100;
-              vartotal = item.deve_cinco + item.deve_exentas - IVa5;
-              ivaTipo = 4;
-              ivaPorcentaje = 5;
-              VGravada = Math.round((item.deve_cinco / 1.05) * 100) / 100;
-              vporc = (VGravada * 100) / vartotal;
-              ivaBase = parseFloat(vporc.toFixed(8));
-            } else if (item.deve_diez > 0 && item.deve_exentas > 0) {
-              // CASE vdiez > 0 AND vexentas > 0
-              IVa10 = Math.round((item.deve_diez / 11) * 100) / 100;
-              vartotal = item.deve_diez + item.deve_exentas - IVa10;
-              ivaTipo = 4;
-              ivaPorcentaje = 10;
-              VGravada = Math.round((item.deve_diez / 1.1) * 100) / 100;
-              vporc = (VGravada * 100) / vartotal;
-              ivaBase = parseFloat(vporc.toFixed(8));
-            } else if (item.deve_cinco > 0) {
-              // CASE vcinco > 0
-              ivaTipo = 1;
-              ivaPorcentaje = 5;
-              ivaBase = 100;
-            } else if (item.deve_diez > 0) {
-              // CASE vdiez > 0
-              ivaTipo = 1;
-              ivaPorcentaje = 10;
-              ivaBase = 100;
-            } else if (
-              item.deve_cinco === 0 &&
-              item.deve_diez === 0 &&
-              item.deve_exentas > 0
-            ) {
-              // Caso para productos exentos
-              ivaTipo = 3; // Exento
-              ivaPorcentaje = 0;
-              ivaBase = 0;
-            }
-
-            return {
-              codigo: item.deve_articulo,
-              descripcion: item.articulo,
-              observacion: "",
-              unidadMedida: item.ar_unidad_medida || 1, // Unidad
-              cantidad: item.deve_cantidad,
-              precioUnitario: item.deve_precio,
-              cambio: 0.0,
-              ivaTipo: ivaTipo,
-              ivaBase: ivaBase,
-              iva: ivaPorcentaje,
-              lote: item.deve_lote || "",
-              vencimiento: item.deve_vencimiento || "",
-            };
-          }),
-        };
-
-        console.log("Factura send: ", dataFacturaSend);
-        const responseFacturaSend = await enviarFactura(dataFacturaSend);
-        console.log("Respuesta factura send: ", responseFacturaSend);
-
-        if(responseFacturaSend.success === true){
-          toast({
-            title: "Éxito",
-            description: "Factura Electronica emitida correctamente",
-            status: "info",
-            duration: 3000,
-            isClosable: true,
-          })
-        } else if( responseFacturaSend.success === false){
-          toast({
-            title: "Error al emitir la factura electronica",
-            description: `Error:${responseFacturaSend.error}`,
-            status: "warning",
-            duration: 5000,
-          })
-        } else {
-          toast({
-            title: "Error",
-            description: `Error desconocido al emitir la factura electronica`,
-            status: "error",
-            duration: 5000,
-          })
-        }
-
         onCloseKCOpen();
 
         handleCancelarVenta();
@@ -1505,13 +1556,13 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
         );
 
         if (imprimirFactura) {
-            await imprimirFacturaComponente(response.data.body.ventaId);
+          await imprimirFacturaComponente(response.data.body.ventaId);
         }
         if (imprimirTicket) {
-           await imprimirTicketComponente(response.data.body.ventaId);
+          await imprimirTicketComponente(response.data.body.ventaId);
         }
         if (imprimirNotaInterna) {
-            await imprimirNotaComponente(response.data.body.ventaId);
+          await imprimirNotaComponente(response.data.body.ventaId);
         }
       }
     } catch (error) {
@@ -1531,7 +1582,7 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
       handleCancelarVenta();
 
       // Obtener datos del cliente
-      await getClientePorId(documento.cliente);
+      await getClientePorId(null, documento.cliente);
 
       // Obtener datos del vendedor
       if (documento.vendedor) {
@@ -1552,12 +1603,9 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
               },
             }
           );
-
           console.log(response.data.body);
-
           if (response.data.body.length > 0) {
             const articulo = response.data.body[0];
-
             // Crear el nuevo item directamente
             const nuevoItem = {
               deve_articulo: articulo.id_articulo,
@@ -1929,38 +1977,49 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
     }
   };
 
-
   function calcularMontoEntregado(
     valor: number,
     moneda: "GS" | "USD" | "BRL" | "ARS"
   ) {
-    switch(moneda){
-        case "GS":
-          setMontoEntregado(valor);
-          setMontoEntregadoDolar(Number((valor / cotizacionDolar).toFixed(2)));
-          setMontoEntregadoReal(Number((valor / cotizacionReal).toFixed(2)));
-          setMontoEntregadoPeso(Number((valor / cotizacionPeso).toFixed(2)));
-          break;
-        case "USD":
-          setMontoEntregado(valor * cotizacionDolar);
-          setMontoEntregadoDolar(valor);
-          setMontoEntregadoReal(Number((valor * cotizacionDolar / cotizacionReal).toFixed(2)));
-          setMontoEntregadoPeso(Number((valor * cotizacionDolar / cotizacionPeso).toFixed(2)));
-          break;
-        case "BRL":
-          setMontoEntregado(valor * cotizacionReal);
-          setMontoEntregadoDolar(Number((valor * cotizacionReal / cotizacionDolar).toFixed(2)));
-          setMontoEntregadoReal(valor);
-          setMontoEntregadoPeso(Number((valor * cotizacionReal / cotizacionPeso).toFixed(2)));
-          break;
-        case "ARS":
-          setMontoEntregado(valor * cotizacionPeso);
-          setMontoEntregadoDolar(Number((valor * cotizacionPeso / cotizacionDolar).toFixed(2)));
-          setMontoEntregadoReal(Number((valor * cotizacionPeso / cotizacionReal).toFixed(2)));
-          setMontoEntregadoPeso(valor);
-          break;
-        default:
-          break;
+    switch (moneda) {
+      case "GS":
+        setMontoEntregado(valor);
+        setMontoEntregadoDolar(Number((valor / cotizacionDolar).toFixed(2)));
+        setMontoEntregadoReal(Number((valor / cotizacionReal).toFixed(2)));
+        setMontoEntregadoPeso(Number((valor / cotizacionPeso).toFixed(2)));
+        break;
+      case "USD":
+        setMontoEntregado(valor * cotizacionDolar);
+        setMontoEntregadoDolar(valor);
+        setMontoEntregadoReal(
+          Number(((valor * cotizacionDolar) / cotizacionReal).toFixed(2))
+        );
+        setMontoEntregadoPeso(
+          Number(((valor * cotizacionDolar) / cotizacionPeso).toFixed(2))
+        );
+        break;
+      case "BRL":
+        setMontoEntregado(valor * cotizacionReal);
+        setMontoEntregadoDolar(
+          Number(((valor * cotizacionReal) / cotizacionDolar).toFixed(2))
+        );
+        setMontoEntregadoReal(valor);
+        setMontoEntregadoPeso(
+          Number(((valor * cotizacionReal) / cotizacionPeso).toFixed(2))
+        );
+        break;
+      case "ARS":
+        setMontoEntregado(valor * cotizacionPeso);
+        setMontoEntregadoDolar(
+          Number(((valor * cotizacionPeso) / cotizacionDolar).toFixed(2))
+        );
+        setMontoEntregadoReal(
+          Number(((valor * cotizacionPeso) / cotizacionReal).toFixed(2))
+        );
+        setMontoEntregadoPeso(valor);
+        break;
+      default:
+        break;
     }
   }
 
@@ -2034,7 +2093,6 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
     finalizarVenta,
   ]);
 
-
   const handleKCKeyDown = (e: React.KeyboardEvent) => {
     // Para el input de tipo de documento
     if (document.activeElement === tipoDocumentoKCInputRef.current) {
@@ -2055,8 +2113,7 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
       } else if (e.key === "Tab") {
         e.preventDefault();
         tipoVentaKCInputRef.current?.focus();
-      } 
-
+      }
     }
 
     // Para el input de tipo de venta
@@ -2071,7 +2128,8 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
           ...opcionesFinalizacion,
           tipo_venta: "CREDITO",
         });
-      } if (e.key === "Enter") {
+      }
+      if (e.key === "Enter") {
         e.preventDefault();
         montoEntregadoKCInputRef.current?.focus();
       }
@@ -2082,61 +2140,73 @@ const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
     const vueltoBruto = (totalPagar || 0) - (montoEntregado || 0);
     const vuelto = Math.abs(vueltoBruto);
     return vuelto;
-  }
+  };
 
-const imprimirFacturaComponente = async (ventaId: number) => {
-  const facturaDiv = document.createElement('div');
-  facturaDiv.style.display = "none";
-  document.body.appendChild(facturaDiv);
+  const imprimirFacturaComponente = async (ventaId: number) => {
+    const facturaDiv = document.createElement("div");
+    facturaDiv.style.display = "none";
+    document.body.appendChild(facturaDiv);
 
-  const root = createRoot(facturaDiv);
-  root.render(
-    <ModeloFacturaNuevo id_venta={ventaId} monto_entregado={montoEntregado || 0} monto_recibido={montoEntregado || 0} vuelto={calcularVueltoGuaranies()} onImprimir={true} />
-  );
+    const root = createRoot(facturaDiv);
+    root.render(
+      <ModeloFacturaNuevo
+        id_venta={ventaId}
+        monto_entregado={montoEntregado || 0}
+        monto_recibido={montoEntregado || 0}
+        vuelto={calcularVueltoGuaranies()}
+        onImprimir={true}
+      />
+    );
 
-  setTimeout(() => {
-    root.unmount();
-    document.body.removeChild(facturaDiv);
-  }, 2000);
-}
+    setTimeout(() => {
+      root.unmount();
+      document.body.removeChild(facturaDiv);
+    }, 2000);
+  };
 
-const imprimirNotaComponente = async (ventaId: number) => {
-  const notaDiv = document.createElement("div");
-  notaDiv.style.display = "none";
-  document.body.appendChild(notaDiv);
-  
-  const root = createRoot(notaDiv);
-  root.render(
-    <ModeloNotaComun id_venta={ventaId} monto_entregado={montoEntregado || 0} monto_recibido={montoEntregado || 0} vuelto={calcularVueltoGuaranies()} onImprimir={true} />
-  );
+  const imprimirNotaComponente = async (ventaId: number) => {
+    const notaDiv = document.createElement("div");
+    notaDiv.style.display = "none";
+    document.body.appendChild(notaDiv);
 
-  setTimeout(() => {  
-    root.unmount();
-    document.body.removeChild(notaDiv);
-  }, 2000);
-}
+    const root = createRoot(notaDiv);
+    root.render(
+      <ModeloNotaComun
+        id_venta={ventaId}
+        monto_entregado={montoEntregado || 0}
+        monto_recibido={montoEntregado || 0}
+        vuelto={calcularVueltoGuaranies()}
+        onImprimir={true}
+      />
+    );
 
-const imprimirTicketComponente = async (ventaId: number) => {
-  // Componente oculto que solo se usa para generar el PDF
-  const ticketDiv = document.createElement("div");
-  ticketDiv.style.display = "none";
-  document.body.appendChild(ticketDiv);
+    setTimeout(() => {
+      root.unmount();
+      document.body.removeChild(notaDiv);
+    }, 2000);
+  };
 
-  const root = createRoot(ticketDiv);
-  root.render(
-    <ModeloTicket
-      id_venta={ventaId}
-      monto_entregado={montoEntregado || 0}
-      monto_recibido={montoEntregado || 0}
-      vuelto={calcularVueltoGuaranies()}
-      onImprimir={true}
-    />
-  );
-  setTimeout(() => {
-    root.unmount();
-    document.body.removeChild(ticketDiv);
-  }, 2000);
-};
+  const imprimirTicketComponente = async (ventaId: number) => {
+    // Componente oculto que solo se usa para generar el PDF
+    const ticketDiv = document.createElement("div");
+    ticketDiv.style.display = "none";
+    document.body.appendChild(ticketDiv);
+
+    const root = createRoot(ticketDiv);
+    root.render(
+      <ModeloTicket
+        id_venta={ventaId}
+        monto_entregado={montoEntregado || 0}
+        monto_recibido={montoEntregado || 0}
+        vuelto={calcularVueltoGuaranies()}
+        onImprimir={true}
+      />
+    );
+    setTimeout(() => {
+      root.unmount();
+      document.body.removeChild(ticketDiv);
+    }, 2000);
+  };
 
   return (
     <Box
@@ -2316,6 +2386,7 @@ const imprimirTicketComponente = async (ventaId: number) => {
                     name=""
                     id=""
                     className="border rounded-md p-2 w-[80px]"
+                    value={clienteBusquedaId || ""}
                     onChange={(e) => {
                       handleBuscarClientePorId(e);
                     }}
@@ -2375,7 +2446,7 @@ const imprimirTicketComponente = async (ventaId: number) => {
                     type="password"
                     name="vendedor_id"
                     id="vendedor_id"
-                    value={sessionStorage.getItem("user_id") || ""}
+                    value={vendedorSeleccionado?.op_codigo}
                     onChange={() => {}}
                     onClick={() => {}}
                     className="border rounded-md p-2 w-[80px] toggle-password"
@@ -2384,7 +2455,7 @@ const imprimirTicketComponente = async (ventaId: number) => {
                     type="text"
                     name=""
                     id=""
-                    value={sessionStorage.getItem("user_name") || ""}
+                    value={vendedorSeleccionado?.op_nombre}
                     onChange={(e) => {
                       handleBuscarVendedor(e);
                     }}
@@ -3753,4 +3824,3 @@ const imprimirTicketComponente = async (ventaId: number) => {
 };
 
 export default PuntoDeVentaNuevo;
-

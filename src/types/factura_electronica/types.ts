@@ -128,6 +128,7 @@ interface ItemFS {
   factura: FacturaFS;
   condicion: CondicionFS;
   items: ItemFS[];
+  cdc?: string;
 }
 
 export interface DatosFacturaElectronica {
@@ -150,4 +151,5 @@ export interface ParametrosFacturaElectronica {
   api_url_crear: string;
   api_url_cancelar: string;
   api_url_eliminar: string;
+  api_url_inutilizar: string;
 }

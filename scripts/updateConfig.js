@@ -107,7 +107,13 @@ const configs = {
     db: "mersan",
     version: "1.2.4",
     title: "Mersan",
-  }
+  },
+  agrosertaneja: {
+    api_url: "https://node.sofmar.com.py:4006/api/",
+    db: "agrosertaneja",
+    version: "1.2.4",
+    title: "Agrosertaneja",
+  },
 };
 
 function executeCommand(command) {

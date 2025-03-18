@@ -56,9 +56,9 @@ import ModeloNotaComun from "../facturacion/ModeloNotaComun";
 import ItemsFaltantesDoc from "./pdf/impresion_articulos_faltantes";
 import Auditar from "@/services/AuditoriaHook";
 import ArticuloInfoCardOld from "@/modules/ArticuloInfoCardOld";
-import { useFacturaSendTesting } from "@/hooks/useFacturaSendTesting";
 import { FacturaSendResponse } from "@/types/factura_electronica/types";
 import { useFacturacionElectronicaStore } from "@/stores/facturacionElectronicaStore";
+import { useFacturaSend } from "@/hooks/useFacturaSend";
 
 interface ItemParaVenta {
   precio_guaranies: number;
@@ -335,6 +335,7 @@ const VentaBalconNuevo = () => {
   const configuraciones = JSON.parse(
     sessionStorage.getItem("configuraciones") || "[]"
   );
+  
   const permisos_descuento = JSON.parse(
     sessionStorage.getItem("permisos_descuento") || "[]"
   );
@@ -354,7 +355,7 @@ const VentaBalconNuevo = () => {
 
   const [itemsFaltantes, setItemsFaltantes] = useState<ItemFaltante[]>([]);
 
-  const { enviarFactura } = useFacturaSendTesting();
+  const { enviarFacturas } = useFacturaSend();
 
   const toast = useToast();
 
@@ -1436,9 +1437,9 @@ const VentaBalconNuevo = () => {
 
       let responseFacturaSend: any = null;
 
-      if (usaFacturaElectronica === 1) {
+      if (usaFacturaElectronica === 1 && opcionesFinalizacion.tipo_documento === "FACTURA") {
         console.log("Factura send: ", dataFacturaSend);
-        responseFacturaSend = await enviarFactura(dataFacturaSend);
+        responseFacturaSend = await enviarFacturas([dataFacturaSend]);
         console.log("Respuesta factura send: ", responseFacturaSend);
         if (responseFacturaSend.success === true) {
           toast({

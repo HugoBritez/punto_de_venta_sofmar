@@ -34,6 +34,7 @@ const FacturaSend = () => {
       distrito: 1, // Asunción
       ciudad: 1, // Asunción
       pais: "PRY",
+      paisDescripcion: "Paraguay",
       tipoContribuyente: 2, // Persona jurídica
       documentoTipo: 1, // RUC
       documentoNumero: "80012345-6",

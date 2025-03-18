@@ -204,6 +204,9 @@ export default function VentaRapida() {
     useState(false);
 
   const operadorActual = sessionStorage.getItem("user_id");
+
+
+
   // Funciones y Effects para traer los datos//
 
   const cobrarEnBalconParsed = JSON.parse(cobrarEnBalcon || "{}");
@@ -1153,8 +1156,6 @@ export default function VentaRapida() {
     setVendedorInfo(null);
   };
 
-
-
   const handleCloseFinalizarVentaModal = () => {
     setIsFinalizarVentaModalOpen(false);
     borrarDatosVentaModal();
@@ -1344,7 +1345,6 @@ export default function VentaRapida() {
                             lp_descripcion:
                               | string
                               | number
-                              | boolean
                               | React.ReactElement<
                                   any,
                                   string | React.JSXElementConstructor<any>

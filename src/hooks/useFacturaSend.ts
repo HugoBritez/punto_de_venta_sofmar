@@ -94,8 +94,61 @@ export const useFacturaSend = () => {
     }
   };
 
+  const inutilizarFactura = async (datosInutilizacion: {
+    tipoDocumento: number;
+    establecimiento: string;
+    punto: string;
+    desde: number;
+    hasta: number;
+    motivo: string;
+  }) => {
+    if (
+      !parametros ||
+      !parametros.parametros ||
+      parametros.parametros.length === 0
+    ) {
+      const mensajeError = "No se han cargado los parámetros de FacturaSend";
+      setError(mensajeError);
+      throw new Error(mensajeError);
+    }
+
+    setIsLoading(true);
+    setError(null);
+    try {
+      const apiUrl = parametros.parametros[0].api_url_inutilizar;
+      const apiKey = parametros.parametros[0].api_key;
+
+      // Formato confirmado del token de autorización
+      const authHeader = `Bearer api_key_${apiKey}`;
+
+      const response = await axios.post(apiUrl, datosInutilizacion, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: authHeader,
+        },
+      });
+
+      setRespuesta(response.data);
+      return response.data;
+    } catch (error: any) {
+      const mensajeError =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        "Error al cancelar factura";
+      console.error(mensajeError, error);
+      setError(mensajeError);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+
+  }
+
   // Cancelar una factura
-  const cancelarFactura = async (datosCancelacion: any) => {
+  const cancelarFactura = async (datosCancelacion: {
+    cdc: string;
+    motivo: string;
+  }) => {
     if (
       !parametros ||
       !parametros.parametros ||
@@ -137,7 +190,6 @@ export const useFacturaSend = () => {
     }
   };
 
-
   // Función para calcular el total de una factura
   const calcularTotalFactura = (factura: FacturaSendResponse): number => {
     if (!factura.items || factura.items.length === 0) return 0;
@@ -148,14 +200,16 @@ export const useFacturaSend = () => {
     }, 0);
   };
 
+
   return {
     parametros,
     isLoading,
     error,
     respuesta,
     obtenerParametros,
-    enviarFacturas, // Método principal para producción (lotes)
+    enviarFacturas, 
     cancelarFactura,
     calcularTotalFactura,
+    inutilizarFactura,
   };
 };

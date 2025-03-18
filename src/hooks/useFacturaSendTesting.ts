@@ -836,7 +836,6 @@ export const useFacturaSendTesting = () => {
     setError(null);
   };
 
-
   // Verificar el estado de una factura por CDC
   const verificarEstadoFactura = async (cdc: string) => {
     if (
@@ -865,13 +864,9 @@ export const useFacturaSendTesting = () => {
         "Content-Type": "application/json",
         Authorization: authHeader,
       };
-
       const requestLogEntry = logRequest(apiUrl, "GET", null, headers);
-
       console.log("Consultando estado de factura con CDC:", cdc);
-
       const response = await axios.get(apiUrl, { headers });
-
       const responseData = response.data;
       logResponse(requestLogEntry, responseData);
       setRespuesta(responseData);

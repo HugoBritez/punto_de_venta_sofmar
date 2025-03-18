@@ -27,12 +27,17 @@ import {
   Spinner,
 } from "@chakra-ui/react";
 import axios, { AxiosError } from "axios";
-import { AlertTriangle, ArchiveRestore,  RotateCcw, X } from "lucide-react";
+import {
+  AlertTriangle,
+  ArchiveRestore,
+  Plus,
+  RotateCcw,
+  X,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import ReporteAnomalias from "./reporte-anomalias";
 import { motion, AnimatePresence } from "framer-motion";
-import Auditar from "@/services/AuditoriaHook";
-
+import FloatingCard from "@/modules/FloatingCard";
 
 interface ArticulosCategoria {
   id: number;
@@ -48,9 +53,19 @@ interface ArticulosMarca {
   selected?: boolean;
 }
 
-interface ArticulosDirecta {
+interface ArticulosSeccion {
   id: number;
-  descripcion: string;
+  nombre: string;
+  cantidad_articulos: number;
+  selected?: boolean;
+}
+
+interface ArticulosDirecta {
+  al_codigo: number;
+  ar_codigo: number;
+  ar_cod_interno: number;
+  ar_descripcion: string;
+  al_codbarra: string;
 }
 
 interface ItemsParaTomaInventario {
@@ -64,13 +79,6 @@ interface ItemsParaTomaInventario {
   codigo_barra: string;
   articulo_id: number;
   cod_interno: string;
-}
-
-interface FloatingCardProps {
-  isVisible: boolean;
-  items: any[];
-  onClose: () => void;
-  onSelect: (item: any) => void;
 }
 
 interface InventarioAuxiliar {
@@ -93,6 +101,8 @@ interface ServerError {
   statusCode?: number;
 }
 
+type TipoInventario = "1" | "2" | "3" | "4" | "5";
+
 const ConfirmModal: React.FC<ConfirmModalProps> = ({
   isOpen,
   onClose,
@@ -100,7 +110,6 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   title,
   message,
 }) => {
-  // Cerrar con ESC
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -202,66 +211,22 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   );
 };
 
-
-const FloatingCard = ({
-  isVisible,
-  items,
-  onClose,
-  onSelect,
-}: FloatingCardProps) => {
-  return (
-    <div
-      className={`absolute z-50 bg-white shadow-lg rounded-md border border-gray-200 p-4 w-full min-h-[100px] max-h-[200px] overflow-y-auto mt-4
-        transition-all duration-400 ease-out origin-top
-        ${
-          isVisible
-            ? "opacity-100 scale-100 translate-y-0"
-            : "opacity-0 scale-95 translate-y-4 pointer-events-none"
-        }`}
-    >
-      <div className="flex justify-end items-center mb-2">
-        <button
-          onClick={onClose}
-          className="text-gray-500 hover:text-gray-700 transition-colors duration-200"
-        >
-          ✕
-        </button>
-      </div>
-      <div className="divide-y">
-        {items.length === 0 ? (
-          <div className="py-2 px-1">
-            <p className="text-center text-gray-500 font-semibold">
-              No se encontraron artículos.
-            </p>
-          </div>
-        ) : (
-          items.map((item, index) => (
-            <div
-              key={index}
-              className="py-2 px-1 hover:bg-gray-100 cursor-pointer transition-colors duration-150"
-              onClick={() => onSelect(item)}
-            >
-              <p>{item.nombre || item.descripcion}</p>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
-};
-
 const NuevaTomaInventario = () => {
   const [fechaActual, setFechaActual] = useState(new Date());
-
   const [depositos, setDepositos] = useState<Deposito[] | null>(null);
   const [depositoSeleccionado, setDepositoSeleccionado] =
     useState<Deposito | null>(null);
-
   const [sucursales, setSucursales] = useState<Sucursal[] | null>(null);
   const [sucursalSeleccionada, setSucursalSeleccionada] =
     useState<Sucursal | null>(null);
 
   const [tipoInventario, setTipoInventario] = useState<string>("1");
+
+  const [articulosSecciones, setArticulosSecciones] = useState<
+    ArticulosSeccion[] | null
+  >(null);
+  const [articulosSeccionesFiltrados, setArticulosSeccionesFiltrados] =
+    useState<ArticulosSeccion[] | null>(null);
 
   const [articulosCategoria, setArticulosCategoria] = useState<
     ArticulosCategoria[] | null
@@ -274,6 +239,8 @@ const NuevaTomaInventario = () => {
   >(null);
 
   const [articuloBuscado, setArticuloBuscado] = useState<string | null>(null);
+  const [busquedaItemsEscaneados, setBusquedaItemsEscaneados] = useState("");
+
   const [articuloSeleccionado, setArticuloSeleccionado] =
     useState<ArticulosDirecta | null>(null);
 
@@ -291,6 +258,10 @@ const NuevaTomaInventario = () => {
   >(null);
   const [marcasSeleccionadas, setMarcasSeleccionadas] = useState<number[]>([]);
 
+  const [seccionesSeleccionadas, setSeccionesSeleccionadas] = useState<
+    number[]
+  >([]);
+
   const [ubicaciones, setUbicaciones] = useState<Ubicacion[]>([]);
   const [ubicacionSeleccionada, setUbicacionSeleccionada] =
     useState<Ubicacion | null>(null);
@@ -304,7 +275,6 @@ const NuevaTomaInventario = () => {
     itemsParaTomaInventarioConScanner,
     setItemsParaTomaInventarioConScanner,
   ] = useState<ItemsParaTomaInventario[]>([]);
-  const [filtrarPorMarca, setFiltrarPorMarca] = useState<boolean>(false);
 
   const [inventarioAuxiliar, setInventarioAuxiliar] =
     useState<InventarioAuxiliar>();
@@ -327,44 +297,54 @@ const NuevaTomaInventario = () => {
     onClose: onCloseModal,
   } = useDisclosure();
 
+  const [categoriasInventariadas, setCategoriasInventariadas] = useState<
+    number[]
+  >([]);
+  const [marcasInventariadas, setMarcasInventariadas] = useState<number[]>([]);
+  const [seccionesInventariadas, setSeccionesInventariadas] = useState<
+    number[]
+  >([]);
 
-const actualizarCantidadManual = async (
-  lote_id: number,
-  nuevaCantidad: number
-) => {
-  try {
-    const articulo = itemsParaTomaInventarioConScanner.find(
-      (item) => item.lote_id === lote_id
-    );
+  const actualizarCantidadManual = async (
+    lote_id: number,
+    nuevaCantidad: number
+  ) => {
+    try {
+      const articulo = itemsParaTomaInventarioConScanner.find(
+        (item) => item.lote_id === lote_id
+      );
 
-    if (!articulo) {
-      throw new Error("Artículo no encontrado");
+      if (!articulo) {
+        throw new Error("Artículo no encontrado");
+      }
+
+      await axios.post(
+        `${api_url}articulos/scannear-item-inventario-auxiliar`,
+        {
+          id_articulo: articulo.articulo_id,
+          id_lote: lote_id,
+          cantidad: nuevaCantidad,
+        }
+      );
+      buscarItemsPorInventarioDerecha();
+
+      setItemEnEdicion(null);
+
+      toast({
+        title: "Cantidad actualizada",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      toast({
+        title: "Error al actualizar cantidad",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
     }
-
-    await axios.post(`${api_url}articulos/scannear-item-inventario-auxiliar`, {
-      id_articulo: articulo.articulo_id,
-      id_lote: lote_id,
-      cantidad: nuevaCantidad,
-    });
-    buscarItemsPorInventarioDerecha();
-
-    setItemEnEdicion(null);
-
-    toast({
-      title: "Cantidad actualizada",
-      status: "success",
-      duration: 3000,
-      isClosable: true,
-    });
-  } catch (error) {
-    toast({
-      title: "Error al actualizar cantidad",
-      status: "error",
-      duration: 3000,
-      isClosable: true,
-    });
-  }
-};
+  };
 
   const fetchUbicaciones = async () => {
     const response = await axios.get(`${api_url}ubicaciones/`);
@@ -447,7 +427,7 @@ const actualizarCantidadManual = async (
           params: {
             deposito_id: depositoSeleccionado?.dep_codigo,
             articulo_id:
-              tipoInventario === "2" ? articuloSeleccionado?.id : null,
+              tipoInventario === "2" ? articuloSeleccionado?.al_codigo : null,
             ubicacion:
               tipoInventario === "3" ? ubicacionSeleccionada?.ub_codigo : null,
             sub_ubicacion:
@@ -456,6 +436,7 @@ const actualizarCantidadManual = async (
                 : null,
             categorias: tipoInventario === "1" ? categoriasSeleccionadas : null,
             marcas: tipoInventario === "4" ? marcasSeleccionadas : null,
+            secciones: tipoInventario === "5" ? seccionesSeleccionadas : null,
           },
         }
       );
@@ -498,6 +479,25 @@ const actualizarCantidadManual = async (
     });
   };
 
+  const handleSeccionSelect = (seccionId: number) => {
+    setSeccionesSeleccionadas((prevSelected) => {
+      if (prevSelected.includes(seccionId)) {
+        return prevSelected.filter((id) => id !== seccionId);
+      } else {
+        return [...prevSelected, seccionId];
+      }
+    });
+  };
+
+  const handleSelectAllSecciones = (checked: boolean) => {
+    if (checked) {
+      const todasLasSecciones =
+        articulosSecciones?.map((seccion) => seccion.id) || [];
+      setSeccionesSeleccionadas(todasLasSecciones);
+    } else {
+    }
+  };
+
   const handleSelectAllCategorias = (checked: boolean) => {
     if (checked) {
       const todasLasCategorias = articulosCategoria?.map((cat) => cat.id) || [];
@@ -517,16 +517,21 @@ const actualizarCantidadManual = async (
   };
 
   function handleBuscarItems(busqueda: string) {
-    if (filtrarPorMarca) {
+    if (tipoInventario === "4") {
       const resultadosFiltrados = articulosMarca?.filter((item) =>
         item.nombre.toLowerCase().includes(busqueda.toLowerCase())
       );
       setArticulosMarcaFiltrados(resultadosFiltrados || []);
-    } else {
+    } else if (tipoInventario === "1") {
       const resultadosFiltrados = articulosCategoria?.filter((item) =>
         item.nombre.toLowerCase().includes(busqueda.toLowerCase())
       );
       setArticulosCategoriaFiltrados(resultadosFiltrados || []);
+    } else if (tipoInventario === "5") {
+      const resultadosFiltrados = articulosSecciones?.filter((item) =>
+        item.nombre.toLowerCase().includes(busqueda.toLowerCase())
+      );
+      setArticulosSeccionesFiltrados(resultadosFiltrados || []);
     }
   }
 
@@ -537,12 +542,18 @@ const actualizarCantidadManual = async (
     setArticulosCategoria(response.data.body);
   };
 
+  const fetchArticulosSecciones = async () => {
+    const response = await axios.get(`${api_url}articulos/secciones-articulos`);
+    setArticulosSecciones(response.data.body);
+  };
+
   const fetchArticulosDirecta = async (busqueda: string) => {
     try {
-      const response = await axios.get(`${api_url}articulos/directa`, {
+      setArticulosDirecta([]);
+      const response = await axios.get(`${api_url}articulos/`, {
         params: {
-          busqueda,
-          deposito: depositoSeleccionado?.dep_codigo,
+          buscar: busqueda,
+          id_deposito: depositoSeleccionado?.dep_codigo,
         },
       });
       setArticulosDirecta(response.data.body);
@@ -569,77 +580,80 @@ const actualizarCantidadManual = async (
   const traerIdUltimoInventario = async () => {
     try {
       const response = await axios.get(
-        `${api_url}articulos/ultimo-inventario-auxiliar`,{
-          params : {
+        `${api_url}articulos/ultimo-inventario-auxiliar`,
+        {
+          params: {
             deposito: depositoSeleccionado?.dep_codigo,
-            sucursal: sucursalSeleccionada?.id
-          }
+            sucursal: sucursalSeleccionada?.id,
+          },
         }
-          
       );
       const data = response.data;
       console.log("data", response.data.body);
       setInventarioAuxiliar(data.body);
       setNumeroInventario(data.body.nro_inventario);
+      setCategoriasInventariadas(data.body.categorias);
+      setMarcasInventariadas(data.body.marcas);
+      setSeccionesInventariadas(data.body.secciones);
     } catch (error) {
       console.error("Error al obtener último número de inventario:", error);
     }
   };
 
-const handleAnularInventario = async () => {
-  try {
-    await axios.get(`${api_url}articulos/anular-inventario-auxiliar`, {
-      params: {
-        id: inventarioAuxiliar?.id,
-      },
-    });
+  const handleAnularInventario = async () => {
+    try {
+      await axios.get(`${api_url}articulos/anular-inventario-auxiliar`, {
+        params: {
+          id: inventarioAuxiliar?.id,
+        },
+      });
 
-    toast({
-      title: "Inventario anulado",
-      description: "El inventario ha sido anulado exitosamente",
-      status: "success",
-      duration: 3000,
-      isClosable: true,
-    });
-    traerIdUltimoInventario();
-  } catch (error: any) {
-    console.error("Error al anular inventario:", error);
+      toast({
+        title: "Inventario anulado",
+        description: "El inventario ha sido anulado exitosamente",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+      traerIdUltimoInventario();
+    } catch (error: any) {
+      console.error("Error al anular inventario:", error);
 
-    const axiosError = error as AxiosError<ServerError>;
+      const axiosError = error as AxiosError<ServerError>;
 
-    // Extraemos el mensaje de error del servidor
-    const errorMessage =
-      axiosError.response?.data?.message ||
-      axiosError.response?.data?.error ||
-      "Error desconocido al anular el inventario";
+      // Extraemos el mensaje de error del servidor
+      const errorMessage =
+        axiosError.response?.data?.message ||
+        axiosError.response?.data?.error ||
+        "Error desconocido al anular el inventario";
 
-    toast({
-      title: "No se pudo anular el inventario",
-      description: `${errorMessage}`,
-      status: "error",
-      duration: 3000,
-      isClosable: true,
-    });
-  }
-};
+      toast({
+        title: "No se pudo anular el inventario",
+        description: `${errorMessage}`,
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
 
   useEffect(() => {
     fetchDepositos();
     fetchSucursales();
   }, []);
 
-  useEffect(()=>{
-    traerIdUltimoInventario()
-    setItemsParaTomaInventario([])
-  }, [depositoSeleccionado, sucursalSeleccionada])
+  useEffect(() => {
+    traerIdUltimoInventario();
+    setItemsParaTomaInventario([]);
+  }, [depositoSeleccionado, sucursalSeleccionada]);
 
   useEffect(() => {
     if (tipoInventario === "1") {
       fetchArticulosCategoria();
-      setFiltrarPorMarca(false);
     } else if (tipoInventario === "4") {
       fetchMarcasArticulos();
-      setFiltrarPorMarca(true);
+    } else if (tipoInventario === "5") {
+      fetchArticulosSecciones();
     }
 
     setArticuloBuscado(null);
@@ -663,7 +677,7 @@ const handleAnularInventario = async () => {
 
   const handleArticuloSelect = (articulo: ArticulosDirecta) => {
     setArticuloSeleccionado(articulo);
-    setArticuloBuscado(articulo.descripcion);
+    setArticuloBuscado(articulo.ar_descripcion);
     setIsFloatingCardVisible(false);
   };
 
@@ -712,13 +726,6 @@ const handleAnularInventario = async () => {
         duration: 3000,
         isClosable: true,
       });
-      Auditar(
-        1,
-        1,
-        inventarioAuxiliar?.id || null,
-        Number(localStorage.getItem("user_id") || 1),
-        "Inició un nuevo inventario con la app"
-      );
     } catch (error) {
       console.error(error);
       toast({
@@ -739,6 +746,7 @@ const handleAnularInventario = async () => {
         fecha_vencimiento: item.vencimiento,
         cantidad_inicial: item.stock,
       })),
+      inventario_id: inventarioAuxiliar?.id,
     };
 
     // Validación según el tipo de inventario
@@ -771,6 +779,17 @@ const handleAnularInventario = async () => {
       toast({
         title: "Error",
         description: "Debe ingresar ubicación y sub-ubicación",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (tipoInventario === "5" && seccionesSeleccionadas.length === 0) {
+      toast({
+        title: "Error",
+        description: "Debe seleccionar al menos una sección",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -870,7 +889,7 @@ const handleAnularInventario = async () => {
     }
   };
 
-  const buscarItemsPorInventarioDerecha = async () => {
+  const buscarItemsPorInventarioDerecha = async (busqueda?: string) => {
     try {
       const response = await axios.get(
         `${api_url}articulos/mostrar-items-inventario-auxiliar-principal`,
@@ -880,6 +899,7 @@ const handleAnularInventario = async () => {
             scanneado: true,
             deposito: depositoSeleccionado?.dep_codigo,
             sucursal: sucursalSeleccionada?.id,
+            buscar: busqueda || "",
           },
         }
       );
@@ -891,16 +911,24 @@ const handleAnularInventario = async () => {
     }
   };
 
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      buscarItemsPorInventarioDerecha(busquedaItemsEscaneados);
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [busquedaItemsEscaneados]);
+
   const buscarItemsPorInventarioIzquierda = async () => {
     try {
-      setItemsParaTomaInventario([])
+      setItemsParaTomaInventario([]);
       const response = await axios.get(
         `${api_url}articulos/mostrar-items-inventario-auxiliar-principal`,
         {
           params: {
             id: numeroInventario,
             deposito: depositoSeleccionado?.dep_codigo,
-            sucursal: sucursalSeleccionada?.id
+            sucursal: sucursalSeleccionada?.id,
           },
         }
       );
@@ -912,7 +940,165 @@ const handleAnularInventario = async () => {
     }
   };
 
-
+  const TablaArticulos = () => {
+    if (tipoInventario === "1") {
+      return (
+        <table className="w-full">
+          <thead className="bg-gray-200">
+            <tr>
+              <th>
+                <div className="flex flex-col  items-center justify-center bg-white">
+                  <Checkbox
+                    isChecked={
+                      articulosCategoria?.length ===
+                      categoriasSeleccionadas.length
+                    }
+                    isIndeterminate={
+                      categoriasSeleccionadas.length > 0 &&
+                      categoriasSeleccionadas.length <
+                        (articulosCategoria?.length || 0)
+                    }
+                    onChange={(e) =>
+                      handleSelectAllCategorias(e.target.checked)
+                    }
+                    isDisabled={tipoInventario !== "1"}
+                  />
+                </div>
+              </th>
+              <th className="text-center">Código</th>
+              <th className="text-left">Descripción</th>
+              <th className="text-center">Cantidad</th>
+              <th className="text-center">Cargado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(articulosCategoriaFiltrados || articulosCategoria)?.map(
+              (articulo) => (
+                <tr key={articulo.id}>
+                  <td className="text-center">
+                    <div className="flex flex-row gap-2 items-center justify-center">
+                      <Checkbox
+                        isChecked={categoriasSeleccionadas.includes(
+                          articulo.id
+                        )}
+                        onChange={() => handleCategoriaSelect(articulo.id)}
+                      />
+                    </div>
+                  </td>
+                  <td className="text-center">{articulo.id}</td>
+                  <td>{articulo.nombre}</td>
+                  <td className="text-center">{articulo.cantidad_articulos}</td>
+                  <td className="text-center">
+                    {categoriasInventariadas.includes(articulo.id)
+                      ? "SI"
+                      : "NO"}
+                  </td>
+                </tr>
+              )
+            )}
+          </tbody>
+        </table>
+      );
+    } else if (tipoInventario === "4") {
+      return (
+        <table className="w-full">
+          <thead className="bg-gray-200">
+            <tr>
+              <th>
+                <div className="flex flex-col  items-center justify-center bg-white">
+                  <Checkbox
+                    isChecked={
+                      articulosMarca?.length === marcasSeleccionadas.length
+                    }
+                    isIndeterminate={
+                      marcasSeleccionadas.length > 0 &&
+                      marcasSeleccionadas.length < (articulosMarca?.length || 0)
+                    }
+                    onChange={(e) => handleSelectAllMarcas(e.target.checked)}
+                  />
+                </div>
+              </th>
+              <th className="text-center">Código</th>
+              <th className="text-left">Descripción</th>
+              <th className="text-center">Cantidad</th>
+              <th className="text-center">Cargado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(articulosMarcaFiltrados || articulosMarca)?.map((articulo) => (
+              <tr key={articulo.id}>
+                <td className="text-center">
+                  <div className="flex flex-row gap-2 items-center justify-center">
+                    <Checkbox
+                      isChecked={marcasSeleccionadas.includes(articulo.id)}
+                      onChange={() => handleMarcaSelect(articulo.id)}
+                    />
+                  </div>
+                </td>
+                <td className="text-center">{articulo.id}</td>
+                <td>{articulo.nombre}</td>
+                <td className="text-center">{articulo.cantidad_articulos}</td>
+                <td className="text-center">
+                  {marcasInventariadas.includes(articulo.id) ? "SI" : "NO"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      );
+    } else if (tipoInventario === "5") {
+      return (
+        <table className="w-full">
+          <thead className="bg-gray-200">
+            <tr>
+              <th>
+                <div className="flex flex-col  items-center justify-center bg-white">
+                  <Checkbox
+                    isChecked={
+                      articulosSecciones?.length ===
+                      seccionesSeleccionadas.length
+                    }
+                    isIndeterminate={
+                      seccionesSeleccionadas.length > 0 &&
+                      seccionesSeleccionadas.length <
+                        (articulosSecciones?.length || 0)
+                    }
+                    onChange={(e) => handleSelectAllSecciones(e.target.checked)}
+                  />
+                </div>
+              </th>
+              <th className="text-center">Código</th>
+              <th className="text-left">Descripción</th>
+              <th className="text-center">Cantidad</th>
+              <th className="text-center">Cargado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(articulosSeccionesFiltrados || articulosSecciones)?.map(
+              (articulo) => (
+                <tr key={articulo.id}>
+                  <td className="text-center">
+                    <div className="flex flex-row gap-2 items-center justify-center">
+                      <Checkbox
+                        isChecked={seccionesSeleccionadas.includes(articulo.id)}
+                        onChange={() => handleSeccionSelect(articulo.id)}
+                      />
+                    </div>
+                  </td>
+                  <td className="text-center">{articulo.id}</td>
+                  <td>{articulo.nombre}</td>
+                  <td className="text-center">{articulo.cantidad_articulos}</td>
+                  <td className="text-center">
+                    {seccionesInventariadas.includes(articulo.id) ? "SI" : "NO"}
+                  </td>
+                </tr>
+              )
+            )}
+          </tbody>
+        </table>
+      );
+    }
+  };
 
   return (
     <Flex
@@ -1012,39 +1198,59 @@ const handleAnularInventario = async () => {
           <FormLabel>Tipo de inventario</FormLabel>
           <RadioGroup
             className="flex flex-col gap-2 justify-start"
-            onChange={(value) => setTipoInventario(value)}
+            onChange={(value: TipoInventario) => setTipoInventario(value)}
             value={tipoInventario}
           >
             <Radio value="1">Inventario por categoria</Radio>
             <Radio value="2">Inventario por articulo</Radio>
             <Radio value="3">Inventario por ubicación</Radio>
             <Radio value="4">Inventario por marca</Radio>
+            <Radio value="5">Inventario por seccion</Radio>
           </RadioGroup>
         </div>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 flex-1">
           <div className="relative">
             <FormLabel>Articulo</FormLabel>
-            <Input
-              type="text"
-              placeholder="Buscar articulo por nombre o codigo de barras"
-              isDisabled={
-                tipoInventario === "1" ||
-                tipoInventario === "3" ||
-                tipoInventario === "4"
-              }
-              value={articuloBuscado || ""}
-              onChange={handleArticuloInputChange}
-              onClick={() => {
-                if (articuloBuscado && articuloBuscado.length >= 3) {
-                  setIsFloatingCardVisible(true);
+            <div className="flex flex-row gap-2">
+              <Input
+                type="text"
+                placeholder="Buscar articulo por nombre o codigo de barras"
+                isDisabled={
+                  tipoInventario === "1" ||
+                  tipoInventario === "3" ||
+                  tipoInventario === "4"
                 }
-              }}
-            />
+                value={articuloBuscado || ""}
+                onChange={handleArticuloInputChange}
+                onClick={() => {
+                  if (articuloBuscado && articuloBuscado.length >= 3) {
+                    setIsFloatingCardVisible(true);
+                  }
+                }}
+              />
+              <button
+                className="bg-blue-500 text-white p-2 rounded-md"
+                onClick={() => {
+                  fetchItemsParaTomaInventario();
+                }}
+              >
+                <Plus />
+              </button>
+            </div>
             <FloatingCard
               isVisible={isFloatingCardVisible}
               items={articulosDirecta || []}
               onClose={() => setIsFloatingCardVisible(false)}
               onSelect={handleArticuloSelect}
+              renderItem={(item: ArticulosDirecta) => (
+                <div className="flex flex-row gap-2">
+                  <p className="font-bold text-blue-500">
+                    {item.ar_cod_interno} -
+                  </p>
+                  <p>{item.ar_descripcion}</p>
+                  <p className="font-bold text-blue-400">{item.al_codbarra}</p>
+                </div>
+              )}
             />
           </div>
           <div className="flex flex-row gap-1">
@@ -1101,7 +1307,7 @@ const handleAnularInventario = async () => {
           </div>
         </div>
         <div
-          className={`flex flex-col flex-1 w-full ${
+          className={`flex flex-col  w-1/3 ${
             tipoInventario === "2" || tipoInventario === "3"
               ? "opacity-50 cursor-not-allowed"
               : ""
@@ -1113,6 +1319,8 @@ const handleAnularInventario = async () => {
                 ? "Categorias"
                 : tipoInventario === "4"
                 ? "Marcas"
+                : tipoInventario === "5"
+                ? "Secciones"
                 : "Categorias"}
             </FormLabel>
             <input
@@ -1122,125 +1330,8 @@ const handleAnularInventario = async () => {
               onChange={(e) => handleBuscarItems(e.target.value)}
             />
           </div>
-          <div className="flex flex-col gap-2 w-full overflow-y-auto h-[120px]">
-            {filtrarPorMarca === false ? (
-              <table className="w-full">
-                <thead className="bg-gray-200">
-                  <tr>
-                    <th>
-                      <div className="flex flex-col  items-center justify-center bg-white">
-                        <Checkbox
-                          isChecked={
-                            articulosCategoria?.length ===
-                            categoriasSeleccionadas.length
-                          }
-                          isIndeterminate={
-                            categoriasSeleccionadas.length > 0 &&
-                            categoriasSeleccionadas.length <
-                              (articulosCategoria?.length || 0)
-                          }
-                          onChange={(e) =>
-                            handleSelectAllCategorias(e.target.checked)
-                          }
-                          isDisabled={
-                            tipoInventario === "2" || tipoInventario === "3"
-                          }
-                        />
-                      </div>
-                    </th>
-                    <th className="text-center">Código</th>
-                    <th className="text-left">Descripción</th>
-                    <th className="text-center">Cantidad</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(articulosCategoriaFiltrados || articulosCategoria)?.map(
-                    (articulo) => (
-                      <tr key={articulo.id}>
-                        <td className="text-center">
-                          <div className="flex flex-row gap-2 items-center justify-center">
-                            <Checkbox
-                              isChecked={categoriasSeleccionadas.includes(
-                                articulo.id
-                              )}
-                              onChange={() =>
-                                handleCategoriaSelect(articulo.id)
-                              }
-                              isDisabled={
-                                tipoInventario === "2" || tipoInventario === "3"
-                              }
-                            />
-                          </div>
-                        </td>
-                        <td className="text-center">{articulo.id}</td>
-                        <td>{articulo.nombre}</td>
-                        <td className="text-center">
-                          {articulo.cantidad_articulos}
-                        </td>
-                      </tr>
-                    )
-                  )}
-                </tbody>
-              </table>
-            ) : (
-              <table className="w-full">
-                <thead className="bg-gray-200">
-                  <tr>
-                    <th>
-                      <div className="flex flex-col  items-center justify-center bg-white">
-                        <Checkbox
-                          isChecked={
-                            articulosMarca?.length ===
-                            marcasSeleccionadas.length
-                          }
-                          isIndeterminate={
-                            marcasSeleccionadas.length > 0 &&
-                            marcasSeleccionadas.length <
-                              (articulosMarca?.length || 0)
-                          }
-                          onChange={(e) =>
-                            handleSelectAllMarcas(e.target.checked)
-                          }
-                          isDisabled={
-                            tipoInventario === "2" || tipoInventario === "3"
-                          }
-                        />
-                      </div>
-                    </th>
-                    <th className="text-center">Código</th>
-                    <th className="text-left">Descripción</th>
-                    <th className="text-center">Cantidad</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {(articulosMarcaFiltrados || articulosMarca)?.map(
-                    (articulo) => (
-                      <tr key={articulo.id}>
-                        <td className="text-center">
-                          <div className="flex flex-row gap-2 items-center justify-center">
-                            <Checkbox
-                              isChecked={marcasSeleccionadas.includes(
-                                articulo.id
-                              )}
-                              onChange={() => handleMarcaSelect(articulo.id)}
-                              isDisabled={
-                                tipoInventario === "2" || tipoInventario === "3"
-                              }
-                            />
-                          </div>
-                        </td>
-                        <td className="text-center">{articulo.id}</td>
-                        <td>{articulo.nombre}</td>
-                        <td className="text-center">
-                          {articulo.cantidad_articulos}
-                        </td>
-                      </tr>
-                    )
-                  )}
-                </tbody>
-              </table>
-            )}
+          <div className="flex flex-col gap-2 w-full overflow-y-auto h-[150px]">
+            {TablaArticulos()}
           </div>
         </div>
         <div className="flex flex-col gap-2  justify-center">
@@ -1325,7 +1416,6 @@ const handleAnularInventario = async () => {
                       </td>
                       <td className="border border-gray-300 px-2 truncate">
                         {item.codigo_barra}
-
                       </td>
                       <td className="border border-gray-300 px-2 truncate">
                         {item.descripcion}
@@ -1355,10 +1445,30 @@ const handleAnularInventario = async () => {
         <div className="flex flex-col w-1/2 border border-gray-300 rounded-md bg-white h-[100%]">
           <div className="flex flex-row justify-between items-center px-4 py-2 ">
             <p className="text-center font-bold text-lg">Inventariado:</p>
+            <div className="flex items-center gap-2 p-2 bg-white rounded-lg shadow w-1/2">
+              <input
+                type="text"
+                placeholder="Buscar items escaneados..."
+                value={busquedaItemsEscaneados}
+                onChange={(e) => setBusquedaItemsEscaneados(e.target.value)}
+                className="flex-1 p-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {busquedaItemsEscaneados && (
+                <button
+                  onClick={() => {
+                    setBusquedaItemsEscaneados("");
+                    buscarItemsPorInventarioDerecha(); // Recargar sin filtro
+                  }}
+                  className="p-2 text-gray-500 hover:text-gray-700"
+                >
+                  <X size={20} />
+                </button>
+              )}
+            </div>
             <Button
               variant={"outline"}
               colorScheme="blue"
-              onClick={buscarItemsPorInventarioDerecha}
+              onClick={() => buscarItemsPorInventarioDerecha()}
             >
               <RotateCcw />
             </Button>
@@ -1403,7 +1513,6 @@ const handleAnularInventario = async () => {
                       </td>
                       <td className="border border-gray-300 px-2 truncate">
                         {item.codigo_barra}
-
                       </td>
                       <td className="border border-gray-300 px-2 truncate ">
                         {item.descripcion}
@@ -1451,27 +1560,13 @@ const handleAnularInventario = async () => {
                           </div>
                         ) : (
                           <div
-                            className={`px-2 py-1 rounded ${
-                              inventarioAuxiliar?.estado === 0 
-                                ? "cursor-pointer hover:bg-gray-100" 
-                                : "cursor-not-allowed text-gray-500"
-                            }`}
-                            onClick={() => {
-                              if (inventarioAuxiliar?.estado === 0) {
-                                setItemEnEdicion({
-                                  lote_id: item.lote_id,
-                                  cantidad: item.stock,
-                                });
-                              } else {
-                                toast({
-                                  title: inventarioAuxiliar?.estado === 1 ? "Inventario cerrado" : "Inventario anulado",
-                                  description: `No se puede editar un inventario que ya está ${inventarioAuxiliar?.estado === 1 ? "cerrado" : "anulado"}`,
-                                  status: "warning",
-                                  duration: 3000,
-                                  isClosable: true,
-                                });
-                              }
-                            }}
+                            className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded"
+                            onClick={() =>
+                              setItemEnEdicion({
+                                lote_id: item.lote_id,
+                                cantidad: item.stock,
+                              })
+                            }
                           >
                             {item.stock}
                           </div>

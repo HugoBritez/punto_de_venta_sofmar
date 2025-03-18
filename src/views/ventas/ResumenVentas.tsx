@@ -32,18 +32,35 @@ import {
   Printer,
   Filter,
   PenBox,
+  FileInput,
 } from "lucide-react";
 import { useAuth } from "@/services/AuthContext";
 import Auditar from "@/services/AuditoriaHook";
 import { debounce } from "lodash";
-import { Vendedor, Cliente, Moneda, Sucursal, ArticulosDirecta } from "@/types/shared_interfaces";
+import {
+  Vendedor,
+  Cliente,
+  Moneda,
+  Sucursal,
+  ArticulosDirecta,
+} from "@/types/shared_interfaces";
 import FloatingCard from "@/modules/FloatingCard";
 import UltimaVenta from "./ultimaVenta";
+import { useFacturacionElectronicaStore } from "@/stores/facturacionElectronicaStore";
+import { useFacturaSendTesting } from "@/hooks/useFacturaSendTesting";
+import { FacturaSendResponse } from "@/types/factura_electronica/types";
+import ConfirmationModal from "@/modules/ConfirmModal";
+import ModeloFacturaNuevo from "./../facturacion/ModeloFacturaNuevo";
+import ModeloNotaComun from "./../facturacion/ModeloNotaComun";
+import { createRoot } from "react-dom/client";
+import { useFacturaSend } from "@/hooks/useFacturaSend";
+import { useTipoImpresionFacturaStore } from "@/stores/tipoImpresionFacturaStore";
 
 interface Venta {
   codigo: number;
   codcliente: number;
   cliente: string;
+  moneda_id: number;
   moneda: string;
   fecha: string;
   codsucursal: number;
@@ -68,6 +85,28 @@ interface Venta {
   sub_total: number;
   total_articulos: number;
   total_neto: number;
+  ve_cdc: string;
+  tipo_documento: number;
+  cliente_descripcion: string;
+  cliente_direccion: string;
+  cliente_ciudad: string;
+  ciudad_id: number;
+  ciudad_descripcion: string;
+  distrito_id: number;
+  distrito_descripcion: string;
+  departamento_id: number;
+  departameto_descripcion: string;
+  cliente_telefono: string;
+  cliente_email: string;
+  cliente_codigo_interno: number;
+  operador_nombre: string;
+  operador_documento: string;
+  establecimiento: string;
+  punto_emision: string;
+  numero_factura: string;
+  cliente_ruc: string;
+  cant_cuotas: number;
+  entrega_inicial: number;
 }
 
 interface DetalleVenta {
@@ -78,18 +117,23 @@ interface DetalleVenta {
   descripcion_editada?: string;
   cantidad: number;
   precio: number;
+  precio_number: number;
   descuento: number;
+  descuento_number: number;
   exentas: number;
+  exentas_number: number;
   cinco: number;
+  cinco_number: number;
   diez: number;
+  diez_number: number;
   lote: string;
   vencimiento: string;
   largo: string;
   ancho: string;
   altura: string;
   mt2: string;
+  unidad_medida: number;
 }
-
 
 interface ConsultaDeVentasProps {
   clienteSeleccionado?: Cliente | null;
@@ -128,15 +172,20 @@ export default function ResumenVentas({
   const DEBOUNCE_DELAY = 300;
 
   const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [clienteSeleccionadoFiltro, setClienteSeleccionadoFiltro] = useState<Cliente | null>(null);
+  const [clienteSeleccionadoFiltro, setClienteSeleccionadoFiltro] =
+    useState<Cliente | null>(null);
   const [vendedores, setVendedores] = useState<Vendedor[]>([]);
-  const [vendedorSeleccionadoFiltro, setVendedorSeleccionadoFiltro] = useState<Vendedor | null>(null);
+  const [vendedorSeleccionadoFiltro, setVendedorSeleccionadoFiltro] =
+    useState<Vendedor | null>(null);
   const [monedas, setMonedas] = useState<Moneda[]>([]);
-  const [monedaSeleccionadaFiltro, setMonedaSeleccionadaFiltro] = useState<Moneda | null>(null);
+  const [monedaSeleccionadaFiltro, setMonedaSeleccionadaFiltro] =
+    useState<Moneda | null>(null);
   const [sucursales, setSucursales] = useState<Sucursal[]>([]);
-  const [sucursalSeleccionadaFiltro, setSucursalSeleccionadaFiltro] = useState<Sucursal | null>(null);
+  const [sucursalSeleccionadaFiltro, setSucursalSeleccionadaFiltro] =
+    useState<Sucursal | null>(null);
   const [articulos, setArticulos] = useState<ArticulosDirecta[]>([]);
-  const [articuloSeleccionadoFiltro, setArticuloSeleccionadoFiltro] = useState<ArticulosDirecta | null>(null);
+  const [articuloSeleccionadoFiltro, setArticuloSeleccionadoFiltro] =
+    useState<ArticulosDirecta | null>(null);
   const [factura, setFactura] = useState<string>("");
   const [estadoVenta, setEstadoVenta] = useState<number>(3);
   const [venta, setVenta] = useState<string>("");
@@ -150,69 +199,92 @@ export default function ResumenVentas({
   const [busquedaCliente, setBusquedaCliente] = useState("");
   const [busquedaVendedor, setBusquedaVendedor] = useState("");
 
-  const [ventaSeleccionadaInterna, setVentaSeleccionadaInterna] = useState<Venta | null>(null);
+  const [ventaSeleccionadaInterna, setVentaSeleccionadaInterna] =
+    useState<Venta | null>(null);
 
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
 
+  const { usaFacturaElectronica, fetchUsaFacturaElectronica } =
+    useFacturacionElectronicaStore();
+
+  const { verificarEstadoFactura } = useFacturaSendTesting();
+
+  const { enviarFacturas, cancelarFactura, inutilizarFactura } = useFacturaSend();
+
+  const [confirmarReenvio, setConfirmarReenvio] = useState(false);
+  const mensajeConfirmacionReenvio = useRef<string>("");
+
+  const { tipoImpresion, fetchTipoImpresion } = useTipoImpresionFacturaStore();
+  const [ tipoImpresionFactura, setTipoImpresionFactura] = useState<number | null>(null);
+
+  function determinarTipoDeImpresionFactura(){
+    if (
+      tipoImpresion === "thisform.imprimirventa1.imprimir_factura_elect_report"
+    ) {
+      setTipoImpresionFactura(1); //impresion hoja grande
+    } else if (
+      tipoImpresion ===
+      "thisform.imprimirventa1.imprimir_factura_ticket_electronica"
+    ) {
+      setTipoImpresionFactura(2); // impresion tipo ticket
+    }
+  }
 
   const setColor = (estado: string | number) => {
     if (estado === 0) {
       return "bg-pink-200";
     }
     return "bg-white";
-  }
-  
+  };
 
-    const fetchArticulosDirecta = async (busqueda: string) => {
-      try {
-        const response = await axios.get(`${api_url}articulos/directa`, {
-          params: {
-            busqueda,
-          },
-        });
-        setArticulos(response.data.body);
-      } catch (error) {}
-    };
-
-    const fetchSucursales = async () => {
-      const response = await axios.get(`${api_url}sucursales/listar`);
-      setSucursales(response.data.body);
-      setSucursalSeleccionadaFiltro(response.data.body[0]);
-    };
-
-    const fetchClientes = async (busqueda: string) => {
-      const response = await axios.get(`${api_url}clientes/get-clientes`, {
+  const fetchArticulosDirecta = async (busqueda: string) => {
+    try {
+      const response = await axios.get(`${api_url}articulos/directa`, {
         params: {
-          buscar: busqueda,
+          busqueda,
         },
       });
-      setClientes(response.data.body);
-      setClienteSeleccionadoFiltro(response.data.body[0]);
-    };
-    
-    const fetchVendedores = async (busqueda: string) => {
-      const response = await axios.get(`${api_url}usuarios/vendedores`, {
-        params: {
-          buscar: busqueda,
-        },
-      });
-      setVendedores(response.data.body);
-      setVendedorSeleccionadoFiltro(response.data.body[0]);
-    };
+      setArticulos(response.data.body);
+    } catch (error) {}
+  };
 
-    const fetchMonedas = async () => {
-      const response = await axios.get(`${api_url}monedas/`);
-      setMonedas(response.data.body);
-      setMonedaSeleccionadaFiltro(response.data.body[0]);
-    };
-      
-    
+  const fetchSucursales = async () => {
+    const response = await axios.get(`${api_url}sucursales/listar`);
+    setSucursales(response.data.body);
+    setSucursalSeleccionadaFiltro(response.data.body[0]);
+  };
+
+  const fetchClientes = async (busqueda: string) => {
+    const response = await axios.get(`${api_url}clientes/get-clientes`, {
+      params: {
+        buscar: busqueda,
+      },
+    });
+    setClientes(response.data.body);
+    setClienteSeleccionadoFiltro(response.data.body[0]);
+  };
+
+  const fetchVendedores = async (busqueda: string) => {
+    const response = await axios.get(`${api_url}usuarios/vendedores`, {
+      params: {
+        buscar: busqueda,
+      },
+    });
+    setVendedores(response.data.body);
+    setVendedorSeleccionadoFiltro(response.data.body[0]);
+  };
+
+  const fetchMonedas = async () => {
+    const response = await axios.get(`${api_url}monedas/`);
+    setMonedas(response.data.body);
+    setMonedaSeleccionadaFiltro(response.data.body[0]);
+  };
+
   const {
     isOpen: isAdvertenciaModalOpen,
     onOpen: handleOpenAdvertenciaModal,
     onClose: handleCLoseAdvertenciaModal,
   } = useDisclosure();
-
 
   const debouncedEstadoChange = useCallback(
     debounce((value: string) => {
@@ -225,7 +297,16 @@ export default function ResumenVentas({
     fetchSucursales();
     fetchMonedas();
     fetchVentas(1, false);
+    fetchTipoImpresion();
   }, []);
+
+  useEffect(() => {
+    determinarTipoDeImpresionFactura();
+  }, [tipoImpresion]);
+
+  useEffect(() => {
+    fetchUsaFacturaElectronica(Number(sucursalSeleccionadaFiltro?.id));
+  }, [sucursalSeleccionadaFiltro]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -251,7 +332,6 @@ export default function ResumenVentas({
   const fetchVentas = async (pageNum = 1, append = false) => {
     setIsLoadingMore(pageNum > 1);
     setIsLoading(pageNum === 1);
-
     try {
       const response = await axios.post(`${api_url}venta/consultas`, {
         fecha_desde: fechaDesde,
@@ -317,7 +397,6 @@ export default function ResumenVentas({
     }
   };
 
-
   const anularVenta = async (metodo: number) => {
     try {
       const response = await axios.post(`${api_url}venta/anular-venta`, {
@@ -335,6 +414,26 @@ export default function ResumenVentas({
         isClosable: true,
       });
       fetchVentas();
+
+      if (ventaSeleccionadaInterna?.ve_cdc && metodo === 1 && ventaSeleccionadaInterna?.tipo_documento === 1 && usaFacturaElectronica)  {
+        const responseCancelacion = await cancelarFactura(
+          {
+            cdc: ventaSeleccionadaInterna?.ve_cdc,
+            motivo: obsAnulacion,
+          }
+        );
+        console.log(responseCancelacion);
+
+        const responseInutilizacion = await inutilizarFactura({
+          tipoDocumento: ventaSeleccionadaInterna?.tipo_documento,
+          establecimiento: ventaSeleccionadaInterna?.establecimiento,
+          punto: ventaSeleccionadaInterna?.punto_emision,
+          desde: Number(ventaSeleccionadaInterna?.numero_factura),
+          hasta: Number(ventaSeleccionadaInterna?.numero_factura),
+          motivo: obsAnulacion,
+        });
+        console.log(responseInutilizacion);
+      }
       Auditar(
         5,
         3,
@@ -379,18 +478,17 @@ export default function ResumenVentas({
     []
   );
 
+  const handleBuscarArticulo = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setBusquedaArticulo(e.target.value);
+    setIsVisibleArticulo(true);
+    fetchArticulosDirecta(e.target.value);
+  };
 
-const handleBuscarArticulo = (e: React.ChangeEvent<HTMLInputElement>) => {
-  setBusquedaArticulo(e.target.value);
-  setIsVisibleArticulo(true);
-  fetchArticulosDirecta(e.target.value);
-};
-
-const handleSelectArticulo = (articulo: ArticulosDirecta) => {
-  setArticuloSeleccionadoFiltro(articulo);
-  setBusquedaArticulo(articulo.descripcion); // Actualizar el texto de búsqueda
-  setIsVisibleArticulo(false);
-};
+  const handleSelectArticulo = (articulo: ArticulosDirecta) => {
+    setArticuloSeleccionadoFiltro(articulo);
+    setBusquedaArticulo(articulo.descripcion); // Actualizar el texto de búsqueda
+    setIsVisibleArticulo(false);
+  };
 
   const handleBuscarCliente = (e: React.ChangeEvent<HTMLInputElement>) => {
     setIsVisibleCliente(true);
@@ -416,31 +514,384 @@ const handleSelectArticulo = (articulo: ArticulosDirecta) => {
     setBusquedaVendedor(vendedor.op_nombre);
   };
 
-    const [isImprimirModalOpen, setIsImprimirModalOpen] = useState(false);
+  const [isImprimirModalOpen, setIsImprimirModalOpen] = useState(false);
 
-    // Función para formatear moneda (requerida por UltimaVenta)
-    const formatCurrency = (amount: number) => {
-      return new Intl.NumberFormat("es-PY", {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(amount);
+  // Función para formatear moneda (requerida por UltimaVenta)
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("es-PY", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
+
+  // Función para manejar el click en el botón de imprimir
+  const handleImprimirClick = () => {
+    if (ventaSeleccionadaInterna) {
+      setIsImprimirModalOpen(true);
+    } else {
+      toast({
+        title: "Error",
+        description: "Debe seleccionar una venta para imprimir",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  async function actualizarCdcVenta(ventaId: number, cdc: string, qr: string) {
+    try {
+      console.log("Intentando actualizar CDC con:", { ventaId, cdc, qr });
+      const response = await axios.post(`${api_url}venta/actualizar-cdc`, {
+        codigo: ventaId,
+        cdc: cdc,
+        qr: qr,
+      });
+      console.log("Respuesta de actualizar CDC:", response.data);
+      return response.data;
+    } catch (error: any) {
+      console.error("Error detallado al actualizar CDC:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+      throw error; // Re-lanzamos el error para que sea manejado por el catch superior
+    }
+  }
+
+  const handleConfirmarReenvio = async (cdc: string) => {
+    if (!ventaSeleccionadaInterna) {
+      toast({
+        title: "Error",
+        description: "Debe seleccionar una venta para reenviar la factura",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+    if (cdc === "") {
+      setConfirmarReenvio(true);
+    } else {
+      const response = await verificarEstadoFactura(cdc);
+      console.log(response);
+      if (response.result != null) {
+        mensajeConfirmacionReenvio.current =
+          "(La FE ya fue enviada previamente)";
+      } else {
+        mensajeConfirmacionReenvio.current = "";
+      }
+      setConfirmarReenvio(true);
+    }
+  };
+
+  const handleReenviarFacturaElectronica = async (cdc: string) => {
+    if (!ventaSeleccionadaInterna) {
+      toast({
+        title: "Error",
+        description: "Debe seleccionar una venta para reenviar la factura",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    const dataFactura: FacturaSendResponse = {
+      tipoDocumento: 1,
+      establecimiento: ventaSeleccionadaInterna?.establecimiento || 0,
+      punto: ventaSeleccionadaInterna?.punto_emision || 0,
+      numero: ventaSeleccionadaInterna?.numero_factura || 0,
+      observacion: "",
+      fecha: new Date().toISOString().split(".")[0],
+      tipoEmision: 1,
+      tipoTransaccion: 1,
+      tipoImpuesto: 1,
+      cdc: cdc || ventaSeleccionadaInterna?.ve_cdc || "",
+      moneda:
+        ventaSeleccionadaInterna?.moneda_id === 1
+          ? "PYG"
+          : ventaSeleccionadaInterna?.moneda_id === 2
+          ? "USD"
+          : ventaSeleccionadaInterna?.moneda_id === 3
+          ? "BRL"
+          : ventaSeleccionadaInterna?.moneda_id === 4
+          ? "ARS"
+          : "PYG",
+      cambio: 0,
+      cliente: {
+        contribuyente:
+          ventaSeleccionadaInterna?.tipo_documento === 1 ||
+          ventaSeleccionadaInterna?.tipo_documento === 18
+            ? true
+            : false,
+        ruc:
+          ventaSeleccionadaInterna?.tipo_documento === 1
+            ? ventaSeleccionadaInterna?.cliente_ruc
+            : null,
+        razonSocial: ventaSeleccionadaInterna?.cliente,
+        nombreFantasia: ventaSeleccionadaInterna?.cliente_descripcion,
+        tipoOperacion:
+          ventaSeleccionadaInterna?.tipo_documento === 1
+            ? 1
+            : ventaSeleccionadaInterna?.tipo_documento === 18
+            ? 3
+            : 2,
+        numeroCasa: "001",
+        departamento: ventaSeleccionadaInterna?.departamento_id || 1,
+        departamentoDescripcion:
+          ventaSeleccionadaInterna?.departameto_descripcion || "",
+        distrito: ventaSeleccionadaInterna?.distrito_id || 1,
+        distritoDescripcion:
+          ventaSeleccionadaInterna?.distrito_descripcion || "",
+        direccion: ventaSeleccionadaInterna?.cliente_direccion || "",
+        ciudad:
+          ventaSeleccionadaInterna?.ciudad_id === 2
+            ? 1
+            : ventaSeleccionadaInterna?.ciudad_id || 1,
+        ciudadDescripcion: ventaSeleccionadaInterna?.ciudad_descripcion || "",
+        pais: "PRY",
+        paisDescripcion: "Paraguay",
+        tipoContribuyente: 1,
+        documentoTipo: ventaSeleccionadaInterna?.tipo_documento,
+        telefono: ventaSeleccionadaInterna?.cliente_telefono || "",
+        celular: "595" + ventaSeleccionadaInterna?.cliente_telefono || "",
+        email: ventaSeleccionadaInterna?.cliente_email?.trim() || "",
+        codigo: "000" + ventaSeleccionadaInterna?.cliente_codigo_interno, //quitar el 000 para produccion
+      },
+      usuario: {
+        documentoTipo: 1,
+        documentoNumero: ventaSeleccionadaInterna?.operador_documento || "",
+        nombre: ventaSeleccionadaInterna?.operador_nombre || "",
+        cargo: "Vendedor",
+      },
+      factura: {
+        presencia: 1,
+      },
+      condicion: {
+        tipo: ventaSeleccionadaInterna?.condicion === "Crédito" ? 2 : 1,
+        entregas:
+          ventaSeleccionadaInterna?.condicion === "Contado"
+            ? [
+                {
+                  tipo: 1, // Efectivo
+                  monto: ventaSeleccionadaInterna?.total.toString(),
+                  moneda:
+                    ventaSeleccionadaInterna?.moneda_id === 1
+                      ? "PYG"
+                      : ventaSeleccionadaInterna?.moneda_id === 2
+                      ? "USD"
+                      : ventaSeleccionadaInterna?.moneda_id === 3
+                      ? "BRL"
+                      : ventaSeleccionadaInterna?.moneda_id === 4
+                      ? "ARS"
+                      : "PYG",
+                  monedaDescripcion:
+                    ventaSeleccionadaInterna?.moneda || "Guaraníes",
+                  cambio: 0.0,
+                },
+              ]
+            : [],
+        credito:
+          ventaSeleccionadaInterna?.condicion === "Crédito"
+            ? {
+                tipo: 1, // Plazo
+                plazo: `${ventaSeleccionadaInterna?.cant_cuotas || 1} cuotas`,
+                cuotas: ventaSeleccionadaInterna?.cant_cuotas || 1,
+                montoEntrega: ventaSeleccionadaInterna?.entrega_inicial || 0,
+                infoCuotas: Array.from(
+                  { length: ventaSeleccionadaInterna?.cant_cuotas || 1 },
+                  (_) => {
+                    return {
+                      moneda:
+                        ventaSeleccionadaInterna?.moneda_id === 1
+                          ? "PYG"
+                          : ventaSeleccionadaInterna?.moneda_id === 2
+                          ? "USD"
+                          : ventaSeleccionadaInterna?.moneda_id === 3
+                          ? "BRL"
+                          : ventaSeleccionadaInterna?.moneda_id === 4
+                          ? "ARS"
+                          : "PYG",
+                      monto: 0,
+                      vencimiento: "",
+                    };
+                  }
+                ),
+              }
+            : null,
+      },
+      items: detalleVenta.map((item) => {
+        let ivaTipo = 1; // Por defecto, Gravado IVA
+        let ivaBase = 100;
+        let ivaPorcentaje = 10;
+        let IVa5 = 0;
+        let IVa10 = 0;
+        let vartotal = 0;
+        let VGravada = 0;
+        let vporc = 0;
+        if (item.cinco_number > 0 && item.exentas_number > 0) {
+          IVa5 = Math.round((item.cinco_number / 21) * 100) / 100;
+          vartotal = item.cinco_number + item.exentas_number - IVa5;
+          ivaTipo = 4;
+          ivaPorcentaje = 5;
+          VGravada = Math.round((item.cinco_number / 1.05) * 100) / 100;
+          vporc = (VGravada * 100) / vartotal;
+          ivaBase = parseFloat(vporc.toFixed(8));
+        } else if (item.diez_number > 0 && item.exentas_number > 0) {
+          IVa10 = Math.round((item.diez_number / 11) * 100) / 100;
+          vartotal = item.diez_number + item.exentas_number - IVa10;
+          ivaTipo = 4;
+          ivaPorcentaje = 10;
+          VGravada = Math.round((item.diez_number / 1.1) * 100) / 100;
+          vporc = (VGravada * 100) / vartotal;
+          ivaBase = parseFloat(vporc.toFixed(8));
+        } else if (item.cinco_number > 0) {
+          ivaTipo = 1;
+          ivaPorcentaje = 5;
+          ivaBase = 100;
+        } else if (item.diez_number > 0) {
+          ivaTipo = 1;
+          ivaPorcentaje = 10;
+          ivaBase = 100;
+        } else if (item.cinco_number === 0 && item.diez_number === 0 && item.exentas_number > 0) {
+          ivaTipo = 3; // Exento
+          ivaPorcentaje = 0;
+          ivaBase = 0;
+        }
+
+        return {
+          codigo: item.art_codigo,
+          descripcion: item.descripcion,
+          observacion: "",
+          unidadMedida: item.unidad_medida || 77, // Unidad
+          cantidad: item.cantidad,
+          precioUnitario: item.precio_number,
+          cambio: 0.0,
+          ivaTipo: ivaTipo,
+          ivaBase: ivaBase,
+          iva: ivaPorcentaje,
+          lote: item.lote || "",
+          vencimiento: item.vencimiento || "",
+        };
+      }),
     };
 
-    // Función para manejar el click en el botón de imprimir
-    const handleImprimirClick = () => {
-      if (ventaSeleccionadaInterna) {
-        setIsImprimirModalOpen(true);
+    try {
+      const responseFactura = await enviarFacturas([dataFactura]);
+      console.log("Respuesta completa:", responseFactura);
+
+      if (responseFactura.success === true) {
+        console.log("Respuesta completa:", responseFactura);
+
+        // Verificar si existe deList y tiene elementos
+        if (
+          responseFactura.result &&
+          responseFactura.result.deList &&
+          responseFactura.result.deList.length > 0 &&
+          responseFactura.result.deList[0].cdc &&
+          responseFactura.result.deList[0].qr &&
+          responseFactura.result.deList[0].qr !== ""
+        ) {
+          console.log(
+            "CDC a actualizar:",
+            responseFactura.result.deList[0].cdc
+          );
+          console.log("QR a actualizar:", responseFactura.result.deList[0].qr);
+          console.log("Código de venta:", ventaSeleccionadaInterna?.codigo);
+
+          try {
+            await actualizarCdcVenta(
+              ventaSeleccionadaInterna?.codigo || 0,
+              responseFactura.result.deList[0].cdc,
+              responseFactura.result.deList[0].qr
+            );
+            console.log("CDC actualizado exitosamente");
+          } catch (errorCdc) {
+            console.error("Error específico al actualizar CDC:", errorCdc);
+            toast({
+              title: "Error al actualizar CDC",
+              description:
+                "La factura se envió pero hubo un error al actualizar el CDC",
+              status: "warning",
+              duration: 5000,
+              isClosable: true,
+            });
+          }
+        } else {
+          console.warn(
+            "No se encontró información de CDC/QR en la respuesta:",
+            responseFactura
+          );
+          toast({
+            title: "Advertencia",
+            description:
+              "La factura se envió pero no se recibió información de CDC/QR para actualizar",
+            status: "warning",
+            duration: 5000,
+            isClosable: true,
+          });
+        }
+        toast({
+          title: "Factura reenviada",
+          description: "La factura ha sido reenviada exitosamente",
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
+        mensajeConfirmacionReenvio.current = "";
       } else {
         toast({
-          title: "Error",
-          description: "Debe seleccionar una venta para imprimir",
+          title: "Error al reenviar la factura",
+          description: "Por favor, intenta de nuevo más tarde",
           status: "error",
           duration: 3000,
           isClosable: true,
         });
       }
-    };
+    } catch (error) {
+      toast({
+        title: "Error al reenviar la factura",
+        description: "Por favor, intenta de nuevo más tarde",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
 
+  const reImprimirFacturaFiscalComponente = (ventaId: number) => {
+    const facturaDiv = document.createElement("div");
+    facturaDiv.style.display = "none";
+    document.body.appendChild(facturaDiv);
+
+    const root = createRoot(facturaDiv);
+    root.render(
+      <ModeloFacturaNuevo
+        id_venta={ventaId}
+        monto_entregado={ 0}
+        monto_recibido={ 0}
+        vuelto={0}
+        onImprimir={true}
+      />
+    );
+    setTimeout(() => {
+      root.unmount();
+      document.body.removeChild(facturaDiv);
+    }, 2000);
+  };
+
+  const reImprimirNotaComunComponente = (ventaId: number) => {
+    const notaDiv = document.createElement("div");
+    notaDiv.style.display = "none";
+    document.body.appendChild(notaDiv);
+
+    const root = createRoot(notaDiv);
+    root.render(<ModeloNotaComun id_venta={ventaId} onImprimir={true} />);
+    setTimeout(() => {
+      root.unmount();
+      document.body.removeChild(notaDiv);
+    }, 2000);
+  };
 
   return (
     <Box bg={"gray.100"} h={"100vh"} w={"100%"} p={2}>
@@ -820,7 +1271,7 @@ const handleSelectArticulo = (articulo: ArticulosDirecta) => {
                   <tbody>
                     {detalleVenta.map((detalle) => (
                       <tr className=" [&>td]:border [&>td]:border-gray-300 [&>td]:px-2">
-                        <td>{detalle.det_codigo}</td>
+                        <td>{detalle.art_codigo}</td>
                         <td>{detalle.codbarra}</td>
                         <td>{detalle.descripcion}</td>
                         <td className="text-center">{detalle.cantidad}</td>
@@ -884,6 +1335,60 @@ const handleSelectArticulo = (articulo: ArticulosDirecta) => {
                 }
               />
             </div>
+            <div className="border border-gray-300 rounded-md bg-white p-2 flex flex-col gap-2">
+              <button
+                className="bg-blue-400 text-white p-2 rounded-md flex flex-row gap-2 items-center justify-center w-full"
+                onClick={() =>
+                  reImprimirFacturaFiscalComponente(
+                    ventaSeleccionadaInterna?.codigo || 0
+                  )
+                }
+              >
+                <p className="font-bold">Reimprimir Factura Fiscal</p>
+                <Printer />
+              </button>
+              <button
+                className="bg-teal-600 text-white p-2 rounded-md flex flex-row gap-2 items-center justify-center w-full"
+                onClick={() =>
+                  reImprimirNotaComunComponente(
+                    ventaSeleccionadaInterna?.codigo || 0
+                  )
+                }
+              >
+                <p className="font-bold">Reimprimir Nota comun</p>
+                <Printer />
+              </button>
+            </div>
+            {usaFacturaElectronica === 1 && (
+              <>
+                <div className="border border-gray-300 rounded-md bg-white p-2">
+                  <button
+                    className="bg-orange-400 text-white p-2 rounded-md flex flex-row gap-2 items-center justify-center w-full"
+                    onClick={() =>
+                      handleConfirmarReenvio(
+                        ventaSeleccionadaInterna?.ve_cdc || ""
+                      )
+                    }
+                  >
+                    <p className="font-bold">Reenviar Factura Electronica</p>
+                    <FileInput />
+                  </button>
+                </div>
+                <ConfirmationModal
+                  isOpen={confirmarReenvio}
+                  onClose={() => setConfirmarReenvio(false)}
+                  onConfirm={() =>
+                    handleReenviarFacturaElectronica(
+                      ventaSeleccionadaInterna?.ve_cdc || ""
+                    )
+                  }
+                  title="Reenviar Factura Electronica"
+                  message={`¿Está seguro de querer reenviar la factura electronica? ${mensajeConfirmacionReenvio.current}`}
+                  type="simple"
+                  icon="warning"
+                />
+              </>
+            )}
             <div className="rounded-md bg-blue-200 w-full h-[calc(100%-100px)] grid grid-cols-2 gap-2 p-2">
               <div className="flex flex-col gap-2">
                 <p className="text-gray-800 font-bold">Total Exentas</p>
@@ -983,7 +1488,6 @@ const handleSelectArticulo = (articulo: ArticulosDirecta) => {
               variant={"filled"}
             />
           </ModalBody>
-
           <ModalFooter>
             <Button
               colorScheme="red"
