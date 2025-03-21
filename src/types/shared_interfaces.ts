@@ -453,27 +453,17 @@ export interface ArticuloBusqueda {
   fecha_ultima_venta: string;
   fecha_ultima_compra: string;
   estado_vencimiento: string;
-  lotes: [
-    {
-      id: number;
-      lote: string;
-      cantidad: number;
-      vencimiento: string;
-      deposito: number;
-    }
-  ];
-  depositos: [
-    {
-      codigo: number;
-      descripcion: string;
-      stock: number;
-    }
-  ];
   precio_costo: number;
-  precio_venta: number;
+  precio_venta_guaranies: number;
   precio_credito: number;
   precio_mostrador: number;
   precio_4: number;
+  precio_costo_dolar: number;
+  precio_venta_dolar: number;
+  precio_costo_pesos: number;
+  precio_venta_pesos: number;
+  precio_costo_real: number;
+  precio_venta_real: number;
 }
 
 export interface ArticulosNuevo {

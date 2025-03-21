@@ -55,6 +55,7 @@ import ModeloNotaComun from "./../facturacion/ModeloNotaComun";
 import { createRoot } from "react-dom/client";
 import { useFacturaSend } from "@/hooks/useFacturaSend";
 import { useTipoImpresionFacturaStore } from "@/stores/tipoImpresionFacturaStore";
+import ModeloFacturaReport from "../facturacion/ModeloFacturaReport";
 
 interface Venta {
   codigo: number;
@@ -859,6 +860,28 @@ export default function ResumenVentas({
     }
   };
 
+    const reImprimirFacturaFiscalReportComponente = (ventaId: number) => {
+      const facturaDiv = document.createElement("div");
+      facturaDiv.style.display = "none";
+      document.body.appendChild(facturaDiv);
+
+      const root = createRoot(facturaDiv);
+      root.render(
+        <ModeloFacturaReport
+          id_venta={ventaId}
+          monto_entregado={0}
+          monto_recibido={0}
+          vuelto={0}
+          onImprimir={true}
+        />
+      );
+      setTimeout(() => {
+        root.unmount();
+        document.body.removeChild(facturaDiv);
+      }, 2000);
+    };
+
+
   const reImprimirFacturaFiscalComponente = (ventaId: number) => {
     const facturaDiv = document.createElement("div");
     facturaDiv.style.display = "none";
@@ -1007,8 +1030,11 @@ export default function ResumenVentas({
               <FormLabel overflowWrap="normal">Filtrar por moneda:</FormLabel>
               <Select
                 w={isMobile ? "100%" : "200px"}
-                value={monedaSeleccionadaFiltro?.mo_codigo}
-                onChange={(e) => debouncedEstadoChange(e.target.value)}
+                value={monedaSeleccionadaFiltro?.mo_codigo?.toString()}
+                onChange={(e) => {
+                  const selectedMoneda = monedas.find(m => m.mo_codigo.toString() === e.target.value);
+                  setMonedaSeleccionadaFiltro(selectedMoneda || null);
+                }}
                 bg={"white"}
               >
                 {monedas.map((moneda) => (
@@ -1339,9 +1365,17 @@ export default function ResumenVentas({
               <button
                 className="bg-blue-400 text-white p-2 rounded-md flex flex-row gap-2 items-center justify-center w-full"
                 onClick={() =>
-                  reImprimirFacturaFiscalComponente(
-                    ventaSeleccionadaInterna?.codigo || 0
-                  )
+                {
+                  if (tipoImpresionFactura === 1) {
+                    reImprimirFacturaFiscalReportComponente(
+                      ventaSeleccionadaInterna?.codigo || 0
+                    );
+                  } else if (tipoImpresionFactura === 2) {
+                    reImprimirFacturaFiscalComponente(
+                      ventaSeleccionadaInterna?.codigo || 0
+                    );
+                  }
+                }
                 }
               >
                 <p className="font-bold">Reimprimir Factura Fiscal</p>

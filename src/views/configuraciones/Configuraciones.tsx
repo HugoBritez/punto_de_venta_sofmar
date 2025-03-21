@@ -4,6 +4,7 @@ import ConfiguracionCard from "./ConfiguracionCard";
 import { configuraciones } from "./configuracionesData";
 import EncabezadoPieConfig from "./configs/EncabezadoPiePresupuesto";
 import { Settings } from "lucide-react";
+import EncabezadoFacturaConfig from "./configs/EncabezadoFacturaReport";
 
 export default function ConfiguracionesMenu() {
   const [isMobile] = useMediaQuery("(max-width: 768px)");
@@ -15,6 +16,8 @@ export default function ConfiguracionesMenu() {
     switch (configuracionSeleccionada) {
       case "encabezado-pie":
         return <EncabezadoPieConfig />;
+      case "encabezado-factura":
+        return <EncabezadoFacturaConfig />;
       default:
         return (
           <div className="flex items-center justify-center h-full">

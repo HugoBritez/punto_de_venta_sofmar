@@ -34,11 +34,11 @@ const ArticuloInfoCard = ({ articulo, isVisible }: ArticuloInfoCardProps) => {
             {/* Información principal */}
             <div className="flex flex-col gap-2">
               {/* Vencimiento si existe */}
-              {articulo.vencimiento_validacion === 0 && articulo.lotes?.[0] && (
+              {articulo.vencimiento_validacion === 0 && articulo.vencimiento_lote && (
                 <div className="flex items-center gap-2 text-gray-700 mt-1">
                   <Calendar size={18} className="text-orange-500" />
                   <span className="font-semibold">Vencimiento:</span>
-                  <span>{articulo.lotes[0].vencimiento}</span>
+                  <span>{articulo.vencimiento_lote}</span>
                 </div>
               )}
 

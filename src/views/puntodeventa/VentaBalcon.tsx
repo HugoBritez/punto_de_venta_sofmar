@@ -5,7 +5,7 @@ import {
   Vendedor,
   Moneda,
   MetodosPago,
-  ArticulosNuevo,
+  ArticuloBusqueda,
   ListaPrecios,
   PedidosNuevo,
   Presupuesto,
@@ -55,10 +55,12 @@ import { createRoot } from "react-dom/client";
 import ModeloNotaComun from "../facturacion/ModeloNotaComun";
 import ItemsFaltantesDoc from "./pdf/impresion_articulos_faltantes";
 import Auditar from "@/services/AuditoriaHook";
-import ArticuloInfoCardOld from "@/modules/ArticuloInfoCardOld";
+import ArticuloInfoCard from "@/modules/ArticuloInfoCard";
 import { FacturaSendResponse } from "@/types/factura_electronica/types";
 import { useFacturacionElectronicaStore } from "@/stores/facturacionElectronicaStore";
 import { useFacturaSend } from "@/hooks/useFacturaSend";
+import { useTipoImpresionFacturaStore } from "@/stores/tipoImpresionFacturaStore";
+import ModeloFacturaReport from "../facturacion/ModeloFacturaReport";
 
 interface ItemParaVenta {
   precio_guaranies: number;
@@ -179,6 +181,37 @@ interface ItemsFaltantesModalProps {
   items: ItemFaltante[];
 }
 
+const useTotalesVenta = (items: ItemParaVenta[]) => {
+  const [totales, setTotales] = useState({
+    guaranies: 0,
+    dolares: 0,
+    reales: 0,
+    pesos: 0,
+    iva5: 0,
+    iva10: 0,
+  });
+
+  useEffect(() => {
+    const nuevosTotales = items.reduce(
+      (acc, item) => ({
+        guaranies:
+          acc.guaranies + Number(item.precio_guaranies) * item.deve_cantidad,
+        dolares: acc.dolares + Number(item.precio_dolares) * item.deve_cantidad,
+        reales: acc.reales + Number(item.precio_reales) * item.deve_cantidad,
+        pesos:
+          acc.pesos + (Number(item.precio_pesos) || 0) * item.deve_cantidad,
+        iva5: acc.iva5 + Number(item.deve_cinco_x || 0),
+        iva10: acc.iva10 + Number(item.deve_diez_x || 0),
+      }),
+      { guaranies: 0, dolares: 0, reales: 0, pesos: 0, iva5: 0, iva10: 0 }
+    );
+
+    setTotales(nuevosTotales);
+  }, [items]);
+
+  return totales;
+};
+
 const VentaBalconNuevo = () => {
   const [isMobile] = useMediaQuery("(max-width: 768px)");
 
@@ -209,7 +242,7 @@ const VentaBalconNuevo = () => {
   const [metodoPagoSeleccionado, setMetodoPagoSeleccionado] =
     useState<MetodosPago | null>(null);
 
-  const [articulos, setArticulos] = useState<ArticulosNuevo[]>([]);
+  const [articulos, setArticulos] = useState<ArticuloBusqueda[]>([]);
 
   const [listaPrecios, setListaPrecios] = useState<ListaPrecios[]>([]);
   const [precioSeleccionado, setPrecioSeleccionado] =
@@ -258,7 +291,7 @@ const VentaBalconNuevo = () => {
   const [cotizacionReal, setCotizacionReal] = useState<number>(1200);
   const [cotizacionPeso, setCotizacionPeso] = useState<number>(5);
   const [articuloSeleccionado, setArticuloSeleccionado] =
-    useState<ArticulosNuevo | null>(null);
+    useState<ArticuloBusqueda | null>(null);
 
   const [montoEntregado, setMontoEntregado] = useState<number | null>(null);
   const [montoEntregadoDolar, setMontoEntregadoDolar] = useState<number | null>(
@@ -271,13 +304,15 @@ const VentaBalconNuevo = () => {
     null
   );
 
-  const [hoveredArticulo, setHoveredArticulo] = useState<ArticulosNuevo | null>(
-    null
-  );
+  const [hoveredArticulo, setHoveredArticulo] =
+    useState<ArticuloBusqueda | null>(null);
 
   const [d_codigo, setD_codigo] = useState<number>(0);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [clienteBusquedaId, setClienteBusquedaId] = useState<number | null>(
+    null
+  );
 
   const [cuotasList, setCuotasList] = useState<
     Array<{
@@ -335,12 +370,30 @@ const VentaBalconNuevo = () => {
   const configuraciones = JSON.parse(
     sessionStorage.getItem("configuraciones") || "[]"
   );
-  
+
   const permisos_descuento = JSON.parse(
     sessionStorage.getItem("permisos_descuento") || "[]"
   );
 
-  const tipoImpresion = configuraciones[5].valor || 0;
+  const tipoImpresionDoc = configuraciones[5].valor || 0;
+
+  const { tipoImpresion, fetchTipoImpresion } = useTipoImpresionFacturaStore();
+  const [tipoImpresionFactura, setTipoImpresionFactura] = useState<
+    number | null
+  >(null);
+
+  function determinarTipoDeImpresionFactura() {
+    if (
+      tipoImpresion === "thisform.imprimirventa1.imprimir_factura_elect_report"
+    ) {
+      setTipoImpresionFactura(1); //impresion hoja grande
+    } else if (
+      tipoImpresion ===
+      "thisform.imprimirventa1.imprimir_factura_ticket_electronica"
+    ) {
+      setTipoImpresionFactura(2); // impresion tipo ticket
+    }
+  }
 
   const [imprimirFactura, setImprimirFactura] = useState<boolean>(true);
   const [imprimirTicket, setImprimirTicket] = useState<boolean>(false);
@@ -350,7 +403,7 @@ const VentaBalconNuevo = () => {
   const [opcionesFinalizacion, setOpcionesFinalizacion] =
     useState<OpcionesFinalizacionVenta>({
       tipo_venta: "CREDITO",
-      tipo_documento: tipoImpresion === "1" ? "FACTURA" : "TICKET",
+      tipo_documento: tipoImpresionDoc === "1" ? "FACTURA" : "TICKET",
     });
 
   const [itemsFaltantes, setItemsFaltantes] = useState<ItemFaltante[]>([]);
@@ -358,6 +411,8 @@ const VentaBalconNuevo = () => {
   const { enviarFacturas } = useFacturaSend();
 
   const toast = useToast();
+
+  const totalesVenta = useTotalesVenta(itemsParaVenta);
 
   const { usaFacturaElectronica, fetchUsaFacturaElectronica } =
     useFacturacionElectronicaStore();
@@ -455,13 +510,14 @@ const VentaBalconNuevo = () => {
     codigo_barra?: string | null
   ) => {
     setArticulos([]);
-    const response = await axios.get(`${api_url}articulos/consulta-articulos`, {
+    const response = await axios.get(`${api_url}articulos/buscar-articulos`, {
       params: {
         articulo_id: id_articulo,
         codigo_barra: codigo_barra,
         busqueda: busqueda,
         deposito: depositoSeleccionado?.dep_codigo,
         stock: buscarItemsConStock,
+        moneda: monedaSeleccionada?.mo_codigo,
       },
     });
     console.log(response.data.body);
@@ -559,6 +615,7 @@ const VentaBalconNuevo = () => {
     const busqueda = e.target.value;
     if (busqueda.length > 0) {
       getClientePorId(Number(busqueda), null);
+      setClienteBusquedaId(Number(busqueda));
     } else {
       setClienteSeleccionado(null);
     }
@@ -571,7 +628,7 @@ const VentaBalconNuevo = () => {
     setVendedorBusqueda(Number(busqueda));
   };
 
-  const handleSelectArticulo = (articulo: ArticulosNuevo) => {
+  const handleSelectArticulo = (articulo: ArticuloBusqueda) => {
     setArticuloSeleccionado(articulo);
     setIsArticuloCardVisible(false);
     setArticulos([]);
@@ -590,14 +647,14 @@ const VentaBalconNuevo = () => {
   };
 
   const crearItemValidado = (
-    articulo: ArticulosNuevo,
+    articulo: ArticuloBusqueda,
     cantidad: number,
-    precio: number,
     descuento: number = 0,
     vendedor: number = 0
   ): ItemParaVenta | null => {
     // 1. Validaciones de stock
-    if (articulo.stock_negativo === 0 && cantidad > articulo.stock) {
+
+    if (articulo.stock_negativo === 0 && cantidad > articulo.cantidad_lote) {
       toast({
         title: "Error",
         description: "No hay stock disponible para este artículo",
@@ -606,75 +663,24 @@ const VentaBalconNuevo = () => {
       return null;
     }
 
-    // 2. Validación de lotes
-    if (!articulo.lotes?.length) {
-      toast({
-        title: "Error",
-        description: "No hay lotes disponibles para este artículo",
-        status: "error",
-      });
-      return null;
-    }
+    let precioUnitarioMonedaActual = 0;
 
-    // 3. Filtrado de lotes por depósito
-    const lotesDeposito = articulo.lotes.filter((lote) => {
-      return Number(lote.deposito) === Number(depositoSeleccionado?.dep_codigo);
-    });
-
-    if (lotesDeposito.length === 0) {
-      toast({
-        title: "Error",
-        description: "No hay lotes disponibles en el depósito seleccionado",
-        status: "error",
-      });
-      return null;
-    }
-
-    // 4. Selección del lote más adecuado
-    const loteSeleccionado = lotesDeposito.sort((a, b) => {
-      if (a.cantidad > 0 && b.cantidad === 0) return -1;
-      if (a.cantidad === 0 && b.cantidad > 0) return 1;
-      const fechaA = new Date(a.vencimiento.split("/").reverse().join("-"));
-      const fechaB = new Date(b.vencimiento.split("/").reverse().join("-"));
-      return fechaB.getTime() - fechaA.getTime();
-    })[0];
-
-    // 5. Cálculo de precios según lista seleccionada
-    let precioEnGuaranies = 0;
-    switch (precioSeleccionado?.lp_codigo) {
-      case 1: // Lista precio contado
-        precioEnGuaranies = articulo.precio_venta;
+    switch (monedaSeleccionada?.mo_codigo) {
+      case 1:
+        precioUnitarioMonedaActual = articulo.precio_venta_guaranies;
         break;
-      case 2: // Lista precio credito
-        precioEnGuaranies = articulo.precio_credito;
+      case 2:
+        precioUnitarioMonedaActual = articulo.precio_venta_dolar;
         break;
-      case 3: // Lista precio mostrador
-        precioEnGuaranies = articulo.precio_mostrador;
+      case 3:
+        precioUnitarioMonedaActual = articulo.precio_venta_real;
+        break;
+      case 4:
+        precioUnitarioMonedaActual = articulo.precio_venta_pesos;
         break;
       default:
-        precioEnGuaranies = articulo.precio_venta;
+        precioUnitarioMonedaActual = articulo.precio_venta_guaranies;
     }
-
-    // 6. Cálculo de precio en moneda actual
-    let precioUnitarioMonedaActual = precioEnGuaranies;
-    if (monedaSeleccionada?.mo_codigo !== 1) {
-      // Conversión a moneda extranjera
-      switch (monedaSeleccionada?.mo_codigo) {
-        case 2: // Dólares
-          precioUnitarioMonedaActual = precioEnGuaranies / cotizacionDolar;
-          break;
-        case 3: // Reales
-          precioUnitarioMonedaActual = precioEnGuaranies / cotizacionReal;
-          break;
-        case 4: // Pesos
-          precioUnitarioMonedaActual = precioEnGuaranies / cotizacionPeso;
-          break;
-      }
-    }
-
-    // 7. Cálculo de montos con descuento
-    const montoDescuento = (precio * cantidad * descuento) / 100;
-    const montoTotal = precio * cantidad - montoDescuento;
 
     // 8. Cálculo de impuestos
     let deve_exentas = 0;
@@ -683,32 +689,31 @@ const VentaBalconNuevo = () => {
 
     switch (articulo.iva) {
       case 1: // Exento
-        deve_exentas = montoTotal;
+        deve_exentas = precioUnitarioMonedaActual * cantidad;
         break;
       case 2: // IVA 10%
-        deve_diez = montoTotal;
+        deve_diez = precioUnitarioMonedaActual * cantidad;
         break;
       case 3: // IVA 5%
-        deve_cinco = montoTotal;
+        deve_cinco = precioUnitarioMonedaActual * cantidad;
         break;
     }
 
     // 9. Crear el item con todas las validaciones aplicadas
-    return {
-      precio_guaranies: precioEnGuaranies,
-      precio_dolares: Number((precioEnGuaranies / cotizacionDolar).toFixed(2)),
-      precio_reales: Number((precioEnGuaranies / cotizacionReal).toFixed(2)),
-      precio_pesos: Number((precioEnGuaranies / cotizacionPeso).toFixed(2)),
+    const nuevoItem = {
+      precio_guaranies: articulo.precio_venta_guaranies,
+      precio_dolares: articulo.precio_venta_dolar,
+      precio_reales: articulo.precio_venta_real,
+      precio_pesos: articulo.precio_venta_pesos,
       cod_barra: articulo.codigo_barra,
       deve_articulo: articulo.id_articulo,
       articulo: articulo.descripcion,
       deve_cantidad: cantidad,
       deve_precio: precioUnitarioMonedaActual,
-      precio_original: precioEnGuaranies,
       deve_descuento: descuento || 0,
-      deve_exentas: Number(deve_exentas.toFixed(2)),
-      deve_cinco: Number(deve_cinco.toFixed(2)),
-      deve_diez: Number(deve_diez.toFixed(2)),
+      deve_exentas: Number(deve_exentas),
+      deve_cinco: Number(deve_cinco),
+      deve_diez: Number(deve_diez),
       deve_devolucion: 0,
       deve_vendedor: vendedor || Number(vendedorSeleccionado?.op_codigo) || 0,
       deve_color: null,
@@ -717,13 +722,15 @@ const VentaBalconNuevo = () => {
       deve_codioot: null,
       deve_costo: null,
       deve_costo_art: null,
-      deve_cinco_x: deve_cinco > 0 ? Number((deve_cinco * 0.05).toFixed(2)) : 0,
-      deve_diez_x: deve_diez > 0 ? Number((deve_diez * 0.1).toFixed(2)) : 0,
+      deve_cinco_x: deve_cinco > 0 ? Number(deve_cinco * 0.05) : 0,
+      deve_diez_x: deve_diez > 0 ? Number(deve_diez * 0.1) : 0,
       editar_nombre: articulo.editar_nombre,
-      deve_lote: loteSeleccionado.lote,
-      loteid: loteSeleccionado.id,
-      deve_vencimiento: loteSeleccionado.vencimiento,
+      deve_lote: articulo.lote,
+      loteid: articulo.id_lote,
+      deve_vencimiento: articulo.vencimiento_lote,
     };
+
+    return nuevoItem;
   };
 
   const agregarItemAVenta = () => {
@@ -732,7 +739,6 @@ const VentaBalconNuevo = () => {
     const nuevoItem = crearItemValidado(
       articuloSeleccionado,
       cantidad,
-      articuloSeleccionado.precio_venta,
       descuento || 0
     );
 
@@ -809,12 +815,18 @@ const VentaBalconNuevo = () => {
     setClienteBusqueda("");
     setVendedorSeleccionado(null);
     setVendedorBusqueda(null);
+    setClienteBusquedaId(null);
   };
 
   useEffect(() => {
     getDatos();
     obtenerDatosFacturacion();
+    fetchTipoImpresion();
   }, []);
+
+  useEffect(() => {
+    determinarTipoDeImpresionFactura();
+  }, [tipoImpresion]);
 
   useEffect(() => {
     if (sucursalSeleccionada) {
@@ -903,11 +915,15 @@ const VentaBalconNuevo = () => {
   const totalPagarFormateado = formatNumber(totalPagar);
   const totalDescuentoItemsFormateado = formatNumber(totalDescuentoItems);
   const totalDescuentoFormateado = formatNumber(totalDescuento);
-  const totalPagarFinalFormateado = formatNumber(totalPagarFinal);
-  const totalDolaresFormateado = formatearDivisasExtranjeras(totalPagarDolares);
-  const totalRealesFormateado = formatearDivisasExtranjeras(totalPagarReales);
-  const totalPesosFormateado = formatearDivisasExtranjeras(totalPagarPesos);
+  const totalDolaresFormateado = formatearDivisasExtranjeras(
+    totalesVenta.dolares
+  );
+  const totalRealesFormateado = formatearDivisasExtranjeras(
+    totalesVenta.reales
+  );
+  const totalPesosFormateado = formatearDivisasExtranjeras(totalesVenta.pesos);
   const porcentajeDescuentoFormateado = porcentajeDescuento;
+  const totalEnGuaraniesFormateado = formatNumber(totalesVenta.guaranies);
 
   const ResumenVentasCliente = ({
     cliente,
@@ -1201,7 +1217,7 @@ const VentaBalconNuevo = () => {
             : monedaSeleccionada?.mo_codigo === 4
             ? "ARS"
             : "PYG",
-        cambio: 0,
+        cambio: monedaSeleccionada?.mo_codigo != 1 ? cotizacionDolar : 0,
         cliente: {
           contribuyente:
             clienteSeleccionado.cli_tipo_doc === 1 ||
@@ -1247,71 +1263,6 @@ const VentaBalconNuevo = () => {
         factura: {
           presencia: 1,
         },
-        // condicion: {
-        //   tipo: opcionesFinalizacion.tipo_venta === "CREDITO" ? 2 : 1,
-        //   entregas:
-        //     opcionesFinalizacion.tipo_venta === "CONTADO"
-        //       ? [
-        //           {
-        //             tipo: 1, // Efectivo
-        //             monto: totalPagarFinal.toString(),
-        //             moneda:
-        //               monedaSeleccionada?.mo_codigo === 1
-        //                 ? "PYG"
-        //                 : monedaSeleccionada?.mo_codigo === 2
-        //                 ? "USD"
-        //                 : monedaSeleccionada?.mo_codigo === 3
-        //                 ? "BRL"
-        //                 : monedaSeleccionada?.mo_codigo === 4
-        //                 ? "ARS"
-        //                 : "PYG",
-        //             cambio: 0.0,
-        //           },
-        //         ]
-        //       : [],
-        //   credito:
-        //     opcionesFinalizacion.tipo_venta === "CREDITO"
-        //       ? {
-        //           tipo: 1, // Plazo
-        //           plazo: `${
-        //             opcionesFinalizacion.cantidad_cuotas || 1
-        //           } cuotas`,
-        //           cuotas: opcionesFinalizacion.cantidad_cuotas || 1,
-        //           infoCuotas: Array.from(
-        //             { length: opcionesFinalizacion.cantidad_cuotas || 1 },
-        //             (_, i) => {
-        //               const montoTotal =
-        //                 totalPagarFinal -
-        //                 (opcionesFinalizacion.entrega_inicial || 0);
-        //               const montoCuota =
-        //                 montoTotal /
-        //                 (opcionesFinalizacion.cantidad_cuotas || 1);
-        //               const fechaVencimiento = new Date();
-        //               fechaVencimiento.setDate(
-        //                 fechaVencimiento.getDate() + 30 * (i + 1)
-        //               );
-
-        //               return {
-        //                 moneda:
-        //                   monedaSeleccionada?.mo_codigo === 1
-        //                     ? "PYG"
-        //                     : monedaSeleccionada?.mo_codigo === 2
-        //                     ? "USD"
-        //                     : monedaSeleccionada?.mo_codigo === 3
-        //                     ? "BRL"
-        //                     : monedaSeleccionada?.mo_codigo === 4
-        //                     ? "ARS"
-        //                     : "PYG",
-        //                 monto: montoCuota,
-        //                 vencimiento: fechaVencimiento
-        //                   .toISOString()
-        //                   .split("T")[0],
-        //               };
-        //             }
-        //           ),
-        //         }
-        //       : null,
-        // },
         condicion: {
           tipo: opcionesFinalizacion.tipo_venta === "CREDITO" ? 2 : 1,
 
@@ -1334,7 +1285,8 @@ const VentaBalconNuevo = () => {
                         : "PYG",
                     monedaDescripcion:
                       monedaSeleccionada?.mo_descripcion || "Guaraníes",
-                    cambio: 0.0,
+                    cambio:
+                      monedaSeleccionada?.mo_codigo != 1 ? cotizacionDolar : 0,
                   },
                 ]
               : [],
@@ -1437,7 +1389,10 @@ const VentaBalconNuevo = () => {
 
       let responseFacturaSend: any = null;
 
-      if (usaFacturaElectronica === 1 && opcionesFinalizacion.tipo_documento === "FACTURA") {
+      if (
+        usaFacturaElectronica === 1 &&
+        opcionesFinalizacion.tipo_documento === "FACTURA"
+      ) {
         console.log("Factura send: ", dataFacturaSend);
         responseFacturaSend = await enviarFacturas([dataFacturaSend]);
         console.log("Respuesta factura send: ", responseFacturaSend);
@@ -1466,16 +1421,21 @@ const VentaBalconNuevo = () => {
         }
       }
 
-      const tasaCambio =
-        monedaSeleccionada?.mo_codigo === 1
-          ? 1
-          : monedaSeleccionada?.mo_codigo === 2
-          ? cotizacionDolar
-          : monedaSeleccionada?.mo_codigo === 3
-          ? cotizacionReal
-          : monedaSeleccionada?.mo_codigo === 4
-          ? cotizacionPeso
-          : 1;
+      const totalAEnviar = () => {
+        switch (monedaSeleccionada?.mo_codigo) {
+          case 1:
+            return totalesVenta.guaranies;
+          case 2:
+            return totalesVenta.dolares;
+          case 3:
+            return totalesVenta.reales;
+          case 4:
+            return totalesVenta.pesos;
+          default:
+            return totalesVenta.guaranies;
+        }
+      };
+
       // Preparar objeto de venta
       const venta = {
         ventaId: ventaIdEdicion || null,
@@ -1495,17 +1455,16 @@ const VentaBalconNuevo = () => {
         credito: opcionesFinalizacion.tipo_venta === "CREDITO" ? 1 : 0,
         saldo:
           opcionesFinalizacion.tipo_venta === "CREDITO"
-            ? (totalPagarFinal - (opcionesFinalizacion.entrega_inicial || 0)) *
-              tasaCambio
-            : totalPagarFinal * tasaCambio,
+            ? totalAEnviar() - (opcionesFinalizacion.entrega_inicial || 0)
+            : totalAEnviar(),
         vencimiento: opcionesFinalizacion.fecha_vencimiento || null,
-        descuento: totalDescuento * tasaCambio,
-        total: totalPagarFinal * tasaCambio,
+        descuento: totalDescuento,
+        total: totalAEnviar(),
         cuotas: opcionesFinalizacion.tipo_venta === "CREDITO" ? 1 : 0,
         cantCuotas: opcionesFinalizacion.cantidad_cuotas || 0,
         obs: opcionesFinalizacion.observacion || "",
         vendedor: vendedorSeleccionado.op_codigo,
-        sucursal: sucursales[0].id,
+        sucursal: sucursalSeleccionada?.id,
         timbrado:
           opcionesFinalizacion.tipo_documento === "FACTURA"
             ? opcionesFinalizacion.timbrado
@@ -1528,11 +1487,11 @@ const VentaBalconNuevo = () => {
       const detalleVentas = itemsParaVenta.map((item) => ({
         deve_articulo: item.deve_articulo,
         deve_cantidad: item.deve_cantidad,
-        deve_precio: item.deve_precio * tasaCambio,
-        deve_descuento: item.deve_descuento * tasaCambio,
-        deve_exentas: item.deve_exentas * tasaCambio,
-        deve_cinco: item.deve_cinco * tasaCambio,
-        deve_diez: item.deve_diez * tasaCambio,
+        deve_precio: item.deve_precio,
+        deve_descuento: item.deve_descuento,
+        deve_exentas: item.deve_exentas,
+        deve_cinco: item.deve_cinco,
+        deve_diez: item.deve_diez,
         deve_color: item.deve_color,
         deve_bonificacion: item.deve_bonificacion,
         deve_vendedor: item.deve_vendedor,
@@ -1549,15 +1508,12 @@ const VentaBalconNuevo = () => {
           item.editar_nombre === 1 ? item.articulo : null,
       }));
       // Enviar datos al backend
-
-      console.log("Detalle ventas: ", detalleVentas);
+      console.log("datos enviados a la venta: ", venta, detalleVentas);
       const response = await axios.post(`${api_url}venta/agregar-venta-nuevo`, {
         venta,
         detalle_ventas: detalleVentas,
       });
-
-      console.log(response.data.body);
-
+      console.log("Respuesta de la venta: ", response.data.body);
       if (response.data.body.status === "success") {
         toast({
           title: "Éxito",
@@ -1565,9 +1521,11 @@ const VentaBalconNuevo = () => {
           status: "success",
           duration: 3000,
         });
-
+        actualizarUltimaFactura(
+          d_codigo,
+          Number(opcionesFinalizacion.nro_factura)
+        );
         onCloseKCOpen();
-
         Auditar(
           5,
           8,
@@ -1575,21 +1533,16 @@ const VentaBalconNuevo = () => {
           operador ? parseInt(operador) : 0,
           `Venta ID ${response.data.body.ventaId} realizada por ${operador}`
         );
-
         handleCancelarVenta();
-
         setClienteBusqueda("");
         setClienteSeleccionado(null);
-
         setUltimaVentaId(response.data.body.ventaId);
-
-        actualizarUltimaFactura(
-          d_codigo,
-          Number(opcionesFinalizacion.nro_factura)
-        );
-
         if (imprimirFactura) {
-          await imprimirFacturaComponente(response.data.body.ventaId);
+          if (tipoImpresionFactura === 1) {
+            await imprimirFacturaComponenteReport(response.data.body.ventaId);
+          } else if (tipoImpresionFactura === 2) {
+            await imprimirFacturaComponente(response.data.body.ventaId);
+          }
         }
         if (imprimirTicket) {
           await imprimirTicketCompontente(response.data.body.ventaId);
@@ -1598,7 +1551,6 @@ const VentaBalconNuevo = () => {
           await imprimirNotaComunComponente(response.data.body.ventaId);
         }
       }
-
       clienteCodigoRef.current?.focus();
     } catch (error) {
       console.error("Error al finalizar la venta:", error);
@@ -1623,23 +1575,21 @@ const VentaBalconNuevo = () => {
         await getVendedores(documento.vendedor);
         console.log("Seleccionando vendedor", documento.vendedor);
       }
-
       for (const item of documento.items) {
         try {
           console.log("Getting un item", item);
           const response = await axios.get(
-            `${api_url}articulos/consulta-articulos`,
+            `${api_url}articulos/buscar-articulos`,
             {
               params: {
                 articulo_id: item.articulo,
                 moneda: monedaSeleccionada?.mo_codigo,
+                lista_precio: precioSeleccionado?.lp_codigo,
               },
             }
           );
-
           if (response.data.body.length > 0) {
             const articulo = response.data.body[0];
-
             // Si permite stock negativo, crear item directamente
             if (articulo.stock_negativo === 1) {
               console.log(
@@ -1648,18 +1598,15 @@ const VentaBalconNuevo = () => {
               const nuevoItem = crearItemValidado(
                 articulo,
                 item.cantidad,
-                item.precio,
                 item.descuento,
                 documento.vendedor || 0
               );
-
               if (nuevoItem) {
                 setItemsParaVenta((prev) => [...prev, nuevoItem]);
                 await new Promise((resolve) => setTimeout(resolve, 100));
               }
               continue;
             }
-
             // Buscar el lote específico usando loteid
             const loteEspecifico = articulo.lotes?.find(
               (lote: any) => Number(lote.id) === Number(item.loteid)
@@ -1694,7 +1641,6 @@ const VentaBalconNuevo = () => {
                 const nuevoItem = crearItemValidado(
                   articulo,
                   stockDisponible,
-                  item.precio,
                   item.descuento,
                   documento.vendedor || 0
                 );
@@ -1712,7 +1658,6 @@ const VentaBalconNuevo = () => {
               const nuevoItem = crearItemValidado(
                 articulo,
                 item.cantidad,
-                item.precio,
                 item.descuento,
                 documento.vendedor || 0
               );
@@ -2029,50 +1974,6 @@ const VentaBalconNuevo = () => {
     );
   };
 
-  const handleMonedaChange = (monedaId: string) => {
-    const nuevaMoneda =
-      monedas.find((m) => m.mo_codigo === parseInt(monedaId)) || null;
-    setMonedaSeleccionada(nuevaMoneda);
-
-    // Recalcular precios de items existentes
-    if (nuevaMoneda) {
-      const tasaCambio =
-        nuevaMoneda.mo_codigo === 1
-          ? 1
-          : nuevaMoneda.mo_codigo === 2
-          ? cotizacionDolar
-          : nuevaMoneda.mo_codigo === 3
-          ? cotizacionReal
-          : nuevaMoneda.mo_codigo === 4
-          ? cotizacionPeso
-          : 1;
-
-      setItemsParaVenta((prevItems) =>
-        prevItems.map((item) => {
-          // Usar el precio original en Guaraníes para la conversión
-          const precioOriginalGs = item.precio_original || item.deve_precio;
-          const nuevoPrecio = Math.round(precioOriginalGs / tasaCambio);
-          const cantidad = item.deve_cantidad;
-
-          return {
-            ...item,
-            deve_precio: nuevoPrecio,
-            precio_original: precioOriginalGs, // Mantener el precio original en Guaraníes
-            deve_exentas: item.deve_exentas > 0 ? nuevoPrecio * cantidad : 0,
-            deve_cinco: item.deve_cinco > 0 ? nuevoPrecio * cantidad : 0,
-            deve_diez: item.deve_diez > 0 ? nuevoPrecio * cantidad : 0,
-            deve_cinco_x:
-              item.deve_cinco > 0 ? nuevoPrecio * cantidad * 0.05 : 0,
-            deve_diez_x: item.deve_diez > 0 ? nuevoPrecio * cantidad * 0.1 : 0,
-          };
-        })
-      );
-    }
-    if (articuloBusqueda) {
-      getArticulos(articuloBusqueda);
-    }
-  };
-
   function calcularMontoEntregado(
     valor: number,
     moneda: "GS" | "USD" | "BRL" | "ARS"
@@ -2247,6 +2148,28 @@ const VentaBalconNuevo = () => {
     }, 2000);
   };
 
+  const imprimirFacturaComponenteReport = async (ventaId: number) => {
+    const facturaDiv = document.createElement("div");
+    facturaDiv.style.display = "none";
+    document.body.appendChild(facturaDiv);
+
+    const root = createRoot(facturaDiv);
+    root.render(
+      <ModeloFacturaReport
+        id_venta={ventaId}
+        monto_entregado={montoEntregado || 0}
+        monto_recibido={montoEntregado || 0}
+        vuelto={0}
+        onImprimir={true}
+      />
+    );
+
+    setTimeout(() => {
+      root.unmount();
+      document.body.removeChild(facturaDiv);
+    }, 2000);
+  };
+
   const imprimirFacturaComponente = async (ventaId: number) => {
     const facturaDiv = document.createElement("div");
     facturaDiv.style.display = "none";
@@ -2405,6 +2328,91 @@ const VentaBalconNuevo = () => {
     );
   };
 
+  const handleCambiarPrecio = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    item: ItemParaVenta
+  ) => {
+    const nuevoPrecio = Number(e.target.value);
+    const montoTotal = nuevoPrecio * item.deve_cantidad;
+
+    // Si la moneda seleccionada es guaraníes, ese es el precio base
+    const precioBaseGuaranies =
+      monedaSeleccionada?.mo_codigo === 1
+        ? nuevoPrecio
+        : monedaSeleccionada?.mo_codigo === 2
+        ? nuevoPrecio * cotizacionDolar
+        : monedaSeleccionada?.mo_codigo === 3
+        ? nuevoPrecio * cotizacionReal // Real a Guaraní multiplica
+        : nuevoPrecio * cotizacionPeso;
+
+    // Para dólar dividimos, para real y peso multiplicamos
+    const nuevoPrecioDolares = precioBaseGuaranies / cotizacionDolar;
+    const nuevoPrecioReales = precioBaseGuaranies * (1 / cotizacionReal); // Guaraní a Real divide
+    const nuevoPrecioPesos = precioBaseGuaranies * (1 / cotizacionPeso); // Asumiendo que peso funciona igual que real
+
+    setItemsParaVenta(
+      itemsParaVenta.map((itemActual) =>
+        itemActual.loteid === item.loteid
+          ? {
+              ...itemActual,
+              deve_precio: nuevoPrecio,
+              precio_guaranies: precioBaseGuaranies,
+              precio_dolares: nuevoPrecioDolares,
+              precio_reales: nuevoPrecioReales,
+              precio_pesos: nuevoPrecioPesos,
+              deve_exentas: itemActual.deve_exentas > 0 ? montoTotal : 0,
+              deve_cinco: itemActual.deve_cinco > 0 ? montoTotal : 0,
+              deve_diez: itemActual.deve_diez > 0 ? montoTotal : 0,
+              deve_cinco_x: itemActual.deve_cinco > 0 ? montoTotal * 0.05 : 0,
+              deve_diez_x: itemActual.deve_diez > 0 ? montoTotal * 0.1 : 0,
+            }
+          : itemActual
+      )
+    );
+  };
+
+  const handleCambiarDescuento = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    item: ItemParaVenta
+  ) => {
+    const nuevoDescuento = e.target.value;
+    const montoTotal = Number(nuevoDescuento) * item.deve_cantidad;
+    setItemsParaVenta(
+      itemsParaVenta.map((itemActual) =>
+        itemActual.loteid === item.loteid
+          ? {
+              ...itemActual,
+              deve_descuento: Number(nuevoDescuento),
+              deve_exentas: itemActual.deve_exentas > 0 ? montoTotal : 0,
+              deve_cinco: itemActual.deve_cinco > 0 ? montoTotal : 0,
+              deve_diez: itemActual.deve_diez > 0 ? montoTotal : 0,
+            }
+          : itemActual
+      )
+    );
+  };
+
+  const handleCambiarCantidad = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    item: ItemParaVenta
+  ) => {
+    const nuevaCantidad = Number(e.target.value);
+    const montoTotal = item.deve_precio * nuevaCantidad;
+    setItemsParaVenta(
+      itemsParaVenta.map((itemActual) =>
+        itemActual.loteid === item.loteid
+          ? {
+              ...itemActual,
+              deve_cantidad: nuevaCantidad,
+              deve_exentas: itemActual.deve_exentas > 0 ? montoTotal : 0,
+              deve_cinco: itemActual.deve_cinco > 0 ? montoTotal : 0,
+              deve_diez: itemActual.deve_diez > 0 ? montoTotal : 0,
+            }
+          : itemActual
+      )
+    );
+  };
+
   return (
     <Box
       h={"100vh"}
@@ -2520,8 +2528,15 @@ const VentaBalconNuevo = () => {
                   name=""
                   id=""
                   onChange={(e) => {
-                    handleMonedaChange(e.target.value);
+                    setMonedaSeleccionada(
+                      monedas.find(
+                        (moneda) =>
+                          moneda.mo_codigo === parseInt(e.target.value)
+                      ) || null
+                    );
                   }}
+                  value={monedaSeleccionada?.mo_codigo}
+                  disabled={itemsParaVenta.length > 0}
                 >
                   {monedas.map((moneda) => (
                     <option value={moneda.mo_codigo}>
@@ -2575,6 +2590,7 @@ const VentaBalconNuevo = () => {
                     onChange={(e) => {
                       handleBuscarClientePorId(e);
                     }}
+                    value={clienteBusquedaId || ""}
                   />
                   <input
                     ref={clienteNombreRef}
@@ -2601,7 +2617,9 @@ const VentaBalconNuevo = () => {
                     onClose={() => setIsClienteCardVisible(false)}
                     onSelect={handleSelectCliente}
                     className="absolute top-16 left-0 right-0 z-999"
-                    renderItem={(item) => <p>{item.cli_razon}</p>}
+                    renderItem={(item) => (
+                      <p className="font-bold">{item.cli_razon}</p>
+                    )}
                   />
                 </div>
               </div>
@@ -2863,42 +2881,49 @@ const VentaBalconNuevo = () => {
                     <Tally1 />
                     <p>{item.descripcion}</p>
                     <Tally1 />
-                    <p>P. Contado</p>
-                    <p>{formatNumber(item.precio_venta)}</p>-<p>P. Mostrador</p>
-                    <p>{formatNumber(item.precio_mostrador)}</p>-
-                    <p>P. Credito</p>
-                    <p>{formatNumber(item.precio_credito)}</p>
+                    {monedaSeleccionada?.mo_codigo === 1 ? (
+                      <>
+                        <p>P. Contado</p>
+                        <p>{formatNumber(item.precio_venta_guaranies)}</p>
+                        <p>P. Mostrador</p>
+                        <p>{formatNumber(item.precio_mostrador)}</p>
+                        <p>P. Credito</p>
+                        <p>{formatNumber(item.precio_credito)}</p>
+                      </>
+                    ) : (
+                      <>
+                        <p>
+                          P. Contado{" "}
+                          {monedaSeleccionada?.mo_descripcion.toLowerCase()}:
+                        </p>
+                        <p>{formatNumber(item.precio_venta_dolar)}</p>
+                      </>
+                    )}
                     <Tally1 />
                     {item.vencimiento_validacion === 1 ? (
-                      <p
-                        className={
-                          item.estado_vencimiento === "VIGENTE"
-                            ? "text-green-500"
-                            : item.estado_vencimiento === "PROXIMO"
-                            ? "text-yellow-500"
-                            : "text-red-500"
-                        }
-                      >
-                        {item.lotes
-                          .filter((lote) => lote.cantidad > 0)
-                          .sort((a, b) => {
-                            const fechaA = new Date(
-                              a.vencimiento.split("/").reverse().join("-")
-                            );
-                            const fechaB = new Date(
-                              b.vencimiento.split("/").reverse().join("-")
-                            );
-                            return fechaA.getTime() - fechaB.getTime();
-                          })[0]?.vencimiento || "0001-01-01"}
-                      </p>
+                      <>
+                        <p
+                          className={
+                            item.estado_vencimiento === "VIGENTE"
+                              ? "text-green-500"
+                              : item.estado_vencimiento === "PROXIMO"
+                              ? "text-yellow-500"
+                              : "text-red-500"
+                          }
+                        >
+                          {item.vencimiento_lote}
+                        </p>
+                        <Tally1 />
+                        <p>Lote: {item.lote}</p>
+                      </>
                     ) : null}
                     <Tally1 />
                     <p>Stock</p>
-                    <p>{item.stock}</p>
+                    <p>{item.cantidad_lote}</p>
                   </div>
                 )}
               />
-              <ArticuloInfoCardOld
+              <ArticuloInfoCard
                 articulo={hoveredArticulo}
                 isVisible={hoveredArticulo !== null}
               />
@@ -2960,38 +2985,7 @@ const VentaBalconNuevo = () => {
                           className="border rounded-md p-1 w-16 text-center"
                           value={item.deve_cantidad}
                           onChange={(e) => {
-                            const nuevaCantidad = Number(e.target.value);
-                            const montoTotal = item.deve_precio * nuevaCantidad;
-                            setItemsParaVenta(
-                              itemsParaVenta.map((currentItem) =>
-                                currentItem.deve_articulo === item.deve_articulo
-                                  ? {
-                                      ...currentItem,
-                                      deve_cantidad: nuevaCantidad,
-                                      deve_exentas:
-                                        currentItem.deve_exentas > 0
-                                          ? montoTotal
-                                          : 0,
-                                      deve_cinco:
-                                        currentItem.deve_cinco > 0
-                                          ? montoTotal
-                                          : 0,
-                                      deve_diez:
-                                        currentItem.deve_diez > 0
-                                          ? montoTotal
-                                          : 0,
-                                      deve_cinco_x:
-                                        currentItem.deve_cinco > 0
-                                          ? montoTotal * 0.05
-                                          : 0,
-                                      deve_diez_x:
-                                        currentItem.deve_diez > 0
-                                          ? montoTotal * 0.1
-                                          : 0,
-                                    }
-                                  : currentItem
-                              )
-                            );
+                            handleCambiarCantidad(e, item);
                           }}
                         />
                       </td>
@@ -3009,45 +3003,7 @@ const VentaBalconNuevo = () => {
                           }`}
                           value={item.deve_precio}
                           onChange={(e) => {
-                            const newPrecio = Math.max(
-                              0,
-                              Number(e.target.value)
-                            );
-                            setItemsParaVenta(
-                              itemsParaVenta.map((currentItem) =>
-                                currentItem.deve_articulo === item.deve_articulo
-                                  ? {
-                                      ...currentItem,
-                                      precio_guaranies: newPrecio,
-                                      precio_dolares: Number(
-                                        (newPrecio / cotizacionDolar).toFixed(2)
-                                      ),
-                                      precio_reales: Number(
-                                        (newPrecio / cotizacionReal).toFixed(2)
-                                      ),
-                                      precio_pesos: Number(
-                                        (newPrecio / cotizacionPeso).toFixed(2)
-                                      ),
-                                      deve_precio: newPrecio,
-                                      deve_exentas:
-                                        currentItem.deve_exentas === 0
-                                          ? 0
-                                          : newPrecio *
-                                            currentItem.deve_cantidad,
-                                      deve_cinco:
-                                        currentItem.deve_cinco === 0
-                                          ? 0
-                                          : newPrecio *
-                                            currentItem.deve_cantidad,
-                                      deve_diez:
-                                        currentItem.deve_diez === 0
-                                          ? 0
-                                          : newPrecio *
-                                            currentItem.deve_cantidad,
-                                    }
-                                  : currentItem
-                              )
-                            );
+                            handleCambiarPrecio(e, item);
                           }}
                         />
                       </td>
@@ -3062,41 +3018,7 @@ const VentaBalconNuevo = () => {
                           value={item.deve_descuento}
                           disabled={permisos_descuento === 0}
                           onChange={(e) => {
-                            const nuevoDescuento = Number(e.target.value);
-                            const montoTotal =
-                              item.deve_precio *
-                              item.deve_cantidad *
-                              (1 - nuevoDescuento / 100);
-                            setItemsParaVenta(
-                              itemsParaVenta.map((currentItem) =>
-                                currentItem.deve_articulo === item.deve_articulo
-                                  ? {
-                                      ...currentItem,
-                                      deve_descuento: nuevoDescuento,
-                                      deve_exentas:
-                                        currentItem.deve_exentas > 0
-                                          ? montoTotal
-                                          : 0,
-                                      deve_cinco:
-                                        currentItem.deve_cinco > 0
-                                          ? montoTotal
-                                          : 0,
-                                      deve_diez:
-                                        currentItem.deve_diez > 0
-                                          ? montoTotal
-                                          : 0,
-                                      deve_cinco_x:
-                                        currentItem.deve_cinco > 0
-                                          ? montoTotal * 0.05
-                                          : 0,
-                                      deve_diez_x:
-                                        currentItem.deve_diez > 0
-                                          ? montoTotal * 0.1
-                                          : 0,
-                                    }
-                                  : currentItem
-                              )
-                            );
+                            handleCambiarDescuento(e, item);
                           }}
                         />
                       </td>
@@ -3212,7 +3134,7 @@ const VentaBalconNuevo = () => {
                 <p className="text-md font-bold">Total a pagar GS.:</p>
                 <div className=" px-4 py-2 rounded-md w-1/2 ml-auto bg-blue-800">
                   <p className="text-right text-xl font-bold text-white">
-                    {totalPagarFinalFormateado}
+                    {totalEnGuaraniesFormateado}
                   </p>
                 </div>
               </div>

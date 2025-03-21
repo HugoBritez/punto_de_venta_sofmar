@@ -5,12 +5,12 @@ import {
   Vendedor,
   Moneda,
   MetodosPago,
-  ArticulosNuevo,
   ListaPrecios,
   PedidosNuevo,
   Presupuesto,
   Remisiones,
   Venta,
+  ArticuloBusqueda,
 } from "@/types/shared_interfaces";
 import { api_url } from "@/utils";
 import axios from "axios";
@@ -57,6 +57,9 @@ import ArticuloInfoCardOld from "@/modules/ArticuloInfoCardOld";
 import { FacturaSendResponse } from "@/types/factura_electronica/types";
 import { useFacturacionElectronicaStore } from "@/stores/facturacionElectronicaStore";
 import { useFacturaSend } from "@/hooks/useFacturaSend";
+import { useTipoImpresionFacturaStore } from "@/stores/tipoImpresionFacturaStore";
+import ModeloFacturaReport from "../facturacion/ModeloFacturaReport";
+import ArticuloInfoCard from "@/modules/ArticuloInfoCard";
 
 interface ItemParaVenta {
   precio_guaranies: number;
@@ -190,7 +193,7 @@ const PuntoDeVentaNuevo = () => {
   const [metodoPagoSeleccionado, setMetodoPagoSeleccionado] =
     useState<MetodosPago | null>(null);
 
-  const [articulos, setArticulos] = useState<ArticulosNuevo[]>([]);
+  const [articulos, setArticulos] = useState<ArticuloBusqueda[]>([]);
 
   const [listaPrecios, setListaPrecios] = useState<ListaPrecios[]>([]);
   const [precioSeleccionado, setPrecioSeleccionado] =
@@ -234,7 +237,7 @@ const PuntoDeVentaNuevo = () => {
   const [cotizacionReal, setCotizacionReal] = useState<number>(1200);
   const [cotizacionPeso, setCotizacionPeso] = useState<number>(5);
   const [articuloSeleccionado, setArticuloSeleccionado] =
-    useState<ArticulosNuevo | null>(null);
+    useState<ArticuloBusqueda | null>(null);
 
   const [montoEntregado, setMontoEntregado] = useState<number | null>(null);
   const [montoEntregadoDolar, setMontoEntregadoDolar] = useState<number | null>(
@@ -247,7 +250,7 @@ const PuntoDeVentaNuevo = () => {
     null
   );
 
-  const [hoveredArticulo, setHoveredArticulo] = useState<ArticulosNuevo | null>(
+  const [hoveredArticulo, setHoveredArticulo] = useState<ArticuloBusqueda | null>(
     null
   );
 
@@ -317,7 +320,27 @@ const PuntoDeVentaNuevo = () => {
   const { usaFacturaElectronica, fetchUsaFacturaElectronica } =
     useFacturacionElectronicaStore();
 
-  const tipoImpresion = configuraciones[5].valor || 0;
+  const tipoImpresionDoc = configuraciones[5].valor || 0;
+
+    const { tipoImpresion, fetchTipoImpresion } =
+      useTipoImpresionFacturaStore();
+    const [tipoImpresionFactura, setTipoImpresionFactura] = useState<
+      number | null
+    >(null);
+
+    function determinarTipoDeImpresionFactura() {
+      if (
+        tipoImpresion ===
+        "thisform.imprimirventa1.imprimir_factura_elect_report"
+      ) {
+        setTipoImpresionFactura(1); //impresion hoja grande
+      } else if (
+        tipoImpresion ===
+        "thisform.imprimirventa1.imprimir_factura_ticket_electronica"
+      ) {
+        setTipoImpresionFactura(2); // impresion tipo ticket
+      }
+    }
 
   const cajero_id = sessionStorage.getItem("user_id");
 
@@ -329,7 +352,7 @@ const PuntoDeVentaNuevo = () => {
   const [opcionesFinalizacion, setOpcionesFinalizacion] =
     useState<OpcionesFinalizacionVenta>({
       tipo_venta: "CONTADO",
-      tipo_documento: tipoImpresion === "1" ? "FACTURA" : "TICKET",
+      tipo_documento: tipoImpresionDoc === "1" ? "FACTURA" : "TICKET",
     });
 
   const toast = useToast();
@@ -561,7 +584,7 @@ const PuntoDeVentaNuevo = () => {
     setVendedorBusqueda(Number(busqueda));
   };
 
-  const handleSelectArticulo = (articulo: ArticulosNuevo) => {
+  const handleSelectArticulo = (articulo: ArticuloBusqueda) => {
     setArticuloSeleccionado(articulo);
     setIsArticuloCardVisible(false);
     setArticulos([]);
@@ -577,42 +600,11 @@ const PuntoDeVentaNuevo = () => {
   const agregarItemAVenta = () => {
     if (!articuloSeleccionado) return;
 
-    if (!articuloSeleccionado.lotes?.length) {
-      toast({
-        title: "Error",
-        description: "No hay lotes disponibles para este artículo",
-        status: "error",
-      });
-      return;
-    }
-
-    const lotesDeposito = articuloSeleccionado.lotes.filter((lote) => {
-      return Number(lote.deposito) === Number(depositoSeleccionado?.dep_codigo);
-    });
-
-    if (lotesDeposito.length === 0) {
-      toast({
-        title: "Error",
-        description: "No hay lotes disponibles en el depósito seleccionado",
-        status: "error",
-      });
-      return;
-    }
-
-    // Ordenar lotes por fecha de vencimiento y obtener el más cercano
-    const loteSeleccionado = lotesDeposito.sort((a, b) => {
-      if (a.cantidad > 0 && b.cantidad === 0) return -1;
-      if (a.cantidad === 0 && b.cantidad > 0) return 1;
-      const fechaA = new Date(a.vencimiento.split("/").reverse().join("-"));
-      const fechaB = new Date(b.vencimiento.split("/").reverse().join("-"));
-      return fechaB.getTime() - fechaA.getTime();
-    })[0];
-
     // 1. Obtener precio base en guaraníes
     let precioEnGuaranies = 0;
     switch (precioSeleccionado?.lp_codigo) {
       case 1: // Lista precio contado
-        precioEnGuaranies = articuloSeleccionado.precio_venta;
+        precioEnGuaranies = articuloSeleccionado.precio_venta_guaranies;
         break;
       case 2: // Lista precio credito
         precioEnGuaranies = articuloSeleccionado.precio_credito;
@@ -621,7 +613,7 @@ const PuntoDeVentaNuevo = () => {
         precioEnGuaranies = articuloSeleccionado.precio_mostrador;
         break;
       default:
-        precioEnGuaranies = articuloSeleccionado.precio_venta;
+        precioEnGuaranies = articuloSeleccionado.precio_venta_guaranies;
     }
 
     // 2. Calcular precio unitario en la moneda actual
@@ -698,9 +690,9 @@ const PuntoDeVentaNuevo = () => {
       deve_cinco_x: deve_cinco > 0 ? Number((deve_cinco * 0.05).toFixed(2)) : 0,
       deve_diez_x: deve_diez > 0 ? Number((deve_diez * 0.1).toFixed(2)) : 0,
       editar_nombre: articuloSeleccionado.editar_nombre,
-      deve_lote: loteSeleccionado.lote,
-      loteid: loteSeleccionado.id,
-      deve_vencimiento: loteSeleccionado.vencimiento,
+      deve_lote: articuloSeleccionado.lote,
+      loteid: Number(articuloSeleccionado.id_lote),
+      deve_vencimiento: articuloSeleccionado.vencimiento_lote,
     };
 
     setItemsParaVenta([...itemsParaVenta, nuevoItem]);
@@ -778,7 +770,12 @@ const PuntoDeVentaNuevo = () => {
   useEffect(() => {
     getDatos();
     obtenerDatosFacturacion();
+    fetchTipoImpresion();
   }, []);
+
+  useEffect(() => {
+    determinarTipoDeImpresionFactura();
+  }, [tipoImpresion]);
 
   useEffect(() => {
     if (sucursalSeleccionada) {
@@ -1556,7 +1553,11 @@ const PuntoDeVentaNuevo = () => {
         );
 
         if (imprimirFactura) {
-          await imprimirFacturaComponente(response.data.body.ventaId);
+          if (tipoImpresionFactura === 1) {
+            await imprimirFacturaComponenteReport(response.data.body.ventaId);
+          } else if (tipoImpresionFactura === 2) {
+            await imprimirFacturaComponente(response.data.body.ventaId);
+          }
         }
         if (imprimirTicket) {
           await imprimirTicketComponente(response.data.body.ventaId);
@@ -2142,6 +2143,30 @@ const PuntoDeVentaNuevo = () => {
     return vuelto;
   };
 
+    const imprimirFacturaComponenteReport = async (ventaId: number) => {
+      const facturaDiv = document.createElement("div");
+      facturaDiv.style.display = "none";
+      document.body.appendChild(facturaDiv);
+
+      const root = createRoot(facturaDiv);
+      root.render(
+        <ModeloFacturaReport
+          id_venta={ventaId}
+          monto_entregado={montoEntregado || 0}
+          monto_recibido={montoEntregado || 0}
+          vuelto={calcularVueltoGuaranies()}
+          onImprimir={true}
+        />
+      );
+
+      setTimeout(() => {
+        root.unmount();
+        document.body.removeChild(facturaDiv);
+      }, 2000);
+    };
+
+
+
   const imprimirFacturaComponente = async (ventaId: number) => {
     const facturaDiv = document.createElement("div");
     facturaDiv.style.display = "none";
@@ -2622,7 +2647,7 @@ const PuntoDeVentaNuevo = () => {
                     <p>{item.descripcion}</p>
                     <Tally1 />
                     <p>P. Contado</p>
-                    <p>{formatNumber(item.precio_venta)}</p>-<p>P. Mostrador</p>
+                    <p>{formatNumber(item.precio_venta_guaranies)}</p>-<p>P. Mostrador</p>
                     <p>{formatNumber(item.precio_mostrador)}</p>-
                     <p>P. Credito</p>
                     <p>{formatNumber(item.precio_credito)}</p>
@@ -2637,26 +2662,16 @@ const PuntoDeVentaNuevo = () => {
                             : "text-red-500"
                         }
                       >
-                        {item.lotes
-                          .filter((lote) => lote.cantidad > 0)
-                          .sort((a, b) => {
-                            const fechaA = new Date(
-                              a.vencimiento.split("/").reverse().join("-")
-                            );
-                            const fechaB = new Date(
-                              b.vencimiento.split("/").reverse().join("-")
-                            );
-                            return fechaA.getTime() - fechaB.getTime();
-                          })[0]?.vencimiento || "0001-01-01"}
+                        {item.vencimiento_lote}
                       </p>
                     ) : null}
                     <Tally1 />
                     <p>Stock</p>
-                    <p>{item.stock}</p>
+                    <p>{item.cantidad_lote}</p>
                   </div>
                 )}
               />
-              <ArticuloInfoCardOld
+              <ArticuloInfoCard
                 articulo={hoveredArticulo}
                 isVisible={hoveredArticulo !== null}
               />

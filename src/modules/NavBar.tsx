@@ -136,8 +136,8 @@ const Sidebar = () => {
       enabled: true,
     },
     {
-      grupo: 2,
-      orden: 69,
+      grupo: 1,
+      orden: 1,
       id: 249,
       name: "Dashboard",
       icon: ChartSpline,

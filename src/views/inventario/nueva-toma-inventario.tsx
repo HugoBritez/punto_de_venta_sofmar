@@ -280,6 +280,7 @@ const NuevaTomaInventario = () => {
     useState<InventarioAuxiliar>();
 
   const [numeroInventario, setNumeroInventario] = useState<number | null>(null);
+  const [id_inventario, setIdInventario] = useState<number | null>(null);
   const [botonesLoading, setBotonesLoading] = useState<boolean>(false);
 
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -310,6 +311,19 @@ const NuevaTomaInventario = () => {
     nuevaCantidad: number
   ) => {
     try {
+      // Verificar si el inventario está cerrado
+      if (inventarioAuxiliar?.estado === 2 || inventarioAuxiliar?.estado === 1) {
+        toast({
+          title: "No permitido",
+          description: "No se puede modificar un inventario cerrado",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+        setItemEnEdicion(null);
+        return;
+      }
+
       const articulo = itemsParaTomaInventarioConScanner.find(
         (item) => item.lote_id === lote_id
       );
@@ -589,9 +603,10 @@ const NuevaTomaInventario = () => {
         }
       );
       const data = response.data;
-      console.log("data", response.data.body);
+      console.log("ultimo inventario", response.data.body);
       setInventarioAuxiliar(data.body);
       setNumeroInventario(data.body.nro_inventario);
+      setIdInventario(data.body.id);
       setCategoriasInventariadas(data.body.categorias);
       setMarcasInventariadas(data.body.marcas);
       setSeccionesInventariadas(data.body.secciones);
@@ -601,10 +616,21 @@ const NuevaTomaInventario = () => {
   };
 
   const handleAnularInventario = async () => {
+    if (!numeroInventario || !inventarioAuxiliar) {
+      toast({
+        title: "Error",
+        description: "No hay inventario seleccionado para anular",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
     try {
       await axios.get(`${api_url}articulos/anular-inventario-auxiliar`, {
         params: {
-          id: inventarioAuxiliar?.id,
+          id: inventarioAuxiliar.id,
         },
       });
 
@@ -615,6 +641,8 @@ const NuevaTomaInventario = () => {
         duration: 3000,
         isClosable: true,
       });
+      
+      // Recargar el mismo inventario para ver su nuevo estado
       traerIdUltimoInventario();
     } catch (error: any) {
       console.error("Error al anular inventario:", error);
@@ -704,6 +732,18 @@ const NuevaTomaInventario = () => {
   }, []);
 
   const iniciarNuevoInventarioAuxiliar = async () => {
+    // // Si el usuario ingresó manualmente un número que ya existe
+    // if (numeroInventario && inventarioAuxiliar) {
+    //   toast({
+    //     title: "Error",
+    //     description: "Ya existe un inventario con este número",
+    //     status: "error",
+    //     duration: 3000,
+    //     isClosable: true,
+    //   });
+    //   return;
+    // }
+
     const inventario = {
       operador: sessionStorage.getItem("user_id"),
       sucursal: sucursalSeleccionada?.id,
@@ -713,12 +753,14 @@ const NuevaTomaInventario = () => {
         ? Number(inventarioAuxiliar?.nro_inventario) + 1
         : 1,
     };
+    
     try {
       await axios.post(
         `${api_url}articulos/insertar-inventario-auxiliar`,
         inventario
       );
 
+      // Después de crear, recargar para obtener el nuevo inventario
       traerIdUltimoInventario();
       toast({
         title: "Inventario iniciado correctamente",
@@ -738,6 +780,28 @@ const NuevaTomaInventario = () => {
   };
 
   const iniciarNuevoInventarioAuxiliarItems = async () => {
+    if (!inventarioAuxiliar) {
+      toast({
+        title: "Error",
+        description: "No hay inventario seleccionado o debe crear uno primero",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (inventarioAuxiliar.estado !== 0) {
+      toast({
+        title: "Error",
+        description: "Este inventario ya tiene items o está cerrado",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
     const inventario = {
       inventario_items: itemsParaTomaInventario.map((item) => ({
         id_articulo: item.articulo_id,
@@ -746,7 +810,7 @@ const NuevaTomaInventario = () => {
         fecha_vencimiento: item.vencimiento,
         cantidad_inicial: item.stock,
       })),
-      inventario_id: inventarioAuxiliar?.id,
+      inventario_id: inventarioAuxiliar.id,
     };
 
     // Validación según el tipo de inventario
@@ -856,6 +920,28 @@ const NuevaTomaInventario = () => {
   };
 
   const cerrarInventario = async () => {
+    // if (!inventarioAuxiliar || !numeroInventario) {
+    //   toast({
+    //     title: "Error",
+    //     description: "No hay inventario seleccionado para cerrar",
+    //     status: "error",
+    //     duration: 3000,
+    //     isClosable: true,
+    //   });
+    //   return;
+    // }
+
+    if (inventarioAuxiliar?.estado !== 0) {
+      toast({
+        title: "Error",
+        description: "El inventario no está en estado para ser cerrado",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
     const inventario = {
       id: inventarioAuxiliar?.id,
       operador: sessionStorage.getItem("user_id"),
@@ -863,6 +949,7 @@ const NuevaTomaInventario = () => {
       deposito: depositoSeleccionado?.dep_codigo,
       nro_inventario: numeroInventario,
     };
+    
     try {
       setBotonesLoading(true);
       await axios.post(
@@ -900,6 +987,7 @@ const NuevaTomaInventario = () => {
             deposito: depositoSeleccionado?.dep_codigo,
             sucursal: sucursalSeleccionada?.id,
             buscar: busqueda || "",
+            id_inventario: id_inventario,
           },
         }
       );
@@ -920,6 +1008,17 @@ const NuevaTomaInventario = () => {
   }, [busquedaItemsEscaneados]);
 
   const buscarItemsPorInventarioIzquierda = async () => {
+    if (!numeroInventario) {
+      toast({
+        title: "Error",
+        description: "No hay un número de inventario seleccionado",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
     try {
       setItemsParaTomaInventario([]);
       const response = await axios.get(
@@ -929,6 +1028,7 @@ const NuevaTomaInventario = () => {
             id: numeroInventario,
             deposito: depositoSeleccionado?.dep_codigo,
             sucursal: sucursalSeleccionada?.id,
+            id_inventario: id_inventario,
           },
         }
       );
@@ -989,9 +1089,7 @@ const NuevaTomaInventario = () => {
                   <td>{articulo.nombre}</td>
                   <td className="text-center">{articulo.cantidad_articulos}</td>
                   <td className="text-center">
-                    {categoriasInventariadas.includes(articulo.id)
-                      ? "SI"
-                      : "NO"}
+                    {categoriasInventariadas?.includes(articulo.id) ? "SI" : "NO"}
                   </td>
                 </tr>
               )
@@ -1039,7 +1137,7 @@ const NuevaTomaInventario = () => {
                 <td>{articulo.nombre}</td>
                 <td className="text-center">{articulo.cantidad_articulos}</td>
                 <td className="text-center">
-                  {marcasInventariadas.includes(articulo.id) ? "SI" : "NO"}
+                  {marcasInventariadas?.includes(articulo.id) ? "SI" : "NO"}
                 </td>
               </tr>
             ))}
@@ -1089,7 +1187,7 @@ const NuevaTomaInventario = () => {
                   <td>{articulo.nombre}</td>
                   <td className="text-center">{articulo.cantidad_articulos}</td>
                   <td className="text-center">
-                    {seccionesInventariadas.includes(articulo.id) ? "SI" : "NO"}
+                    {seccionesInventariadas?.includes(articulo.id) ? "SI" : "NO"}
                   </td>
                 </tr>
               )
@@ -1560,13 +1658,17 @@ const NuevaTomaInventario = () => {
                           </div>
                         ) : (
                           <div
-                            className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded"
-                            onClick={() =>
-                              setItemEnEdicion({
-                                lote_id: item.lote_id,
-                                cantidad: item.stock,
-                              })
-                            }
+                            className={`${
+                              inventarioAuxiliar?.estado === 1 
+                                ? "cursor-pointer hover:bg-gray-100" 
+                                : ""
+                            } px-2 py-1 rounded`}
+                            onClick={() => {
+                                setItemEnEdicion({
+                                  lote_id: item.lote_id,
+                                  cantidad: item.stock,
+                                });
+                            }}
                           >
                             {item.stock}
                           </div>
@@ -1595,7 +1697,7 @@ const NuevaTomaInventario = () => {
           <ModalCloseButton />
           <ModalBody>
             <ReporteAnomalias
-              numeroInventario={inventarioAuxiliar?.nro_inventario || 0}
+              numeroInventario={numeroInventario || 0}
               sucursal={sucursalSeleccionada?.id || 0}
               deposito={depositoSeleccionado?.dep_codigo || 0}
             />

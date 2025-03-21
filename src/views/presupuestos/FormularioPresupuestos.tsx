@@ -183,7 +183,7 @@ const FormularioPresupuestos = () => {
     null
   );
 
-  const [isMobile] = useMediaQuery("(max-width: 768px)");
+  const [isMobile] = useMediaQuery("(max-width: 1200px)");
 
   const toast = useToast();
 
@@ -451,16 +451,16 @@ const FormularioPresupuestos = () => {
     let precioEnGuaranies = 0;
     switch (listaPrecioSeleccionada?.lp_codigo) {
       case 1: // Lista precio contado
-        precioEnGuaranies = articulo.precio_venta;
+        precioEnGuaranies = articulo.precio_venta_guaranies;
         break;
       case 2: // Lista precio credito
-        precioEnGuaranies = articulo.precio_credito;
+        precioEnGuaranies = articulo.precio_venta_guaranies;
         break;
       case 3: // Lista precio mostrador
         precioEnGuaranies = articulo.precio_mostrador;
         break;
       default:
-        precioEnGuaranies = articulo.precio_venta;
+        precioEnGuaranies = articulo.precio_venta_guaranies;
     }
 
     // 6. Cálculo de precio en moneda actual
@@ -508,13 +508,13 @@ const FormularioPresupuestos = () => {
     return {
       precio_guaranies: precioEnGuaranies,
       precio_dolares: Number(
-        (precioEnGuaranies / cotizaciones[0].usd_venta).toFixed(2)
+        (precioEnGuaranies / cotizaciones[0].usd_venta)
       ),
       precio_reales: Number(
-        (precioEnGuaranies / cotizaciones[0].brl_venta).toFixed(2)
+        (precioEnGuaranies / cotizaciones[0].brl_venta)
       ),
       precio_pesos: Number(
-        (precioEnGuaranies / cotizaciones[0].ars_venta).toFixed(2)
+        (precioEnGuaranies / cotizaciones[0].ars_venta)
       ),
       cod_barra: articulo.codigo_barra,
       depre_articulo: articulo.id_articulo,
@@ -523,9 +523,9 @@ const FormularioPresupuestos = () => {
       depre_precio: precioUnitarioMonedaActual,
       precio_original: precioEnGuaranies,
       depre_descuento: descuento || 0,
-      depre_exentas: Number(deve_exentas.toFixed(2)),
-      depre_cinco: Number(deve_cinco.toFixed(2)),
-      depre_diez: Number(deve_diez.toFixed(2)),
+      depre_exentas: Number(deve_exentas),
+      depre_cinco: Number(deve_cinco),
+      depre_diez: Number(deve_diez),
       editar_nombre: articulo.editar_nombre,
       depre_lote: articulo.lote,
       depre_codlote: articulo.id_lote,
@@ -546,7 +546,7 @@ const FormularioPresupuestos = () => {
     const nuevoItem = crearItemValidado(
       articuloSeleccionado,
       cantidadParaItem || 1,
-      articuloSeleccionado.precio_venta,
+      articuloSeleccionado.precio_venta_guaranies,
       descuentoParaItem || 0
     );
 
@@ -1420,15 +1420,15 @@ const FormularioPresupuestos = () => {
         <div
           className={
             isMobile
-              ? "flex flex-col gap-2 relative"
-              : "flex flex-row gap-2 items-center relative"
+              ? "flex flex-col gap-2 relative w-full"
+              : "flex flex-row gap-2 items-center relative w-full"
           }
         >
           <div
             className={
               isMobile
-                ? "flex flex-col gap-2 flex-1"
-                : "flex flex-row gap-2 items-center flex-1 w-full"
+                ? "flex flex-col gap-2 flex-1 w-full "
+                : "flex flex-row gap-2 items-center  flex-1 w-full "
             }
           >
             <input
@@ -1471,8 +1471,8 @@ const FormularioPresupuestos = () => {
           <div
             className={
               isMobile
-                ? "flex flex-row gap-2"
-                : "flex flex-row gap-2 items-center"
+                ? "flex flex-row gap-2 "
+                : "flex flex-row gap-2 items-center "
             }
           >
             <input
@@ -1482,7 +1482,7 @@ const FormularioPresupuestos = () => {
               className={
                 isMobile
                   ? "bg-white rounded-md p-2 w-full"
-                  : "bg-white rounded-md p-2 w-1/3"
+                  : "bg-white rounded-md p-2 "
               }
               placeholder="Cantidad"
               value={cantidadParaItem || ""}
@@ -1549,7 +1549,7 @@ const FormularioPresupuestos = () => {
               placeholder="Precio Unitario"
               value={
                 articuloSeleccionado
-                  ? articuloSeleccionado.precio_venta
+                  ? articuloSeleccionado.precio_venta_guaranies
                   : precioParaItem || ""
               }
               onChange={(e) => setPrecioParaItem(Number(e.target.value))}
@@ -1607,7 +1607,7 @@ const FormularioPresupuestos = () => {
               value={
                 articuloSeleccionado
                   ? articuloSeleccionado.iva === 0
-                    ? articuloSeleccionado.precio_venta
+                    ? articuloSeleccionado.precio_venta_guaranies
                     : 0
                   : ""
               }
@@ -1634,7 +1634,7 @@ const FormularioPresupuestos = () => {
               value={
                 articuloSeleccionado
                   ? articuloSeleccionado.iva === 3
-                    ? articuloSeleccionado.precio_venta
+                    ? articuloSeleccionado.precio_venta_guaranies
                     : 0
                   : ""
               }
@@ -1653,7 +1653,7 @@ const FormularioPresupuestos = () => {
               value={
                 articuloSeleccionado
                   ? articuloSeleccionado.iva === 2
-                    ? articuloSeleccionado.precio_venta
+                    ? articuloSeleccionado.precio_venta_guaranies
                     : 0
                   : ""
               }
@@ -1691,7 +1691,7 @@ const FormularioPresupuestos = () => {
                 <p>{item.descripcion}</p>
                 <Tally1 />
                 <p>P. Contado</p>
-                <p>{formatNumber(item.precio_venta)}</p>-<p>P. Mostrador</p>
+                <p>{formatNumber(item.precio_venta_guaranies)}</p>-<p>P. Mostrador</p>
                 <p>{formatNumber(item.precio_mostrador)}</p>-<p>P. Credito</p>
                 <p>{formatNumber(item.precio_credito)}</p>
                 <Tally1 />

@@ -85,6 +85,8 @@ const ModeloFacturaNuevo = ({
       .replace(".", ",");
   };
 
+  
+
   const generarPDF = async () => {
     try {
       // Asegurarse de que los detalles existan y tengan el formato correcto
@@ -482,11 +484,19 @@ const ModeloFacturaNuevo = ({
       if (venta?.usa_fe === 1) {
         contenidoPDF.push(
           { text: "\n" },
+          venta?.ve_qr && venta.ve_qr !== "" ? 
           {
-            qr: `${venta?.ve_qr}`,
+            qr: venta.ve_qr,
             fit: 300,
             alignment: "center",
-          } as any,
+          } as any : 
+          {
+            text: "FACTURA EN PROCESO DE VALIDACIÓN",
+            fontSize: 16,
+            bold: true,
+            alignment: "center",
+            margin: [0, 30, 0, 30],
+          },
           { text: "\n" },
           {
             text: "Consulte la validez de este Documento Electronico con el numero de CDC impreso",

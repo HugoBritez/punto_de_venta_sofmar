@@ -94,8 +94,9 @@ const StickerCajas = ({
                 [
                   {
                     text: `Cliente: ${data.cliente}`,
-                    fontSize: 8,
-                    margin: [0, 1, 0, 1],
+                    fontSize: 7,
+                    margin: [0, 0, 0, 0],
+                    bold: true,
                   },
                 ],
                 [
@@ -232,8 +233,8 @@ const StickerCajas = ({
       ).flat();
 
       const docDefinition = {
-        pageSize: { width: 283.46, height: 220.42 }, 
-        pageMargins: [15, 15, 15, 15],
+        pageSize: { width: 270, height: 198 }, 
+        pageMargins: [5, 5, 5, 5],
         content: stickersContent,
       };
 

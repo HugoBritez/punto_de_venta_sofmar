@@ -70,7 +70,7 @@ interface FloatingCardProps {
     deposito: string;
     sucursal: string;
   }>;
-  onSelect: (id: number) => void;
+  onSelect: (id_inventario: number, id: number) => void;
   onClose: () => void;
   onBuscarItems: (inventarioId: string, busqueda: string | null) => void;
 }
@@ -105,9 +105,9 @@ const FloatingCard = ({
             <div className="space-y-2">
               {inventarios.map((inv: any) => (
                 <button
-                  key={inv.id}
+                  key={inv.id_inventario}
                   onClick={() => {
-                    onSelect(inv.id);
+                    onSelect(inv.id_inventario, inv.id);
                     // Realizar búsqueda inmediata al seleccionar inventario
                     onBuscarItems(String(inv.id), null);
                   }}
@@ -179,10 +179,10 @@ const InventarioScanner = () => {
   const [, setCameras] = useState<MediaDeviceInfo[]>([]);
   const [selectedCamera, setSelectedCamera] = useState<string>("");
   const [inventariosDisponibles, setInventariosDisponibles] = useState<
-    Array<{ id: number; fecha: string; deposito: string; sucursal: string }>
+    Array<{ id: number; fecha: string; deposito: string; sucursal: string, id_inventario: number }>
   >([]);
   const [inventarioSeleccionado, setInventarioSeleccionado] = useState<
-    number | null
+    { id_inventario: number, nro_inventario: number } | null
   >(null);
 
   const handleEditarArticulo = (articulo: Articulo) => {
@@ -266,6 +266,7 @@ const InventarioScanner = () => {
           `${api_url}articulos/inventarios-disponibles`
         );
         const data = response.data;
+        console.log(data.body);
         setInventariosDisponibles(data.body || []);
       } catch (error) {
         console.error("Error al cargar inventarios:", error);
@@ -367,7 +368,7 @@ const InventarioScanner = () => {
     const timeoutId = setTimeout(() => {
       if (buscarPorInventario && inventarioSeleccionado) {
         // Asegurarse de que se pase el inventarioSeleccionado
-        buscarItemsPorInventario(String(inventarioSeleccionado), textoLimpio);
+        buscarItemsPorInventario(String(inventarioSeleccionado.nro_inventario), textoLimpio);
       } else {
         buscarArticuloPorCodigo(textoLimpio);
       }
@@ -402,6 +403,10 @@ const InventarioScanner = () => {
       console.error("Error al obtener sububicaciones:", error);
     }
   };
+
+  useEffect(() => {
+    console.log(inventarioSeleccionado);
+  }, [inventarioSeleccionado]);
 
   useEffect(() => {
     fetchUbicaciones();
@@ -563,6 +568,7 @@ const InventarioScanner = () => {
         {
           params: {
             id: inventario,
+            id_inventario: inventarioSeleccionado?.id_inventario,
             buscar: busqueda,
             deposito: depositoId,
           },
@@ -586,6 +592,7 @@ const InventarioScanner = () => {
           cantidad: Number(existenciaFisica),
           lote: lote,
           codigo_barras: codigoBarra,
+          id_inventario: inventarioSeleccionado?.id_inventario,
         }
       );
       toast({
@@ -779,7 +786,7 @@ const InventarioScanner = () => {
             <h1 className="text-white text-xl font-bold">Toma de Inventario</h1>
             <h2 className="text-white text-xs font-medium">
               {deposito?.dep_descripcion} - Inventario Nro:{" "}
-              {inventarioSeleccionado}
+              {inventarioSeleccionado?.nro_inventario}
             </h2>
           </div>
           <div className="flex gap-2">
@@ -862,8 +869,8 @@ const InventarioScanner = () => {
                     />
                     <FloatingCard
                       inventarios={inventariosDisponibles}
-                      onSelect={(id) => {
-                        setInventarioSeleccionado(id);
+                      onSelect={(id_inventario, id) => {
+                        setInventarioSeleccionado({ id_inventario, nro_inventario: Number(id) });
                         buscarItemsPorInventario(String(id));
                         setShowInventarioCard(false);
                       }}

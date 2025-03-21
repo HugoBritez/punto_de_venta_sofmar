@@ -16,5 +16,12 @@ export const configuraciones: Configuracion[] = [
       "Configura las imágenes y textos que aparecen en el encabezado y pie de página de tus presupuestos",
     icono: <PictureInPicture />,
   },
+  {
+    id: "encabezado-factura",
+    nombre: "Encabezado de la factura",
+    descripcion:
+      "Configura las imágenes y textos que aparecen en el encabezado de tus facturas",
+    icono: <PictureInPicture />,
+  },  
   // Aquí puedes agregar más configuraciones fácilmente
 ];
