@@ -27,6 +27,7 @@ import {
 
 } from "@chakra-ui/react";
 import { find } from "lodash";
+import { InformeEntregasExcel } from './docs/InformeEntregasExcel';
 
 
 interface ResumenEntregas {
@@ -465,7 +466,14 @@ const [idEntrega, setIdEntrega] = useState<number | null>(null);
               isDisabled={resumenEntregas.length === 0}
               onClick={generarPDF}
             >
-              Imprimir
+              Imprimir PDF
+            </Button>
+            <Button
+              colorScheme="teal"
+              isDisabled={resumenEntregas.length === 0}
+              onClick={() => InformeEntregasExcel({ resumenEntregas, fechaCompletaActual })}
+            >
+              Exportar Excel
             </Button>
           </Flex>
         </Flex>

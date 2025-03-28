@@ -5,8 +5,12 @@ import fallbackfooter from "@/assets/logosdocumentos/fallbackfooter.jpg";
 import { generatePDF } from "@/services/pdfService";
 import { api_url } from "@/utils";
 import axios from "axios";
+import configuracionesWebStore from "@/stores/configuracionesWebStore";
+
 
 const EncabezadoPieConfig = () => {
+  const { configuracionesNotaComun, notaConfig, setNotaConfig, guardarConfiguracionesNotaComun } =
+    configuracionesWebStore();
   // Estados para las imágenes
   const [headerImage, setHeaderImage] = useState<string | null>(null);
   const [footerImage, setFooterImage] = useState<string | null>(null);
@@ -35,6 +39,75 @@ const EncabezadoPieConfig = () => {
   const [previewMode, setPreviewMode] = useState<boolean>(false);
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
 
+  useEffect(() => {
+    cargarConfiguracion();
+  }, []);
+
+  useEffect(() => {
+    if (notaConfig) {
+      setHeaderWidth(parseInt(notaConfig.header?.ancho || "550"));
+      setHeaderHeight(parseInt(notaConfig.header?.alto || "80"));
+      setFooterWidth(parseInt(notaConfig.footer?.ancho || "550"));
+      setFooterHeight(parseInt(notaConfig.footer?.alto || "60"));
+    }
+  }, [notaConfig]);
+
+  const cargarConfiguracion = async () => {
+    try {
+      setIsLoading(true);
+      await configuracionesNotaComun();
+
+      try {
+        const baseUrl = api_url.replace(/api\/?$/, "");
+
+        // Función para verificar múltiples formatos de imagen
+        const verificarImagenMultiformato = async (baseNombre: string) => {
+          // Lista de extensiones comunes a probar
+          const extensiones = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
+
+          for (const ext of extensiones) {
+            const url = `${baseUrl}upload/presupuesto_images/${baseNombre}${ext}`;
+
+            try {
+              const response = await fetch(url, { method: "HEAD" });
+
+              if (response.ok) {
+                return url;
+              }
+            } catch (error) {
+              // Ignorar errores 404 y otros errores de red
+              continue;
+            }
+          }
+
+          return null;
+        };
+
+        // Verificar header y footer con múltiples formatos
+        const headerUrl = await verificarImagenMultiformato("header");
+        const footerUrl = await verificarImagenMultiformato("footer");
+
+        if (headerUrl) {
+          setHeaderImage(headerUrl);
+        }
+        if (footerUrl) {
+          setFooterImage(footerUrl);
+        }
+      } catch (error) {
+        console.error("Error al cargar imágenes del servidor:", error);
+        // No mostrar error al usuario si no se encuentran las imágenes
+      }
+    } catch (error) {
+      console.error("Error al cargar la configuración:", error);
+      setMensaje({
+        tipo: "error",
+        texto: "Error al cargar la configuración"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Función para subir ambas imágenes al servidor
   const subirImagenes = async (
     headerFile: File | null,
@@ -54,11 +127,15 @@ const EncabezadoPieConfig = () => {
       formData.append("imagen2", footerFile); // 'imagen2' es el nombre que espera tu endpoint para el footer
     }
 
-    const response = await axios.post(`${api_url}upload-presupuesto-images`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
+    const response = await axios.post(
+      `${api_url}upload-presupuesto-images`,
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
 
     if (response.status !== 200) {
       throw new Error("Error al subir las imágenes");
@@ -96,13 +173,13 @@ const EncabezadoPieConfig = () => {
           });
           return;
         }
-        
+
         setIsLoading(true);
-        
+
         // Preparar archivos para subir
         const headerFile = tipo === "header" ? file : null;
         const footerFile = tipo === "footer" ? file : null;
-        
+
         // Mostrar vista previa local inmediatamente
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -116,30 +193,30 @@ const EncabezadoPieConfig = () => {
           }
         };
         reader.readAsDataURL(file);
-        
+
         // Intentar subir al servidor
         try {
           await subirImagenes(headerFile, footerFile);
-          
+
           setMensaje({
             tipo: "success",
             texto: `Imagen de ${
               tipo === "header" ? "encabezado" : "pie de página"
             } subida correctamente`,
           });
-          
+
           // Limpiar mensaje después de 3 segundos
           setTimeout(() => {
             setMensaje(null);
           }, 3000);
         } catch (error) {
           console.error("Error al subir al servidor:", error);
-          
+
           setMensaje({
             tipo: "error",
             texto: `Error al subir la imagen al servidor. Se usará la versión local.`,
           });
-          
+
           // Limpiar mensaje después de 3 segundos
           setTimeout(() => {
             setMensaje(null);
@@ -163,32 +240,36 @@ const EncabezadoPieConfig = () => {
       setIsSaving(true);
 
       const config = {
-        headerWidth,
-        headerHeight,
-        footerWidth,
-        footerHeight,
+        header: {
+          ancho: headerWidth.toString(),
+          alto: headerHeight.toString()
+        },
+        footer: {
+          ancho: footerWidth.toString(),
+          alto: footerHeight.toString()
+        }
       };
 
-      // Guardar localmente por ahora (puedes implementar un endpoint para esto después)
-      localStorage.setItem(
-        "configuracionDimensionesPDF",
-        JSON.stringify(config)
-      );
+      const response = await guardarConfiguracionesNotaComun(config);
 
-      setMensaje({
-        tipo: "success",
-        texto: "Configuración de dimensiones guardada correctamente",
-      });
+      if (response?.data?.success) {
+        setMensaje({
+          tipo: "success",
+          texto: response.data.message || "Configuración guardada correctamente"
+        });
+        setNotaConfig(config);
+      } else {
+        throw new Error(response?.data?.message || "Error al guardar la configuración");
+      }
 
-      // Limpiar mensaje después de 3 segundos
       setTimeout(() => {
         setMensaje(null);
       }, 3000);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error:", error);
       setMensaje({
         tipo: "error",
-        texto: "Error al guardar la configuración",
+        texto: error.message || "Error al guardar la configuración"
       });
     } finally {
       setIsSaving(false);
@@ -202,10 +283,10 @@ const EncabezadoPieConfig = () => {
 
       // Asegurarse de que tenemos las imágenes en formato base64
       let logoHeader, logoFooter;
-      
+
       // Convertir headerImage a base64 si es una URL
       if (headerImage) {
-        if (headerImage.startsWith('data:')) {
+        if (headerImage.startsWith("data:")) {
           // Ya está en formato base64
           logoHeader = headerImage;
         } else {
@@ -215,10 +296,10 @@ const EncabezadoPieConfig = () => {
       } else {
         logoHeader = await convertImageToBase64(fallbackheader);
       }
-      
+
       // Convertir footerImage a base64 si es una URL
       if (footerImage) {
-        if (footerImage.startsWith('data:')) {
+        if (footerImage.startsWith("data:")) {
           // Ya está en formato base64
           logoFooter = footerImage;
         } else {
@@ -350,101 +431,6 @@ const EncabezadoPieConfig = () => {
       img.src = imgUrl;
     });
   };
-
-  // Cargar configuración al iniciar
-useEffect(() => {
-  const cargarConfiguracion = async () => {
-    try {
-      setIsLoading(true);
-
-      // Cargar dimensiones guardadas (código existente)
-      const configStr = localStorage.getItem("configuracionDimensionesPDF");
-      if (configStr) {
-        const config = JSON.parse(configStr);
-        setHeaderWidth(config.headerWidth || 550);
-        setHeaderHeight(config.headerHeight || 80);
-        setFooterWidth(config.footerWidth || 550);
-        setFooterHeight(config.footerHeight || 60);
-      }
-
-      // Intentar cargar imágenes del servidor con múltiples formatos
-      try {
-        const baseUrl = api_url.replace(/api\/?$/, "");
-
-        // Función para verificar múltiples formatos de imagen
-        const verificarImagenMultiformato = async (baseNombre: string) => {
-          // Lista de extensiones comunes a probar
-          const extensiones = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
-
-          for (const ext of extensiones) {
-            const url = `${baseUrl}upload/presupuesto_images/${baseNombre}${ext}`;
-            console.log(`Intentando cargar ${baseNombre} desde: ${url}`);
-
-            try {
-              const response = await fetch(url, { method: "HEAD" });
-              console.log(`Respuesta ${baseNombre}${ext}:`, response.status);
-
-              if (response.ok) {
-                console.log(`${baseNombre}${ext} encontrado!`);
-                return url;
-              }
-            } catch (error) {
-              console.error(`Error al verificar ${baseNombre}${ext}:`, error);
-            }
-          }
-
-          console.log(`No se encontró ninguna imagen para ${baseNombre}`);
-          return null;
-        };
-
-        // Verificar header con múltiples formatos
-        const headerUrl = await verificarImagenMultiformato("header");
-        if (headerUrl) {
-          console.log("Header encontrado, estableciendo URL:", headerUrl);
-          setHeaderImage(headerUrl);
-        } else {
-          console.log("Header no encontrado, usando fallback");
-          cargarImagenFallback(fallbackheader, setHeaderImage);
-        }
-
-        // Verificar footer con múltiples formatos
-        const footerUrl = await verificarImagenMultiformato("footer");
-        if (footerUrl) {
-          console.log("Footer encontrado, estableciendo URL:", footerUrl);
-          setFooterImage(footerUrl);
-        } else {
-          console.log("Footer no encontrado, usando fallback");
-          cargarImagenFallback(fallbackfooter, setFooterImage);
-        }
-      } catch (error) {
-        console.error("Error al cargar imágenes del servidor:", error);
-        cargarImagenFallback(fallbackheader, setHeaderImage);
-        cargarImagenFallback(fallbackfooter, setFooterImage);
-      }
-    } catch (error) {
-      console.error("Error al cargar la configuración:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Función auxiliar para cargar imágenes fallback
-  const cargarImagenFallback = (src: string, setterFn: (dataUrl: string) => void) => {
-    const img = new Image();
-    img.src = src;
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext("2d");
-      ctx?.drawImage(img, 0, 0);
-      setterFn(canvas.toDataURL("image/jpeg"));
-    };
-  };
-
-  cargarConfiguracion();
-}, []);
-
 
   return (
     <div className="p-4 h-full overflow-auto">

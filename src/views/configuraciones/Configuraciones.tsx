@@ -5,6 +5,7 @@ import { configuraciones } from "./configuracionesData";
 import EncabezadoPieConfig from "./configs/EncabezadoPiePresupuesto";
 import { Settings } from "lucide-react";
 import EncabezadoFacturaConfig from "./configs/EncabezadoFacturaReport";
+import ConfiguracionesFactura from "./configs/ConfiguracionesFactura";
 
 export default function ConfiguracionesMenu() {
   const [isMobile] = useMediaQuery("(max-width: 768px)");
@@ -18,6 +19,8 @@ export default function ConfiguracionesMenu() {
         return <EncabezadoPieConfig />;
       case "encabezado-factura":
         return <EncabezadoFacturaConfig />;
+      case "factura":
+        return <ConfiguracionesFactura />;
       default:
         return (
           <div className="flex items-center justify-center h-full">
@@ -73,7 +76,7 @@ export default function ConfiguracionesMenu() {
               ))}
             </div>
           </div>
-          <div className="w-2/3 h-full bg-white rounded-md shadow-sm">
+          <div className="w-2/3 h-full bg-white rounded-md shadow-sm overflow-y-auto">
             {renderizarConfiguracion()}
           </div>
         </div>

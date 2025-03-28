@@ -887,17 +887,18 @@ const VentaBalconNuevo = () => {
   const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
 
   // Formatear los números con 2 decimales y separador de miles
+  // Formatear los números con separador de miles y decimales según la moneda
   const formatNumber = (num: number | string) => {
-    if (typeof num === "string") {
-      num = Number(num);
-      return num.toLocaleString("es-PY", {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      });
-    }
-    return num.toLocaleString("es-PY", {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
+    // Convertir a número si es string
+    const numValue = typeof num === "string" ? Number(num) : num;
+
+    // Definir la cantidad de decimales según la moneda
+    const decimals = monedaSeleccionada?.mo_codigo === 1 ? 0 : 2;
+
+    // Formatear según la configuración regional y la cantidad de decimales
+    return numValue.toLocaleString("es-PY", {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
     });
   };
 
@@ -1377,7 +1378,7 @@ const VentaBalconNuevo = () => {
             unidadMedida: item.ar_unidad_medida || 77, // Unidad
             cantidad: item.deve_cantidad,
             precioUnitario: item.deve_precio,
-            cambio: 0.0,
+            cambio: monedaSeleccionada?.mo_codigo != 1 ? cotizacionDolar : 0,
             ivaTipo: ivaTipo,
             ivaBase: ivaBase,
             iva: ivaPorcentaje,
@@ -1539,16 +1540,16 @@ const VentaBalconNuevo = () => {
         setUltimaVentaId(response.data.body.ventaId);
         if (imprimirFactura) {
           if (tipoImpresionFactura === 1) {
-            await imprimirFacturaComponenteReport(response.data.body.ventaId);
+            isMobile ? (await imprimirFacturaComponenteReport(response.data.body.ventaId, "download")) : (await imprimirFacturaComponenteReport(response.data.body.ventaId, "print"))
           } else if (tipoImpresionFactura === 2) {
-            await imprimirFacturaComponente(response.data.body.ventaId);
+            isMobile ? (await imprimirFacturaComponente(response.data.body.ventaId, "download")) : (await imprimirFacturaComponente(response.data.body.ventaId, "print"))
           }
         }
         if (imprimirTicket) {
-          await imprimirTicketCompontente(response.data.body.ventaId);
+          isMobile ? (await imprimirTicketCompontente(response.data.body.ventaId, "download")) : (await imprimirTicketCompontente(response.data.body.ventaId, "print"))
         }
         if (imprimirNotaInterna) {
-          await imprimirNotaComunComponente(response.data.body.ventaId);
+          isMobile ? (await imprimirNotaComunComponente(response.data.body.ventaId, "download")) : (await imprimirNotaComunComponente(response.data.body.ventaId, "print"))
         }
       }
       clienteCodigoRef.current?.focus();
@@ -2134,13 +2135,13 @@ const VentaBalconNuevo = () => {
     }
   };
 
-  const imprimirNotaComunComponente = async (ventaId: number) => {
+  const imprimirNotaComunComponente = async (ventaId: number, accion: "print" | "download" | "b64" = "print") => {
     const notaComunDiv = document.createElement("div");
     notaComunDiv.style.display = "none";
     document.body.appendChild(notaComunDiv);
 
     const root = createRoot(notaComunDiv);
-    root.render(<ModeloNotaComun id_venta={ventaId} onImprimir={true} />);
+    root.render(<ModeloNotaComun id_venta={ventaId} onImprimir={true} accion={accion} />);
 
     setTimeout(() => {
       root.unmount();
@@ -2148,7 +2149,7 @@ const VentaBalconNuevo = () => {
     }, 2000);
   };
 
-  const imprimirFacturaComponenteReport = async (ventaId: number) => {
+  const imprimirFacturaComponenteReport = async (ventaId: number, accion: "print" | "download" | "b64" = "print") => {
     const facturaDiv = document.createElement("div");
     facturaDiv.style.display = "none";
     document.body.appendChild(facturaDiv);
@@ -2161,6 +2162,7 @@ const VentaBalconNuevo = () => {
         monto_recibido={montoEntregado || 0}
         vuelto={0}
         onImprimir={true}
+        accion={accion}
       />
     );
 
@@ -2170,7 +2172,7 @@ const VentaBalconNuevo = () => {
     }, 2000);
   };
 
-  const imprimirFacturaComponente = async (ventaId: number) => {
+  const imprimirFacturaComponente = async (ventaId: number, accion: "print" | "download" | "b64" = "print") => {
     const facturaDiv = document.createElement("div");
     facturaDiv.style.display = "none";
     document.body.appendChild(facturaDiv);
@@ -2183,6 +2185,7 @@ const VentaBalconNuevo = () => {
         monto_recibido={montoEntregado || 0}
         vuelto={0}
         onImprimir={true}
+        accion={accion}
       />
     );
 
@@ -2192,7 +2195,7 @@ const VentaBalconNuevo = () => {
     }, 2000);
   };
 
-  const imprimirTicketCompontente = async (ventaId: number) => {
+  const imprimirTicketCompontente = async (ventaId: number, accion: "print" | "download" | "b64" = "print") => {
     const ticketDiv = document.createElement("div");
     ticketDiv.style.display = "none";
     document.body.appendChild(ticketDiv);
@@ -2205,6 +2208,7 @@ const VentaBalconNuevo = () => {
         monto_recibido={montoEntregado || 0}
         vuelto={0}
         onImprimir={true}
+        accion={accion}
       />
     );
 

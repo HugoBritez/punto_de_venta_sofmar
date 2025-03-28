@@ -10,13 +10,12 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-import { api_url as API_URL } from "../../utils";
+import { api_url as API_URL } from "../../../utils";
 import axios from "axios";
 
 
 interface Reporte {
   id: number;
-
   marca: string;
   deposito: string;
   fecha: string;

@@ -2,15 +2,10 @@ import { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import { api_url } from "../../utils";
 import { useToast } from "@chakra-ui/react";
-import {
-  Menu,
-  Grid,
-  List,
-  ChartColumn,
-  ListStart,
-} from "lucide-react";
+import { Menu, Grid, List, ChartColumn, ListStart } from "lucide-react";
 
 import { motion, AnimatePresence } from "framer-motion";
+import BusquedaPreparador from "./ui/BusquedaPreparador";
 
 interface Articulo {
   ar_codigo: number;
@@ -57,12 +52,16 @@ interface TooltipProps {
 }
 
 interface FloatingCardProps {
-  pedidos: Array<{ id_pedido: number; fecha: string, deposito: string, cliente: string }>;
+  pedidos: Array<{
+    id_pedido: number;
+    fecha?: string;
+    deposito?: string;
+    cliente?: string;
+  }>;
   onSelect: (id: number) => void;
   onClose: () => void;
   onBuscarItems: (inventarioId: string, busqueda: string | null) => void;
 }
-
 
 const FloatingCard = ({
   pedidos,
@@ -79,9 +78,7 @@ const FloatingCard = ({
     >
       <div className="p-4">
         <div className="flex justify-between items-center mb-3">
-          <h3 className="font-semibold text-gray-700">
-            Pedidos Disponibles
-          </h3>
+          <h3 className="font-semibold text-gray-700">Pedidos Disponibles</h3>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600"
@@ -102,7 +99,9 @@ const FloatingCard = ({
                   className="w-full text-left p-2 hover:bg-gray-50 rounded transition-colors flex justify-between items-center"
                 >
                   <div>
-                    <div className="font-medium">Pedido #{pedido.id_pedido}</div>
+                    <div className="font-medium">
+                      Pedido #{pedido.id_pedido}
+                    </div>
                     <div className="text-sm text-gray-500">
                       {pedido.fecha}
                       <p className="text-xs font-thin">{pedido.cliente}</p>
@@ -122,6 +121,11 @@ const FloatingCard = ({
     </motion.div>
   );
 };
+
+interface Preparador {
+  op_codigo: number;
+  op_nombre: string;
+}
 
 const VerificacionPedidos = () => {
   const [isGridView, setIsGridView] = useState(true);
@@ -144,17 +148,96 @@ const VerificacionPedidos = () => {
   const toast = useToast();
   const [showPedidosCard, setShowPedidosCard] = useState(false);
   const [pedidosDisponibles, setPedidosDisponibles] = useState<
-    Array<{ id_pedido: number; fecha: string, deposito: string, cliente: string }>
+    Array<{
+      id_pedido: number;
+      fecha?: string;
+      deposito?: string;
+      cliente?: string;
+      preparado_por?: number;
+    }>
   >([]);
   const [cantidad, setCantidad] = useState<number | null>(null);
 
   const [pedidoSeleccionado, setPedidoSeleccionado] = useState<
-    number | null
+    (typeof pedidosDisponibles)[number] | null
   >(null);
 
   const [showCajasModal, setShowCajasModal] = useState(false);
   const [numeroCajas, setNumeroCajas] = useState<number>(1);
   const [, setTodosItemsVerificados] = useState(false);
+
+  const [preparadores, setPreparadores] = useState<Preparador[]>([]);
+  const [preparadorSeleccionado, setPreparadorSeleccionado] =
+    useState<Preparador | null>(null);
+  const [isBusquedaPreparadorOpen, setIsBusquedaPreparadorOpen] =
+    useState(false);
+  const [isLoadingPreparadores, setIsLoadingPreparadores] = useState(false);
+
+  const buscarPreparadores = async (busqueda: string) => {
+    try {
+      setIsLoadingPreparadores(true);
+      const response = await axios.get(`${api_url}usuarios/`, {
+        params: {
+          buscar: busqueda,
+        },
+      });
+      setPreparadores(response.data.body || []);
+    } catch (error) {
+      console.error("Error al buscar preparadores:", error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los preparadores",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setIsLoadingPreparadores(false);
+    }
+  };
+
+  const establecerPreparadorPedido = async (preparador: Preparador) => {
+    try {
+      if (!pedidoSeleccionado) {
+        toast({
+          title: "Error",
+          description: "No se seleccionó ningún pedido",
+          status: "error",
+          duration: 3000,
+        });
+        return;
+      }
+
+      await axios.post(`${api_url}pedidos/iniciar-preparacion-pedido`, {
+        pedido_ids: [pedidoSeleccionado?.id_pedido],
+        preparado_por: preparador.op_codigo,
+      });
+
+      toast({
+        title: "Preparador establecido",
+        description: "El preparador ha sido establecido correctamente",
+        status: "success",
+        duration: 3000,
+      });
+
+      setIsBusquedaPreparadorOpen(false);
+    } catch (error) {
+      console.error("Error al establecer el preparador:", error);
+      toast({
+        title: "Error al establecer el preparador",
+        description: "Por favor, inténtelo de nuevo",
+        status: "error",
+        duration: 3000,
+      });
+      setIsBusquedaPreparadorOpen(true);
+    }
+  };
+
+  useEffect(() => {
+    if (pedidoSeleccionado && preparadorSeleccionado) {
+      establecerPreparadorPedido(preparadorSeleccionado);
+    }
+  }, [pedidoSeleccionado, preparadorSeleccionado]);
 
   const handleInputClick = (e: React.MouseEvent<HTMLInputElement>) => {
     e.preventDefault();
@@ -258,7 +341,10 @@ const VerificacionPedidos = () => {
     return () => clearTimeout(timeoutId);
   };
 
-  const buscarItemsPorPedido = async (pedido: string, texto: string | null = null) => {
+  const buscarItemsPorPedido = async (
+    pedido: string,
+    texto: string | null = null
+  ) => {
     try {
       const response = await axios.get(
         `${api_url}pedidos/traer-items-por-pedido`,
@@ -335,10 +421,10 @@ const VerificacionPedidos = () => {
       );
       const data = response.data;
       setPedidosDisponibles(data.body || []);
-    } catch(error) {
+    } catch (error) {
       console.error("Error al obtener pedidos disponibles:", error);
     }
-  }
+  };
 
   useEffect(() => {
     fetchUbicaciones();
@@ -398,74 +484,73 @@ const VerificacionPedidos = () => {
     );
   };
 
-const cargarArticulos = async () => {
-  try {
-    console.log("iniciando funcion cargarArticulos");
-    await axios.post(`${api_url}pedidos/cargar-pedido-preparado`, {
-      pedidoId: articuloSeleccionado?.id_detalle,
-      cantidad: cantidad,
-    });
+  const cargarArticulos = async () => {
+    try {
+      console.log("iniciando funcion cargarArticulos");
+      await axios.post(`${api_url}pedidos/cargar-pedido-preparado`, {
+        pedidoId: articuloSeleccionado?.id_detalle,
+        cantidad: cantidad,
+      });
 
-    // Cerramos el modal de verificación
-    setModalVisible(false);
+      // Cerramos el modal de verificación
+      setModalVisible(false);
 
-    // Actualizamos los artículos y verificamos si era el último
-    setArticulos((prevArticulos) => {
-      // Filtramos el artículo actual
-      const nuevosArticulos = prevArticulos.filter(
-        (art) => art.id_detalle !== articuloSeleccionado?.id_detalle
-      );
+      // Actualizamos los artículos y verificamos si era el último
+      setArticulos((prevArticulos) => {
+        // Filtramos el artículo actual
+        const nuevosArticulos = prevArticulos.filter(
+          (art) => art.id_detalle !== articuloSeleccionado?.id_detalle
+        );
 
-      // Si no quedan más artículos, mostramos el modal de cajas
-      if (nuevosArticulos.length === 0) {
-        setTodosItemsVerificados(true);
-        setShowCajasModal(true);
-        toast({
-          title: "Pedido Completo",
-          description: "Todos los items han sido verificados correctamente",
-          status: "success",
-          duration: 3000,
-        });
-      }
+        // Si no quedan más artículos, mostramos el modal de cajas
+        if (nuevosArticulos.length === 0) {
+          setTodosItemsVerificados(true);
+          setShowCajasModal(true);
+          toast({
+            title: "Pedido Completo",
+            description: "Todos los items han sido verificados correctamente",
+            status: "success",
+            duration: 3000,
+          });
+        }
 
-      return nuevosArticulos;
-    });
+        return nuevosArticulos;
+      });
+      // Limpiamos los estados
+      setArticuloSeleccionado(null);
+      setCantidad(null);
+    } catch (error) {
+      console.error("Error al cargar articulos:", error);
+      toast({
+        title: "Error al cargar articulos",
+        description: "Por favor, inténtelo de nuevo",
+        status: "error",
+        duration: 3000,
+      });
+    }
+  };
 
-    // Limpiamos los estados
-    setArticuloSeleccionado(null);
-    setCantidad(null);
-  } catch (error) {
-    console.error("Error al cargar articulos:", error);
-    toast({
-      title: "Error al cargar articulos",
-      description: "Por favor, inténtelo de nuevo",
-      status: "error",
-      duration: 3000,
-    });
-  }
-};
-
-const verificarTodosLosItems = () => {
-  const todosVerificados = articulos.length === 0;
-  console.log("todosVerificados", todosVerificados);
-  console.log("articulos", articulos.length);
-  if (todosVerificados) {
-    console.log("todos los items fueron verificados");
-    setTodosItemsVerificados(true);
-    setShowCajasModal(true);
-    toast({
-      title: "Pedido Completo",
-      description: "Todos los items han sido verificados correctamente",
-      status: "success",
-      duration: 3000,
-    });
-  }
-};
+  const verificarTodosLosItems = () => {
+    const todosVerificados = articulos.length === 0;
+    console.log("todosVerificados", todosVerificados);
+    console.log("articulos", articulos.length);
+    if (todosVerificados) {
+      console.log("todos los items fueron verificados");
+      setTodosItemsVerificados(true);
+      setShowCajasModal(true);
+      toast({
+        title: "Pedido Completo",
+        description: "Todos los items han sido verificados correctamente",
+        status: "success",
+        duration: 3000,
+      });
+    }
+  };
 
   const enviarInformacionCajas = async () => {
     try {
       await axios.post(`${api_url}pedidos/registrar-cajas`, {
-        pedidoId: pedidoSeleccionado,
+        pedidoId: pedidoSeleccionado?.id_pedido,
         numeroCajas: numeroCajas,
         verificadoPor: sessionStorage.getItem("user_id"),
       });
@@ -492,33 +577,35 @@ const verificarTodosLosItems = () => {
     }
   };
 
-function handleAceptar() {
-  const cantidadNormalizada = Number(cantidad).toFixed(2);
-  const cantidadArticulo = Number(articuloSeleccionado?.al_cantidad).toFixed(2);
+  function handleAceptar() {
+    const cantidadNormalizada = Number(cantidad).toFixed(2);
+    const cantidadArticulo = Number(articuloSeleccionado?.al_cantidad).toFixed(
+      2
+    );
 
-  if (cantidadNormalizada === cantidadArticulo) {
-    toast({
-      title: "Cantidad correcta",
-      description:
-        "La cantidad ingresada coincide con la cantidad del artículo",
-      status: "success",
-      duration: 3000,
-    });
+    if (cantidadNormalizada === cantidadArticulo) {
+      toast({
+        title: "Cantidad correcta",
+        description:
+          "La cantidad ingresada coincide con la cantidad del artículo",
+        status: "success",
+        duration: 3000,
+      });
 
-    cargarArticulos().then(() => {
-      setModalVisible(false);
-      // Ya no necesitamos volver a buscar los items porque actualizamos el estado local
-    });
-  } else {
-    toast({
-      title: "Cantidad incorrecta",
-      description:
-        "La cantidad ingresada no coincide con la cantidad del artículo",
-      status: "error",
-      duration: 3000,
-    });
+      cargarArticulos().then(() => {
+        setModalVisible(false);
+        // Ya no necesitamos volver a buscar los items porque actualizamos el estado local
+      });
+    } else {
+      toast({
+        title: "Cantidad incorrecta",
+        description:
+          "La cantidad ingresada no coincide con la cantidad del artículo",
+        status: "error",
+        duration: 3000,
+      });
+    }
   }
-}
 
   return (
     <div className="h-screen w-full flex flex-col overflow-hidden">
@@ -531,7 +618,7 @@ function handleAceptar() {
             </h1>
             <h2 className="text-white text-xs font-medium">
               {deposito?.dep_descripcion} - Pedido Nro:{" "}
-              {pedidoSeleccionado || "N/A"}
+              {pedidoSeleccionado?.id_pedido || "N/A"}
             </h2>
           </div>
           <div className="flex gap-2">
@@ -555,7 +642,6 @@ function handleAceptar() {
             </button>
           </div>
         </div>
-
         {/* Barra de búsqueda */}
         <div className="px-4 flex flex-row w-full justify-center items-center gap-4">
           <div className="flex items-center bg-white rounded-lg w-full">
@@ -587,9 +673,20 @@ function handleAceptar() {
                   <FloatingCard
                     pedidos={pedidosDisponibles}
                     onSelect={(id) => {
-                      setPedidoSeleccionado(id);
+                      setPedidoSeleccionado({
+                        id_pedido: id,
+                        fecha: "",
+                        deposito: "",
+                        cliente: "",
+                        preparado_por: 0,
+                      });
                       buscarItemsPorPedido(String(id));
                       setShowPedidosCard(false);
+                      // ####IMPORTANTE: DESCOMENTAR EN PRODUCCION ####
+                      // if (pedidoSeleccionado?.preparado_por) {
+                      //   setIsBusquedaPreparadorOpen(true);
+                      // }
+                      setIsBusquedaPreparadorOpen(true);
                     }}
                     onClose={() => setShowPedidosCard(false)}
                     onBuscarItems={buscarItemsPorPedido}
@@ -749,7 +846,7 @@ function handleAceptar() {
               </div>
               <div className="bg-gray-50 p-4 rounded-lg mb-4">
                 <p className="text-sm text-gray-500">
-                  Pedido nro: {pedidoSeleccionado}
+                  Pedido nro: {pedidoSeleccionado?.id_pedido}
                 </p>
                 <div className="flex space-x-14">
                   <p className="font-bold">{articuloSeleccionado?.ar_codigo}</p>
@@ -879,7 +976,6 @@ function handleAceptar() {
                 <span className="text-2xl">&times;</span>
               </button>
             </div>
-
             <div className="mb-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Número de Cajas
@@ -912,6 +1008,17 @@ function handleAceptar() {
           </motion.div>
         </div>
       )}
+      <BusquedaPreparador
+        isOpen={isBusquedaPreparadorOpen}
+        onClose={() => setIsBusquedaPreparadorOpen(false)}
+        onSelect={(preparador) => {
+          setPreparadorSeleccionado(preparador);
+        }}
+        items={preparadores}
+        onSearch={buscarPreparadores}
+        isLoading={isLoadingPreparadores}
+        searchPlaceholder="Buscar preparador por nombre..."
+      />
     </div>
   );
 };

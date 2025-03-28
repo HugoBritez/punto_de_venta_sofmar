@@ -761,6 +761,16 @@ const FormularioPresupuestos = () => {
         return;
       }
 
+      if(!monedaSeleccionada){
+        toast({
+          title: "Error",
+          description: "Debe seleccionar una moneda",
+          status: "error",
+          duration: 3000,
+        });
+        return;
+      }
+
       const presupuesto = {
         pre_codigo: codigoPresupuesto || null,
         pre_cliente: clienteSeleccionado.cli_codigo,
@@ -955,7 +965,7 @@ const FormularioPresupuestos = () => {
         mostrarSubtotal={mostrarSubtotalCheck}
         mostrarTotal={mostrarTotalCheck}
         mostrarMarca={mostrarMarcaCheck}
-        action={impresoraCheck ? "print" : pdfCheck ? "download" : "print"}
+        action={isMobile? "download" : impresoraCheck ? "print" : pdfCheck ? "download" : "print"}
       />
     );
 

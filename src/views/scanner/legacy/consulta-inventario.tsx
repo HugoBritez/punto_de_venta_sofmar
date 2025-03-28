@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
 import axios from "axios";
-import { api_url } from "../../utils";
+import { api_url } from "../../../utils";
 import { useToast } from "@chakra-ui/react";
 import {
   Menu,
@@ -17,7 +17,7 @@ import { motion, AnimatePresence } from "framer-motion";
 interface Articulo {
   ar_codigo: number;
   ar_codbarra: string;
-  al_codbarra: string;
+
   ar_descripcion: string;
   ar_pvg: number;
   ar_pcg: number;
@@ -57,7 +57,7 @@ const formatNumber = (num: number): string => {
   return roundedNum.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 };
 
-const ReconteoInventarioScanner = () => {
+const InventarioScanner = () => {
   const navigate = useNavigate();
   const [isGridView, setIsGridView] = useState(true);
   const [articulos, setArticulos] = useState<Articulo[]>([]);
@@ -76,12 +76,14 @@ const ReconteoInventarioScanner = () => {
   const [vencimiento, setVencimiento] = useState("");
   const [lote, setLote] = useState("");
   const [codigoBarra, setCodigoBarra] = useState("");
+  const [observaciones, setObservaciones] = useState("");
+  const [fecha] = useState(new Date().toISOString().split("T")[0]);
   const [ultimoNroInventario, setUltimoNroInventario] = useState(1);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const [, setUbicaciones] = useState<Ubicaciones[]>([]);
+  const [ubicaciones, setUbicaciones] = useState<Ubicaciones[]>([]);
   const [ubicacion, setUbicacion] = useState<number | null>(null);
   const [sububicacion, setSububicacion] = useState<number | null>(null);
-  const [, setSububicaciones] = useState<Sububicaciones[]>([]);
+  const [sububicaciones, setSububicaciones] = useState<Sububicaciones[]>([]);
   const [prevVencimiento, setPrevVencimiento] = useState("");
   const [prevLote, setPrevLote] = useState("");
   const token = sessionStorage.getItem("token");
@@ -271,7 +273,141 @@ const ReconteoInventarioScanner = () => {
     fetchSububicaciones();
   }, [token]);
 
-  const cargarInventario = async () => {
+  // const getUbicacionCodigo = (ubicacion: any): number => {
+  //   // Si es un objeto con ub_codigo
+  //   if (typeof ubicacion === "object" && ubicacion.ub_codigo) {
+  //     return Number(ubicacion.ub_codigo);
+  //   }
+
+  //   // Si es un string o número
+  //   const codigo = Number(ubicacion);
+  //   return isNaN(codigo) ? 0 : codigo;
+  // };
+
+  // const cargarItemInventario = async () => {
+  //   try {
+  //     if (!articuloSeleccionado) {
+  //       toast({
+  //         title: "No hay artículos para cargar",
+  //         status: "error",
+  //         duration: 3000,
+  //         isClosable: true,
+  //       });
+  //       return;
+  //     }
+
+  //     if (!vencimiento) {
+  //       toast({
+  //         title: "Debe seleccionar una fecha de vencimiento",
+  //         status: "error",
+  //         duration: 3000,
+  //         isClosable: true,
+  //       });
+  //       return;
+  //     }
+
+  //     if (!ubicacion) {
+  //       toast({
+  //         title: "Debe seleccionar una ubicación",
+  //         status: "error",
+  //         duration: 3000,
+  //         isClosable: true,
+  //       });
+  //       return;
+  //     }
+
+  //     if (!sububicacion) {
+  //       toast({
+  //         title: "Debe seleccionar una sububicación",
+  //         status: "error",
+  //         duration: 3000,
+  //         isClosable: true,
+  //       });
+  //       return;
+  //     }
+
+  //     if (!lote) {
+  //       toast({
+  //         title: "Debe determinar un lote",
+  //         status: "error",
+  //         duration: 3000,
+  //         isClosable: true,
+  //       });
+  //       return;
+  //     }
+
+  //     if (prevVencimiento !== vencimiento && prevLote === lote) {
+  //       toast({
+  //         title:
+  //           "Debe cambiar el número de lote si cambia la fecha de vencimiento",
+  //         status: "error",
+  //         duration: 3000,
+  //         isClosable: true,
+  //       });
+  //       return;
+  //     }
+
+  //     const inventarioData = {
+  //       inventario: {
+  //         fecha,
+  //         hora: new Date().toLocaleTimeString().slice(0, 5),
+  //         operador: localStorage.getItem("user_id") || 1,
+  //         sucursal: sucursal?.id || 1,
+  //         deposito: depositoId,
+  //         tipo: 1,
+  //         estado: 1,
+  //         in_obs: observaciones || "",
+  //         nro_inventario: ultimoNroInventario,
+  //       },
+  //       inventario_items: [
+  //         {
+  //           idArticulo: articuloSeleccionado.ar_codigo,
+  //           cantidad: Number(existenciaFisica),
+  //           costo: articuloSeleccionado.ar_pcg,
+  //           stock_actual: Number(existenciaActual),
+  //           stock_dif: Number(existenciaFisica) - Number(existenciaActual),
+  //           codbarra: codigoBarra || "",
+  //           ubicacion: getUbicacionCodigo(ubicacion),
+  //           sububicacion: sububicacion,
+  //           vencimientos: [
+  //             {
+  //               lote: lote || "SIN LOTE",
+  //               fecha_vence: formatearVencimiento(vencimiento),
+  //               loteid: String(lote) || 0,
+  //             },
+  //           ],
+  //         },
+  //       ],
+  //     };
+
+  //     console.log(inventarioData);
+
+  //     await axios.post(
+  //       `${api_url}articulos/agregar-item-inventario`,
+  //       inventarioData
+  //     );
+  //     setModalVisible(false);
+  //     toast({
+  //       title: "El inventario se cargó satisfactoriamente",
+  //       status: "success",
+  //       duration: 3000,
+  //       isClosable: true,
+  //     });
+  //     setArticuloBusqueda("");
+  //     setArticulos([]);
+  //     searchInputRef.current?.focus();
+  //   } catch (error) {
+  //     console.error(error);
+  //     toast({
+  //       title: "Error al cargar el inventario",
+  //       status: "error",
+  //       duration: 3000,
+  //       isClosable: true,
+  //     });
+  //   }
+  // };
+
+  const cargarItemInventarioScanner = async () => {
     try {
       if (!articuloSeleccionado) {
         toast({
@@ -323,11 +459,6 @@ const ReconteoInventarioScanner = () => {
         return;
       }
 
-      console.log("prevVencimiento:", prevVencimiento);
-      console.log("vencimiento:", vencimiento);
-      console.log("prevLote:", prevLote);
-      console.log("lote:", lote);
-
       if (prevVencimiento !== vencimiento && prevLote === lote) {
         toast({
           title:
@@ -339,24 +470,20 @@ const ReconteoInventarioScanner = () => {
         return;
       }
 
-      const reconteo = {
+      const datos = {
         id_articulo: articuloSeleccionado.ar_codigo,
-        id_lote: articuloSeleccionado.al_codigo,
-        nro_lote: lote,
-        segunda_cantidad: Number(existenciaFisica),
+        cantidad: Number(existenciaFisica),
+        lote: lote,
+        lote_id: articuloSeleccionado.al_codigo,
+        fecha_vencimiento: formatearVencimiento(vencimiento),
       };
 
-      console.log(reconteo);
+      console.log(datos);
 
-      const response = await axios.post(
-        `${api_url}articulos/insertar-reconteo`,
-        reconteo
+      await axios.post(
+        `${api_url}articulos/insertar-item-conteo-scanner`,
+        datos
       );
-
-      if (!response.data) {
-        throw new Error("Error en la respuesta del servidor");
-      }
-
       setModalVisible(false);
       toast({
         title: "El inventario se cargó satisfactoriamente",
@@ -378,20 +505,55 @@ const ReconteoInventarioScanner = () => {
     }
   };
 
-  const calcularDiferencia = () => {
-    const diferencia = Number(existenciaFisica) - Number(existenciaActual);
-    return diferencia;
-  };
+  const cargarInventario = async () => {
+    try {
+      const inventarioData = {
+        inventario: {
+          fecha,
+          hora: new Date().toLocaleTimeString().slice(0, 5),
+          operador: localStorage.getItem("user_id") || 1,
+          sucursal: sucursal?.id || 1,
+          deposito: depositoId,
+          tipo: 1,
+          estado: 1,
+          in_obs: observaciones || "",
+          nro_inventario: ultimoNroInventario,
+          inicio_fecha_reconteo: "0001-01-01",
+        },
+      };
+      console.log(inventarioData);
+      await axios.post(
+        `${api_url}articulos/agregar-inventario`,
+        inventarioData
+      );
 
+      setModalVisible(false);
+      toast({
+        title: "El inventario se cargó satisfactoriamente",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+      setArticuloBusqueda("");
+      setArticulos([]);
+      searchInputRef.current?.focus();
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Error al cargar el inventario",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
   return (
     <div className="h-screen w-full flex flex-col overflow-hidden">
       {/* Header Fijo */}
       <div className="bg-[#0455c1] rounded-b-3xl pb-4 z-2">
         <div className="flex  justify-between items-center px-4 pt-2 pb-4">
           <div className="flex items-start gap-4 flex-col">
-            <h1 className="text-white text-xl font-bold">
-              Reconteo de Inventario
-            </h1>
+            <h1 className="text-white text-xl font-bold">Toma de Inventario</h1>
             <h2 className="text-white text-xs font-medium">
               {deposito?.dep_descripcion}
             </h2>
@@ -436,7 +598,7 @@ const ReconteoInventarioScanner = () => {
       {/* Lista de artículos con scroll - Ajustamos las clases */}
       <div className="flex-1 overflow-y-auto">
         <div className="p-4">
-          {articulos.length > 0 ? (
+          {articuloBusqueda && articulos.length > 0 ? (
             <motion.div
               className={`grid ${
                 isGridView ? "grid-cols-2" : "grid-cols-1"
@@ -454,7 +616,7 @@ const ReconteoInventarioScanner = () => {
                   className="bg-white p-4 rounded-lg shadow cursor-pointer"
                 >
                   <p className="text-xs text-gray-500">
-                    Cod. Barras: {item.al_codbarra}
+                    Cod. Barras: {item.ar_codbarra}
                   </p>
                   <p className="text-xs text-gray-500">Lote: {item.al_lote}</p>
                   <p className="text-xs text-gray-500">
@@ -503,6 +665,14 @@ const ReconteoInventarioScanner = () => {
               onClick={(e) => e.stopPropagation()}
             >
               <div className="p-4">
+                <div className="flex justify-center mb-4 items-center w-full gap-4">
+                  <button
+                    className="bg-blue-500 p-2 rounded-md text-white font-semibold"
+                    onClick={cargarInventario}
+                  >
+                    Iniciar Inventario Nuevo
+                  </button>
+                </div>
                 <h2 className="text-xl font-bold mb-6">Módulos</h2>
                 <ul className="space-y-2">
                   <li>
@@ -513,7 +683,6 @@ const ReconteoInventarioScanner = () => {
                       }}
                       className="flex items-center gap-2 w-full text-gray-600 hover:text-gray-900"
                     >
-
                       <ScanIcon size={20} />
                       <span>Toma de inventario</span>
                     </button>
@@ -616,7 +785,6 @@ const ReconteoInventarioScanner = () => {
                   <span className="text-2xl">&times;</span>
                 </button>
               </div>
-
               <div className="bg-gray-50 p-4 rounded-lg mb-4">
                 <p className="text-sm text-gray-500">
                   Inventario nro: {ultimoNroInventario}
@@ -632,7 +800,7 @@ const ReconteoInventarioScanner = () => {
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Inventario:
+                    Exist. Actual
                   </label>
                   <input
                     type="number"
@@ -644,7 +812,7 @@ const ReconteoInventarioScanner = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Reconteo:
+                    Exist. Física
                   </label>
                   <input
                     type="number"
@@ -654,13 +822,11 @@ const ReconteoInventarioScanner = () => {
                   />
                 </div>
               </div>
-
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Fecha Vencimiento
                 </label>
                 <input
-                  disabled
                   type="date"
                   className="w-full p-2 border rounded"
                   value={vencimiento}
@@ -668,13 +834,12 @@ const ReconteoInventarioScanner = () => {
                 />
               </div>
 
-              {/* <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Ubicacion
                   </label>
                   <select
-                    disabled
                     className="w-full p-2 border rounded"
                     value={ubicacion || ""}
                     onChange={(e) => setUbicacion(Number(e.target.value))}
@@ -691,7 +856,6 @@ const ReconteoInventarioScanner = () => {
                     Sububicacion
                   </label>
                   <select
-                  disabled
                     className="w-full p-2 border rounded"
                     value={sububicacion || ""}
                     onChange={(e) => setSububicacion(Number(e.target.value))}
@@ -703,14 +867,13 @@ const ReconteoInventarioScanner = () => {
                     ))}
                   </select>
                 </div>
-              </div> */}
+              </div>
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Lote
                   </label>
                   <input
-                    disabled
                     placeholder="Solo p/ lote nuevo"
                     type="text"
                     className="w-full p-2 border rounded"
@@ -723,7 +886,6 @@ const ReconteoInventarioScanner = () => {
                     Código de barras
                   </label>
                   <input
-                    disabled
                     type="text"
                     className="w-full p-2 border rounded"
                     value={codigoBarra}
@@ -731,13 +893,19 @@ const ReconteoInventarioScanner = () => {
                   />
                 </div>
               </div>
-              <div className="flex w-full mb-4">
-                <p className="font-semibold text-sm text-red-600">
-                  Diferencia: {calcularDiferencia()}{" "}
-                </p>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Observaciones
+                </label>
+                <textarea
+                  className="w-full p-2 border rounded"
+                  rows={2}
+                  value={observaciones}
+                  onChange={(e) => setObservaciones(e.target.value)}
+                />
               </div>
               <button
-                onClick={cargarInventario}
+                onClick={cargarItemInventarioScanner}
                 className="w-full bg-green-600 text-white p-3 rounded-lg font-bold hover:bg-green-600"
               >
                 Guardar
@@ -750,4 +918,4 @@ const ReconteoInventarioScanner = () => {
   );
 };
 
-export default ReconteoInventarioScanner;
+export default InventarioScanner;

@@ -30,7 +30,8 @@ interface PDFResponse {
 
 export const generatePDF = async (
   props: PDFProps, 
-  output: OutputType = 'print'
+  output: OutputType = 'print',
+  nombreArchivo?: string
 ): Promise<PDFResponse> => {
   return new Promise((resolve, reject) => {
     try {
@@ -97,7 +98,7 @@ export const generatePDF = async (
           break;
 
         case 'download':
-          pdfDoc.download();
+          pdfDoc.download(nombreArchivo || 'documento.pdf');
           resolve({
             success: true,
             content: null,

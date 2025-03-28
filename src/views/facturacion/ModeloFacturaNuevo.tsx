@@ -11,6 +11,7 @@ interface ModeloTicketProps {
   monto_recibido?: number;
   vuelto?: number;
   onImprimir?: boolean;
+  accion?: "print" | "download" | "b64";
 }
 
 interface VentaTicket {
@@ -58,6 +59,7 @@ const ModeloFacturaNuevo = ({
   monto_recibido = 0,
   vuelto = 0,
   onImprimir = false,
+  accion = "print",
 }: ModeloTicketProps) => {
   const [venta, setVenta] = useState<VentaTicket | null>(null);
   const [configuraciones, setConfiguraciones] = useState<
@@ -87,7 +89,7 @@ const ModeloFacturaNuevo = ({
 
   
 
-  const generarPDF = async () => {
+  const generarPDF = async (tipoSalida: "print" | "download" | "b64" = "print") => {
     try {
       // Asegurarse de que los detalles existan y tengan el formato correcto
       const detallesVenta =
@@ -98,6 +100,11 @@ const ModeloFacturaNuevo = ({
           `${(Number(detalle.precio) || 0).toLocaleString("es-PY")} Gs.`,
           `${(Number(detalle.total) || 0).toLocaleString("es-PY")} Gs.`,
         ]) || [];
+
+      // Crear un nombre de archivo descriptivo para descargas
+      const nombreArchivo = tipoSalida === "download" 
+        ? `Factura_${venta?.factura || venta?.codigo || 'venta'}_${new Date().toISOString().split('T')[0]}.pdf` 
+        : undefined;
 
       // Crear el contenido base del PDF
       const contenidoPDF = [
@@ -554,11 +561,12 @@ const ModeloFacturaNuevo = ({
           },
           content: contenidoPDF,
         },
-        "print"
+        tipoSalida,
+        nombreArchivo
       );
 
       toast({
-        title: "PDF generado con éxito",
+        title: tipoSalida === "print" ? "PDF impreso con éxito" : "PDF generado con éxito",
         status: "success",
         duration: 3000,
         isClosable: true,
@@ -618,7 +626,7 @@ const ModeloFacturaNuevo = ({
         try {
           console.log("Iniciando generación de PDF");
           // Esperar a que se complete la generación del PDF
-          await generarPDF();
+          await generarPDF(accion);
           console.log("PDF generado exitosamente");
 
           // Actualizar el estado después de una impresión exitosa
@@ -636,7 +644,7 @@ const ModeloFacturaNuevo = ({
     };
 
     imprimirSiDatosListos();
-  }, [onImprimir, venta, configuraciones]);
+  }, [onImprimir, venta, configuraciones, accion]);
 
   // Effect para resetear el estado cuando cambia id_venta
   useEffect(() => {

@@ -504,7 +504,7 @@ const actualizarEstadoPedidos = async (pedidoIds: number[]) => {
     console.log("Actualizando pedidos:", pedidoIds);
     const response = await axios.post(
       `${api_url}pedidos/iniciar-preparacion-pedido`,
-      { pedido_ids: pedidoIds, preparado_por: sessionStorage.getItem("user_id") }
+      { pedido_ids: pedidoIds}
     );
     console.log("Respuesta del servidor:", response.data); // Para debug
     if (response.data.status === "success" || response.status === 200) {

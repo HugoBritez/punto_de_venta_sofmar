@@ -11,6 +11,7 @@ interface ModeloTicketProps {
   monto_recibido?: number;
   vuelto?: number;
   onImprimir?: boolean;
+  accion?: "print" | "download" | "b64";
 }
 
 interface VentaTicket {
@@ -77,6 +78,7 @@ interface VentaTicket {
 const ModeloFacturaReport = ({
   id_venta,
   onImprimir = false,
+  accion = "print",
 }: ModeloTicketProps) => {
   const [venta, setVenta] = useState<VentaTicket | null>(null);
   const [configuraciones, setConfiguraciones] = useState<
@@ -414,7 +416,7 @@ const ModeloFacturaReport = ({
     });
   };
 
-  const generarPDF = async () => {
+  const generarPDF = async (tipoSalida: "print" | "download" | "b64" = "print") => {
     try {
       console.log(
         "Estado de la imagen antes de generar PDF:",
@@ -1098,6 +1100,11 @@ const ModeloFacturaReport = ({
         );
       }
 
+      // Crear un nombre de archivo descriptivo para descargas
+      const nombreArchivo = tipoSalida === "download" 
+        ? `Factura_${venta?.factura || venta?.codigo || 'venta'}_${new Date().toISOString().split('T')[0]}.pdf` 
+        : undefined;
+
       // Generar el PDF con el contenido preparado
       await generatePDF(
         {
@@ -1128,11 +1135,12 @@ const ModeloFacturaReport = ({
             },
           },
         },
-        "print"
+        tipoSalida,
+        nombreArchivo
       );
 
       toast({
-        title: "PDF generado con éxito",
+        title: tipoSalida === "print" ? "PDF impreso con éxito" : "PDF generado con éxito",
         status: "success",
         duration: 3000,
         isClosable: true,
@@ -1217,7 +1225,7 @@ const ModeloFacturaReport = ({
           console.log("Iniciando generación de PDF con imagen:", !!headerImage);
 
           // Esperar a que se complete la generación del PDF
-          await generarPDF();
+          await generarPDF(accion);
           console.log("PDF generado exitosamente");
 
           // Actualizar el estado después de una impresión exitosa
@@ -1235,7 +1243,7 @@ const ModeloFacturaReport = ({
     };
 
     imprimirSiDatosListos();
-  }, [onImprimir, venta, configuraciones, headerImage]);
+  }, [onImprimir, venta, configuraciones, headerImage, accion]);
 
   // Effect para resetear el estado cuando cambia id_venta
   useEffect(() => {

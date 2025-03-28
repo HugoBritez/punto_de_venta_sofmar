@@ -37,6 +37,7 @@ import {
   Home,
   ScanQrCode,
   Settings,
+  Podcast,
 } from "lucide-react";
 import { useAuth } from "@/services/AuthContext";
 import { db, fechaRelease, version } from "@/utils";
@@ -368,6 +369,23 @@ const Sidebar = () => {
           name: "Dashboard Ruteamientos",
           icon: Truck,
           path: "/rutas-dashboard",
+          enabled: true,
+        },
+      ],
+    },
+    {
+      name: "Modulo Logistica",
+      icon: Podcast,
+      path: "/ruteamientos",
+      enabled: true,
+      subItems: [
+        {
+          grupo: 2,
+          orden: 30,
+          id: 68,
+          name: "Control de Ingresos",
+          icon: Truck,
+          path: "/control-ingreso",
           enabled: true,
         },
       ],

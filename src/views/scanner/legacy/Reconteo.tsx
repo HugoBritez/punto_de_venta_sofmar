@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
 import axios from "axios";
-import { api_url } from "../../utils";
+import { api_url } from "../../../utils";
 import { useToast } from "@chakra-ui/react";
 import {
   Menu,

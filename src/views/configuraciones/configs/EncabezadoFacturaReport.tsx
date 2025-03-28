@@ -1,15 +1,24 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Image as ImageIcon, Upload, Eye } from "lucide-react";
+import { Image as ImageIcon, Upload, Settings, Eye } from "lucide-react";
+import fallbackheader from "@/assets/logosdocumentos/fallbackheader.jpg";
 import { generatePDF } from "@/services/pdfService";
 import { api_url } from "@/utils";
 import axios from "axios";
+import configuracionesWebStore from "@/stores/configuracionesWebStore";
 
 const EncabezadoFacturaConfig = () => {
+  const { configuracionesHeaderFactura, headerConfig, setHeaderConfig, guardarConfiguracionesHeaderFactura } =
+    configuracionesWebStore();
   // Estados para las imágenes
   const [headerImage, setHeaderImage] = useState<string | null>(null);
 
+  // Estados para las dimensiones
+  const [headerWidth, setHeaderWidth] = useState<number>(550);
+  const [headerHeight, setHeaderHeight] = useState<number>(80);
+
   // Estados para carga y guardado
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isGeneratingPreview, setIsGeneratingPreview] =
     useState<boolean>(false);
   const [mensaje, setMensaje] = useState<{
@@ -24,19 +33,73 @@ const EncabezadoFacturaConfig = () => {
   const [previewMode, setPreviewMode] = useState<boolean>(false);
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string | null>(null);
 
-  // Función para subir ambas imágenes al servidor
-  const subirImagenes = async (
-    headerFile: File | null  ) => {
-    if (!headerFile) {
-      throw new Error("Se requiere al menos una imagen para subir");
-    }
+  useEffect(() => {
+    cargarConfiguracion();
+  }, []);
 
+  useEffect(() => {
+    if (headerConfig) {
+      setHeaderWidth(parseInt(headerConfig.ancho) || 550);
+      setHeaderHeight(parseInt(headerConfig.alto) || 80);
+    }
+  }, [headerConfig]);
+
+  const cargarConfiguracion = async () => {
+    try {
+      setIsLoading(true);
+      await configuracionesHeaderFactura();
+
+      try {
+        const baseUrl = api_url.replace(/api\/?$/, "");
+
+        // Función para verificar múltiples formatos de imagen
+        const verificarImagenMultiformato = async (baseNombre: string) => {
+          // Lista de extensiones comunes a probar
+          const extensiones = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
+
+          for (const ext of extensiones) {
+            const url = `${baseUrl}upload/factura_images/${baseNombre}${ext}`;
+
+            try {
+              const response = await fetch(url, { method: "HEAD" });
+
+              if (response.ok) {
+                return url;
+              }
+            } catch (error) {
+              // Ignorar errores 404 y otros errores de red
+              continue;
+            }
+          }
+
+          return null;
+        };
+
+        // Verificar header con múltiples formatos
+        const headerUrl = await verificarImagenMultiformato("header");
+
+        if (headerUrl) {
+          setHeaderImage(headerUrl);
+        }
+      } catch (error) {
+        console.error("Error al cargar imágenes del servidor:", error);
+        // No mostrar error al usuario si no se encuentran las imágenes
+      }
+    } catch (error) {
+      console.error("Error al cargar la configuración:", error);
+      setMensaje({
+        tipo: "error",
+        texto: "Error al cargar la configuración"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Función para subir la imagen al servidor
+  const subirImagen = async (headerFile: File) => {
     const formData = new FormData();
-
-    if (headerFile) {
-      formData.append("imagen1", headerFile); // 'imagen1' es el nombre que espera tu endpoint para el header
-    }
-
+    formData.append("imagen1", headerFile);
 
     const response = await axios.post(
       `${api_url}upload-factura-images`,
@@ -49,26 +112,21 @@ const EncabezadoFacturaConfig = () => {
     );
 
     if (response.status !== 200) {
-      throw new Error("Error al subir las imágenes");
+      throw new Error("Error al subir la imagen");
     }
 
     const data = response.data;
 
     if (!data.success) {
-      throw new Error(data.message || "Error al subir las imágenes");
+      throw new Error(data.message || "Error al subir la imagen");
     }
 
-    return {
-      headerUrl: headerFile
-        ? `${api_url}upload/factura_images/${data.data.header.filename}`
-        : null
-    };
+    return `${api_url}upload/factura_images/${data.data.header.filename}`;
   };
 
   // Función para manejar la carga de imágenes
   const handleImageUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>,
-    tipo: "header" 
+    event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -84,30 +142,22 @@ const EncabezadoFacturaConfig = () => {
 
         setIsLoading(true);
 
-        // Preparar archivos para subir
-        const headerFile = tipo === "header" ? file : null;
-
         // Mostrar vista previa local inmediatamente
         const reader = new FileReader();
         reader.onload = (e) => {
           if (e.target?.result) {
-            // Guardar la imagen en base64 para mostrarla inmediatamente
-            if (tipo === "header") {
-              setHeaderImage(e.target.result as string);
-            }
+            setHeaderImage(e.target.result as string);
           }
         };
         reader.readAsDataURL(file);
 
         // Intentar subir al servidor
         try {
-          await subirImagenes(headerFile);
+          await subirImagen(file);
 
           setMensaje({
             tipo: "success",
-            texto: `Imagen de ${
-              tipo === "header" ? "encabezado" : "pie de página"
-            } subida correctamente`,
+            texto: "Imagen de encabezado subida correctamente",
           });
 
           // Limpiar mensaje después de 3 segundos
@@ -119,7 +169,7 @@ const EncabezadoFacturaConfig = () => {
 
           setMensaje({
             tipo: "error",
-            texto: `Error al subir la imagen al servidor. Se usará la versión local.`,
+            texto: "Error al subir la imagen al servidor. Se usará la versión local.",
           });
 
           // Limpiar mensaje después de 3 segundos
@@ -139,13 +189,48 @@ const EncabezadoFacturaConfig = () => {
     }
   };
 
+  // Función para guardar la configuración de dimensiones
+  const handleSaveConfig = async () => {
+    try {
+      setIsSaving(true);
+
+      const config = {
+        ancho: headerWidth.toString(),
+        alto: headerHeight.toString()
+      };
+
+      const response = await guardarConfiguracionesHeaderFactura(config);
+
+      if (response?.data?.success) {
+        setMensaje({
+          tipo: "success",
+          texto: response.data.message || "Configuración guardada correctamente"
+        });
+        setHeaderConfig(config);
+      } else {
+        throw new Error(response?.data?.message || "Error al guardar la configuración");
+      }
+
+      setTimeout(() => {
+        setMensaje(null);
+      }, 3000);
+    } catch (error: any) {
+      console.error("Error:", error);
+      setMensaje({
+        tipo: "error",
+        texto: error.message || "Error al guardar la configuración"
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // Función para generar la vista previa del PDF
   const generatePDFPreview = async () => {
     try {
       setIsGeneratingPreview(true);
 
-      // Asegurarse de que tenemos las imágenes en formato base64
+      // Asegurarse de que tenemos la imagen en formato base64
       let logoHeader;
 
       // Convertir headerImage a base64 si es una URL
@@ -157,6 +242,8 @@ const EncabezadoFacturaConfig = () => {
           // Es una URL, necesitamos convertirla
           logoHeader = await convertImageToBase64(headerImage);
         }
+      } else {
+        logoHeader = await convertImageToBase64(fallbackheader);
       }
 
       // Crear una definición simplificada del documento
@@ -177,13 +264,12 @@ const EncabezadoFacturaConfig = () => {
           columns: [
             {
               image: logoHeader,
-              width: 250.28,
-              height: 100.89,
+              width: headerWidth,
+              height: headerHeight,
               alignment: "left",
             },
           ],
         },
-
         content: [
           {
             text: "VISTA PREVIA DE CONFIGURACIÓN",
@@ -193,7 +279,7 @@ const EncabezadoFacturaConfig = () => {
             margin: [0, 20, 0, 20],
           },
           {
-            text: "Este es un documento de muestra para visualizar cómo quedarán configurados el encabezado de la factura",
+            text: "Este es un documento de muestra para visualizar cómo quedará configurado el encabezado.",
             fontSize: 12,
             margin: [0, 0, 0, 10],
           },
@@ -204,18 +290,7 @@ const EncabezadoFacturaConfig = () => {
             margin: [0, 10, 0, 5],
           },
           {
-            text: `Ancho: 595.28px, Alto: 841.89px`,
-            fontSize: 12,
-            margin: [0, 0, 0, 10],
-          },
-          {
-            text: "Dimensiones del pie de página:",
-            fontSize: 12,
-            bold: true,
-            margin: [0, 10, 0, 5],
-          },
-          {
-            text: `Ancho: 595.28px, Alto: 841.89px`,
+            text: `Ancho: ${headerWidth}px, Alto: ${headerHeight}px`,
             fontSize: 12,
             margin: [0, 0, 0, 10],
           },
@@ -271,67 +346,12 @@ const EncabezadoFacturaConfig = () => {
     });
   };
 
-  // Cargar configuración al iniciar
-  useEffect(() => {
-    const cargarConfiguracion = async () => {
-      try {
-        setIsLoading(true);
-
-        try {
-          const baseUrl = api_url.replace(/api\/?$/, "");
-
-          // Función para verificar múltiples formatos de imagen
-          const verificarImagenMultiformato = async (baseNombre: string) => {
-            // Lista de extensiones comunes a probar
-            const extensiones = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
-
-            for (const ext of extensiones) {
-              const url = `${baseUrl}upload/factura_images/${baseNombre}${ext}`;
-              console.log(`Intentando cargar ${baseNombre} desde: ${url}`);
-
-              try {
-                const response = await fetch(url, { method: "HEAD" });
-                console.log(`Respuesta ${baseNombre}${ext}:`, response.status);
-
-                if (response.ok) {
-                  console.log(`${baseNombre}${ext} encontrado!`);
-                  return url;
-                }
-              } catch (error) {
-                console.error(`Error al verificar ${baseNombre}${ext}:`, error);
-              }
-            }
-
-            console.log(`No se encontró ninguna imagen para ${baseNombre}`);
-            return null;
-          };
-
-          // Verificar header con múltiples formatos
-          const headerUrl = await verificarImagenMultiformato("header");
-          if (headerUrl) {
-            console.log("Header encontrado, estableciendo URL:", headerUrl);
-            setHeaderImage(headerUrl);
-          }
-
-        } catch (error) {
-          console.error("Error al cargar imágenes del servidor:", error);
-        }
-      } catch (error) {
-        console.error("Error al cargar la configuración:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    cargarConfiguracion();
-  }, []);
-
   return (
     <div className="p-4 h-full overflow-auto">
       <div className="flex flex-col gap-6">
         <div className="flex justify-between items-center">
           <h2 className="text-xl font-bold">
-            Encabezado de la  factura
+            Encabezado de factura
           </h2>
           {previewMode ? (
             <button
@@ -443,10 +463,88 @@ const EncabezadoFacturaConfig = () => {
                     accept="image/*"
                     ref={headerInputRef}
                     className="hidden"
-                    onChange={(e) => handleImageUpload(e, "header")}
+                    onChange={handleImageUpload}
                   />
                 </div>
+
+                <div className="flex-1">
+                  <div className="flex flex-col space-y-4">
+                    <div>
+                      <label className="block font-medium mb-1 text-sm">
+                        Ancho (px)
+                      </label>
+                      <div className="flex items-center space-x-4">
+                        <input
+                          type="range"
+                          min="200"
+                          max="800"
+                          step="10"
+                          value={headerWidth}
+                          onChange={(e) =>
+                            setHeaderWidth(Number(e.target.value))
+                          }
+                          className="flex-1"
+                        />
+                        <input
+                          type="number"
+                          value={headerWidth}
+                          onChange={(e) =>
+                            setHeaderWidth(Number(e.target.value))
+                          }
+                          className="w-20 p-1 border border-gray-300 rounded text-center"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block font-medium mb-1 text-sm">
+                        Alto (px)
+                      </label>
+                      <div className="flex items-center space-x-4">
+                        <input
+                          type="range"
+                          min="20"
+                          max="200"
+                          step="5"
+                          value={headerHeight}
+                          onChange={(e) =>
+                            setHeaderHeight(Number(e.target.value))
+                          }
+                          className="flex-1"
+                        />
+                        <input
+                          type="number"
+                          value={headerHeight}
+                          onChange={(e) =>
+                            setHeaderHeight(Number(e.target.value))
+                          }
+                          className="w-20 p-1 border border-gray-300 rounded text-center"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
+            </div>
+
+            <div className="flex justify-end mt-6">
+              <button
+                className="bg-blue-600 text-white px-6 py-2 rounded-md font-medium hover:bg-blue-700 flex items-center gap-2 disabled:bg-blue-300"
+                onClick={handleSaveConfig}
+                disabled={isSaving}
+              >
+                {isSaving ? (
+                  <>
+                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                    Guardando...
+                  </>
+                ) : (
+                  <>
+                    <Settings size={18} />
+                    Guardar configuración
+                  </>
+                )}
+              </button>
             </div>
           </>
         )}

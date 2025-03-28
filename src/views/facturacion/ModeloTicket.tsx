@@ -11,6 +11,7 @@ interface ModeloTicketProps {
   monto_recibido?: number;
   vuelto?: number;
   onImprimir?: boolean;
+  accion?: "print" | "download" | "b64";
 }
 
 interface VentaTicket {
@@ -51,6 +52,7 @@ const ModeloTicket = ({
   monto_recibido = 0,
   vuelto = 0,
   onImprimir = false,
+  accion = "print",
 }: ModeloTicketProps) => {
   const [venta, setVenta] = useState<VentaTicket | null>(null);
   const [configuraciones, setConfiguraciones] = useState<
@@ -69,7 +71,7 @@ const ModeloTicket = ({
     hour12: true,
   });
 
-const generarPDF = async () => {
+const generarPDF = async (tipoSalida: "print" | "download" | "b64" = "print") => {
   try {
     // Asegurarse de que los detalles existan y tengan el formato correcto
     const detallesVenta =
@@ -80,6 +82,11 @@ const generarPDF = async () => {
         `${(Number(detalle.precio) || 0).toLocaleString("es-PY")} Gs.`,
         `${(Number(detalle.total) || 0).toLocaleString("es-PY")} Gs.`,
       ]) || [];
+
+    // Crear un nombre de archivo descriptivo para descargas
+    const nombreArchivo = tipoSalida === "download" 
+      ? `Ticket_${venta?.codigo || 'venta'}_${new Date().toISOString().split('T')[0]}.pdf` 
+      : undefined;
 
     await generatePDF(
       {
@@ -292,11 +299,12 @@ const generarPDF = async () => {
           { text: "<<<Gracias por su compra>>>", style: "text", alignment: "center" },
         ],
       },
-      "print"
+      tipoSalida,
+      nombreArchivo
     );
 
     toast({
-      title: "PDF generado con éxito",
+      title: tipoSalida === "print" ? "PDF impreso con éxito" : "PDF generado con éxito",
       status: "success",
       duration: 3000,
       isClosable: true,
@@ -356,7 +364,7 @@ const generarPDF = async () => {
         try {
           console.log("Iniciando generación de PDF");
           // Esperar a que se complete la generación del PDF
-          await generarPDF();
+          await generarPDF(accion);
           console.log("PDF generado exitosamente");
 
           // Actualizar el estado después de una impresión exitosa
@@ -374,7 +382,7 @@ const generarPDF = async () => {
     };
 
     imprimirSiDatosListos();
-  }, [onImprimir, venta, configuraciones]);
+  }, [onImprimir, venta, configuraciones, accion]);
 
   // Effect para resetear el estado cuando cambia id_venta
   useEffect(() => {

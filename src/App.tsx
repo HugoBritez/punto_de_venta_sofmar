@@ -38,10 +38,8 @@ import RuteamientoPedidos from "./views/entregas/ruteamientopedidos";
 import Entregas from "./views/entregas/entregas";
 import InformeEntregas from "./views/entregas/informeEntregas";
 import Home from "./views/home/home";
-import InventarioScanner from "./views/scanner/Reconteo";
-import ReconteoInventarioScanner from "./views/scanner/Inventario";
-import ReporteInventarioScanner from "./views/scanner/ReporteReconteo";
-import NuevaTomaInventario from "./views/inventario/nueva-toma-inventario";
+import InventarioScanner from "./views/scanner/ScannerInventario";
+import TomaDeInventario from "./views/inventario/TomaDeInventario";
 import ConsultaArticulos from "./views/inventario/consulta-de-articulos";
 import AutorizacionAjusteStock from "./views/inventario/autorizacion-ajuste-stock";
 import PreparacionPedido from "./views/entregas/preparacionPedido";
@@ -54,6 +52,7 @@ import FormularioPresupuestos from "./views/presupuestos/FormularioPresupuestos"
 import Configuraciones from "./views/configuraciones/Configuraciones";
 import FacturaSend from "./views/playground/FacturaSendTesting";
 import FormularioArticulo from "./views/articulos/components/FormularioArticulo";
+import FormularioControl from "./views/compras/control_ingreso/components/FormularioControl";
 const ProtectedLayout: React.FC = () => {
   const { auth, isLoading } = useAuth();
   const [isLargerThan768] = useMediaQuery("(min-width: 768px)");
@@ -145,21 +144,13 @@ function App() {
                   path="/inventario-scanner"
                   element={<InventarioScanner />}
                 />
-                <Route
-                  path="/reconteo-scanner"
-                  element={<ReconteoInventarioScanner />}
-                />
-                <Route
-                  path="/reporte-scanner"
-                  element={<ReporteInventarioScanner />}
-                />
                 {/* <Route
                   path="/toma-de-inventario"
                   element={<TomaDeInventario />}
                 /> */}
                 <Route
                   path="/toma-de-inventario"
-                  element={<NuevaTomaInventario />}
+                  element={<TomaDeInventario />}
                 />
                 <Route path="/dashboard" element={<VentasDashboard />} />
                 <Route path="/presupuestos" element={<Presupuestos />} />
@@ -185,6 +176,7 @@ function App() {
                 />
                 <Route path="/configuraciones" element={<Configuraciones />} />
                 <Route path="/formulario-articulos" element={<FormularioArticulo />} />
+                <Route path="/control-ingreso" element={<FormularioControl />} />
               </Route>
               <Route path="/" element={<Navigate to="/home" replace />} />
               <Route path="/404" element={<NoExiste />} />

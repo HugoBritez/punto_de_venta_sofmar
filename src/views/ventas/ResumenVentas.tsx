@@ -220,14 +220,19 @@ export default function ResumenVentas({
 
   function determinarTipoDeImpresionFactura(){
     if (
-      tipoImpresion === "thisform.imprimirventa1.imprimir_factura_elect_report"
+      tipoImpresion ===
+        "thisform.imprimirventa1.imprimir_factura_elect_report" ||
+      tipoImpresion ===
+        "thisform.imprimirventa1.imprimirlegal_report_31"
     ) {
       setTipoImpresionFactura(1); //impresion hoja grande
+      console.log("impresion hoja grande");
     } else if (
       tipoImpresion ===
       "thisform.imprimirventa1.imprimir_factura_ticket_electronica"
     ) {
       setTipoImpresionFactura(2); // impresion tipo ticket
+      console.log("impresion tipo ticket");
     }
   }
 
@@ -298,8 +303,12 @@ export default function ResumenVentas({
     fetchSucursales();
     fetchMonedas();
     fetchVentas(1, false);
-    fetchTipoImpresion();
   }, []);
+
+  useEffect(() => {
+    fetchTipoImpresion();
+    console.log('tipo impresion', tipoImpresion)
+  }, [sucursalSeleccionadaFiltro]);
 
   useEffect(() => {
     determinarTipoDeImpresionFactura();
@@ -307,6 +316,7 @@ export default function ResumenVentas({
 
   useEffect(() => {
     fetchUsaFacturaElectronica(Number(sucursalSeleccionadaFiltro?.id));
+    console.log('usa factura electronica', usaFacturaElectronica)
   }, [sucursalSeleccionadaFiltro]);
 
   useEffect(() => {
@@ -860,7 +870,7 @@ export default function ResumenVentas({
     }
   };
 
-    const reImprimirFacturaFiscalReportComponente = (ventaId: number) => {
+    const reImprimirFacturaFiscalReportComponente = (ventaId: number, accion: "print" | "download" | "b64") => {
       const facturaDiv = document.createElement("div");
       facturaDiv.style.display = "none";
       document.body.appendChild(facturaDiv);
@@ -873,6 +883,7 @@ export default function ResumenVentas({
           monto_recibido={0}
           vuelto={0}
           onImprimir={true}
+          accion={accion}
         />
       );
       setTimeout(() => {
@@ -882,7 +893,7 @@ export default function ResumenVentas({
     };
 
 
-  const reImprimirFacturaFiscalComponente = (ventaId: number) => {
+  const reImprimirFacturaFiscalComponente = (ventaId: number, accion: "print" | "download" | "b64") => {
     const facturaDiv = document.createElement("div");
     facturaDiv.style.display = "none";
     document.body.appendChild(facturaDiv);
@@ -895,6 +906,7 @@ export default function ResumenVentas({
         monto_recibido={ 0}
         vuelto={0}
         onImprimir={true}
+        accion={accion}
       />
     );
     setTimeout(() => {
@@ -903,13 +915,13 @@ export default function ResumenVentas({
     }, 2000);
   };
 
-  const reImprimirNotaComunComponente = (ventaId: number) => {
+  const reImprimirNotaComunComponente = (ventaId: number, accion: "print" | "download" | "b64") => {
     const notaDiv = document.createElement("div");
     notaDiv.style.display = "none";
     document.body.appendChild(notaDiv);
 
     const root = createRoot(notaDiv);
-    root.render(<ModeloNotaComun id_venta={ventaId} onImprimir={true} />);
+    root.render(<ModeloNotaComun id_venta={ventaId} onImprimir={true} accion={accion} />);
     setTimeout(() => {
       root.unmount();
       document.body.removeChild(notaDiv);
@@ -1367,16 +1379,29 @@ export default function ResumenVentas({
                 onClick={() =>
                 {
                   if (tipoImpresionFactura === 1) {
-                    reImprimirFacturaFiscalReportComponente(
-                      ventaSeleccionadaInterna?.codigo || 0
+                    isMobile ?
+                      reImprimirFacturaFiscalReportComponente(
+                        ventaSeleccionadaInterna?.codigo || 0,
+                        "download"
+                      )
+                    :
+                      reImprimirFacturaFiscalReportComponente(
+                      ventaSeleccionadaInterna?.codigo || 0,
+                      "print"
                     );
                   } else if (tipoImpresionFactura === 2) {
-                    reImprimirFacturaFiscalComponente(
-                      ventaSeleccionadaInterna?.codigo || 0
-                    );
+                    isMobile?
+                      reImprimirFacturaFiscalComponente(
+                        ventaSeleccionadaInterna?.codigo || 0,
+                        "download"
+                      )
+                    :
+                      reImprimirFacturaFiscalComponente(
+                        ventaSeleccionadaInterna?.codigo || 0,
+                        "print"
+                      );
                   }
-                }
-                }
+                }}
               >
                 <p className="font-bold">Reimprimir Factura Fiscal</p>
                 <Printer />
@@ -1384,9 +1409,16 @@ export default function ResumenVentas({
               <button
                 className="bg-teal-600 text-white p-2 rounded-md flex flex-row gap-2 items-center justify-center w-full"
                 onClick={() =>
-                  reImprimirNotaComunComponente(
-                    ventaSeleccionadaInterna?.codigo || 0
-                  )
+                  isMobile ?
+                    reImprimirNotaComunComponente(
+                      ventaSeleccionadaInterna?.codigo || 0,
+                      "download"
+                    )
+                  :
+                    reImprimirNotaComunComponente(
+                      ventaSeleccionadaInterna?.codigo || 0,
+                      "print"
+                    )
                 }
               >
                 <p className="font-bold">Reimprimir Nota comun</p>

@@ -78,6 +78,8 @@ const ConsultaArticulos = () => {
 
   const [isMobile] = useMediaQuery("(max-width: 768px)");
 
+  const permisos_ver_costo = sessionStorage.getItem("permiso_ver_utilidad");
+
   const fechArticulos = async (busqueda: string | null = null) => {
     try {
       setLoading(true);
@@ -94,6 +96,7 @@ const ConsultaArticulos = () => {
           },
         }
       );
+      console.log('response', response.data.body)
       setArticulos(response.data.body);
     } catch (error) {
       console.log(error);
@@ -155,6 +158,7 @@ const ConsultaArticulos = () => {
     fechMonedas();
     fechDepositos();
     fechSucursales();
+    console.log('permisos_ver_costo', permisos_ver_costo)
   }, []);
 
   useEffect(() => {
@@ -329,6 +333,17 @@ useEffect(() => {
   };
 }, [showMobileDetail]);
 
+const formatearNumero = (num: number | string) => {
+  // Convertir a número si es string
+  const numValue = typeof num === "string" ? Number(num) : num;
+
+  // Eliminar decimales con Math.floor y formatear con separador de miles
+  return Math.floor(numValue).toLocaleString("es-PY", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
+};
+
   return (
     <Flex bg={"gray.100"} h={"100vh"} w={"100%"} p={2}>
       <div className=" w-full h-full">
@@ -459,9 +474,11 @@ useEffect(() => {
                     <th>Código de Barras</th>
                     <th>Descripción</th>
                     <th>Stock</th>
+
                     <th>P. Contado</th>
                     <th>P. Crédito</th>
                     <th>P. Mostrador</th>
+                    <th>P. Costo</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -494,14 +511,20 @@ useEffect(() => {
                         <td className="text-center border-r border-gray-300 px-2">
                           {articulo.stock}
                         </td>
+
                         <td className="text-right border-r border-gray-300 px-2">
-                          {articulo.precio_venta}
+                          {formatearNumero(articulo.precio_venta)}
                         </td>
                         <td className="text-right border-r border-gray-300 px-2">
-                          {articulo.precio_credito}
+                          {formatearNumero(articulo.precio_credito)}
                         </td>
                         <td className="text-right border-r border-gray-300 px-2">
-                          {articulo.precio_mostrador}
+                          {formatearNumero(articulo.precio_mostrador)}
+                        </td>
+                        <td className="text-right border-r border-gray-300 px-2">
+                          {permisos_ver_costo === "1"
+                            ? formatearNumero(articulo.precio_costo)
+                            : "---"}
                         </td>
                       </tr>
                     ))
@@ -511,9 +534,9 @@ useEffect(() => {
             </div>
           </div>
           {/* ########## DETALLE ########## */}
-          {isMobile ? 
-          <MobileDetailModal />
-          : (
+          {isMobile ? (
+            <MobileDetailModal />
+          ) : (
             <div className="flex flex-col p-4 gap-2 w-[40%] h-full bg-white rounded-md">
               {itemSeleccionado ? (
                 loadingDetalle ? (

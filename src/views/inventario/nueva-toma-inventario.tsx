@@ -32,6 +32,7 @@ import {
   ArchiveRestore,
   Plus,
   RotateCcw,
+  Search,
   X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -290,6 +291,11 @@ const NuevaTomaInventario = () => {
     cantidad: number;
   } | null>(null);
 
+  const [itemEnEdicionInicial, setItemEnEdicionInicial] = useState<{
+    lote_id: number;
+    cantidad: number;
+  } | null>(null);
+
   const toast = useToast();
 
   const {
@@ -335,6 +341,7 @@ const NuevaTomaInventario = () => {
       await axios.post(
         `${api_url}articulos/scannear-item-inventario-auxiliar`,
         {
+          id_inventario: id_inventario,
           id_articulo: articulo.articulo_id,
           id_lote: lote_id,
           cantidad: nuevaCantidad,
@@ -353,6 +360,66 @@ const NuevaTomaInventario = () => {
     } catch (error) {
       toast({
         title: "Error al actualizar cantidad",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const actualizarCantidadInicial = async (lote_id: number, nuevaCantidad: number) => {
+    try {
+      // Verificar si el inventario está cerrado
+      if (inventarioAuxiliar?.estado === 2 || inventarioAuxiliar?.estado === 1) {
+        toast({
+          title: "No permitido",
+          description: "No se puede modificar un inventario cerrado",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+        setItemEnEdicionInicial(null);
+        return;
+      }
+
+      // Buscar en itemsParaTomaInventario en lugar de itemsParaTomaInventarioConScanner
+      const articulo = itemsParaTomaInventario.find(
+        (item) => item.lote_id === lote_id
+      );
+
+      if (!articulo) {
+        throw new Error("Artículo no encontrado");
+      }
+
+      if (!id_inventario) {
+        throw new Error("No hay un inventario seleccionado");
+      }
+
+      await axios.post(
+        `${api_url}inventarios/actualizar-cantidad-inicial`,
+        {
+          id_inventario: id_inventario,
+          id_articulo: articulo.articulo_id,
+          id_lote: lote_id,
+          cantidad: nuevaCantidad,
+        }
+      );
+      // Esperar a que se complete la búsqueda
+      await buscarItemsPorInventarioIzquierda();
+
+      setItemEnEdicionInicial(null);
+
+      toast({
+        title: "Cantidad actualizada",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error: any) {
+      console.error("Error al actualizar cantidad inicial:", error);
+      toast({
+        title: "Error al actualizar cantidad",
+        description: error.response?.data?.message || "Error desconocido",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -1288,7 +1355,8 @@ const NuevaTomaInventario = () => {
               onClick={buscarItemsPorInventarioIzquierda}
               colorScheme="green"
             >
-              <RotateCcw />
+              Buscar
+              <Search />
             </Button>
           </div>
         </div>
@@ -1524,8 +1592,58 @@ const NuevaTomaInventario = () => {
                       <td className="border border-gray-300 px-2 truncate">
                         {item.lote}
                       </td>
-                      <td className="border border-gray-300 px-2 truncate">
-                        {item.stock}
+                      <td className="border border-gray-300 px-2 truncate items-center justify-center">
+                        {itemEnEdicionInicial?.lote_id === item.lote_id ? (
+                          <div className="flex items-center gap-2 justify-center h-full">
+                            <Input
+                              type="number"
+                              size="sm"
+                              value={itemEnEdicionInicial?.cantidad}
+                              onChange={(e) =>
+                                setItemEnEdicionInicial({
+                                  ...itemEnEdicionInicial,
+                                  cantidad: parseInt(e.target.value),
+                                })
+                              }
+                              className="w-20"
+                            />
+                            <Button
+                              size="sm"
+                              colorScheme="green"
+                              onClick={() =>
+                                actualizarCantidadInicial(
+                                  item.lote_id,
+                                  itemEnEdicionInicial?.cantidad || 0
+                                )
+                              }
+                            >
+                              ✓
+                            </Button>
+                            <Button
+                              size="sm"
+                              colorScheme="red"
+                              onClick={() => setItemEnEdicionInicial(null)}
+                            >
+                              ✕
+                            </Button>
+                          </div>
+                        ) : (
+                          <div
+                            className={`${
+                              inventarioAuxiliar?.estado === 1
+                                ? "cursor-pointer hover:bg-gray-100"
+                                : ""
+                            } px-2 py-1 rounded`}
+                            onClick={() => {
+                              setItemEnEdicionInicial({
+                                lote_id: item.lote_id,
+                                cantidad: item.stock,
+                              });
+                            }}
+                          >
+                            {item.stock}
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -1659,15 +1777,17 @@ const NuevaTomaInventario = () => {
                         ) : (
                           <div
                             className={`${
-                              inventarioAuxiliar?.estado === 1 
-                                ? "cursor-pointer hover:bg-gray-100" 
+                              inventarioAuxiliar?.estado === 1
+                                ? "cursor-pointer hover:bg-gray-100"
                                 : ""
                             } px-2 py-1 rounded`}
                             onClick={() => {
+                              if (item.lote_id) {
                                 setItemEnEdicion({
                                   lote_id: item.lote_id,
                                   cantidad: item.stock,
                                 });
+                              }
                             }}
                           >
                             {item.stock}

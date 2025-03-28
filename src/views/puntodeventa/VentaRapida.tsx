@@ -294,7 +294,9 @@ export default function VentaRapida() {
       const response = await axios.get(operadorMovimiento ===1 ? `${api_url}clientes?vendedor=${operadorActual}` : `${api_url}clientes`);
       setClientes(response.data.body);
       setClienteCasual(response.data.body[0]);
-      setClienteSeleccionado(response.data.body[0]); // Selecciona el primer cliente
+      const primerCliente = response.data.body[0]; 
+      setClienteSeleccionado(primerCliente); 
+      setClienteBusqueda(primerCliente.cli_razon); 
       console.log(response.data.body[0]);
     } catch (err) {
       if (err instanceof Error) {
@@ -311,7 +313,6 @@ export default function VentaRapida() {
       });
     }
   };
-
 
   useEffect(() => {
     // traerListaPrecios
@@ -734,9 +735,17 @@ export default function VentaRapida() {
     }
   };
 
-  const handleBusquedaCliente = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Nueva función separada para manejar el cambio en el input del cliente
+  const handleClienteInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const busquedaCliente = e.target.value;
     setClienteBusqueda(busquedaCliente);
+    
+    // Si tenemos un cliente seleccionado y estamos modificando el texto, limpiamos la selección
+    if (clienteSeleccionado && busquedaCliente !== clienteSeleccionado.cli_razon) {
+      setClienteSeleccionado(null);
+    }
+    
+    // Buscamos clientes que coincidan con el texto ingresado
     if (busquedaCliente.length > 0) {
       const filteredRecomendacionesClientes = clientes
         .filter(
@@ -752,6 +761,13 @@ export default function VentaRapida() {
     } else {
       setRecomendacionesClientes([]);
     }
+  };
+
+  // Función para seleccionar un cliente de la lista de recomendaciones
+  const handleSelectCliente = (cliente: Cliente) => {
+    setClienteBusqueda(cliente.cli_razon);
+    setClienteSeleccionado(cliente);
+    setRecomendacionesClientes([]);
   };
 
   useEffect(() => {
@@ -1258,6 +1274,7 @@ export default function VentaRapida() {
             rounded="lg"
             fontSize={"smaller"}
             mb={16}
+            overflowY={"auto"}
           >
             <Flex
               bgGradient="linear(to-r, blue.500, blue.600)"
@@ -1278,23 +1295,6 @@ export default function VentaRapida() {
                   gap={3}
                   mb={4}
                 >
-                  {/* <Box>
-                    <FormLabel>Sucursal</FormLabel>
-                    <Select
-                      placeholder="Seleccionar sucursal"
-                      value={sucursal}
-                      onChange={(e) => setSucursal(e.target.value)}
-                    >
-                      {sucursales.map((sucursal) => (
-                        <option
-                          key={sucursal.id}
-                          value={sucursal.id.toString()}
-                        >
-                          {sucursal.descripcion}
-                        </option>
-                      ))}
-                    </Select>
-                  </Box> */}
                   <Flex gap={4}>
                     <Box>
                       <FormLabel>Depósito</FormLabel>
@@ -1365,87 +1365,13 @@ export default function VentaRapida() {
                       </Select>
                     </Box>
                   </Flex>
-                  {/* <Box position={"relative"}>
-                    <FormLabel>Vendedor</FormLabel>
-                    <Input
-                      id="vendedor-search"
-                      placeholder="Buscar vendedor por código"
-                      value={buscarVendedor}
-                      onChange={handleBusquedaVendedor}
-                      onFocus={() => {
-                        if (vendedor) {
-                          setBuscarVendedor("");
-                          setRecomendacionesVendedores([]);
-                        }
-                      }}
-                      aria-autocomplete="list"
-                      aria-controls="vendedor-recommendations"
-                      ref={vendedorRef}
-                      onKeyDown={(e) =>
-                        handleEnterKey(e, clienteRef, selectFirstVendedor)
-                      }
-                    />
-                    {vendedor && (
-                      <Text mt={2} fontWeight="bold" color="green.500">
-                        Vendedor seleccionado: {vendedor}
-                      </Text>
-                    )}
-                    {recomedacionesVendedores.length === 0 &&
-                      buscarVendedor.length > 0 &&
-                      !vendedor && (
-                        <Text color="red.500" mt={2}>
-                          No se encontró vendedor con ese código
-                        </Text>
-                      )}
-                    {recomedacionesVendedores.length > 0 && (
-                      <Box
-                        id="vendedor-recommendations"
-                        position="absolute"
-                        top="100%"
-                        left={0}
-                        right={0}
-                        zIndex={20}
-                        bg="white"
-                        boxShadow="md"
-                        borderRadius="md"
-                        mt={1}
-                        className="recomendaciones-menu"
-                        maxH="200px"
-                        overflowY="auto"
-                      >
-                        {recomedacionesVendedores.map((vendedor) => (
-                          <Box
-                            key={vendedor.op_codigo}
-                            p={2}
-                            _hover={{ bg: "gray.100" }}
-                            cursor="pointer"
-                            onClick={() => {
-                              setBuscarVendedor(vendedor.op_codigo);
-                              setVendedor(vendedor.op_nombre);
-                              setOperador(vendedor.op_codigo);
-                              setRecomendacionesVendedores([]);
-                            }}
-                          >
-                            <Text fontWeight="bold">{vendedor.op_nombre}</Text>
-                            <Text as="span" color="gray.500" fontSize="sm">
-                              Código: {vendedor.op_codigo}
-                            </Text>
-                          </Box>
-                        ))}
-                      </Box>
-                    )}
-                  </Box> */}
                   <Box position="relative">
                     <FormLabel htmlFor="cliente-search">Cliente</FormLabel>
                     <Input
                       id="cliente-search"
                       placeholder="Buscar cliente por nombre o RUC"
-                      value={
-                        clienteSeleccionado
-                          ? clienteSeleccionado.cli_razon
-                          : clienteBusqueda
-                      }
-                      onChange={handleBusquedaCliente}
+                      value={clienteBusqueda}
+                      onChange={handleClienteInputChange}
                       aria-autocomplete="list"
                       aria-controls="cliente-recommendations"
                       ref={clienteRef}
@@ -1498,11 +1424,7 @@ export default function VentaRapida() {
                               p={2}
                               _hover={{ bg: "gray.100" }}
                               cursor="pointer"
-                              onClick={() => {
-                                setClienteBusqueda(cliente.cli_razon);
-                                setClienteSeleccionado(cliente);
-                                setRecomendacionesClientes([]);
-                              }}
+                              onClick={() => handleSelectCliente(cliente)}
                             >
                               <Text fontWeight="bold">{cliente.cli_razon}</Text>
                               <Text as="span" color="gray.500" fontSize="sm">
@@ -1522,32 +1444,6 @@ export default function VentaRapida() {
                       </Box>
                     )}
                   </Box>
-                  {/* {isMobile?
-                  (<Flex gap={4} >
-                    <Select
-                  bg={"white"}
-                  color={"black"}
-                  value={consultaExterna}
-                  onChange={(e) => {
-                    setConsultaExterna(Number(e.target.value));
-                  }}
-                >
-                  <option value={0}>Pedidos</option>
-                  <option value={1}>Presupuesto</option>
-                </Select>
-                <Button
-                  leftIcon={<FileText />}
-                  onClick={
-                    consultaExterna === 0
-                      ? handleOpenPedidoModal
-                      : handleOpenPresupuestoModal
-                  }
-                  w={"200px"}
-                >
-                  Consultar
-                </Button>
-                  </Flex>
-                  ) : null} */}
                 </Grid>
                 <Flex
                   gap={4}
@@ -1631,9 +1527,7 @@ export default function VentaRapida() {
                                 Vencimiento:{" "}
                                 {articulo.al_vencimiento.substring(0, 10)}
                               </Text>
-                              {/*que enter cambie los inputs, y agregar cierre de sesion resaltar color del articulo agregar mas recomendaciones*/}
                             </Flex>
-                            {/*/condicionar vencimiento*/}
                           </Box>
                         ))}
                       </Box>
@@ -1877,7 +1771,7 @@ export default function VentaRapida() {
                     Total Exentas: {formatCurrency(calcularTotalExcentas())}
                   </Text>
                   <Divider
-                    borderWidth={"2px"}
+                    borderWidth={"1px"}
                     borderColor={"blue.500"}
                     my={1}
                   />
@@ -1885,7 +1779,7 @@ export default function VentaRapida() {
                     Total IVA 5%: {formatCurrency(calcularTotal5())}
                   </Text>
                   <Divider
-                    borderWidth={"2px"}
+                    borderWidth={"1px"}
                     borderColor={"blue.500"}
                     my={1}
                   />
@@ -1893,7 +1787,7 @@ export default function VentaRapida() {
                     Total IVA 10%: {formatCurrency(calcularTotal10())}
                   </Text>
                   <Divider
-                    borderWidth={"2px"}
+                    borderWidth={"1px"}
                     borderColor={"blue.500"}
                     my={1}
                   />

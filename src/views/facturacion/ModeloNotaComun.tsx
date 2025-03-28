@@ -11,6 +11,7 @@ interface ModeloNotaComunProps {
   monto_recibido?: number;
   vuelto?: number;
   onImprimir?: boolean;
+  accion?: "print" | "download" | "b64";
 }
 
 interface VentaTicket {
@@ -59,8 +60,8 @@ interface VentaTicket {
 
 const ModeloNotaComun = ({
   id_venta,
-
   onImprimir = false,
+  accion = "print",
 }: ModeloNotaComunProps) => {
   const [venta, setVenta] = useState<VentaTicket | null>(null);
   const [configuraciones, setConfiguraciones] = useState<
@@ -79,9 +80,9 @@ const ModeloNotaComun = ({
   //   hour12: true,
   // });
 
-  const generarPDF = async () => {
+  const generarPDF = async (tipoSalida: "print" | "download" | "b64" = "print") => {
     try {
-      console.log("empezando a generar pdf");
+      console.log("empezando a generar pdf, acción:", tipoSalida);
       const detallesVenta =
         venta?.detalles.map((detalle) => [
           detalle.codigo.toString(),
@@ -106,6 +107,11 @@ const ModeloNotaComun = ({
           detallesVenta.push(["", "", "", "", "", ""]);
         }
       }
+
+      // Crear un nombre de archivo basado en los datos de venta
+      const nombreArchivo = tipoSalida === "download" 
+        ? `Nota_Comun_${venta?.codigo || 'venta'}_${new Date().toISOString().split('T')[0]}.pdf` 
+        : undefined;
 
       await generatePDF(
         {
@@ -389,11 +395,12 @@ const ModeloNotaComun = ({
             },
           },
         },
-        "print"
+        tipoSalida,
+        nombreArchivo
       );
 
       toast({
-        title: "PDF generado con éxito",
+        title: tipoSalida === "print" ? "PDF impreso con éxito" : "PDF generado con éxito",
         status: "success",
         duration: 3000,
         isClosable: true,
@@ -453,7 +460,7 @@ const ModeloNotaComun = ({
         try {
           console.log("Iniciando generación de PDF");
           // Esperar a que se complete la generación del PDF
-          await generarPDF();
+          await generarPDF(accion);
           console.log("PDF generado exitosamente");
 
           // Actualizar el estado después de una impresión exitosa
@@ -471,7 +478,7 @@ const ModeloNotaComun = ({
     };
 
     imprimirSiDatosListos();
-  }, [onImprimir, venta, configuraciones]);
+  }, [onImprimir, venta, configuraciones, accion]);
 
   // Effect para resetear el estado cuando cambia id_venta
   useEffect(() => {

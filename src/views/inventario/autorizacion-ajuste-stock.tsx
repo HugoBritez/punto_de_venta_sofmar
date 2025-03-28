@@ -60,9 +60,21 @@ interface AutorizacionAjusteDeStock {
   ];
 }
 
+interface InventariosDisponibles {
+  id_inventario: number;
+  nro_inventario: number;
+  fecha: string;
+  hora: string;
+  deposito_id: number;
+  deposito_nombre: string;
+  sucursal_id: number;
+  sucursal_nombre: string;
+}
+
+
 interface FloatingCardProps {
-  inventarios: Array<{ id: number; fecha: string }>;
-  onSelect: (id: number) => void;
+  inventarios: InventariosDisponibles[];
+  onSelect: (inventario: InventariosDisponibles) => void;
   onClose: () => void;
   onBuscarItems: (inventarioId: string, busqueda: string | null) => void;
 }
@@ -190,37 +202,39 @@ const AutorizacionAjusteDeStock = () => {
 
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [inventariosDisponibles, setInventariosDisponibles] = useState<
-    Array<{ id: number; fecha: string }>
+    InventariosDisponibles[]
   >([]);
   const [showInventarioCard, setShowInventarioCard] = useState(false);
 
   const [inventarioSeleccionado, setInventarioSeleccionado] = useState<
-    number | null
+    InventariosDisponibles | null
   >(null);
 
   const toast = useToast();
 
   const [mostrarReporte, setMostrarReporte] = useState(false);
 
+  // Nuevo useEffect separado que depende del depositoId
+
   const fetchInventariosDisponibles = async () => {
-    const response = await axios.get(
-      `${api_url}articulos/inventarios-disponibles`,
-      {
+    try {
+      const response = await axios.get(`${api_url}inventarios/disponibles`, {
         params: {
           estado: 1,
           deposito: depositoSeleccionado?.dep_codigo,
-          sucursal: sucursaleSeleccionada?.id,
         },
-      }
-    );
-    const data = response.data;
-    setInventariosDisponibles(data.body || []);
-    console.log(data.body);
+      });
+      const data = response.data;
+      console.log(data.body);
+      setInventariosDisponibles(data.body || []);
+    } catch (error) {
+      console.error("Error al cargar inventarios:", error);
+    }
   };
 
   useEffect(() => {
     fetchInventariosDisponibles();
-  }, [depositoSeleccionado, sucursaleSeleccionada]);
+  }, [depositoSeleccionado]);
 
   useEffect(() => {
     const fetchSucursales = async () => {
@@ -239,76 +253,74 @@ const AutorizacionAjusteDeStock = () => {
     fetchDepositos();
   }, []);
 
-  const fetchAutorizaciones = async () => {
-    if (inventarioSeleccionado === null) {
-      toast({
-        title: "Error",
-        description: "Debe seleccionar un inventario",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-    try {
-      const response = await axios.get(
-        `${api_url}articulos/reporte-anomalias`,
-        {
-          params: {
-            nro_inventario: inventarioSeleccionado,
-            sucursal: sucursaleSeleccionada?.id,
-            deposito: depositoSeleccionado?.dep_codigo,
-          },
-        }
-      );
-      console.log(response.data.body);
-      setAutorizaciones(response.data.body);
-      setLoading(false);
-    } catch (error) {
-      console.error("Error al obtener el reporte de anomalias:", error);
-      setLoading(false);
-    }
-  };
+const fetchReporte = async () => {
+  if(!inventarioSeleccionado) {
+    toast({
+      title: "Error",
+      description: "No se ha seleccionado un inventario",
+      status: "error",
+      duration: 3000,
+      isClosable: true,
+    });
+    return;
+  }
+  try {
+    const response = await axios.get(`${api_url}inventarios/anomalias`, {
+      params: {
+        nro_inventario: inventarioSeleccionado?.nro_inventario || 0,
+        sucursal: sucursaleSeleccionada?.id || 0,
+        deposito: depositoSeleccionado?.dep_codigo || 0,
+      },
+    });
+    console.log(response.data.body);
+    setAutorizaciones(response.data.body);
+    setLoading(false);
+  } catch (error) {
+    console.error("Error al obtener el reporte de anomalias:", error);
+    setLoading(false);
+  }
+};
 
-  const cerrarInventario = async () => {
-    if (inventarioSeleccionado === null) {
-      toast({
-        title: "Debe seleccionar un inventario",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-    }
-    const inventario = {
-      id: autorizaciones[0].id_inventario,
-      operador: sessionStorage.getItem("user_id"),
-      sucursal: sucursaleSeleccionada?.id,
-      deposito: depositoSeleccionado?.dep_codigo,
-      nro_inventario: autorizaciones[0].nro_inventario,
-      autorizado: true,
-    };
+useEffect(() => {
+  console.log('inventarioSeleccionado', inventarioSeleccionado);
+}, [inventarioSeleccionado]);
 
-    try {
-      await axios.post(
-        `${api_url}articulos/cerrar-inventario-auxiliar`,
-        inventario
-      );
+
+ const autorizarInventario = async (
+  id: number,
+  operador: number,
+  sucursal: number,
+  deposito: number,
+  nro_inventario: number,
+ ) => {
+  try {
+    const response =  await axios.post(`${api_url}inventarios/autorizar`, {
+      id,
+      operador,
+      sucursal,
+      deposito,
+      nro_inventario,
+    });
+    console.log(response.data.body);
+    if(response.data.body.error === false){
       toast({
-        title: "Inventario cerrado correctamente",
+        title: "Inventario autorizado",
+        description: "El inventario ha sido autorizado correctamente",
         status: "success",
         duration: 3000,
         isClosable: true,
       });
-      setAutorizaciones([]);
-      setInventarioSeleccionado(null);
-      fetchInventariosDisponibles();
-    } catch (error) {
-      console.error(error);
+    } else {
       toast({
-        title: "Error al cerrar el inventario",
+        title: "Error",
+        description: response.data.body.mensaje,
         status: "error",
         duration: 3000,
-        isClosable: true,
       });
+    }
+    fetchInventariosDisponibles();
+  } catch (error) {
+      console.error("Error al autorizar el inventario:", error);
     }
   };
 
@@ -340,20 +352,20 @@ const AutorizacionAjusteDeStock = () => {
           <div className="max-h-64 overflow-y-auto">
             {inventarios.length > 0 ? (
               <div className="space-y-2">
-                {inventarios.map((inv: any) => (
+                {inventarios.map((inv: InventariosDisponibles) => (
                   <button
-                    key={inv.id}
+                    key={inv.id_inventario}
                     onClick={() => {
-                      onSelect(inv.id);
+                      onSelect(inv);
                       // Realizar búsqueda inmediata al seleccionar inventario
-                      onBuscarItems(String(inv.id), null);
+                      onBuscarItems(String(inv.id_inventario), null);
                     }}
                     className="w-full text-left p-2 hover:bg-gray-50 rounded transition-colors flex justify-between items-center"
                   >
                     <div>
-                      <div className="font-medium">Inventario #{inv.id}</div>
+                      <div className="font-medium">Inventario #{inv.nro_inventario}</div>
                       <div className="text-sm text-gray-500">
-                        {new Date(inv.fecha).toLocaleDateString()}
+                        {inv.fecha}
                       </div>
                     </div>
                     <ChartColumn size={16} className="text-gray-400" />
@@ -373,48 +385,65 @@ const AutorizacionAjusteDeStock = () => {
 
   // Verificar si hay autorizaciones disponibles antes de calcular totales
   const hayAutorizaciones =
-    autorizaciones && autorizaciones[0] && autorizaciones[0].items && autorizaciones.length > 0 && autorizaciones[0].items.length > 0;
+    autorizaciones &&
+    autorizaciones[0] &&
+    autorizaciones[0].items &&
+    autorizaciones.length > 0 &&
+    autorizaciones[0].items.length > 0;
 
   // Calcular totales solo si hay autorizaciones
   const totalItemsFaltantes = hayAutorizaciones
-    ? autorizaciones[0].items.filter(item => {
-        const diferencia = typeof item.diferencia_total === 'string' 
-          ? parseFloat(item.diferencia_total) 
-          : item.diferencia_total;
+    ? autorizaciones[0].items.filter((item) => {
+        const diferencia =
+          typeof item.diferencia_total === "string"
+            ? parseFloat(item.diferencia_total)
+            : item.diferencia_total;
         return diferencia < 0;
       }).length
     : 0;
-    
+
   const totalItemsSobrantes = hayAutorizaciones
-    ? autorizaciones[0].items.filter(item => {
-        const diferencia = typeof item.diferencia_total === 'string' 
-          ? parseFloat(item.diferencia_total) 
-          : item.diferencia_total;
+    ? autorizaciones[0].items.filter((item) => {
+        const diferencia =
+          typeof item.diferencia_total === "string"
+            ? parseFloat(item.diferencia_total)
+            : item.diferencia_total;
         return diferencia > 0;
       }).length
     : 0;
-    
+
   const totalCostoItemsFaltantes = hayAutorizaciones
     ? autorizaciones[0].items.reduce((acc, item) => {
-        const costoDiferencia = typeof item.costo_diferencia_total === 'string' 
-          ? Math.abs(parseFloat(String(item.costo_diferencia_total).replace(/\./g, '').replace(',', '.'))) 
-          : Math.abs(item.costo_diferencia_total);
+        const costoDiferencia =
+          typeof item.costo_diferencia_total === "string"
+            ? Math.abs(
+                parseFloat(
+                  String(item.costo_diferencia_total)
+                    .replace(/\./g, "")
+                    .replace(",", ".")
+                )
+              )
+            : Math.abs(item.costo_diferencia_total);
         return item.diferencia_total < 0 ? acc + costoDiferencia : acc;
       }, 0)
     : 0;
-    
+
   const totalCostoItemsSobrantes = hayAutorizaciones
     ? autorizaciones[0].items.reduce((acc, item) => {
-        const costoDiferencia = typeof item.costo_diferencia_total === 'string' 
-          ? parseFloat(String(item.costo_diferencia_total).replace(/\./g, '').replace(',', '.')) 
-          : item.costo_diferencia_total;
+        const costoDiferencia =
+          typeof item.costo_diferencia_total === "string"
+            ? parseFloat(
+                String(item.costo_diferencia_total)
+                  .replace(/\./g, "")
+                  .replace(",", ".")
+              )
+            : item.costo_diferencia_total;
         return item.diferencia_total > 0 ? acc + costoDiferencia : acc;
       }, 0)
     : 0;
-  
+
   const generarPDF = async () => {
     try {
-
       setMostrarReporte(true);
     } catch (error) {
       console.error("Error al generar PDF:", error);
@@ -449,8 +478,8 @@ const AutorizacionAjusteDeStock = () => {
                 />
                 <FloatingCard
                   inventarios={inventariosDisponibles}
-                  onSelect={(id) => {
-                    setInventarioSeleccionado(id);
+                  onSelect={(inventario) => {
+                    setInventarioSeleccionado(inventario);
                     setShowInventarioCard(false);
                   }}
                   onClose={() => setShowInventarioCard(false)}
@@ -495,7 +524,7 @@ const AutorizacionAjusteDeStock = () => {
           ))}
         </Select>
         <div className="flex flex-row gap-2">
-          <Button onClick={fetchAutorizaciones} colorScheme="green">
+          <Button onClick={fetchReporte} colorScheme="green">
             <div className="flex flex-row gap-2">
               Buscar <Search />
             </div>
@@ -512,7 +541,13 @@ const AutorizacionAjusteDeStock = () => {
             isOpen={showConfirmModal}
             onClose={() => setShowConfirmModal(false)}
             onConfirm={() => {
-              cerrarInventario();
+              autorizarInventario(
+                inventarioSeleccionado?.id_inventario || 0,
+                Number(sessionStorage.getItem("user_id") || 1),
+                sucursaleSeleccionada?.id || 0,
+                depositoSeleccionado?.dep_codigo || 0,
+                inventarioSeleccionado?.nro_inventario || 0
+              );
             }}
             title="¿Está seguro de autorizar este ajuste de stock?"
             message="Esta acción autorizará el ajuste de stock y no podrá ser revertida."
@@ -557,7 +592,10 @@ const AutorizacionAjusteDeStock = () => {
               <strong>Operador:</strong> {autorizaciones[0].operador_nombre}
             </p>
           </div>
-           {autorizaciones && autorizaciones[0] && autorizaciones[0].items && autorizaciones[0].items.length > 0 ? (
+          {autorizaciones &&
+          autorizaciones[0] &&
+          autorizaciones[0].items &&
+          autorizaciones[0].items.length > 0 ? (
             <>
               <div className="flex flex-col gap-2 w-full border-2 border-gray-300 rounded-md p-2">
                 <table className="w-full border-2 border-gray-300">
@@ -662,7 +700,7 @@ const AutorizacionAjusteDeStock = () => {
       )}
       {mostrarReporte && (
         <ReporteItemsScaneados
-          nro_inventario={inventarioSeleccionado || 0}
+          nro_inventario={inventarioSeleccionado?.id_inventario || 0}
           sucursal={sucursaleSeleccionada?.id || 0}
           deposito={depositoSeleccionado?.dep_codigo || 0}
           onComplete={() => {
