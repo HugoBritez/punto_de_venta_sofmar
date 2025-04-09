@@ -21,7 +21,7 @@ interface CategoriasState {
   obtenerCategoriaPorId: (id: number) => CategoriaAdaptada | undefined;
 }
 
-export const useCategoriasStore = create<CategoriasState>((set, get) => ({
+export const useCategoriasStore = create<CategoriasState>((set, get) => ({  
   categoriasOriginales: [],
   categorias: [],
   cargando: false,

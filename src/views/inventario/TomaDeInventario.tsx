@@ -1233,6 +1233,13 @@ const TomaDeInventario = () => {
       return;
     }
     try {
+
+      console.log('datos a enviar', {
+        id_inventario,
+        id_articulo,
+        id_lote,
+        cantidad,
+      })
       await axios.post(`${api_url}inventarios/actualizar-cantidad-inicial`, {
         id_inventario,
         id_articulo,
@@ -1320,7 +1327,6 @@ const TomaDeInventario = () => {
         error instanceof AxiosError
           ? error.response?.data?.mensaje || "Error al escanear item"
           : "Error inesperado al escanear item";
-
       toast({
         title: "Error",
         description: errorMsg,

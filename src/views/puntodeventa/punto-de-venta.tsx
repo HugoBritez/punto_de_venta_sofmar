@@ -94,8 +94,6 @@ interface Articulo {
   ar_pvg: number;
   ar_pvd: number;
   ar_pvdcredito: number;
-  ar_pvdmostrador: number;
-  ar_pvcredito: number;
   ar_pvmostrador: number;
   ar_codbarra: string;
   ar_iva: number;

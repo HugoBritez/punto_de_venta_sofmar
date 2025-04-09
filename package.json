@@ -28,7 +28,7 @@
     "@chakra-ui/react": "^2.8.2",
     "@emotion/react": "^11.13.3",
     "@emotion/styled": "^11.13.0",
-    "@react-google-maps/api": "^2.20.3",
+    "@react-google-maps/api": "^2.20.6",
     "@react-pdf/renderer": "^4.2.1",
     "@tanstack/react-query": "^5.62.3",
     "@types/pdfmake": "^0.2.11",

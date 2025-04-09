@@ -1013,12 +1013,12 @@ const ModeloFacturaReport = ({
                         // Columna derecha para el texto informativo
                         stack: [
                           {
-                            text: "CONSULTE LA VALIDEZ DE ESTE DOCUMENTO ELECTRÓNICO CON EL NÚMERO CDC IMPRESO ABAJO EN:",
+                            text: "Consulte esta Factura Electrónica con el número impreso abajo:",
                             fontSize: 8,
                             alignment: "center",
                           },
                           {
-                            text: "https://ekuatia.set.gov.py/consultas/",
+                            text: `https://ekuatia.set.gov.py/consultas/${venta.ve_cdc}`,
                             fontSize: 8,
                             alignment: "center",
                             margin: [0, 3, 0, 3],
@@ -1030,16 +1030,9 @@ const ModeloFacturaReport = ({
                             bold: true,
                           },
                           {
-                            text: "SI SU DOCUMENTO ELECTRÓNICO PRESENTA ALGÚN ERROR, PUEDE SOLICITAR LA MODIFICACIÓN DENTRO DE LAS 72 HORAS DE EMISIÓN DE ESTE COMPROBANTE.",
+                            text: "Si su documento electronico presenta algun error solicitar la cancelacion dentro de las 48 horas siguientes de la emisión de este comprobante.",
                             fontSize: 7,
                             alignment: "center",
-                          },
-                          {
-                            text: `CDC: ${venta?.ve_cdc}`,
-                            fontSize: 9,
-                            alignment: "center",
-                            bold: true,
-                            margin: [0, 0, 0, 0],
                           },
                         ],
                         width: "80%",

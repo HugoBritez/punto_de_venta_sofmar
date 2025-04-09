@@ -2,7 +2,7 @@ import { Configuraciones } from "@/types/shared_interfaces";
 import { api_url } from "@/utils";
 import axios from "axios";
 import React, { useState, useEffect } from "react";
-import { Flex } from "@chakra-ui/react";
+import { Flex, useToast, Spinner } from "@chakra-ui/react";
 import { generatePDF } from "@/services/pdfService";
 
 interface ReporteAnomaliasProps {
@@ -60,8 +60,8 @@ const ReporteAnomalias: React.FC<ReporteAnomaliasProps> = ({
   deposito,
 }) => {
   const [reporte, setReporte] = useState<ReporteAnomalias[]>([]);
-
   const [loading, setLoading] = useState(true);
+  const toast = useToast();
 
   const [configuracionesEmpresa, setConfiguracionesEmpresa] = useState<
     Configuraciones[]
@@ -108,252 +108,272 @@ const ReporteAnomalias: React.FC<ReporteAnomaliasProps> = ({
     }
   }, [numeroInventario, sucursal, deposito]);
 
-const generarPDF = async (data: ReporteAnomalias[]) => {
-  const anomaliaData = data[0];
-  console.log("generarPDF", anomaliaData);
+  const generarPDF = async (data: ReporteAnomalias[]) => {
+    if (!data || data.length === 0 || !data[0]?.items) {
+      toast({
+        title: "Error al generar PDF",
+        description: "No hay datos disponibles para generar el reporte",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
 
-  const docDefinition = {
-    pageSize: "A4",
-    pageMargins: [20, 20, 20, 20],
-    content: [
-      // Encabezado
-      {
-        columns: [
-          { text: `RUC: ${rucEmpresa}`, width: "auto", fontSize: 8 },
-          { text: nombreEmpresa, alignment: "center", width: "*", fontSize: 8 },
+    try {
+      const anomaliaData = data[0];
+      console.log("generarPDF", anomaliaData);
+
+      const docDefinition = {
+        pageSize: "A4",
+        pageMargins: [20, 20, 20, 20],
+        content: [
+          // Encabezado
           {
-            text: fechaCompletaActual,
-            alignment: "right",
-            width: "auto",
-            fontSize: 8,
+            columns: [
+              { text: `RUC: ${rucEmpresa}`, width: "auto", fontSize: 8 },
+              { text: nombreEmpresa, alignment: "center", width: "*", fontSize: 8 },
+              {
+                text: fechaCompletaActual,
+                alignment: "right",
+                width: "auto",
+                fontSize: 8,
+              },
+            ],
           },
+          {
+            text: "REPORTE DE ANOMALIAS DE INVENTARIO",
+            alignment: "center",
+            fontSize: 10,
+            bold: true,
+            margin: [0, 10],
+          },
+          {
+            columns: [
+              {
+                text: `Inventario Nro.: ${anomaliaData.nro_inventario}`,
+                fontSize: 8,
+              },
+              {
+                text: `Fecha apertura: ${anomaliaData.fecha}, ${anomaliaData.hora}`,
+                fontSize: 8,
+              },
+              {
+                text: `Fecha cierre: ${
+                  anomaliaData.fecha_cierre === null ||
+                  anomaliaData.fecha_cierre === undefined
+                    ? "N/A"
+                    : anomaliaData.fecha_cierre
+                }, ${
+                  anomaliaData.hora_cierre === null ||
+                  anomaliaData.hora_cierre === undefined
+                    ? "N/A"
+                    : anomaliaData.hora_cierre
+                }`,
+                fontSize: 8,
+              },
+              { text: `Deposito: ${anomaliaData.nombre_deposito}`, fontSize: 8 },
+              { text: `Sucursal: ${anomaliaData.nombre_sucursal}`, fontSize: 8 },
+              { text: `Estado: ${anomaliaData.estado_inventario}`, fontSize: 8 },
+            ],
+            columnGap: 10,
+            margin: [0, 5, 0, 10],
+          },
+          // Contenido principal - Items agrupados
+          ...anomaliaData.items
+            .map((item) => [
+              // Encabezado del artículo
+              {
+                table: {
+                  widths: ["auto", "auto", "*", "auto", "auto", "auto"],
+                  body: [
+                    [
+                      { text: item.cod_interno, bold: true, fontSize: 8 },
+                      {
+                        text: item.ubicacion + " / " + item.sub_ubicacion,
+                        bold: true,
+                        fontSize: 8,
+                      },
+                      { text: item.articulo, bold: true, fontSize: 8 },
+                      {
+                        text: "Stock Total:" + item.cantidad_inicial_total,
+                        bold: true,
+                        alignment: "right",
+                        fontSize: 8,
+                      },
+                      {
+                        text: "Scanner Total:" + item.cantidad_scanner_total,
+                        bold: true,
+                        alignment: "right",
+                        fontSize: 8,
+                      },
+                      {
+                        text: "Diferencia:" + item.diferencia_total,
+                        bold: true,
+                        alignment: "right",
+                        color: (item.diferencia_total || 0) < 0 ? "red" : "black",
+                        fontSize: 8,
+                      },
+                    ],
+                  ],
+                },
+                fillColor: "#f0f0f0",
+                margin: [0, 5, 0, 5],
+                layout: {
+                  hLineWidth: function () {
+                    return 0.5;
+                  },
+                  vLineWidth: function () {
+                    return 0.5;
+                  },
+                },
+              },
+              // Tabla de lotes
+              {
+                table: {
+                  widths: ["auto", "auto", "auto", "auto", "auto", "auto", "auto", "auto"],
+                  body: [
+                    // Encabezados
+                    [
+                      { text: "Lote", style: "tableHeader" },
+                      { text: "Vencimiento", style: "tableHeader" },
+                      {
+                        text: "Cdad. Inicial",
+                        style: "tableHeader",
+                        alignment: "center",
+                      },
+                      {
+                        text: "Cdad. Encontrada",
+                        style: "tableHeader",
+                        alignment: "center",
+                      },
+                      {
+                        text: "Cdad. Real",
+                        style: "tableHeader",
+                        alignment: "center",
+                      },
+                      {
+                        text: "I. Vendidos",
+                        style: "tableHeader",
+                        alignment: "center",
+                      },
+                      {
+                        text: "I. Remision",
+                        style: "tableHeader",
+                        alignment: "center",
+                      },
+                      {
+                        text: "Diferencia",
+                        style: "tableHeader",
+                        alignment: "center",
+                      },
+                    ],
+                    ...item.items_lotes.map((lote) => [
+                      { text: lote.lote || "", alignment: "left", fontSize: 8 },
+                      {
+                        text: lote.vencimiento || "",
+                        alignment: "left",
+                        fontSize: 8,
+                      },
+                      {
+                        text: lote.cantidad_inicial || 0,
+                        alignment: "center",
+                        fontSize: 8,
+                      },
+                      {
+                        text: lote.cantidad_scanner || 0,
+                        alignment: "center",
+                        fontSize: 8,
+                      },
+                      {
+                        text: lote.cantidad_actual || 0,
+                        alignment: "center",
+                        fontSize: 8,
+                      },
+                      {
+                        text: lote.items_vendidos || 0,
+                        alignment: "center",
+                        fontSize: 8,
+                      },
+                      {
+                        text: lote.items_devueltos || 0,
+                        alignment: "center",
+                        fontSize: 8,
+                      },
+                      {
+                        text: lote.diferencia || 0,
+                        alignment: "center",
+                        color: (lote.diferencia || 0) < 0 ? "red" : "black",
+                        fontSize: 8,
+                      },
+                    ]),
+                  ],
+                },
+                layout: {
+                  hLineWidth: function () {
+                    return 0.5;
+                  },
+                  vLineWidth: function () {
+                    return 0.5;
+                  },
+                  hLineColor: function () {
+                    return "#aaa";
+                  },
+                  vLineColor: function () {
+                    return "#aaa";
+                  },
+                  paddingLeft: function () {
+                    return 5;
+                  },
+                  paddingRight: function () {
+                    return 5;
+                  },
+                  paddingTop: function () {
+                    return 3;
+                  },
+                  paddingBottom: function () {
+                    return 3;
+                  },
+                },
+                margin: [40, 0, 40, 5],
+              },
+            ])
+            .flat(),
         ],
-      },
-      {
-        text: "REPORTE DE ANOMALIAS DE INVENTARIO",
-        alignment: "center",
-        fontSize: 10,
-        bold: true,
-        margin: [0, 10],
-      },
-      {
-        columns: [
-          {
-            text: `Inventario Nro.: ${anomaliaData.nro_inventario}`,
+        styles: {
+          tableHeader: {
+            bold: true,
             fontSize: 8,
+            fillColor: "#f8f9fa",
+            alignment: "center",
           },
-          {
-            text: `Fecha apertura: ${anomaliaData.fecha}, ${anomaliaData.hora}`,
-            fontSize: 8,
-          },
-          {
-            text: `Fecha cierre: ${
-              anomaliaData.fecha_cierre === null ||
-              anomaliaData.fecha_cierre === undefined
-                ? "N/A"
-                : anomaliaData.fecha_cierre
-            }, ${
-              anomaliaData.hora_cierre === null ||
-              anomaliaData.hora_cierre === undefined
-                ? "N/A"
-                : anomaliaData.hora_cierre
-            }`,
-            fontSize: 8,
-          },
-          { text: `Deposito: ${anomaliaData.nombre_deposito}`, fontSize: 8 },
-          { text: `Sucursal: ${anomaliaData.nombre_sucursal}`, fontSize: 8 },
-          { text: `Estado: ${anomaliaData.estado_inventario}`, fontSize: 8 },
-        ],
-        columnGap: 10,
-        margin: [0, 5, 0, 10],
-      },
-      // Contenido principal - Items agrupados
-      ...anomaliaData.items
-        .map((item) => [
-          // Encabezado del artículo
-          {
-            table: {
-              widths: ["auto", "auto", "*", "auto", "auto", "auto"],
-              body: [
-                [
-                  { text: item.cod_interno, bold: true, fontSize: 8 },
-                  {
-                    text: item.ubicacion + " / " + item.sub_ubicacion,
-                    bold: true,
-                    fontSize: 8,
-                  },
-                  { text: item.articulo, bold: true, fontSize: 8 },
-                  {
-                    text: "Stock Total:" + item.cantidad_inicial_total,
-                    bold: true,
-                    alignment: "right",
-                    fontSize: 8,
-                  },
-                  {
-                    text: "Scanner Total:" + item.cantidad_scanner_total,
-                    bold: true,
-                    alignment: "right",
-                    fontSize: 8,
-                  },
-                  {
-                    text: "Diferencia:" + item.diferencia_total,
-                    bold: true,
-                    alignment: "right",
-                    color: (item.diferencia_total || 0) < 0 ? "red" : "black",
-                    fontSize: 8,
-                  },
-                ],
-              ],
-            },
-            fillColor: "#f0f0f0",
-            margin: [0, 5, 0, 5],
-            layout: {
-              hLineWidth: function () {
-                return 0.5;
-              },
-              vLineWidth: function () {
-                return 0.5;
-              },
-            },
-          },
-          // Tabla de lotes
-          {
-            table: {
-              widths: ["auto", "auto", "auto", "auto", "auto", "auto", "auto", "auto"],
-              body: [
-                // Encabezados
-                [
-                  { text: "Lote", style: "tableHeader" },
-                  { text: "Vencimiento", style: "tableHeader" },
-                  {
-                    text: "Cdad. Inicial",
-                    style: "tableHeader",
-                    alignment: "center",
-                  },
-                  {
-                    text: "Cdad. Encontrada",
-                    style: "tableHeader",
-                    alignment: "center",
-                  },
-                  {
-                    text: "Cdad. Real",
-                    style: "tableHeader",
-                    alignment: "center",
-                  },
-                  {
-                    text: "I. Vendidos",
-                    style: "tableHeader",
-                    alignment: "center",
-                  },
-                  {
-                    text: "I. Remision",
-                    style: "tableHeader",
-                    alignment: "center",
-                  },
-                  {
-                    text: "Diferencia",
-                    style: "tableHeader",
-                    alignment: "center",
-                  },
-                ],
-                ...item.items_lotes.map((lote) => [
-                  { text: lote.lote || "", alignment: "left", fontSize: 8 },
-                  {
-                    text: lote.vencimiento || "",
-                    alignment: "left",
-                    fontSize: 8,
-                  },
-                  {
-                    text: lote.cantidad_inicial || 0,
-                    alignment: "center",
-                    fontSize: 8,
-                  },
-                  {
-                    text: lote.cantidad_scanner || 0,
-                    alignment: "center",
-                    fontSize: 8,
-                  },
-                  {
-                    text: lote.cantidad_actual || 0,
-                    alignment: "center",
-                    fontSize: 8,
-                  },
-                  {
-                    text: lote.items_vendidos || 0,
-                    alignment: "center",
-                    fontSize: 8,
-                  },
-                  {
-                    text: lote.items_devueltos || 0,
-                    alignment: "center",
-                    fontSize: 8,
-                  },
-                  {
-                    text: lote.diferencia || 0,
-                    alignment: "center",
-                    color: (lote.diferencia || 0) < 0 ? "red" : "black",
-                    fontSize: 8,
-                  },
-                ]),
-              ],
-            },
-            layout: {
-              hLineWidth: function () {
-                return 0.5;
-              },
-              vLineWidth: function () {
-                return 0.5;
-              },
-              hLineColor: function () {
-                return "#aaa";
-              },
-              vLineColor: function () {
-                return "#aaa";
-              },
-              paddingLeft: function () {
-                return 5;
-              },
-              paddingRight: function () {
-                return 5;
-              },
-              paddingTop: function () {
-                return 3;
-              },
-              paddingBottom: function () {
-                return 3;
-              },
-            },
-            margin: [40, 0, 40, 5],
-          },
-        ])
-        .flat(),
-    ],
-    styles: {
-      tableHeader: {
-        bold: true,
-        fontSize: 8,
-        fillColor: "#f8f9fa",
-        alignment: "center",
-      },
-    },
-    defaultStyle: {
-      fontSize: 8,
-    },
+        },
+        defaultStyle: {
+          fontSize: 8,
+        },
+      };
+
+      await generatePDF(docDefinition as any, "download");
+    } catch (error) {
+      console.error("Error al generar PDF:", error);
+      toast({
+        title: "Error",
+        description: "Ocurrió un error al generar el PDF",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
   };
-
-  try {
-    await generatePDF(docDefinition as any, "download");
-  } catch (error) {
-    console.error("Error generando PDF:", error);
-  }
-};
-
   return (
-    <div className="flex flex-col gap-2 w-full h-full items-center justify-center">
+    <div className="flex flex-col gap-4 w-full">
       {loading ? (
-        <div>Cargando...</div>
-      ) : reporte && reporte.length ? (
-        <div className="flex flex-col gap-2 w-full h-full items-center justify-center">
+        <div className="flex justify-center items-center h-64">
+          <Spinner size="xl" />
+          <p className="ml-4">Cargando datos del reporte...</p>
+        </div>
+      ) : reporte && reporte.length > 0 && reporte[0]?.items ? (
+        <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-2 w-full border border-gray-300 rounded-sm p-2">
             <div className="flex flex-row gap-2 w-full items-center justify-between border-b">
               <p>{rucEmpresa}</p>
@@ -413,8 +433,8 @@ const generarPDF = async (data: ReporteAnomalias[]) => {
               className="flex flex-col gap-2 w-full h-full px-8 items-center"
               id="reporte"
             >
-              {reporte[0].items.map((item) => (
-                <div className="w-full">
+              {reporte[0]?.items?.map((item) => (
+                <div key={item.articulo_id} className="w-full">
                   <div className="flex flex-row  w-full border border-gray-200 bg-gray-100 [&>div]:px-2">
                     <div className="border border-b-black border-t-black border-l-black flex w-auto ">
                       <p>{item.cod_interno}</p>
@@ -480,12 +500,12 @@ const generarPDF = async (data: ReporteAnomalias[]) => {
                 </div>
               ))}
               <div className="flex flex-col border border-gray-200 w-full p-2">
-                <p className="font-bold ">
-                  Total de articulos:{" "}
-                  {reporte[0].items.reduce(
-                    (acc, item) => acc + item.items_lotes.length,
+                <p className="font-bold">
+                  Total de artículos:{" "}
+                  {reporte[0]?.items?.reduce(
+                    (acc, item) => acc + (item.items_lotes?.length || 0),
                     0
-                  )}
+                  ) || 0}
                 </p>
               </div>
             </div>
@@ -494,13 +514,16 @@ const generarPDF = async (data: ReporteAnomalias[]) => {
             <button
               className="bg-blue-500 text-white p-2 rounded-md"
               onClick={() => generarPDF(reporte)}
+              disabled={loading || !reporte || reporte.length === 0}
             >
               Generar PDF
             </button>
           </div>
         </div>
       ) : (
-        <div>No hay datos disponibles</div>
+        <div className="flex justify-center items-center h-64">
+          <p>No hay datos disponibles para mostrar</p>
+        </div>
       )}
     </div>
   );

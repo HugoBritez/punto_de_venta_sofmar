@@ -6,6 +6,7 @@ import { Menu, Grid, List, ChartColumn, ListStart } from "lucide-react";
 
 import { motion, AnimatePresence } from "framer-motion";
 import BusquedaPreparador from "./ui/BusquedaPreparador";
+import CortePedido from "./ui/CortePedido";
 
 interface Articulo {
   ar_codigo: number;
@@ -62,6 +63,11 @@ interface FloatingCardProps {
   onClose: () => void;
   onBuscarItems: (inventarioId: string, busqueda: string | null) => void;
 }
+
+// interface DetalleFaltante {
+//   d_detalle_pedido: number;
+//   d_cantidad: number;
+// }
 
 const FloatingCard = ({
   pedidos,
@@ -172,6 +178,8 @@ const VerificacionPedidos = () => {
   const [isBusquedaPreparadorOpen, setIsBusquedaPreparadorOpen] =
     useState(false);
   const [isLoadingPreparadores, setIsLoadingPreparadores] = useState(false);
+
+  const [mostrarCortePedido, setMostrarCortePedido] = useState(false);
 
   const buscarPreparadores = async (busqueda: string) => {
     try {
@@ -577,35 +585,30 @@ const VerificacionPedidos = () => {
     }
   };
 
-  function handleAceptar() {
-    const cantidadNormalizada = Number(cantidad).toFixed(2);
-    const cantidadArticulo = Number(articuloSeleccionado?.al_cantidad).toFixed(
-      2
-    );
+  const handleAceptar = () => {
+    const cantidadIngresada = Number(cantidad);
+    const cantidadArticulo = Number(articuloSeleccionado?.al_cantidad);
 
-    if (cantidadNormalizada === cantidadArticulo) {
+    if (cantidadIngresada === cantidadArticulo) {
       toast({
         title: "Cantidad correcta",
-        description:
-          "La cantidad ingresada coincide con la cantidad del artículo",
+        description: "La cantidad ingresada coincide con la cantidad del artículo",
         status: "success",
         duration: 3000,
       });
-
-      cargarArticulos().then(() => {
-        setModalVisible(false);
-        // Ya no necesitamos volver a buscar los items porque actualizamos el estado local
-      });
+      cargarArticulos();
+    } else if (cantidadIngresada < cantidadArticulo) {
+      // Mostrar el modal de corte de pedido
+      setMostrarCortePedido(true);
     } else {
       toast({
         title: "Cantidad incorrecta",
-        description:
-          "La cantidad ingresada no coincide con la cantidad del artículo",
+        description: "La cantidad ingresada es mayor a la cantidad del artículo",
         status: "error",
         duration: 3000,
       });
     }
-  }
+  };
 
   return (
     <div className="h-screen w-full flex flex-col overflow-hidden">
@@ -1019,6 +1022,19 @@ const VerificacionPedidos = () => {
         isLoading={isLoadingPreparadores}
         searchPlaceholder="Buscar preparador por nombre..."
       />
+      {mostrarCortePedido && articuloSeleccionado && (
+        <CortePedido
+          id_detalle={articuloSeleccionado.id_detalle}
+          cantidad={Number(articuloSeleccionado.al_cantidad) - Number(cantidad)}
+          onClose={() => {
+            setMostrarCortePedido(false);
+            setModalVisible(false);
+          }}
+          onSuccess={() => {
+            cargarArticulos();
+          }}
+        />
+      )}
     </div>
   );
 };

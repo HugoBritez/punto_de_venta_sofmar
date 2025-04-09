@@ -114,6 +114,18 @@ const configs = {
     version: "1.2.4",
     title: "Agrosertaneja",
   },
+  caofa: {
+    api_url: "https://backend.caofa.com.py:4000/api/",
+    db: "caofa",
+    version: "1.2.4",
+    title: "Caofa",
+  },
+  ferrehanh: {
+    api_url: "https://node.sofmar.com.py:4028/api/",
+    db: "ferrehanh",
+    version: "1.2.4",
+    title: "Ferrehanh",
+  },
 };
 
 function executeCommand(command) {

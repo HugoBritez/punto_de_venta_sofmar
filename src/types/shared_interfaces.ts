@@ -38,6 +38,8 @@ export interface Agenda {
     cliente: string;
     visitado: string;
     cli_tel: string;
+    cli_ruc: string;
+    cli_dir: string;
     fecha: string;
     prioridad: string;
     mis_visitas: number;
@@ -51,6 +53,19 @@ export interface Agenda {
     deudas_cliente: number;
     cliente_id: number;
     visita_en_curso: number;
+    tiempo_transcurrido: string;
+    notas : {
+      id: number;
+      fecha: string;
+      hora: string;
+      nota: string;
+    }[],
+    subvisitas : {
+      id: number;
+      nombre_cliente: string;
+      motivo_visita: string;
+      resultado_visita: string;
+    }[]
 }
 
 
@@ -92,6 +107,7 @@ export interface Cliente {
     credito_disponible: number
     vendedor_cliente: number
     cli_direccion: string;
+    cli_dir: string;
     cli_ciudad: number;
     cli_tel: string;
     cli_mail: string;

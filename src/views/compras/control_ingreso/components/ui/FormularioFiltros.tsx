@@ -5,19 +5,31 @@ import { FiltrosDTO } from "../../types/shared.type";
 import { useSucursalesStore } from "@/stores/sucursalesStore";
 
 import { useDepositosStore } from "@/stores/depositosStore";
+import ProveedoresSelect from "@/ui/select/ProveedoresSelect";
+import { Deposito } from "@/types/shared_interfaces";
+import { createRoot } from "react-dom/client";
+import ReporteIngresosComponent from "../ReporteIngresos";
 
+import pdfIcon from "@/assets/custom_icons/pdf-icon.svg";
+import excelIcon from "@/assets/custom_icons/excel-icon.svg";
+import { InformeIngresosExcel } from "../ReporteIngresosExcel";
 
 interface Props {
   filtros: FiltrosDTO;
   setFiltros: (filtros: FiltrosDTO) => void;
+  setDepositos: (depositos: Deposito[]) => void;
 }
 
-const FormularioFiltros = ({ filtros, setFiltros }: Props) => {
-
+const FormularioFiltros = ({ filtros, setFiltros, setDepositos }: Props) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFiltros({ ...filtros, [name]: value });
   };
+
+  const handleProveedorChange = (proveedor_id: number | null) => {
+    setFiltros({ ...filtros, nro_proveedor: proveedor_id || 0 });
+  };
+
   const { sucursales, fetchSucursales } = useSucursalesStore();
   const { depositos, fetchDepositos } = useDepositosStore();
 
@@ -26,6 +38,10 @@ const FormularioFiltros = ({ filtros, setFiltros }: Props) => {
     fetchSucursales();
     fetchDepositos();
   }, []);
+
+  useEffect(() => {
+    setDepositos(depositos);
+  }, [depositos]);
 
   //establecer por defecto el deposito y la sucursal
   useEffect(() => {
@@ -41,12 +57,65 @@ const FormularioFiltros = ({ filtros, setFiltros }: Props) => {
     }
   }, [depositos, sucursales]);
 
+  const ReporteComponente = (
+    filtros: FiltrosDTO,
+    onComplete: () => void,
+    onError: (error: any) => void,
+    action: "print" | "download"
+  ) => {
+    const reporteDiv = document.createElement("div");
+    reporteDiv.style.display = "none";
+    document.body.appendChild(reporteDiv);
+
+    const root = createRoot(reporteDiv);
+    root.render(
+      <ReporteIngresosComponent
+        filtros={filtros}
+        onComplete={onComplete}
+        onError={onError}
+        action={action}
+      />
+    );
+
+    setTimeout(() => {
+      root.unmount();
+      document.body.removeChild(reporteDiv);
+    }, 2000);
+  };
+
+
+  const ReporteComponenteExcel = (
+    filtros: FiltrosDTO,
+    onComplete: () => void,
+    onError: (error: any) => void,
+  ) => {
+    console.log("ReporteComponenteExcel", filtros);
+    const reporteDiv = document.createElement("div");
+    reporteDiv.style.display = "none";
+    document.body.appendChild(reporteDiv);
+
+    const root = createRoot(reporteDiv);
+    root.render(
+      <InformeIngresosExcel
+        filtros={filtros}
+        onComplete={onComplete}
+        onError={onError}
+      />
+    );
+
+    setTimeout(() => {
+      root.unmount();
+      document.body.removeChild(reporteDiv);
+    }, 2000);
+  };
   return (
-    <div className="flex flex-col gap-2 w-full p-2">
+    <div className="flex flex-col gap-2 w-full p-2 ">
       <div className="flex flex-row gap-2 items-center bg-blue-500 w-full p-4 rounded-md">
-        <h1 className="text-white text-xl font-bold">Formulario de Ingresos</h1>
+        <h1 className="text-white text-xl font-bold">
+          Verificacion de Ingreso de Articulos
+        </h1>
       </div>
-      <div className="flex flex-row gap-2 w-full border border-gray-200 rounded-md bg-white p-2 items-center">
+      <div className="flex flex-row gap-2 w-full border border-gray-200 rounded-md bg-blue-200 p-2 items-center">
         <div className="flex flex-col gap-2 border border-gray-200 rounded-md bg-orange-200 p-2">
           <p className="text-md font-bold">Tipo de Ingreso</p>
           <div className="flex flex-row gap-2">
@@ -146,17 +215,32 @@ const FormularioFiltros = ({ filtros, setFiltros }: Props) => {
             )}
           </select>
         </div>
-        <div className="flex flex-col gap-2">
-          <label htmlFor="nro_proveedor" className="text-md font-bold">
-            Codigo de  Proveedor
-          </label>
-          <input
-            type="number"
-            name="nro_proveedor"
+        <div className="flex flex-col gap-2 flex-1">
+          <ProveedoresSelect
+            onChange={(proveedor) => handleProveedorChange(proveedor)}
             value={filtros.nro_proveedor}
-            onChange={(e) => handleChange(e)}
-            className="border border-gray-200 rounded-md p-2 focus:outline-blue-500"
+            label="Proveedor"
+            required={false}
+            placeholder="Seleccione un proveedor"
           />
+        </div>
+        <div className="flex flex-col gap-2">
+          <label htmlFor="deposito" className="text-md font-bold">
+            Estado de verificacion
+          </label>
+          <select
+            name="verificado"
+            value={filtros.verificado}
+            onChange={(e) =>
+              setFiltros({ ...filtros, verificado: parseInt(e.target.value) })
+            }
+            className="border border-gray-200 rounded-md p-2 focus:outline-blue-500"
+          >
+            <option value={-1}>Todos</option>
+            <option value={0}>Sin verificar</option>
+            <option value={1}>Verificado</option>
+            <option value={2}>Confirmado</option>
+          </select>
         </div>
         <div className="flex flex-col gap-2">
           <label htmlFor="nro_factura" className="text-md font-bold">
@@ -172,12 +256,43 @@ const FormularioFiltros = ({ filtros, setFiltros }: Props) => {
         </div>
         <div className="flex flex-col gap-2 p-1 items-center justify-end">
           <button
-            className="bg-blue-500 text-white rounded-md p-2"
+            className="bg-red-500 text-white rounded-md p-2"
             onClick={() => {
-              console.log("filtros", filtros);
+              ReporteComponente(
+                filtros,
+                () => {
+                  console.log("Reporte generado correctamente");
+                },
+                (error) => {
+                  console.log("Error al generar el reporte", error);
+                },
+                "download"
+              );
             }}
           >
-            <p className="text-white font-bold text-md">Procesar</p>
+            <p className="text-white font-bold text-md flex flex-row gap-2 items-center">
+              Generar Reporte en PDF{" "}
+              <img src={pdfIcon} alt="PDF" className="w-8 h-8" />
+            </p>
+          </button>
+          <button
+            className="bg-[#38ae4e] text-white rounded-md p-2 flex flex-row gap-2 items-center"
+            onClick={() => {
+              ReporteComponenteExcel(
+                filtros,
+                () => {
+                  console.log("Reporte generado correctamente");
+                },
+                (error) => {
+                  console.log("Error al generar el reporte", error);
+                },
+              );
+            }}
+          >
+            <p className="text-white font-bold text-md flex flex-row gap-2 items-center">
+              Generar Reporte en Excel{" "}
+              <img src={excelIcon} alt="Excel" className="w-8 h-8" />
+            </p>
           </button>
         </div>
       </div>

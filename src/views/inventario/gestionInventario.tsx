@@ -95,7 +95,7 @@ const GestionInventario: React.FC = () => {
   const [unidadesMedidaSeleccionadas, setUnidadesMedidaSeleccionadas] =
     useState<number[]>([]);
 
-  const [estadoDeStock, setEstadoDeStock] = useState<number | null>(1);
+  const [estadoDeStock, setEstadoDeStock] = useState<number>(1);
 
   const [tipoValorizacionCosto, setTipoValorizacionCosto] = useState<
     number | null
@@ -107,6 +107,7 @@ const GestionInventario: React.FC = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState(false);
+  const [cargaInicial, setCargaInicial] = useState(true);
 
   const [limiteArticulosPorPagina] = useState<number>(50);
 
@@ -172,6 +173,39 @@ const GestionInventario: React.FC = () => {
     setIsLoading(true);
 
     try {
+      console.log(
+        'ENVIANDO FETCHING DE DATOS',
+        {
+          busqueda: busqueda,
+          deposito: depositosSeleccionados.length
+            ? depositosSeleccionados[0]
+            : null,
+          stock: estadoDeStock === 2 ? null : estadoDeStock,
+          marca: marcasSeleccionadas.length ? marcasSeleccionadas[0] : null,
+          categoria: categoriasSeleccionadas.length
+            ? categoriasSeleccionadas[0]
+            : null,
+          subcategoria: subcategoriasSeleccionadas.length
+            ? subcategoriasSeleccionadas[0]
+            : null,
+          proveedor: proveedoresSeleccionados.length
+            ? proveedoresSeleccionados[0]
+            : null,
+          ubicacion: ubicacionesSeleccionadas.length
+            ? ubicacionesSeleccionadas[0]
+            : null,
+          moneda: monedasSeleccionadas.length
+            ? monedasSeleccionadas[0]
+            : null,
+          unidadMedida: unidadesMedidaSeleccionadas.length
+            ? unidadesMedidaSeleccionadas[0]
+            : null,
+          tipoValorizacionCosto: tipoValorizacionCosto,
+          pagina: paginaActual,
+          limite: limiteArticulosPorPagina,
+            
+        }
+      )
       const response = await axios.get<{ body: PaginacionResponse }>(
         `${api_url}articulos/todos`,
         {
@@ -180,7 +214,7 @@ const GestionInventario: React.FC = () => {
             deposito: depositosSeleccionados.length
               ? depositosSeleccionados[0]
               : null,
-            stock: estadoDeStock === 2 ? null : estadoDeStock,
+            stock:  estadoDeStock,
             marca: marcasSeleccionadas.length ? marcasSeleccionadas[0] : null,
             categoria: categoriasSeleccionadas.length
               ? categoriasSeleccionadas[0]
@@ -206,7 +240,7 @@ const GestionInventario: React.FC = () => {
           },
         }
       );
-      console.log(response.data.body);
+      console.log('datos', response.data.body);
       setArticulos(response.data.body.datos);
       setNumeroDePaginas(response.data.body.paginacion.paginas);
     } catch (error) {
@@ -238,18 +272,12 @@ const GestionInventario: React.FC = () => {
       try {
         const response = await axios.get(`${api_url}depositos/`);
         setDepositos(response.data.body);
-        if (response.data.body.length > 0) {
-          setDepositosSeleccionados(
-            response.data.body.map((d: { dep_codigo: any }) => d.dep_codigo)
-          );
-        }
       } catch (err) {
         toast({
           title: "Error",
           description: "Hubo un problema al traer los depósitos.",
           status: "error",
           duration: 5000,
-
           isClosable: true,
         });
       }
@@ -285,6 +313,7 @@ const GestionInventario: React.FC = () => {
         setUbicaciones(ubicacionesRes.data.body);
         setMonedas(monedasRes.data.body);
         setUnidadesMedida(unidadesMedidaRes.data.body);
+        setCargaInicial(false);
       } catch (error) {
         toast({
           title: "Error",
@@ -300,9 +329,11 @@ const GestionInventario: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    fetchArticulos();
+    if (!cargaInicial) {
+      fetchArticulos();
+    }
   }, [
-    depositosSeleccionados.length ? depositosSeleccionados[0] : null,
+    depositosSeleccionados,
     estadoDeStock,
     marcasSeleccionadas,
     categoriasSeleccionadas,
@@ -314,6 +345,7 @@ const GestionInventario: React.FC = () => {
     paginaActual,
     limiteArticulosPorPagina,
     tipoValorizacionCosto,
+    cargaInicial
   ]);
 
   return (
@@ -418,12 +450,13 @@ const GestionInventario: React.FC = () => {
             <Box className="border border-gray-200 rounded-md p-2">
               <p>Estado de stock</p>
               <Select
+                value={estadoDeStock}
                 onChange={(e) => setEstadoDeStock(Number(e.target.value))}
               >
-                <option value="2">Todos</option>
-                <option value="1">Stock positivo</option>
-                <option value="-1">Stock negativo</option>
-                <option value="0">Stock cero</option>
+                <option value={2}>Todos</option>
+                <option value={1}>Stock positivo</option>
+                <option value={-1}>Stock negativo</option>
+                <option value={0}>Stock cero</option>
               </Select>
             </Box>
             <Box

@@ -1515,12 +1515,12 @@ export default function Pedidos() {
                               <Minus />
                               <Text as="span" color="red.500" fontSize={"14px"}>
                                 Precio Credito:{" "}
-                                {formatCurrency(moneda === 'PYG' ? articulo.ar_pvg : articulo.ar_pvdcredito)}
+                                {formatCurrency(moneda === 'PYG' ? articulo.ar_pvcredito : articulo.ar_pvdcredito)}
                               </Text>
                               <Minus />
                               <Text as="span" color="red.500" fontSize={"14px"}>
                                 Precio Mostrador:{" "}
-                                {formatCurrency(moneda === 'PYG' ? articulo.ar_pvg : articulo.ar_pvdmostrador)}
+                                {formatCurrency(moneda === 'PYG' ? articulo.ar_pvmostrador : articulo.ar_pvdmostrador)}
                               </Text>
                               <Minus />
                               <Text

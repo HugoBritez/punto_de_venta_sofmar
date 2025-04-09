@@ -11,12 +11,14 @@ import {
   Text, 
   InputGroup, 
   InputLeftElement,
+  InputRightElement,
+  IconButton,
   useToast,
   useMediaQuery,
   Flex,
   Image,
 } from '@chakra-ui/react';
-import { LockIcon, AtSignIcon } from '@chakra-ui/icons';
+import { LockIcon, AtSignIcon, ViewIcon, ViewOffIcon } from '@chakra-ui/icons';
 import { api_url } from '@/utils';
 import Auditar from '@/services/AuditoriaHook';
 
@@ -28,6 +30,7 @@ import { getConfiguraciones } from '@/services/ConfiguracionesHook';
 const Login: React.FC = () => {
   const [usuario, setUsuario] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   // const [, setPermisos] = useState([]);
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -105,6 +108,12 @@ const Login: React.FC = () => {
                 placeholder="Usuario"
                 value={usuario}
                 onChange={(e) => setUsuario(e.target.value)}
+                autoCapitalize="none"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    ingresar();
+                  }
+                }}
               />
             </InputGroup>
           </FormControl>
@@ -114,11 +123,25 @@ const Login: React.FC = () => {
                 <LockIcon color="gray.300" />
               </InputLeftElement>
               <Input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 placeholder="Contraseña"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                autoCapitalize="none"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    ingresar();
+                  }
+                }}
               />
+              <InputRightElement>
+                <IconButton
+                  variant="ghost"
+                  aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  icon={showPassword ? <ViewOffIcon /> : <ViewIcon />}
+                  onClick={() => setShowPassword(!showPassword)}
+                />
+              </InputRightElement>
             </InputGroup>
           </FormControl>
           <Button colorScheme="blue" width="100%" onClick={ingresar}>

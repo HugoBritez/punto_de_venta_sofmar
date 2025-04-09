@@ -23,7 +23,6 @@ import VentasDashboard from "./views/dashboards/SalesDashboard";
 import Presupuestos from "./views/presupuestos/Presupuestos";
 import { SwitchProvider } from "./services/SwitchContext";
 import ConsultaPresupuestos from "./views/presupuestos/ConsultaPresupuesto";
-import Ruteamientos from "./views/ruteamientos/Ruteamientos";
 import Rutas from "./views/ruteamientos/Rutas";
 import RuteamientosDashboard from "./views/ruteamientos/RuteamientosDashboard";
 import Pedidos from "./views/pedidos/Pedidos";
@@ -53,6 +52,9 @@ import Configuraciones from "./views/configuraciones/Configuraciones";
 import FacturaSend from "./views/playground/FacturaSendTesting";
 import FormularioArticulo from "./views/articulos/components/FormularioArticulo";
 import FormularioControl from "./views/compras/control_ingreso/components/FormularioControl";
+import PlanificacionRuteamientos from "./views/ruteamientos/new_ruteamiento/PlanificacionRuteamientos";
+import VerificadorControl from "./views/compras/control_ingreso/components/VerificadorControl";
+import ConsultaPedidosFaltantes from "./views/entregas/ConsultaPedidosFaltantes";
 const ProtectedLayout: React.FC = () => {
   const { auth, isLoading } = useAuth();
   const [isLargerThan768] = useMediaQuery("(min-width: 768px)");
@@ -111,7 +113,7 @@ function App() {
                 <Route path="/entrega-de-pedidos" element={<Entregas />} />
                 <Route
                   path="/ticket"
-                  element={<ModeloTicket  />}
+                  element={<ModeloTicket />}
                 />
                 <Route
                   path="/factura"
@@ -159,7 +161,7 @@ function App() {
                   path="/consulta-de-presupuestos"
                   element={<ConsultaPresupuestos />}
                 />
-                <Route path="/ruteamientos" element={<Ruteamientos />} />
+                <Route path="/ruteamientos" element={<PlanificacionRuteamientos />} />
                 <Route path="/rutas" element={<Rutas />} />
                 <Route
                   path="/rutas-dashboard"
@@ -177,6 +179,8 @@ function App() {
                 <Route path="/configuraciones" element={<Configuraciones />} />
                 <Route path="/formulario-articulos" element={<FormularioArticulo />} />
                 <Route path="/control-ingreso" element={<FormularioControl />} />
+                <Route path="/verificador-ingresos" element={<VerificadorControl />} />
+                <Route path="/consulta-pedidos-faltantes" element={<ConsultaPedidosFaltantes />} />
               </Route>
               <Route path="/" element={<Navigate to="/home" replace />} />
               <Route path="/404" element={<NoExiste />} />

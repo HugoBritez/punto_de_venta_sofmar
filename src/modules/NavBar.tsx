@@ -195,6 +195,7 @@ const Sidebar = () => {
           path: "/punto-de-venta-nuevo",
           enabled: true,
         },
+
         {
           grupo: 2,
           orden: 104,
@@ -320,7 +321,7 @@ const Sidebar = () => {
         },
         {
           grupo: 1,
-          orden: 1,
+          orden: 15,
           id: 15,
           name: "Toma de inventario",
           icon: ArchiveRestore,
@@ -339,34 +340,34 @@ const Sidebar = () => {
       ],
     },
     {
-      name: "Modulo Ruteamientos",
+      name: "Modulo Planificación",
       icon: Bus,
       path: "/ruteamientos",
       enabled: true,
       subItems: [
         {
           grupo: 2,
-          orden: 30,
+          orden: 18,
           id: 68,
           name: "Ingreso de planificación",
           icon: Truck,
           path: "/ruteamientos",
           enabled: true,
         },
-        {
-          grupo: 2,
-          orden: 18,
-          id: 56,
-          name: "Iniciar Rutas",
-          icon: Truck,
-          path: "/rutas",
-          enabled: true,
-        },
+        // {
+        //   grupo: 2,
+        //   orden: 18,
+        //   id: 56,
+        //   name: "Iniciar Rutas",
+        //   icon: Truck,
+        //   path: "/rutas",
+        //   enabled: true,
+        // },
         {
           grupo: 2,
           orden: 31,
           id: 69,
-          name: "Dashboard Ruteamientos",
+          name: "Dashboard Planificaciones",
           icon: Truck,
           path: "/rutas-dashboard",
           enabled: true,
@@ -380,12 +381,30 @@ const Sidebar = () => {
       enabled: true,
       subItems: [
         {
-          grupo: 2,
-          orden: 30,
+          grupo: 1,
+          orden: 51,
           id: 68,
           name: "Control de Ingresos",
           icon: Truck,
           path: "/control-ingreso",
+          enabled: true,
+        },
+        {
+          grupo: 1,
+          orden: 51,
+          id: 68,
+          name: "Verificador de Ingresos",
+          icon: Truck,
+          path: "/verificador-ingresos",
+          enabled: true,
+        },
+        {
+          grupo: 1,
+          orden: 51,
+          id: 68,
+          name: "Consulta de Pedidos Faltantes",
+          icon: Truck,
+          path: "/consulta-pedidos-faltantes",
           enabled: true,
         },
       ],
@@ -398,7 +417,7 @@ const Sidebar = () => {
       subItems: [
         {
           grupo: 2,
-          orden: 18,
+          orden: 110,
           id: 56,
           name: "Ruteamiento de pedidos",
           icon: Truck,
@@ -407,7 +426,7 @@ const Sidebar = () => {
         },
         {
           grupo: 2,
-          orden: 18,
+          orden: 111,
           id: 56,
           name: "Rutas de pedidos",
           icon: Truck,
@@ -416,7 +435,7 @@ const Sidebar = () => {
         },
         {
           grupo: 2,
-          orden: 31,
+          orden: 112,
           id: 69,
           name: "Informe de entregas",
           icon: FileBox,
@@ -425,7 +444,7 @@ const Sidebar = () => {
         },
         {
           grupo: 2,
-          orden: 31,
+          orden: 113,
           id: 69,
           name: "Preparacion de pedidos",
           icon: FileBox,
@@ -434,7 +453,7 @@ const Sidebar = () => {
         },
         {
           grupo: 2,
-          orden: 31,
+          orden: 114,
           id: 69,
           name: "Verificacion de pedidos",
           icon: FileBox,
@@ -444,8 +463,8 @@ const Sidebar = () => {
       ],
     },
     {
-      grupo: 2,
-      orden: 31,
+      grupo: 10,
+      orden: 9,
       id: 69,
       name: "Configuraciones",
       icon: Settings,
@@ -742,7 +761,6 @@ useEffect(() => {
               </Text>
             </Flex>
           )}
-
           {menuItems.map(renderNavItem)}
           <Box mt="auto">
             <Flex

@@ -602,6 +602,12 @@ const VentaBalconNuevo = () => {
   const handleBuscarCliente = (e: React.ChangeEvent<HTMLInputElement>) => {
     const busqueda = e.target.value;
     setClienteBusqueda(busqueda);
+    
+    // Si el input está vacío, limpiamos la selección
+    if (busqueda === "") {
+      setClienteSeleccionado(null);
+    }
+    
     if (busqueda.length >= 0) {
       setIsClienteCardVisible(true);
       getClientes(busqueda);
@@ -639,6 +645,7 @@ const VentaBalconNuevo = () => {
 
   const handleSelectCliente = (cliente: Cliente) => {
     setClienteSeleccionado(cliente);
+    setClienteBusqueda(cliente.cli_razon);
     getVendedores(cliente.vendedor_cliente);
     setVendedorSeleccionado(
       vendedores.find((vendedor) => vendedor.id === cliente.vendedor_cliente) ||
@@ -2601,11 +2608,7 @@ const VentaBalconNuevo = () => {
                     type="text"
                     name=""
                     id=""
-                    value={
-                      clienteSeleccionado
-                        ? clienteSeleccionado.cli_razon
-                        : clienteBusqueda
-                    }
+                    value={clienteBusqueda}
                     onChange={(e) => {
                       handleBuscarCliente(e);
                     }}

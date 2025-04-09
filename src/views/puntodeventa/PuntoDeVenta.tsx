@@ -587,6 +587,12 @@ const PuntoDeVentaNuevo = () => {
   const handleBuscarCliente = (e: React.ChangeEvent<HTMLInputElement>) => {
     const busqueda = e.target.value;
     setClienteBusqueda(busqueda);
+    
+    // Si el input está vacío, limpiamos la selección
+    if (busqueda === "") {
+      setClienteSeleccionado(null);
+    }
+    
     if (busqueda.length >= 0) {
       setIsClienteCardVisible(true);
       getClientes(busqueda);
@@ -627,6 +633,7 @@ const PuntoDeVentaNuevo = () => {
 
   const handleSelectCliente = (cliente: Cliente) => {
     setClienteSeleccionado(cliente);
+    setClienteBusqueda(cliente.cli_razon);
   };
 
   const crearItemValidado = (
@@ -2511,11 +2518,7 @@ const formatearDivisasExtranjeras = (num: number) => {
                     type="text"
                     name=""
                     id=""
-                    value={
-                      clienteSeleccionado
-                        ? clienteSeleccionado.cli_razon
-                        : clienteBusqueda
-                    }
+                    value={clienteBusqueda}
                     onChange={(e) => {
                       handleBuscarCliente(e);
                     }}
