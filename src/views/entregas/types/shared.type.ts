@@ -14,6 +14,15 @@ export interface PedidoFaltante {
     observacion: string;
     subtotal: number;
     p_unitario: number;
+    tiene_lotes_disponibles: string;
+    lotes_disponibles: {
+        id_lote: number;
+        lote: string;
+        vencimiento: string;
+        cantidad: number;
+        deposito: string;
+        id_deposito: number;
+    }[]
 }
 
 export interface FiltrosPedidoFaltante {
@@ -29,3 +38,4 @@ export interface FiltrosPedidoFaltante {
     categoria?: number;
     subcategoria?: number;
 }
+

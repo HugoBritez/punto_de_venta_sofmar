@@ -38,6 +38,7 @@ import {
   ScanQrCode,
   Settings,
   Podcast,
+  Boxes,
 } from "lucide-react";
 import { useAuth } from "@/services/AuthContext";
 import { db, fechaRelease, version } from "@/utils";
@@ -405,6 +406,15 @@ const Sidebar = () => {
           name: "Consulta de Pedidos Faltantes",
           icon: Truck,
           path: "/consulta-pedidos-faltantes",
+          enabled: true,
+        },
+        {
+          grupo: 1,
+          orden: 51,
+          id: 68,
+          name: "Gestion de Direcciones",
+          icon: Boxes,
+          path: "/gestion-direcciones",
           enabled: true,
         },
       ],

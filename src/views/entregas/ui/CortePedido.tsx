@@ -10,19 +10,25 @@ interface CortePedidoProps {
   onSuccess?: () => void;
 }
 
+const MOTIVOS_CORTE = [
+  "FALTANTE EN STOCK",
+  "PRODUCTO AVERIADO",
+  "MOTIVO COMERCIAL"
+] as const;
+
 const CortePedido = ({ id_detalle, cantidad, onClose, onSuccess }: CortePedidoProps) => {
   const { agregarPedidoFaltante, loading } = useCortePedidos();
   const [isOpen, setIsOpen] = useState(true);
   const [cantidadInput, setCantidadInput] = useState(cantidad);
-  const [observacion, setObservacion] = useState("");
+  const [motivo, setMotivo] = useState<typeof MOTIVOS_CORTE[number] | "">("");
   const toast = useToast();
 
   const handleAgregarPedidoFaltante = async () => {
     try {
-      if (observacion.trim() === "") {
+      if (motivo === "") {
         toast({
           title: "Error",
-          description: "El motivo de corte de pedido es requerido",
+          description: "Debe seleccionar un motivo de corte de pedido",
           status: "error",
           duration: 3000,
           isClosable: true,
@@ -49,8 +55,8 @@ const CortePedido = ({ id_detalle, cantidad, onClose, onSuccess }: CortePedidoPr
         });
         return;
       }
-      await agregarPedidoFaltante(id_detalle, cantidadInput, observacion);
-      console.log('datos enviados', id_detalle, cantidadInput, observacion)
+      await agregarPedidoFaltante(id_detalle, cantidadInput, motivo);
+      console.log('datos enviados', id_detalle, cantidadInput, motivo)
       setIsOpen(false);
       if (onClose) onClose();
       if (onSuccess) onSuccess();
@@ -115,12 +121,18 @@ const CortePedido = ({ id_detalle, cantidad, onClose, onSuccess }: CortePedidoPr
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Motivo de corte de pedido:
                 </label>
-                <textarea
-                  value={observacion}
-                  onChange={(e) => setObservacion(e.target.value)}
+                <select
+                  value={motivo}
+                  onChange={(e) => setMotivo(e.target.value as typeof MOTIVOS_CORTE[number])}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  rows={3}
-                />
+                >
+                  <option value="">Seleccione un motivo</option>
+                  {MOTIVOS_CORTE.map((motivo) => (
+                    <option key={motivo} value={motivo}>
+                      {motivo}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 

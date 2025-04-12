@@ -392,6 +392,9 @@ export default function ConsultaPedidos({
         duration: 3000,
         isClosable: true,
       });
+      setIsAuthModalOpen(false);
+      setPedidoSeleccionado(null);
+      getPedidosNuevo();
     } catch (error) {
       toast({
         title: "Error de autorización",

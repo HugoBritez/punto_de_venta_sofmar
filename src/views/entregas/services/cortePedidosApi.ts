@@ -3,6 +3,7 @@ import axios from "axios";
 import { FiltrosPedidoFaltante } from "../types/shared.type";
 
 export const cortePedidosApi = {
+  
   agregarPedidoFaltante: async (detalle_id: number, cantidad: number, observacion?: string) => {
     try {
       const response = await axios.post(
@@ -30,6 +31,20 @@ export const cortePedidosApi = {
     } catch (error) {
         console.error("Error al obtener pedido faltante:", error);
         throw error;
+    }
+  },
+
+  reprocesarPedido: async (id_pedido: number) => {
+    try{
+      const response = await axios.post(`${api_url}pedidos/reprocesar-pedido`,
+        {
+          id_pedido
+        }
+      )
+      return response.data;
+    } catch (error) {
+      console.error("Error al reprocesar pedido:", error);
+      throw error;
     }
   }
 };

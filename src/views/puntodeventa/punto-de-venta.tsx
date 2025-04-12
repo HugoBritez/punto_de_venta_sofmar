@@ -628,7 +628,7 @@ export default function PuntoDeVenta() {
       let precioSeleccionado;
       switch (listaPrecio) {
         case "2": // Crédito
-          precioSeleccionado = item.ar_pvcredito;
+          precioSeleccionado = item.ar_pvdcredito;
           break;
         case "3": // Mostrador
           precioSeleccionado = item.ar_pvmostrador;
@@ -2593,7 +2593,7 @@ export default function PuntoDeVenta() {
                                 {formatCurrency(
                                   moneda === "PYG"
                                     ? articulo.ar_pvg
-                                    : articulo.ar_pvdmostrador
+                                    : articulo.ar_pvmostrador
                                 )}
                               </Text>
                               <Minus />

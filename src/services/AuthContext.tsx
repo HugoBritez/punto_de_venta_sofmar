@@ -38,7 +38,7 @@ interface LoginData {
       op_ver_proveedor: number;
       op_aplicar_descuento: number;
       op_movimiento: number;
-      rol: number;
+      or_rol: number;
       permisos_menu: {
         acceso: number;
         menu_id: number;
@@ -65,7 +65,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const [auth, setAuth] = useState<AuthState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [lastActivity, setLastActivity] = useState(new Date().getTime());
-  const INACTIVITY_THRESHOLD = 30 * 60 * 1000; // 30 minutos
+  const INACTIVITY_THRESHOLD = 30 * 60 * 1000;
 
   useEffect(() => {
     const loadAuthState = () => {
@@ -183,7 +183,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       permisoVerProveedor: data.usuario[0].op_ver_proveedor,
       permisos_descuento: data.usuario[0].op_aplicar_descuento,
       tokenExpiration: expirationTime,
-      rol: data.usuario[0].rol,
+      rol: data.usuario[0].or_rol,
       movimiento: data.usuario[0].op_movimiento,
       permisos_menu: permisosMenu,
     };

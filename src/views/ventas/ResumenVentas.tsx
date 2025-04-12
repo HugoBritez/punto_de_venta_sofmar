@@ -234,6 +234,9 @@ export default function ResumenVentas({
       setTipoImpresionFactura(2); // impresion tipo ticket
       console.log("impresion tipo ticket");
     }
+    else {
+      setTipoImpresionFactura(null);
+    }
   }
 
   const setColor = (estado: string | number) => {
@@ -1400,6 +1403,15 @@ export default function ResumenVentas({
                         ventaSeleccionadaInterna?.codigo || 0,
                         "print"
                       );
+                  } else {
+                    toast({
+                      title: "Atencion",
+                      description:
+                        "Su configuracion de impresion de factura no es valida para el sistema web, por favor reimprima desde el sistema de escritorio.",
+                      status: "info",
+                      duration: 6000,
+                      isClosable: true,
+                    });
                   }
                 }}
               >

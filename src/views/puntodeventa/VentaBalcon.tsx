@@ -1159,25 +1159,29 @@ const VentaBalconNuevo = () => {
   const finalizarVenta = async () => {
     try {
       if (
-        !clienteSeleccionado ||
-        !vendedorSeleccionado ||
-        itemsParaVenta.length === 0
+        !clienteSeleccionado 
       ) {
         toast({
           title: "Error",
-          description: "Faltan datos requeridos para la venta",
+          description: "Debe seleccionar un cliente",
           status: "error",
           duration: 3000,
         });
         return;
       }
-      if (
-        opcionesFinalizacion.tipo_venta === "CREDITO" &&
-        !opcionesFinalizacion.cantidad_cuotas
-      ) {
+      if (!vendedorSeleccionado) {
         toast({
           title: "Error",
-          description: "Faltan datos requeridos para la venta",
+          description: "Debe seleccionar un vendedor",
+          status: "error",
+          duration: 3000,
+        });
+        return;
+      }
+      if (itemsParaVenta.length === 0) {
+        toast({
+          title: "Error",
+          description: "Debe seleccionar al menos un item",
           status: "error",
           duration: 3000,
         });

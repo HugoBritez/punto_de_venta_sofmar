@@ -80,6 +80,8 @@ const ConsultaArticulos = () => {
 
   const permisos_ver_costo = sessionStorage.getItem("permiso_ver_utilidad");
 
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+
   const fechArticulos = async (busqueda: string | null = null) => {
     try {
       setLoading(true);
@@ -96,7 +98,7 @@ const ConsultaArticulos = () => {
           },
         }
       );
-      console.log('response', response.data.body)
+      console.log('LLAMANDO A FETCHARTICULOS', busqueda)
       setArticulos(response.data.body);
     } catch (error) {
       console.log(error);
@@ -114,55 +116,72 @@ const ConsultaArticulos = () => {
 
   const handleBusqueda = (e: React.ChangeEvent<HTMLInputElement>) => {
     const busqueda = e.target.value;
-    fechArticulos(busqueda);
+    
+    // Limpiar el timeout anterior si existe
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+
+    // Crear un nuevo timeout
+    const timeout = setTimeout(() => {
+      fechArticulos(busqueda);
+    }, 600); // 500ms de debounce para la búsqueda
+
+    setSearchTimeout(timeout);
   };
 
-  const fechMonedas = async () => {
-    try {
-      const response = await axios.get(`${api_url}monedas/`);
-      setMonedas(response.data.body);
-      if (response.data.body.length > 0) {
-        setMonedaSeleccionada(response.data.body[0]);
+  // Limpiar el timeout cuando el componente se desmonte
+  useEffect(() => {
+    return () => {
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
       }
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  const fechDepositos = async () => {
-    try {
-      const response = await axios.get(`${api_url}depositos/`);
-      setDepositos(response.data.body);
-      if (response.data.body.length > 0) {
-        setDepositoSeleccionado(response.data.body[0]);
-      }
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  const fechSucursales = async () => {
-    try {
-      const response = await axios.get(`${api_url}sucursales/listar`);
-      setSucursales(response.data.body);
-      if (response.data.body.length > 0) {
-        setSucursalSeleccionada(response.data.body[0]);
-      }
-    } catch (error) {
-      console.log(error);
-    }
-  };
+    };
+  }, [searchTimeout]);
 
   useEffect(() => {
-    fechArticulos();
-    fechMonedas();
-    fechDepositos();
-    fechSucursales();
-    console.log('permisos_ver_costo', permisos_ver_costo)
+    const fetchInitialData = async () => {
+      try {
+        const [monedasRes, depositosRes, sucursalesRes] = await Promise.all([
+          axios.get(`${api_url}monedas/`),
+          axios.get(`${api_url}depositos/`),
+          axios.get(`${api_url}sucursales/listar`)
+        ]);
+
+        setMonedas(monedasRes.data.body);
+        setDepositos(depositosRes.data.body);
+        setSucursales(sucursalesRes.data.body);
+
+        if (monedasRes.data.body.length > 0) {
+          setMonedaSeleccionada(monedasRes.data.body[0]);
+        }
+        if (depositosRes.data.body.length > 0) {
+          setDepositoSeleccionado(depositosRes.data.body[0]);
+        }
+        if (sucursalesRes.data.body.length > 0) {
+          setSucursalSeleccionada(sucursalesRes.data.body[0]);
+        }
+      } catch (error) {
+        console.error('Error al cargar datos iniciales:', error);
+        toast({
+          title: "Error",
+          description: "Error al cargar los datos iniciales",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
+      }
+    };
+
+    fetchInitialData();
   }, []);
 
   useEffect(() => {
-    fechArticulos();
+    const timer = setTimeout(() => {
+      fechArticulos('');
+    }, 300); // Debounce de 300ms
+
+    return () => clearTimeout(timer);
   }, [sucursalSeleccionada, depositoSeleccionado, monedaSeleccionada, stock]);
 
   const handleItemSeleccionado = (articulo: Articulos) => {

@@ -7,6 +7,7 @@ interface UseCortePedidos {
     error: string | null;
     agregarPedidoFaltante: (detalle_id: number, cantidad: number, observacion?: string) => Promise<any>;
     obtenerPedidoFaltante: (filtros: FiltrosPedidoFaltante) => Promise<PedidoFaltante[]>;
+    reprocesarPedido: (id_pedido: number) => Promise<any>;
     pedidosFaltantes: PedidoFaltante[];
 }
 
@@ -46,9 +47,23 @@ export const useCortePedidos = (): UseCortePedidos => {
             return [];
         }
     }
+
+    const reprocesarPedido = async (id_pedido: number) => {
+        try {
+            setLoading(true);
+            const response = await cortePedidosApi.reprocesarPedido(id_pedido);
+            setLoading(false);
+            return response;
+        } catch (error) {
+            setError("Error al reprocesar pedido");
+            setLoading(false);
+        }
+    }
+
     return {
         agregarPedidoFaltante,
         obtenerPedidoFaltante,
+        reprocesarPedido,
         loading,
         error,
         pedidosFaltantes

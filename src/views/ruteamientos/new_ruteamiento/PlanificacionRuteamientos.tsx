@@ -110,6 +110,8 @@ const PlanificacionRuteamientos = () => {
 
 
   const permiso_movimiento =Number(sessionStorage.getItem("operador_movimiento"));
+
+  const operador_rol = Number(sessionStorage.getItem("rol"));
   
 
 
@@ -218,15 +220,33 @@ const PlanificacionRuteamientos = () => {
     }
   };
 
+  const tienePermisos = () =>{
+    if(permiso_movimiento === 1){
+      return vendedoresSeleccionadosParaFiltro;
+    } else if (operador_rol === 7 || operador_rol === 11){
+      return vendedoresSeleccionadosParaFiltro;
+    } else {
+      return vendedorActual;
+    }
+  }
+
+  const tienePermisosBooleano = () => {
+    if (permiso_movimiento === 1) {
+      return false;
+    } else if (operador_rol === 7 || operador_rol === 11) {
+      return false;
+    } else {
+      return true;
+    }
+  };
+
   const fetchRuteamientos = async () => {
     try {
       const response = await axios.post(`${api_url}agendas/`, {
         fecha_desde: fechaDesde,
         fecha_hasta: fechaHasta,
         cliente: clientesSeleccionadoParaFiltro,
-        vendedor: permiso_movimiento === 1
-          ? vendedoresSeleccionadosParaFiltro
-          : vendedorActual,
+        vendedor: tienePermisos(),
         visitado: filtroCondicion,
         estado: filtroEstado,
         planificacion: filtroPlanificacion,
@@ -334,6 +354,7 @@ const PlanificacionRuteamientos = () => {
   useEffect(() => {
     fetchRuteamientos();
     fetchVendedores();
+    console.log('rol del operador', operador_rol);
   }, [
     fechaDesde,
     fechaHasta,
@@ -437,7 +458,7 @@ const PlanificacionRuteamientos = () => {
                 readOnly
                 placeholder="Buscar vendedor"
                 onClick={() => onVendedorOpen()}
-                disabled = {permiso_movimiento ===0 }
+                disabled = {tienePermisosBooleano()}
               />
             </Box>
             <Box flex={1}>

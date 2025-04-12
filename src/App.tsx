@@ -55,11 +55,10 @@ import FormularioControl from "./views/compras/control_ingreso/components/Formul
 import PlanificacionRuteamientos from "./views/ruteamientos/new_ruteamiento/PlanificacionRuteamientos";
 import VerificadorControl from "./views/compras/control_ingreso/components/VerificadorControl";
 import ConsultaPedidosFaltantes from "./views/entregas/ConsultaPedidosFaltantes";
+import GestionDirecciones from "./views/direcciones/GestionDirecciones";
 const ProtectedLayout: React.FC = () => {
   const { auth, isLoading } = useAuth();
   const [isLargerThan768] = useMediaQuery("(min-width: 768px)");
-
-
 
   if (isLoading) {
     return (
@@ -181,6 +180,7 @@ function App() {
                 <Route path="/control-ingreso" element={<FormularioControl />} />
                 <Route path="/verificador-ingresos" element={<VerificadorControl />} />
                 <Route path="/consulta-pedidos-faltantes" element={<ConsultaPedidosFaltantes />} />
+                <Route path="/gestion-direcciones" element={<GestionDirecciones />} />
               </Route>
               <Route path="/" element={<Navigate to="/home" replace />} />
               <Route path="/404" element={<NoExiste />} />

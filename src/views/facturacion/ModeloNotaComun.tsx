@@ -83,19 +83,23 @@ const ModeloNotaComun = ({
   const generarPDF = async (tipoSalida: "print" | "download" | "b64" = "print") => {
     try {
       console.log("empezando a generar pdf, acción:", tipoSalida);
-      const detallesVenta =
-        venta?.detalles.map((detalle) => [
-          detalle.codigo.toString(),
-          detalle.descripcion,
-          detalle.cantidad.toString(),
-          `${(Number(detalle.precio) || 0).toLocaleString("es-PY")}`,
-          `${(Number(detalle.descuento) || 0).toLocaleString("es-PY")}`,
-          detalle.total
-            ? `${Number(detalle.total).toLocaleString("es-PY")}`
-            : "0",
+      
+      // Verificar si tenemos los datos necesarios
+      if (!venta || !venta.detalles) {
+        throw new Error("No hay datos de venta o detalles disponibles");
+      }
 
-        ]) || [];
-        
+      const detallesVenta = venta.detalles.map((detalle) => [
+        detalle.codigo.toString(),
+        detalle.descripcion,
+        detalle.cantidad.toString(),
+        `${(Number(detalle.precio) || 0).toLocaleString("es-PY")}`,
+        `${(Number(detalle.descuento) || 0).toLocaleString("es-PY")}`,
+        detalle.total
+          ? `${Number(detalle.total).toLocaleString("es-PY")}`
+          : "0",
+      ]);
+      
       // Asegurar altura mínima de 5.5 cm (aproximadamente 8-10 filas)
       const minFilasRequeridas = 10;
       const filasActuales = detallesVenta.length;
@@ -496,17 +500,43 @@ const ModeloNotaComun = ({
 
   const getVenta = async () => {
     try {
+      if (!id_venta) {
+        throw new Error("ID de venta no proporcionado");
+      }
+
       const response = await axios.get(`${api_url}venta/venta-imprimir`, {
         params: {
           ventaId: id_venta,
         },
       });
-      console.log(response.data.body);
-      setVenta(response.data.body);
+
+      if (!response.data || !response.data.body) {
+        throw new Error("La respuesta de la API no contiene datos válidos");
+      }
+
+      const ventaData = response.data.body;
+      
+      // Validar que los datos requeridos estén presentes
+      if (!ventaData.detalles || !Array.isArray(ventaData.detalles)) {
+        throw new Error("Los detalles de la venta no están disponibles o no son válidos");
+      }
+
+      console.log("Datos de venta recibidos:", ventaData);
+      setVenta(ventaData);
     } catch (error) {
       console.error("Error al obtener la venta:", error);
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los datos de la venta",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      throw error; // Re-lanzar el error para que sea manejado por el useEffect
     }
   };
+
+  
 
   return <div id="ticket"></div>;
 };

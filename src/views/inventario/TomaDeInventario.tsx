@@ -662,6 +662,7 @@ const TomaDeInventario = () => {
     setArticuloSeleccionado(articulo);
     setArticuloBuscado(articulo.ar_descripcion);
     setIsFloatingCardVisible(false);
+    console.log('articulo seleccionado', articulo);
   };
 
   useEffect(() => {
@@ -1125,6 +1126,10 @@ const TomaDeInventario = () => {
 
   async function insertarItemsEnInventario() {
     try {
+      console.log('inventario seleccionado', inventarioSeleccionado);
+      console.log('tipo inventario', tipoInventario);
+      console.log('categorias seleccionadas', categoriasSeleccionadas);
+      console.log('articulo seleccionado', articuloSeleccionado);
       if (inventarioSeleccionado?.id === undefined) {
         toast({
           title: "Error",
@@ -1185,7 +1190,7 @@ const TomaDeInventario = () => {
           categorias: categoriasSeleccionadas,
           marcas: marcasSeleccionadas,
           secciones: seccionesSeleccionadas,
-          articulos: articuloSeleccionado?.al_codigo,
+          articulos: articuloSeleccionado?.ar_codigo,
           ubicacion: ubicacionSeleccionada,
           sub_ubicacion: subUbicacionSeleccionada,
         },
