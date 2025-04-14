@@ -33,7 +33,7 @@ const Modal: React.FC<ModalProps> = ({
           />
 
           {/* Modal */}
-          <div className="flex min-h-full items-center justify-center p-4">
+          <div className={`flex min-h-full items-center justify-center p-4 `}>
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
