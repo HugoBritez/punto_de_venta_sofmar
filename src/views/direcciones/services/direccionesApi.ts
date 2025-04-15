@@ -84,5 +84,16 @@ export const direccionesApi = {
             console.error("Error al eliminar los items por direccion", error);
             throw error;
         }
+    },
+
+    async obtenerRotulos(rango: Omit<UbicacionDTO, 'd_tipo_direccion' | 'd_estado'>) {
+        try{
+            const response = await axios.get(`${api_url}direcciones/rotulos`, {params: {rango}});
+            console.log('rotulos en api', response.data.body);
+            return response.data.body;
+        } catch (error) {
+            console.error("Error al obtener los rotulos", error);
+            throw error;
+        }
     }
 }

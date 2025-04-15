@@ -569,12 +569,10 @@ useEffect(() => {
               <strong>Nro. Ajuste:</strong> {autorizaciones[0].id_inventario}
             </p>
             <p>
-              <strong>Nro. Inventario:</strong>{" "}
-              {autorizaciones[0].nro_inventario}
+              <strong>Nro. Inventario:</strong> {autorizaciones[0].nro_inventario}
             </p>
             <p>
-              <strong>Estado del Inventario:</strong>{" "}
-              {autorizaciones[0].estado_inventario}
+              <strong>Estado del Inventario:</strong> {autorizaciones[0].estado_inventario}
             </p>
             <p>
               <strong>Sucursal:</strong> {autorizaciones[0].nombre_sucursal}
@@ -592,10 +590,7 @@ useEffect(() => {
               <strong>Operador:</strong> {autorizaciones[0].operador_nombre}
             </p>
           </div>
-          {autorizaciones &&
-          autorizaciones[0] &&
-          autorizaciones[0].items &&
-          autorizaciones[0].items.length > 0 ? (
+          {autorizaciones && autorizaciones[0] && autorizaciones[0].items && autorizaciones[0].items.length > 0 ? (
             <>
               <div className="flex flex-col gap-2 w-full border-2 border-gray-300 rounded-md p-2">
                 <table className="w-full border-2 border-gray-300">
@@ -603,10 +598,12 @@ useEffect(() => {
                     <tr className="border-2 border-gray-300 [&>th]:border [&>th]:border-gray-300">
                       <th>Codigo</th>
                       <th>Articulo</th>
+                      <th>Lote</th>
                       <th>Cantidad Inicial</th>
                       <th>Cantidad Scanneada</th>
                       <th>Diferencia</th>
-                      <th>Costo Total Gs.</th>
+                      <th>Valor</th>
+                      <th>Tipo</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -618,38 +615,29 @@ useEffect(() => {
                         ) {
                           return a.diferencia_total < 0 ? -1 : 1;
                         }
-                        // Si son del mismo tipo (ambos faltantes o ambos sobrantes),
-                        // ordenamos por el valor absoluto de la diferencia (mayor a menor)
-                        return (
-                          Math.abs(b.diferencia_total) -
-                          Math.abs(a.diferencia_total)
-                        );
+                        return Math.abs(b.diferencia_total) - Math.abs(a.diferencia_total);
                       })
                       .map((item) => (
                         <tr
                           key={item.cod_interno}
                           className={`border-2 border-gray-300 [&>td]:p-2 [&>td]:text-sm [&>td]:text-gray-700 [&>td]:border [&>td]:border-gray-300 
-                      ${
-                        item.diferencia_total < 0
-                          ? "bg-red-50"
-                          : item.diferencia_total > 0
-                          ? "bg-green-50"
-                          : ""
-                      }`}
+                        ${
+                          item.diferencia_total < 0
+                            ? "bg-red-50"
+                            : item.diferencia_total > 0
+                            ? "bg-green-50"
+                            : ""
+                        }`}
                         >
                           <td>{item.cod_interno}</td>
                           <td>{item.articulo}</td>
+                          <td>{item.items_lotes[0]?.lote || '-'}</td>
+                          <td className="text-center">{item.cantidad_inicial_total}</td>
+                          <td className="text-center">{item.cantidad_scanner_total || 0}</td>
+                          <td className="text-right">{item.diferencia_total}</td>
+                          <td className="text-right">{item.costo_diferencia_total}</td>
                           <td className="text-center">
-                            {item.cantidad_inicial_total}
-                          </td>
-                          <td className="text-center">
-                            {item.cantidad_scanner_total || 0}
-                          </td>
-                          <td className="text-right">
-                            {item.diferencia_total}
-                          </td>
-                          <td className="text-right">
-                            {item.costo_diferencia_total}
+                            {item.diferencia_total < 0 ? 'PÉRDIDA' : item.diferencia_total > 0 ? 'GANANCIA' : 'SIN CAMBIO'}
                           </td>
                         </tr>
                       ))}
@@ -700,9 +688,7 @@ useEffect(() => {
       )}
       {mostrarReporte && (
         <ReporteItemsScaneados
-          nro_inventario={inventarioSeleccionado?.id_inventario || 0}
-          sucursal={sucursaleSeleccionada?.id || 0}
-          deposito={depositoSeleccionado?.dep_codigo || 0}
+          id_inventario={inventarioSeleccionado?.id_inventario || 0}
           onComplete={() => {
             setMostrarReporte(false);
             toast({

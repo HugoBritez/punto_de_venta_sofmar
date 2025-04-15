@@ -13,15 +13,25 @@ interface ItemInventario {
   cantidad_inicial: number;
   cantidad_scanner: number | null;
   cantidad_actual: number;
-  ca_codigo: number;
-  ca_descripcion: string;
-  sc_codigo: number;
-  sc_descripcion: string;
-  precio_compra: string;
-  precio_venta: string;
   diferencia: number;
+  categoria: string;
+  categoria_id: number;
+  subcategoria: string;
+  subcategoria_id: number;
+  deposito: string;
+  fecha_inventario: string;
+  lote: string;
+  marca: string;
+  nro_inventario: string;
+  precio_compra: string;
+  precio_compra_numero: string;
+  precio_venta: string;
+  precio_venta_numero: string;
+  sucursal: string;
   tipo_diferencia: 'GANANCIA' | 'PERDIDA' | 'SIN CAMBIO';
   valor_diferencia: string;
+  valor_diferencia_numero: string;
+  vencimiento: string;
 }
 
 interface SucursalData {
@@ -34,18 +44,15 @@ interface SucursalData {
   matriz: number;
 }
 
+
 interface ReporteItemsScaneadosProps {
-  nro_inventario: number;
-  sucursal: number;
-  deposito: number;
+  id_inventario: number;
   onComplete?: () => void;
   onError?: (error: any) => void;
 }
 
 export default function ReporteItemsScaneados({
-  nro_inventario,
-  sucursal,
-  deposito,
+  id_inventario,
   onComplete,
   onError,
 }: ReporteItemsScaneadosProps) {
@@ -67,25 +74,15 @@ const [sucursalData, setSucursalData] = useState<SucursalData | null>(null);
    }
  };
 
-  const obtenerDatosReporte = async () => {
-    try {
-      const response = await axios.get(`${api_url}articulos/reporte-inventario`, {
-        params: {
-          nro_inventario,
-          sucursal,
-          deposito,
-        },
-      });
-      return response.data.body as ItemInventario[];
-    } catch (error) {
-      console.error("Error al obtener datos del reporte:", error);
-      throw error;
-    }
-  };
-
   const generarPDF = async () => {
     try {
-      const items = await obtenerDatosReporte();
+      const response = await axios.get(`${api_url}inventarios/reporte`, {
+        params: {
+          id_inventario,
+        },
+      });
+
+      const { items, resumen } = response.data.body;
 
       const docDefinition = {
         pageSize: "A4",
@@ -100,19 +97,19 @@ const [sucursalData, setSucursalData] = useState<SucursalData | null>(null);
           {
             columns: [
               {
-                text: `Empresa: Zimmer Centro de Compras`,
+                text: `Empresa: ${sucursalData?.nombre_emp || ''}`,
                 fontSize: 8,
                 width: "*",
               },
               {
-                text: `RUC: 80073411-4`,
+                text: `RUC: ${sucursalData?.ruc_emp || ''}`,
                 fontSize: 8,
                 width: "*",
               },
               {
                 text: new Date().toLocaleDateString("es-ES"),
                 fontSize: 8,
-                width:  "*"
+                width: "*"
               },
             ],
             columnGap: 10,
@@ -126,19 +123,19 @@ const [sucursalData, setSucursalData] = useState<SucursalData | null>(null);
           {
             columns: [
               {
-                text: `Nro. Inventario: 1`,
+                text: `Nro. Inventario: ${items[0]?.nro_inventario || ''}`,
                 fontSize: 8,
                 width: "*",
               },
               {
-                text: `Sucursal: Centro de Compras`,
+                text: `Sucursal: ${items[0]?.sucursal || ''}`,
                 fontSize: 8,
                 width: "*",
               },
               {
-                text: `Deposito: DEPOSITO GRAL`,
+                text: `Deposito: ${items[0]?.deposito || ''}`,
                 fontSize: 8,
-                width:  "*"
+                width: "*"
               },
             ],
             margin: [0, 0, 0, 20],
@@ -146,26 +143,24 @@ const [sucursalData, setSucursalData] = useState<SucursalData | null>(null);
           {
             table: {
               headerRows: 1,
-              widths: [ "*", "auto", "auto", "auto", "auto",  "auto", "auto", "auto", "auto", "auto", "auto", "auto"],
+              widths: ["*", "auto", "auto", "auto", "auto", "auto", "auto", "auto", "auto", "auto", "auto"],
               body: [
                 [
                   { text: "Descripción", style: "tableHeader" },
-                  { text: "Cod. Ref.", style: "tableHeader" },
-                  { text: "Cód. Barras", style: "tableHeader" },
+                  { text: "Lote", style: "tableHeader" },
                   { text: "Cant. Inicial", style: "tableHeader" },
                   { text: "Cant. Scanner", style: "tableHeader" },
                   { text: "Cant. Actual", style: "tableHeader" },
                   { text: "Diferencia", style: "tableHeader" },
                   { text: "Tipo", style: "tableHeader" },
-                  { text: "Categoria", style: "tableHeader" },
+                  { text: "Categoría", style: "tableHeader" },
                   { text: "Precio Compra", style: "tableHeader" },
                   { text: "Precio Venta", style: "tableHeader" },
                   { text: "Valor Dif.", style: "tableHeader" },
                 ],
-                ...items.map((item) => [
+                ...items.map((item: ItemInventario) => [
                   { text: item.descripcion, fontSize: 6 },
-                  { text: item.cod_ref, fontSize: 6 },
-                  { text: item.codigo_barra, fontSize: 6 },
+                  { text: item.lote, fontSize: 6 },
                   { text: item.cantidad_inicial.toString(), fontSize: 6 },
                   { text: item.cantidad_scanner?.toString() || "0", fontSize: 6 },
                   { text: item.cantidad_actual.toString(), fontSize: 6 },
@@ -181,7 +176,7 @@ const [sucursalData, setSucursalData] = useState<SucursalData | null>(null);
                     color: item.tipo_diferencia === 'GANANCIA' ? 'green' : 
                            item.tipo_diferencia === 'PERDIDA' ? 'red' : 'black'
                   },
-                  { text: item.ca_descripcion, fontSize: 6 },
+                  { text: item.categoria.trim(), fontSize: 6 },
                   { text: item.precio_compra, fontSize: 6 },
                   { text: item.precio_venta, fontSize: 6 },
                   { text: item.valor_diferencia, fontSize: 6 },
@@ -192,10 +187,12 @@ const [sucursalData, setSucursalData] = useState<SucursalData | null>(null);
           {
             text: [
               { text: "\nResumen:\n", bold: true },
-              `Total Items: ${items.length}\n`,
-              `Items con Ganancia: ${items.filter(i => i.tipo_diferencia === 'GANANCIA').length}\n`,
-              `Items con Pérdida: ${items.filter(i => i.tipo_diferencia === 'PERDIDA').length}\n`,
-              `Items Sin Cambio: ${items.filter(i => i.tipo_diferencia === 'SIN CAMBIO').length}\n`,
+              `Total Items: ${resumen.total_items}\n`,
+              `Items con Ganancia: ${resumen.total_ganancias}\n`,
+              `Items con Pérdida: ${resumen.total_perdidas}\n`,
+              `Valor Total Ganancias: ${resumen.valor_ganancias_formato}\n`,
+              `Valor Total Pérdidas: ${resumen.valor_perdidas_formato}\n`,
+              `Valor Diferencia Neto: ${resumen.valor_diferencia_neto_formato}\n`,
               `Fecha de Generación: ${new Date().toLocaleString("es-ES")}`,
             ],
             style: "footer",

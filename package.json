@@ -37,6 +37,7 @@
     "chart.js": "^4.4.4",
     "date-fns": "^4.1.0",
     "html2canvas": "^1.4.1",
+    "jsbarcode": "^3.11.6",
     "jspdf": "^1.5.3",
     "jwt-decode": "^4.0.0",
     "lightweight-charts": "^4.2.0",

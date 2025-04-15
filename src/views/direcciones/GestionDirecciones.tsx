@@ -11,6 +11,8 @@ import { useItemsPorDireccion } from "./hooks/useItemsPorDireccion";
 import Modal from "@/ui/modal/Modal";
 import { BuscadorArticulos } from "@/ui/buscador_articulos/BuscadorArticulos";
 import { Articulo } from "@/ui/buscador_articulos/types/articulo";
+import DireccionesRotulo from "./DireccionesRotulo";
+import { createRoot } from "react-dom/client";
 
 const GestionDirecciones = () => {
   const toast = useToast();
@@ -22,10 +24,13 @@ const GestionDirecciones = () => {
     errorAgruparDirecciones,
     loadingAgrupaciones,
     errorAgrupaciones,
+    errorEliminarDireccion,
+    successEliminarDireccion,
     obtenerUbicaciones,
     crearUbicaciones,
     agruparDirecciones,
     getUbicacionesAgrupadas,
+    eliminarDireccion,
   } = useDirecciones();
   const {
     itemsPorDireccion,
@@ -105,6 +110,9 @@ const GestionDirecciones = () => {
     setItemsPorDireccionDTO(nuevoDTO);
     crearItemsPorDireccion(nuevoDTO);
     setIsOpen(false);
+    setTimeout(async () => {
+      await obtenerItemsPorDireccion();
+    }, 500);
   };
 
   useEffect(() => {
@@ -260,6 +268,30 @@ const GestionDirecciones = () => {
     }
   }, [errorEliminarItemsPorDireccion]);
 
+  useEffect(() => {
+    if (errorEliminarDireccion) {
+      toast({
+        title: "Error",
+        description: errorEliminarDireccion,
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  }, [errorEliminarDireccion]);
+
+  useEffect(() => {
+    if (successEliminarDireccion) {
+      toast({
+        title: "Success",
+        description: successEliminarDireccion,
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+      });
+    }
+  }, [successEliminarDireccion]);
+
   const handleAgruparDirecciones = async () => {
     try {
       const zonaActual = ubicacionAgrupadaDTO.zona;
@@ -286,6 +318,51 @@ const GestionDirecciones = () => {
       console.error("Error al agrupar direcciones:", error);
     }
   };
+  
+  const ComponenteRotulo = (
+    datos: Omit<UbicacionDTO, 'd_tipo_direccion' | 'd_estado'>
+  ) =>{
+    const rotulosDiv = document.createElement('div');
+    rotulosDiv.style.display = 'none';
+    document.body.appendChild(rotulosDiv);
+
+    const root = createRoot(rotulosDiv);
+    root.render(
+      <DireccionesRotulo
+        data={datos}
+        action="print"
+      />
+    )
+
+    setTimeout(() => {
+      root.unmount();
+      document.body.removeChild(rotulosDiv);
+    }, 2000);
+  }
+
+  const handleImprimirRotulos = async () => {
+    if(
+      !itemsPorDireccionDTO.rango.d_calle_inicial || itemsPorDireccionDTO.rango.d_calle_inicial === "" ||
+      !itemsPorDireccionDTO.rango.d_calle_final || itemsPorDireccionDTO.rango.d_calle_final === "" ||
+      !itemsPorDireccionDTO.rango.d_predio_inicial || itemsPorDireccionDTO.rango.d_predio_inicial === 0 ||
+      !itemsPorDireccionDTO.rango.d_predio_final || itemsPorDireccionDTO.rango.d_predio_final === 0 ||
+      !itemsPorDireccionDTO.rango.d_piso_inicial || itemsPorDireccionDTO.rango.d_piso_inicial === 0 ||
+      !itemsPorDireccionDTO.rango.d_piso_final || itemsPorDireccionDTO.rango.d_piso_final === 0 ||
+      !itemsPorDireccionDTO.rango.d_direccion_inicial || itemsPorDireccionDTO.rango.d_direccion_inicial === 0 ||
+      !itemsPorDireccionDTO.rango.d_direccion_final || itemsPorDireccionDTO.rango.d_direccion_final === 0
+    ){
+      toast({
+        title: "Error",
+        description: "Debe completar todos los campos",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      })
+    }
+    else{
+      ComponenteRotulo(itemsPorDireccionDTO.rango)
+    }
+  }
 
   return (
     <div className="flex flex-col gap-2 bg-gray-100 h-screen p-2">
@@ -534,7 +611,10 @@ const GestionDirecciones = () => {
             >
               Crear dirección
             </button>
-            <button className="bg-red-500 text-white px-4 py-2 rounded-md">
+            <button
+              className="bg-red-500 text-white px-4 py-2 rounded-md"
+              onClick={() => eliminarDireccion(ubicacionDTO)}
+            >
               Eliminar dirección
             </button>
           </div>
@@ -811,9 +891,6 @@ const GestionDirecciones = () => {
             >
               Agrupar direcciones
             </button>
-            <button className="bg-red-500 text-white px-4 py-2 rounded-md">
-              Eliminar agrupación
-            </button>
           </div>
         </div>
       </div>
@@ -925,12 +1002,28 @@ const GestionDirecciones = () => {
                 </tr>
               </tbody>
             </table>
-            <button className="bg-red-500 text-white px-4 py-2 rounded-md mt-2" onClick={() => eliminarItemsPorDireccion(itemsPorDireccionDTO.rango, itemsPorDireccionDTO.articulo)}>
-              Eliminar items de esta direccion
-            </button>
+            <div className="flex flex-row gap-2 justify-center items-center">
+              <button
+                className="bg-red-500 text-white px-4 py-2 rounded-md mt-2"
+                onClick={() =>
+                  eliminarItemsPorDireccion(
+                    itemsPorDireccionDTO.rango,
+                    itemsPorDireccionDTO.articulo
+                  )
+                }
+              >
+                <p className="text-white font-bold">Eliminar items de esta direccion</p>
+              </button>
+              <button
+                className="bg-blue-500 text-white px-4 py-2 rounded-md mt-2"
+                onClick={handleImprimirRotulos}
+              >
+                <p className="text-white font-bold">Generar rotulos para esta direccion</p>
+              </button>
+            </div>
           </div>
 
-          {/* LISTADO DE DIRECCIONES*/} 
+          {/* LISTADO DE DIRECCIONES*/}
           <div className="flex flex-col gap-2 flex-1 overflow-y-auto max-h-[400px]">
             <table className="border-collapse border border-gray-300">
               <thead className="bg-gray-100">

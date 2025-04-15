@@ -326,7 +326,7 @@ const marcarSalidaEntrega = async () => {
     await axios.get(`${api_url}reparto/marcar-salida-entrega`, {
       params: {
         id: entregaDetalleSeleccionado?.id,
-        chat_id: [7916186377, 8172917124, 7554800275, 5691578531],
+        chat_id: [7916186377],
         latitud: coords.latitude || -25.29932588164876,
         longitud: coords.longitude || -57.59385564614278,
       },
