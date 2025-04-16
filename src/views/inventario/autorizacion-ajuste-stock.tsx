@@ -319,6 +319,7 @@ useEffect(() => {
       });
     }
     fetchInventariosDisponibles();
+    setAutorizaciones([]);
   } catch (error) {
       console.error("Error al autorizar el inventario:", error);
     }

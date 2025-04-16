@@ -277,6 +277,7 @@ const VentaBalconNuevo = () => {
 
   const clienteCodigoRef = useRef<HTMLInputElement>(null);
   const clienteNombreRef = useRef<HTMLInputElement>(null);
+  const vendedorCodigoRef = useRef<HTMLInputElement>(null);
 
   const busquedaPorIdInputRef = useRef<HTMLInputElement>(null);
   const busquedaInputRef = useRef<HTMLInputElement>(null);
@@ -402,8 +403,11 @@ const VentaBalconNuevo = () => {
 
   const [opcionesFinalizacion, setOpcionesFinalizacion] =
     useState<OpcionesFinalizacionVenta>({
-      tipo_venta: "CREDITO",
+      tipo_venta: "CONTADO",
       tipo_documento: tipoImpresionDoc === "1" ? "FACTURA" : "TICKET",
+      cantidad_cuotas: 1,
+      entrega_inicial: 0,
+      fecha_vencimiento: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0],
     });
 
   const [itemsFaltantes, setItemsFaltantes] = useState<ItemFaltante[]>([]);
@@ -547,10 +551,18 @@ const VentaBalconNuevo = () => {
         },
       });
       console.log("Respuesta de cliente", response.data.body);
-      setClienteSeleccionado(response.data.body[0]);
-      console.log("Cliente seleccionado", response.data.body[0]);
+      if (response.data.body && response.data.body.length > 0) {
+        setClienteSeleccionado(response.data.body[0]);
+        setClienteBusqueda(response.data.body[0].cli_razon);
+        console.log("Cliente seleccionado", response.data.body[0]);
+      } else {
+        setClienteSeleccionado(null);
+        setClienteBusqueda("");
+      }
     } catch (error) {
       console.error(error);
+      setClienteSeleccionado(null);
+      setClienteBusqueda("");
     }
   };
 
@@ -619,19 +631,25 @@ const VentaBalconNuevo = () => {
 
   const handleBuscarClientePorId = (e: React.ChangeEvent<HTMLInputElement>) => {
     const busqueda = e.target.value;
+    setClienteBusquedaId(busqueda ? Number(busqueda) : null);
     if (busqueda.length > 0) {
       getClientePorId(Number(busqueda), null);
-      setClienteBusquedaId(Number(busqueda));
     } else {
       setClienteSeleccionado(null);
+      setClienteBusqueda("");
     }
   };
 
   const handleBuscarVendedor = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setIsVendedorCardVisible(true);
     const busqueda = e.target.value;
-    getVendedores(Number(busqueda));
-    setVendedorBusqueda(Number(busqueda));
+    setVendedorBusqueda(busqueda ? Number(busqueda) : null);
+    if (busqueda.length > 0) {
+      setIsVendedorCardVisible(true);
+      getVendedores(Number(busqueda));
+    } else {
+      setIsVendedorCardVisible(false);
+      setVendedorSeleccionado(null);
+    }
   };
 
   const handleSelectArticulo = (articulo: ArticuloBusqueda) => {
@@ -646,11 +664,13 @@ const VentaBalconNuevo = () => {
   const handleSelectCliente = (cliente: Cliente) => {
     setClienteSeleccionado(cliente);
     setClienteBusqueda(cliente.cli_razon);
+    setClienteBusquedaId(cliente.cli_codigo);
     getVendedores(cliente.vendedor_cliente);
     setVendedorSeleccionado(
       vendedores.find((vendedor) => vendedor.id === cliente.vendedor_cliente) ||
         null
     );
+    setIsClienteCardVisible(false);
   };
 
   const crearItemValidado = (
@@ -2428,6 +2448,41 @@ const VentaBalconNuevo = () => {
     );
   };
 
+  const handleClienteIdKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      vendedorCodigoRef.current?.focus();
+    }
+  };
+
+  const handleClienteKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      vendedorCodigoRef.current?.focus();
+    }
+  };
+
+  const handleVendedorKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      busquedaPorIdInputRef.current?.focus();
+    }
+  };
+
+  useEffect(() => {
+    const handleGlobalEnter = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' && document.activeElement === document.body) {
+        e.preventDefault();
+        clienteCodigoRef.current?.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleGlobalEnter);
+    return () => {
+      document.removeEventListener('keydown', handleGlobalEnter);
+    };
+  }, []);
+
   return (
     <Box
       h={"100vh"}
@@ -2605,6 +2660,7 @@ const VentaBalconNuevo = () => {
                     onChange={(e) => {
                       handleBuscarClientePorId(e);
                     }}
+                    onKeyDown={handleClienteIdKeyPress}
                     value={clienteBusquedaId || ""}
                   />
                   <input
@@ -2616,6 +2672,7 @@ const VentaBalconNuevo = () => {
                     onChange={(e) => {
                       handleBuscarCliente(e);
                     }}
+                    onKeyDown={handleClienteKeyPress}
                     onClick={() => {
                       setIsClienteCardVisible(true);
                     }}
@@ -2658,21 +2715,16 @@ const VentaBalconNuevo = () => {
                 <p className="text-sm font-bold">Vendedor:</p>
                 <div className="flex flex-row gap-2">
                   <input
-                    type="password"
+                    ref={vendedorCodigoRef}
+                    type="number"
                     name=""
                     id=""
-                    value={
-                      vendedorSeleccionado
-                        ? vendedorSeleccionado.op_codigo?.toString()
-                        : vendedorBusqueda || ""
-                    }
+                    className="border rounded-md p-2 w-[80px]"
                     onChange={(e) => {
                       handleBuscarVendedor(e);
                     }}
-                    onClick={() => {
-                      setIsVendedorCardVisible(true);
-                    }}
-                    className="border rounded-md p-2 w-[80px] toggle-password"
+                    onKeyDown={handleVendedorKeyPress}
+                    value={vendedorBusqueda || ""}
                   />
                   <input
                     type="text"

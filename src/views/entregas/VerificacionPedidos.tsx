@@ -148,8 +148,6 @@ const VerificacionPedidos = () => {
   const [deposito, setDeposito] = useState<Deposito | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [ubicaciones, setUbicaciones] = useState<Ubicaciones[]>([]);
-  const [ubicacion, setUbicacion] = useState<number | null>(null);
-  const [sububicacion, setSububicacion] = useState<number | null>(null);
   const [sububicaciones, setSububicaciones] = useState<Sububicaciones[]>([]);
   const toast = useToast();
   const [showPedidosCard, setShowPedidosCard] = useState(false);
@@ -887,43 +885,7 @@ const VerificacionPedidos = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Ubicacion
-                  </label>
-                  <select
-                    className="w-full p-2 border rounded"
-                    value={ubicacion || ""}
-                    onChange={(e) => setUbicacion(Number(e.target.value))}
-                    disabled={true}
-                  >
-                    {ubicaciones.map((ub: Ubicaciones) => (
-                      <option key={ub.ub_codigo} value={ub.ub_codigo}>
-                        {ub.ub_descripcion}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Sububicacion
-                  </label>
-                  <select
-                    className="w-full p-2 border rounded"
-                    value={sububicacion || ""}
-                    onChange={(e) => setSububicacion(Number(e.target.value))}
-                    disabled={true}
-                  >
-                    {sububicaciones.map((sub) => (
-                      <option key={sub.s_codigo} value={sub.s_codigo}>
-                        {sub.s_descripcion}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="flex flex-col gap-4 mb-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Lote
@@ -937,17 +899,6 @@ const VerificacionPedidos = () => {
                     type="text"
                     className="w-full p-2 border rounded"
                     value={articuloSeleccionado?.al_lote}
-                    disabled={true}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Código de barras
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full p-2 border rounded"
-                    value={articuloSeleccionado?.ar_codbarra}
                     disabled={true}
                   />
                 </div>

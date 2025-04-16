@@ -1012,13 +1012,25 @@ const GestionDirecciones = () => {
                   )
                 }
               >
-                <p className="text-white font-bold">Eliminar items de esta direccion</p>
+                <p className="text-white font-bold">
+                  Eliminar items de esta direccion
+                </p>
               </button>
               <button
                 className="bg-blue-500 text-white px-4 py-2 rounded-md mt-2"
                 onClick={handleImprimirRotulos}
               >
-                <p className="text-white font-bold">Generar rotulos para esta direccion</p>
+                <p className="text-white font-bold">
+                  Generar rotulos para esta direccion
+                </p>
+              </button>
+              <button
+                className="bg-orange-500 text-white px-4 py-2 rounded-md mt-2"
+                onClick={() => obtenerItemsPorDireccion(itemsPorDireccionDTO.rango as UbicacionDTO)}
+              >
+                <p className="text-white font-bold">
+                  Buscar items por direccion
+                </p>
               </button>
             </div>
           </div>

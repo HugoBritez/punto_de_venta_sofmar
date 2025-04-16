@@ -214,10 +214,8 @@ export default function Pedidos() {
   const operadorMovimiento = Number(
     sessionStorage.getItem("operador_movimiento")
   );
-
   useEffect(() => {
     // traerListaPrecios
-
     const fetchListasPrecios = async () => {
       try {
         const response = await axios.get(`${api_url}listasprecios/`);

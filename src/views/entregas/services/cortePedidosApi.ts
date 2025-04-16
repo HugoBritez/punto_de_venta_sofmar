@@ -1,6 +1,6 @@
 import { api_url } from "@/utils";
 import axios from "axios";
-import { FiltrosPedidoFaltante } from "../types/shared.type";
+import { FiltrosPedidoFaltante, RehacerPedidoDTO } from "../types/shared.type";
 
 export const cortePedidosApi = {
   
@@ -34,11 +34,11 @@ export const cortePedidosApi = {
     }
   },
 
-  reprocesarPedido: async (id_pedido: number) => {
+  reprocesarPedido: async (datos: RehacerPedidoDTO) => {
     try{
       const response = await axios.post(`${api_url}pedidos/reprocesar-pedido`,
         {
-          id_pedido
+          datos
         }
       )
       return response.data;

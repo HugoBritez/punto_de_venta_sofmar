@@ -29,7 +29,6 @@ import {
 import { find } from "lodash";
 import { InformeEntregasExcel } from './docs/InformeEntregasExcel';
 
-
 interface ResumenEntregas {
   camion: string;
   chofer: string;
@@ -59,6 +58,7 @@ interface ResumenEntregas {
   total_pedidos: number;
   total_ventas: number;
   total_monto: number;
+  total_monto_num: number;
   tiempo_total: string;
 }
 

@@ -416,10 +416,10 @@ export default function ConsultaPedidos({
       return;
     }
 
-    if (pedidoSeleccionado?.area === "Ventas") {
+    if (pedidoSeleccionado?.siguiente_area === "Ventas" || pedidoSeleccionado?.area === "Ventas") {
       toast({
         title: "El pedido ya está autorizado",
-        description: "El pedido ya está autorizado",
+        description: "Para pasar a ventas, consulte el pedido desde el formulario de ventas.",
         status: "error",
       });
       return;
@@ -679,7 +679,7 @@ export default function ConsultaPedidos({
                         {isModal && (
                           <td className="p-2">
                             <Button
-                              isDisabled={pedido.area != "Ventas"}
+                              isDisabled={pedido.siguiente_area != "Ventas"}
                               colorScheme="blue"
                               size="sm"
                               onClick={(e) => {

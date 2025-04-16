@@ -1,13 +1,13 @@
 import { cortePedidosApi } from "../services/cortePedidosApi";
 import { useState } from "react";
-import { FiltrosPedidoFaltante, PedidoFaltante } from "../types/shared.type";
+import { FiltrosPedidoFaltante, PedidoFaltante, RehacerPedidoDTO } from "../types/shared.type";
 
 interface UseCortePedidos {
     loading: boolean;
     error: string | null;
     agregarPedidoFaltante: (detalle_id: number, cantidad: number, observacion?: string) => Promise<any>;
     obtenerPedidoFaltante: (filtros: FiltrosPedidoFaltante) => Promise<PedidoFaltante[]>;
-    reprocesarPedido: (id_pedido: number) => Promise<any>;
+    reprocesarPedido: (datos: RehacerPedidoDTO) => Promise<any>;
     pedidosFaltantes: PedidoFaltante[];
 }
 
@@ -48,10 +48,10 @@ export const useCortePedidos = (): UseCortePedidos => {
         }
     }
 
-    const reprocesarPedido = async (id_pedido: number) => {
+    const reprocesarPedido = async (datos: RehacerPedidoDTO) => {
         try {
             setLoading(true);
-            const response = await cortePedidosApi.reprocesarPedido(id_pedido);
+            const response = await cortePedidosApi.reprocesarPedido(datos);
             setLoading(false);
             return response;
         } catch (error) {

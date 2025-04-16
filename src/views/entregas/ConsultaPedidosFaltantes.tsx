@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useCortePedidos } from "./hooks/useCortePedidos";
-import { FiltrosPedidoFaltante, PedidoFaltante } from "./types/shared.type";
+import { FiltrosPedidoFaltante, PedidoFaltante, RehacerPedidoDTO } from "./types/shared.type";
 import { ArchiveX } from "lucide-react";
 import ClientesSelect from "@/ui/select/ClientesSelect";
 import OperadoresSelect from "@/ui/select/OperadoresSelect";
@@ -38,6 +38,16 @@ const ConsultaPedidosFaltantes = () => {
         categoria: 0,
         subcategoria: 0,
         estado: 0
+    });
+
+    const [DatosRehacerPedido, setDatosRehacerPedido] = useState<RehacerPedidoDTO>({
+        id_pedido: 0,
+        detalle: [
+          {
+            detalle_id: 0,
+            lote_id: 0
+          }
+        ]
     });
 
     const handleFiltrosChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -407,7 +417,7 @@ const ConsultaPedidosFaltantes = () => {
           {pedidoSeleccionado ? (
             <>
               <p className="text-gray-600">
-                Por favor seleccione el lote que desea utilizar para reprocesar el pedido #{pedidoSeleccionado.id_pedido}
+                Por favor seleccione los lotes de los items que desea utilizar para reprocesar el pedido #{pedidoSeleccionado.id_pedido}
               </p>
               <div className="flex flex-col gap-2">
                 <h4 className="font-medium text-gray-900">Lotes Disponibles:</h4>

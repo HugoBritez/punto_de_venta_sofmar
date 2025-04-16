@@ -29,7 +29,7 @@ const FormularioCabecera = ({
 
   const TablaIngresosCabecera = () => {
     const { obtenerDetalleIngreso, detalleIngreso, obtenerIngresos } = useIngresos();
-    const { confirmarVerificacion, error } = useVerificarIngresos();
+    const { confirmarVerificacion,  } = useVerificarIngresos();
     const id_usuario = Number(sessionStorage.getItem("user_id"));
     const toast = useToast();
     const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -70,30 +70,22 @@ const FormularioCabecera = ({
         return;
       }
 
-      await confirmarVerificacion({
-        id_compra: ingresoAConfirmar.id_compra,
-        deposito_transitorio: ingresoAConfirmar.deposito,
-        deposito_destino: depositoDestino,
-        factura_compra: ingresoAConfirmar.nro_factura,
-        user_id: id_usuario,
-        operador_id: operadorResponsable || 0,
-        items: detalleIngreso.map((detalle) => ({
-          lote: detalle.lote,
-          cantidad_ingreso: detalle.cantidad_verificada,
-          cantidad_factura: detalle.cantidad,
-          id_articulo: detalle.articulo_id,
-        })),
-      });
-
-      if (error) {
-        toast({
-          title: "Error",
-          description: error,
-          status: "error",
-          duration: 3000,
-          isClosable: true,
+      try {
+        await confirmarVerificacion({
+          id_compra: ingresoAConfirmar.id_compra,
+          deposito_transitorio: ingresoAConfirmar.deposito,
+          deposito_destino: depositoDestino,
+          factura_compra: ingresoAConfirmar.nro_factura,
+          user_id: id_usuario,
+          operador_id: operadorResponsable || 0,
+          items: detalleIngreso.map((detalle) => ({
+            lote: detalle.lote,
+            cantidad_ingreso: detalle.cantidad_verificada,
+            cantidad_factura: detalle.cantidad,
+            id_articulo: detalle.articulo_id,
+          })),
         });
-      } else {
+
         toast({
           title: "Éxito",
           description: "Verificación confirmada correctamente",
@@ -102,7 +94,24 @@ const FormularioCabecera = ({
           isClosable: true,
         });
 
-        obtenerIngresos(filtros);
+        // Recargar los ingresos y el detalle
+        await obtenerIngresos(filtros);
+        if (ingresoSeleccionado) {
+          await obtenerDetalleIngreso(ingresoSeleccionado.id_compra);
+        }
+        
+        // Limpiar estados
+        setIngresoAConfirmar(null);
+        setShowConfirmModal(false);
+        setOperadorResponsable(null);
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: error as string || "Error al confirmar la verificación",
+          status: "error",
+          duration: 3000,
+          isClosable: true,
+        });
       }
     };
 

@@ -252,7 +252,6 @@ const PuntoDeVentaNuevo = () => {
 
   const [ultimaVentaId, setUltimaVentaId] = useState<number | null>(null);
 
-  const busquedaPorIdInputRef = useRef<HTMLInputElement>(null);
   const busquedaInputRef = useRef<HTMLInputElement>(null);
   const descuentoInputRef = useRef<HTMLInputElement>(null);
   const cantidadInputRef = useRef<HTMLInputElement>(null);
@@ -385,6 +384,9 @@ const PuntoDeVentaNuevo = () => {
     useState<OpcionesFinalizacionVenta>({
       tipo_venta: "CONTADO",
       tipo_documento: tipoImpresionDoc === "1" ? "FACTURA" : "TICKET",
+      cantidad_cuotas: 1,
+      entrega_inicial: 0,
+      fecha_vencimiento_timbrado: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0],
     });
 
   const toast = useToast();
@@ -603,15 +605,13 @@ const PuntoDeVentaNuevo = () => {
   };
 
   const handleBuscarClientePorId = (e: React.ChangeEvent<HTMLInputElement>) => {
-    console.log("Buscando cliente por id", e);
-    const busqueda = typeof e === "number" ? e : e.target.value;
-    if (busqueda === "" || busqueda === null) {
-      setClienteSeleccionado(null);
-    } else if (busqueda) {
-      getClientePorId(null, Number(busqueda));
-      setClienteBusquedaId(Number(busqueda));
+    const busqueda = e.target.value;
+    setClienteBusquedaId(busqueda ? Number(busqueda) : null);
+    if (busqueda.length > 0) {
+      getClientePorId(Number(busqueda), null);
     } else {
       setClienteSeleccionado(null);
+      setClienteBusqueda("");
     }
   };
 
@@ -634,6 +634,7 @@ const PuntoDeVentaNuevo = () => {
   const handleSelectCliente = (cliente: Cliente) => {
     setClienteSeleccionado(cliente);
     setClienteBusqueda(cliente.cli_razon);
+    setIsClienteCardVisible(false);
   };
 
   const crearItemValidado = (
@@ -1595,8 +1596,7 @@ const formatearDivisasExtranjeras = (num: number) => {
 
         setUltimaVentaId(response.data.body.ventaId);
 
-        
-
+      
         if (imprimirFactura) {
           if (tipoImpresionFactura === 1) {
             isMobile ? (await imprimirFacturaComponenteReport(response.data.body.ventaId, "download")) : (await imprimirFacturaComponenteReport(response.data.body.ventaId, "print"))
@@ -2325,6 +2325,46 @@ const formatearDivisasExtranjeras = (num: number) => {
      );
    };
 
+  const clienteCodigoRef = useRef<HTMLInputElement>(null);
+  const clienteNombreRef = useRef<HTMLInputElement>(null);
+  const vendedorCodigoRef = useRef<HTMLInputElement>(null);
+  const busquedaPorIdInputRef = useRef<HTMLInputElement>(null);
+
+  const handleClienteIdKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      vendedorCodigoRef.current?.focus();
+    }
+  };
+
+  const handleClienteKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      busquedaPorIdInputRef.current?.focus();
+    }
+  };
+
+  const handleVendedorKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      busquedaPorIdInputRef.current?.focus();
+    }
+  };
+
+  useEffect(() => {
+    const handleGlobalEnter = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' && document.activeElement === document.body) {
+        e.preventDefault();
+        clienteCodigoRef.current?.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleGlobalEnter);
+    return () => {
+      document.removeEventListener('keydown', handleGlobalEnter);
+    };
+  }, []);
+
   return (
     <Box
       h={"100vh"}
@@ -2505,16 +2545,19 @@ const formatearDivisasExtranjeras = (num: number) => {
                 <p className="text-sm font-bold">Cliente:</p>
                 <div className="flex flex-row gap-2">
                   <input
+                    ref={clienteCodigoRef}
                     type="number"
                     name=""
                     id=""
                     className="border rounded-md p-2 w-[80px]"
-                    value={clienteBusquedaId || ""}
                     onChange={(e) => {
                       handleBuscarClientePorId(e);
                     }}
+                    onKeyDown={handleClienteIdKeyPress}
+                    value={clienteBusquedaId || ""}
                   />
                   <input
+                    ref={clienteNombreRef}
                     type="text"
                     name=""
                     id=""
@@ -2522,6 +2565,7 @@ const formatearDivisasExtranjeras = (num: number) => {
                     onChange={(e) => {
                       handleBuscarCliente(e);
                     }}
+                    onKeyDown={handleClienteKeyPress}
                     onClick={() => {
                       setIsClienteCardVisible(true);
                     }}
@@ -2562,13 +2606,16 @@ const formatearDivisasExtranjeras = (num: number) => {
                 <p className="text-sm font-bold">Cajero:</p>
                 <div className="flex flex-row gap-2">
                   <input
-                    type="password"
-                    name="vendedor_id"
-                    id="vendedor_id"
-                    value={vendedorSeleccionado?.op_codigo}
-                    onChange={() => {}}
-                    onClick={() => {}}
-                    className="border rounded-md p-2 w-[80px] toggle-password"
+                    ref={vendedorCodigoRef}
+                    type="number"
+                    name=""
+                    id=""
+                    className="border rounded-md p-2 w-[80px]"
+                    onChange={(e) => {
+                      handleBuscarVendedor(e);
+                    }}
+                    onKeyDown={handleVendedorKeyPress}
+                    value={vendedorBusqueda || ""}
                   />
                   <input
                     type="text"
@@ -3426,6 +3473,8 @@ const formatearDivisasExtranjeras = (num: number) => {
                       setOpcionesFinalizacion({
                         ...opcionesFinalizacion,
                         tipo_venta: "CREDITO",
+                        cantidad_cuotas: 1,
+                        entrega_inicial: 0,
                       })
                     }
                   >

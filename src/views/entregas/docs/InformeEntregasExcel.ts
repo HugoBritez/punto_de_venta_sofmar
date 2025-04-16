@@ -29,6 +29,7 @@ interface ResumenEntregas {
   total_pedidos: number;
   total_ventas: number;
   total_monto: number;
+  total_monto_num: number;
   tiempo_total: string;
 }
 
@@ -57,7 +58,7 @@ export const InformeEntregasExcel = ({
     "KM Salida": entrega.km_actual,
     "KM Llegada": entrega.km_ultimo,
     "Total Pedidos": entrega.total_pedidos,
-    "Total Monto": entrega.total_monto,
+    "Total Monto": Number(entrega.total_monto_num),
     "Tiempo Total": entrega.tiempo_total,
   }));
 
@@ -69,7 +70,7 @@ export const InformeEntregasExcel = ({
       Cliente: detalle.cliente,
       "Nro Factura": detalle.nro_factura,
       "Tipo Reparto": detalle.tipo_reparto,
-      Monto: detalle.monto,
+      Monto: Number(detalle.monto),
       "Hora Entrada": detalle.hora_entrada,
       "Hora Salida": detalle.hora_salida,
       Tiempo: detalle.diferencia_horas,

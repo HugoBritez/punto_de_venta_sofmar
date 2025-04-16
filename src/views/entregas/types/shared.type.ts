@@ -6,14 +6,18 @@ export interface PedidoFaltante {
     descripcion: string;
     marca: string;
     cantidad_faltante: number;
+    cantidad_faltante_num: number;
     operador: string;
     vendedor: string;
     cantidad_pedido: number;
+    cantidad_pedido_num: number;
     id_lote: number;
     deposito: string;
     observacion: string;
     subtotal: number;
+    subtotal_num: number;
     p_unitario: number;
+    p_unitario_num: number;
     tiene_lotes_disponibles: string;
     lotes_disponibles: {
         id_lote: number;
@@ -37,5 +41,13 @@ export interface FiltrosPedidoFaltante {
     linea?: number;
     categoria?: number;
     subcategoria?: number;
+}
+
+export interface RehacerPedidoDTO {
+    id_pedido: number;
+    detalle : {
+        detalle_id: number;
+        lote_id: number;
+    }[]
 }
 
