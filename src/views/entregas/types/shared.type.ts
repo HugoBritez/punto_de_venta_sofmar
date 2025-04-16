@@ -1,4 +1,5 @@
 export interface PedidoFaltante {
+    id_detalle: number;
     id_pedido: number;
     fecha: string;
     cliente: string;

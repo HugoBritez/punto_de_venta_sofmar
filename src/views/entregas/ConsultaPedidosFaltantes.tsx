@@ -42,12 +42,7 @@ const ConsultaPedidosFaltantes = () => {
 
     const [DatosRehacerPedido, setDatosRehacerPedido] = useState<RehacerPedidoDTO>({
         id_pedido: 0,
-        detalle: [
-          {
-            detalle_id: 0,
-            lote_id: 0
-          }
-        ]
+        detalle: []
     });
 
     const handleFiltrosChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -60,6 +55,27 @@ const ConsultaPedidosFaltantes = () => {
 
     const handleSeleccionarPedido = (pedido: PedidoFaltante) => {
       setPedidoSeleccionado(pedido);
+      // Inicializar los datos del pedido a reprocesar
+      setDatosRehacerPedido({
+        id_pedido: pedido.id_pedido,
+        detalle: pedidosFaltantes
+          .filter(p => p.id_pedido === pedido.id_pedido)
+          .map(detalle => ({
+            detalle_id: detalle.id_detalle,
+            lote_id: 0 // 0 significa que no se ha seleccionado lote
+          }))
+      });
+    }
+
+    const handleSeleccionarLote = (detalleId: number, loteId: number) => {
+      setDatosRehacerPedido(prev => ({
+        ...prev,
+        detalle: prev.detalle.map(detalle => 
+          detalle.detalle_id === detalleId 
+            ? { ...detalle, lote_id: loteId }
+            : detalle
+        )
+      }));
     }
 
     const esPedidoSeleccionado = (pedido: PedidoFaltante) => {
@@ -117,26 +133,84 @@ const ConsultaPedidosFaltantes = () => {
       setIsModalOpen(!isModalOpen);
     }
 
-    const handleReprocesarPedido = (id_pedido: number) => {
-      if(!id_pedido){
+    const handleReprocesarPedido = () => {
+      if (!pedidoSeleccionado) {
         toast({
           title: "Error",
-          description: "No se ha seleccionado ningun pedido",
+          description: "No se ha seleccionado ningún pedido",
           status: "error",
           duration: 3000,
-        })
+        });
         return;
       }
-      if(pedidoSeleccionado?.tiene_lotes_disponibles === 'NO'){
+
+      // Obtener todos los detalles del pedido
+      const detallesDelPedido = pedidosFaltantes.filter(p => p.id_pedido === pedidoSeleccionado.id_pedido);
+      
+      // Verificar que todos los detalles que tienen lotes disponibles tengan un lote seleccionado
+      const detallesConLotesDisponibles = detallesDelPedido.filter(detalle => 
+        detalle && detalle.lotes_disponibles && detalle.lotes_disponibles.length > 0
+      );
+
+      const detallesSinLoteSeleccionado = detallesConLotesDisponibles.filter(detalle => {
+        if (!detalle) return true;
+        const detalleSeleccionado = DatosRehacerPedido.detalle.find(d => d.detalle_id === detalle.id_detalle);
+        return !detalleSeleccionado || detalleSeleccionado.lote_id === 0;
+      });
+
+      if (detallesSinLoteSeleccionado.length > 0) {
         toast({
           title: "Error",
-          description: "No se tiene lotes disponibles para reprocesar",
+          description: "Debe seleccionar un lote para los detalles que tienen lotes disponibles",
           status: "error",
           duration: 3000,
-        })
+        });
         return;
       }
-      reprocesarPedido(id_pedido);
+
+      // Filtrar detalles que no tienen stock suficiente
+      const detallesConStockInsuficiente = DatosRehacerPedido.detalle.filter(detalle => {
+        if (!detalle) return true;
+        const detalleCompleto = pedidosFaltantes.find(p => p.id_detalle === detalle.detalle_id);
+        if (!detalleCompleto || !detalleCompleto.lotes_disponibles) return true;
+        const loteSeleccionado = detalleCompleto.lotes_disponibles.find(l => l.id_lote === detalle.lote_id);
+        return !loteSeleccionado || loteSeleccionado.cantidad < detalleCompleto.cantidad_faltante;
+      });
+
+      if (detallesConStockInsuficiente.length > 0) {
+        toast({
+          title: "Advertencia",
+          description: "Algunos detalles no tienen stock suficiente y serán excluidos del reprocesamiento",
+          status: "warning",
+          duration: 5000,
+        });
+      }
+
+      // Filtrar solo los detalles que tienen stock suficiente
+      const detallesAProcesar = DatosRehacerPedido.detalle.filter(detalle => {
+        if (!detalle) return false;
+        const detalleCompleto = pedidosFaltantes.find(p => p.id_detalle === detalle.detalle_id);
+        if (!detalleCompleto || !detalleCompleto.lotes_disponibles) return false;
+        const loteSeleccionado = detalleCompleto.lotes_disponibles.find(l => l.id_lote === detalle.lote_id);
+        return loteSeleccionado && loteSeleccionado.cantidad >= detalleCompleto.cantidad_faltante;
+      });
+
+      if (detallesAProcesar.length === 0) {
+        toast({
+          title: "Error",
+          description: "Ningún detalle tiene stock suficiente para reprocesar",
+          status: "error",
+          duration: 3000,
+        });
+        return;
+      }
+
+      const datosReprocesar: RehacerPedidoDTO = {
+        id_pedido: pedidoSeleccionado.id_pedido,
+        detalle: detallesAProcesar
+      };
+
+      reprocesarPedido(datosReprocesar);
       setIsModalOpen(false);
       obtenerPedidoFaltante(filtros);
 
@@ -145,7 +219,7 @@ const ConsultaPedidosFaltantes = () => {
         description: "Pedido reprocesado correctamente",
         status: "success",
         duration: 3000,
-      })
+      });
     }
     
   return (
@@ -353,7 +427,7 @@ const ConsultaPedidosFaltantes = () => {
               {pedidosFaltantes.length > 0 ? (
                 pedidosFaltantes.map((pedido) => (
                   <tr
-                    key={pedido.id_pedido}
+                    key={pedido.id_detalle}
                     className={` ${
                       esPedidoSeleccionado(pedido)
                         ? "bg-blue-100 hover:bg-blue-200"
@@ -412,41 +486,71 @@ const ConsultaPedidosFaltantes = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title="Reprocesar Pedido"
+        maxWidth="max-w-[1400px]"
       >
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 max-h-[80vh]">
           {pedidoSeleccionado ? (
             <>
               <p className="text-gray-600">
-                Por favor seleccione los lotes de los items que desea utilizar para reprocesar el pedido #{pedidoSeleccionado.id_pedido}
+                Por favor seleccione los lotes para cada detalle del pedido #{pedidoSeleccionado.id_pedido}
               </p>
-              <div className="flex flex-col gap-2">
-                <h4 className="font-medium text-gray-900">Lotes Disponibles:</h4>
-                {pedidoSeleccionado.lotes_disponibles && pedidoSeleccionado.lotes_disponibles.length > 0 ? (
-                  <div className="grid grid-cols-1 gap-2">
-                    {pedidoSeleccionado.lotes_disponibles.map((lote) => (
-                      <div 
-                        key={lote.id_lote}
-                        className="flex items-center justify-between p-3 border rounded-md hover:bg-gray-50 cursor-pointer"
-                        onClick={() => handleReprocesarPedido(pedidoSeleccionado.id_pedido)}
-                      >
-                        <div className="flex flex-col">
-                          <span className="font-medium">Lote: {lote.lote}</span>
-                          <span className="text-sm text-gray-500">Cantidad: {lote.cantidad}</span>
-                          <span className="text-sm text-gray-500">Depósito: {lote.deposito}</span>
-                          <span className="text-sm text-gray-500">Vencimiento: {lote.vencimiento}</span>
-                        </div>
-                        <button 
-                          className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-                          onClick={() => handleReprocesarPedido(pedidoSeleccionado.id_pedido)}
-                        >
-                          Seleccionar
-                        </button>
+              <div className="grid grid-cols-3 gap-4 overflow-y-auto pr-2">
+                {pedidosFaltantes
+                  .filter(p => p.id_pedido === pedidoSeleccionado.id_pedido)
+                  .map(detalle => (
+                    <div key={detalle.id_detalle} className="border rounded-md p-4 bg-white shadow-sm max-h-[40vh] overflow-y-auto">
+                      <div className="mb-2">
+                        <h4 className="font-medium text-gray-900">Detalle #{detalle.id_detalle}</h4>
+                        <p className="text-sm text-gray-600">Artículo: {detalle.descripcion}</p>
+                        <p className="text-sm text-gray-600">Cantidad faltante: {detalle.cantidad_faltante}</p>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-red-500">No hay lotes disponibles para este pedido</p>
-                )}
+                      <div className="mt-2">
+                        <h5 className="font-medium text-gray-900 mb-2">Lotes Disponibles:</h5>
+                        {detalle.lotes_disponibles && detalle.lotes_disponibles.length > 0 ? (
+                          <div className="flex flex-col gap-2">
+                            {detalle.lotes_disponibles.map(lote => {
+                              const tieneStockSuficiente = lote.cantidad >= detalle.cantidad_faltante;
+                              return (
+                                <div 
+                                  key={lote.id_lote}
+                                  className={`flex items-center justify-between p-3 border rounded-md cursor-pointer ${
+                                    DatosRehacerPedido.detalle.find(d => d.detalle_id === detalle.id_detalle)?.lote_id === lote.id_lote 
+                                      ? 'bg-blue-50 border-blue-500' 
+                                      : 'hover:bg-gray-50'
+                                  } ${!tieneStockSuficiente ? 'opacity-50' : ''}`}
+                                  onClick={() => tieneStockSuficiente && handleSeleccionarLote(detalle.id_detalle, lote.id_lote)}
+                                >
+                                  <div className="flex flex-col">
+                                    <span className="font-medium">Lote: {lote.lote}</span>
+                                    <span className={`text-sm ${tieneStockSuficiente ? 'text-gray-500' : 'text-red-500'}`}>
+                                      Cantidad: {lote.cantidad} {!tieneStockSuficiente && '(Stock insuficiente)'}
+                                    </span>
+                                    <span className="text-sm text-gray-500">Depósito: {lote.deposito}</span>
+                                    <span className="text-sm text-gray-500">Vencimiento: {lote.vencimiento}</span>
+                                  </div>
+                                  <div className="w-4 h-4 border-2 border-gray-400 rounded-full flex items-center justify-center">
+                                    {DatosRehacerPedido.detalle.find(d => d.detalle_id === detalle.id_detalle)?.lote_id === lote.id_lote && (
+                                      <div className="w-2 h-2 bg-blue-500 rounded-full" />
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <p className="text-red-500">No hay lotes disponibles para este detalle</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+              <div className="flex justify-end mt-4 border-t pt-4">
+                <button
+                  className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600"
+                  onClick={handleReprocesarPedido}
+                >
+                  Reprocesar Pedido
+                </button>
               </div>
             </>
           ) : (
