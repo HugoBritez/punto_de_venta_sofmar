@@ -1,0 +1,31 @@
+ export interface ItemParaVenta {
+  precio_guaranies: number;
+  precio_dolares: number;
+  precio_reales: number;
+  precio_pesos: number;
+  deve_articulo: number;
+  articulo: string;
+  deve_cantidad: number;
+  deve_precio: number;
+  deve_descuento: number;
+  deve_exentas: number;
+  deve_cinco: number;
+  deve_diez: number;
+  deve_devolucion: number;
+  deve_vendedor: number;
+  deve_color: number | null;
+  deve_bonificacion: number | null;
+  deve_talle: string | null;
+  deve_codioot: number | null;
+  deve_costo: number | null;
+  deve_costo_art: number | null;
+  deve_cinco_x: number | null;
+  deve_diez_x: number | null;
+  deve_lote?: string | null;
+  loteid?: number | null;
+  deve_vencimiento?: string | null;
+  cod_barra?: string | null;
+  editar_nombre?: number | null;
+  precio_original?: number | null;
+  ar_unidad_medida?: number | null;
+}

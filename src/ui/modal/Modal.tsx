@@ -8,6 +8,8 @@ interface ModalProps {
   title?: string;
   maxWidth?: string;
   showCloseButton?: boolean;
+  size?: string;
+  backgroundColor?: string;
 }
 
 const Modal: React.FC<ModalProps> = ({
@@ -17,6 +19,8 @@ const Modal: React.FC<ModalProps> = ({
   title,
   maxWidth = "max-w-lg",
   showCloseButton = true,
+  size = "",
+  backgroundColor = "bg-white",
 }) => {
   return (
     <AnimatePresence>
@@ -42,7 +46,7 @@ const Modal: React.FC<ModalProps> = ({
                 duration: 0.2,
                 ease: [0.4, 0, 0.2, 1],
               }}
-              className={`relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full ${maxWidth}`}
+              className={`relative transform overflow-hidden rounded-lg  text-left shadow-xl transition-all sm:my-8 sm:w-full ${maxWidth} ${size} ${backgroundColor}`}
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
@@ -79,7 +83,7 @@ const Modal: React.FC<ModalProps> = ({
               )}
 
               {/* Content */}
-              <div className="p-4">{children}</div>
+              <div className="p-4 overflow-y-auto">{children}</div>
             </motion.div>
           </div>
         </div>

@@ -59,6 +59,7 @@ import { useFacturaSend } from "@/hooks/useFacturaSend";
 import { useTipoImpresionFacturaStore } from "@/stores/tipoImpresionFacturaStore";
 import ModeloFacturaReport from "../facturacion/ModeloFacturaReport";
 import ArticuloInfoCard from "@/modules/ArticuloInfoCard";
+import { ArticulosComponent } from "@/ui/articulos/ArticulosComponent";
 
 interface ItemParaVenta {
   precio_guaranies: number;
@@ -294,6 +295,8 @@ const PuntoDeVentaNuevo = () => {
   >([]);
 
   const  totalesVenta  = useTotalesVenta(itemsParaVenta);
+
+  const [isArticuloModalOpen, setIsArticuloModalOpen] = useState<boolean>(false);
 
   const {
     isOpen: isConsultaVentasOpen,
@@ -537,8 +540,14 @@ const PuntoDeVentaNuevo = () => {
         },
       });
       console.log("Respuesta de cliente", response.data.body);
-      setClienteSeleccionado(response.data.body[0]);
-      console.log("Cliente seleccionado", response.data.body[0]);
+      if (response.data.body && response.data.body.length > 0) {
+        setClienteSeleccionado(response.data.body[0]);
+        setClienteBusqueda(response.data.body[0].cli_razon);
+        console.log("Cliente seleccionado", response.data.body[0]);
+      } else {
+        setClienteSeleccionado(null);
+        setClienteBusqueda("");
+      }
     } catch (error) {
       console.error(error);
     }
@@ -559,19 +568,6 @@ const PuntoDeVentaNuevo = () => {
    getVendedores(Number(cajero_id))
  }, [cajero_id])
 
-
-  const handleBuscarArticulo = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const busqueda = e.target.value;
-    setArticuloBusqueda(busqueda);
-    setArticuloSeleccionado(null);
-    if (busqueda.length > 0) {
-      setIsArticuloCardVisible(true);
-      getArticulos(busqueda);
-    } else {
-      setIsArticuloCardVisible(false);
-      setArticulos([]);
-    }
-  };
 
   const handleBuscarArticuloPorId = (
     e: React.ChangeEvent<HTMLInputElement>
@@ -2029,6 +2025,10 @@ const formatearDivisasExtranjeras = (num: number) => {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      if(e.key === "Enter" && document.activeElement === busquedaPorIdInputRef.current && articuloBusquedaId === null){
+        e.preventDefault();
+        setIsArticuloModalOpen(true);
+      }
       if (e.key === "F6") {
         e.preventDefault();
         cantidadInputRef.current?.focus();
@@ -2168,8 +2168,6 @@ const formatearDivisasExtranjeras = (num: number) => {
         document.body.removeChild(facturaDiv);
       }, 2000);
     };
-
-
 
   const imprimirFacturaComponente = async (ventaId: number, accion: "print" | "download" | "b64" = "print") => {
     const facturaDiv = document.createElement("div");
@@ -2701,6 +2699,7 @@ const formatearDivisasExtranjeras = (num: number) => {
               <div className="relative w-full">
                 <input
                   type="text"
+                  readOnly={true}
                   value={
                     articuloSeleccionado
                       ? articuloSeleccionado.descripcion
@@ -2708,16 +2707,6 @@ const formatearDivisasExtranjeras = (num: number) => {
                   }
                   className="border rounded-md p-2 flex-1 items-center justify-center w-full"
                   placeholder="Buscar articulo por nombre o codigo de barras"
-                  onClick={() => {
-                    setIsArticuloCardVisible(true);
-                  }}
-                  onFocus={() => {
-                    setIsArticuloCardVisible(true);
-                  }}
-                  onChange={(e) => {
-                    handleBuscarArticulo(e);
-                  }}
-                  onKeyDown={handleKeyPress}
                   ref={busquedaInputRef}
                 />
                 {articuloBusqueda && (
@@ -3891,7 +3880,12 @@ const formatearDivisasExtranjeras = (num: number) => {
         isOpen={isEditarVentaOpen}
         onClose={onEditarVentaClose}
       />
+      <ArticulosComponent
+        isOpen={isArticuloModalOpen}
+        setIsOpen={setIsArticuloModalOpen}
+      />
     </Box>
+    
   );
 };
 
