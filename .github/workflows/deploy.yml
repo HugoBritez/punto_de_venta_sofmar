@@ -56,13 +56,16 @@ jobs:
           SSH_USER: ${{ secrets.SSH_USER }}
           CLIENTE: ${{ github.event.inputs.cliente }}
         run: |
-          $targetServer = switch ($env:CLIENTE) {
-            "gaesa" { "192.168.102.6" }
-            "gaesademo" { "192.168.200.3" }
-            default { "192.168.200.3" }
+          $targetServer = if ($env:CLIENTE -eq "gaesa") {
+            "192.168.102.6"
+          } elseif ($env:CLIENTE -eq "gaesademo") {
+            "192.168.200.3"
+          } else {
+            "192.168.200.3"
           }
           
-          wsl -e bash -c "sshpass -p '$env:SSH_PASSWORD' rsync -avz --delete ./dist/ $env:SSH_USER@$targetServer:/var/www/gaesa/dist/ && sshpass -p '$env:SSH_PASSWORD' ssh -o StrictHostKeyChecking=no $env:SSH_USER@$targetServer 'systemctl restart nginx'"
+          $command = "sshpass -p '$env:SSH_PASSWORD' rsync -avz --delete ./dist/ $env:SSH_USER@$targetServer`:/var/www/gaesa/dist/ && sshpass -p '$env:SSH_PASSWORD' ssh -o StrictHostKeyChecking=no $env:SSH_USER@$targetServer 'systemctl restart nginx'"
+          wsl -e bash -c "$command"
 
   deploy-all:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -115,10 +118,13 @@ jobs:
           SSH_USER: ${{ secrets.SSH_USER }}
           CLIENTE: ${{ matrix.cliente }}
         run: |
-          $targetServer = switch ($env:CLIENTE) {
-            "gaesa" { "192.168.102.6" }
-            "gaesademo" { "192.168.200.3" }
-            default { "192.168.200.3" }
+          $targetServer = if ($env:CLIENTE -eq "gaesa") {
+            "192.168.102.6"
+          } elseif ($env:CLIENTE -eq "gaesademo") {
+            "192.168.200.3"
+          } else {
+            "192.168.200.3"
           }
           
-          wsl -e bash -c "sshpass -p '$env:SSH_PASSWORD' rsync -avz --delete ./dist/ $env:SSH_USER@$targetServer:/var/www/gaesa/dist/ && sshpass -p '$env:SSH_PASSWORD' ssh -o StrictHostKeyChecking=no $env:SSH_USER@$targetServer 'systemctl restart nginx'"
+          $command = "sshpass -p '$env:SSH_PASSWORD' rsync -avz --delete ./dist/ $env:SSH_USER@$targetServer`:/var/www/gaesa/dist/ && sshpass -p '$env:SSH_PASSWORD' ssh -o StrictHostKeyChecking=no $env:SSH_USER@$targetServer 'systemctl restart nginx'"
+          wsl -e bash -c "$command"
