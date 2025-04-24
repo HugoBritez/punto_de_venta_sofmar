@@ -11,7 +11,8 @@ on:
         required: true
         type: choice
         options:
-          - gaesa
+          # - gaesa
+          - gaesademo
           # - acricolor
           # - lobeck
           # - distriwembe
@@ -19,7 +20,6 @@ on:
           # - bodega
           # - truckdiesel
           # - campomax
-          # - gaesademo
           # - lamberty
           # - rustimemo
           # - buda
@@ -47,6 +47,7 @@ jobs:
       - name: Update Configuration and Build
         run: |
           node scripts/updateConfig.js ${{ github.event.inputs.cliente }}
+          npm run build
 
       - name: Deploy using WSL
         shell: powershell
@@ -55,10 +56,13 @@ jobs:
           SSH_USER: ${{ secrets.SSH_USER }}
           CLIENTE: ${{ github.event.inputs.cliente }}
         run: |
-          $targetPath = if ($env:CLIENTE -eq "gaesa") { "/var/www/gaesa" } else { "/var/www/$env:CLIENTE" }
-          $targetServer = if ($env:CLIENTE -eq "gaesa") { "192.168.200.11" } else { "192.168.200.3" }
+          $targetServer = switch ($env:CLIENTE) {
+            "gaesa" { "192.168.102.6" }
+            "gaesademo" { "192.168.200.3" }
+            default { "192.168.200.3" }
+          }
           
-          wsl -e bash -c "sshpass -p '$env:SSH_PASSWORD' rsync -avz --delete ./dist/ $env:SSH_USER@$targetServer:$targetPath/dist/ && sshpass -p '$env:SSH_PASSWORD' ssh -o StrictHostKeyChecking=no $env:SSH_USER@$targetServer 'systemctl restart nginx'"
+          wsl -e bash -c "sshpass -p '$env:SSH_PASSWORD' rsync -avz --delete ./dist/ $env:SSH_USER@$targetServer:/var/www/gaesa/dist/ && sshpass -p '$env:SSH_PASSWORD' ssh -o StrictHostKeyChecking=no $env:SSH_USER@$targetServer 'systemctl restart nginx'"
 
   deploy-all:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -66,7 +70,8 @@ jobs:
     strategy:
       matrix:
         cliente: [
-          'gaesa'
+          # 'gaesa',
+          'gaesademo'
           # 'acricolor', 
           # 'lobeck', 
           # 'distriwembe', 
@@ -74,7 +79,6 @@ jobs:
           # 'bodega', 
           # 'truckdiesel', 
           # 'campomax', 
-          # 'gaesademo', 
           # 'lamberty', 
           # 'rustimemo', 
           # 'buda', 
@@ -102,6 +106,7 @@ jobs:
       - name: Update Configuration and Build
         run: |
           node scripts/updateConfig.js ${{ matrix.cliente }}
+          npm run build
 
       - name: Deploy using WSL
         shell: powershell
@@ -110,7 +115,10 @@ jobs:
           SSH_USER: ${{ secrets.SSH_USER }}
           CLIENTE: ${{ matrix.cliente }}
         run: |
-          $targetPath = if ($env:CLIENTE -eq "gaesa") { "/var/www/gaesa" } else { "/var/www/$env:CLIENTE" }
-          $targetServer = if ($env:CLIENTE -eq "gaesa") { "192.168.200.11" } else { "192.168.200.3" }
+          $targetServer = switch ($env:CLIENTE) {
+            "gaesa" { "192.168.102.6" }
+            "gaesademo" { "192.168.200.3" }
+            default { "192.168.200.3" }
+          }
           
-          wsl -e bash -c "sshpass -p '$env:SSH_PASSWORD' rsync -avz --delete ./dist/ $env:SSH_USER@$targetServer:$targetPath/dist/ && sshpass -p '$env:SSH_PASSWORD' ssh -o StrictHostKeyChecking=no $env:SSH_USER@$targetServer 'systemctl restart nginx'"
+          wsl -e bash -c "sshpass -p '$env:SSH_PASSWORD' rsync -avz --delete ./dist/ $env:SSH_USER@$targetServer:/var/www/gaesa/dist/ && sshpass -p '$env:SSH_PASSWORD' ssh -o StrictHostKeyChecking=no $env:SSH_USER@$targetServer 'systemctl restart nginx'"

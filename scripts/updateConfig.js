@@ -1,10 +1,6 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { exec } from "child_process";
-import promptSync from "prompt-sync";
-import { NodeSSH } from "node-ssh";
-const prompt = promptSync({ sigint: true });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -128,76 +124,6 @@ const configs = {
   },
 };
 
-function executeCommand(command) {
-  return new Promise((resolve, reject) => {
-    exec(command, { cwd: process.cwd() }, (error, stdout, stderr) => {
-      if (error) {
-        console.error(`Error ejecutando comando: ${error}`);
-        console.error("Salida de error:", stderr);
-        reject(error.message);
-        return;
-      }
-      if (stderr) {
-        console.error("Advertencias:", stderr);
-      }
-      console.log(stdout);
-      resolve(true);
-    });
-  });
-}
-
-async function deployToServer(empresa) {
-  const config = configs[empresa];
-  const ssh = new NodeSSH();
-
-  try {
-    // Ejecutar el build
-    console.log("🔨 Generando build...");
-    const buildResult = await executeCommand("npm run build");
-    if (!buildResult) throw new Error("Error al generar el build");
-
-    // Solicitar credenciales
-    console.log("\n📡 Configuración del despliegue:");
-    const username = prompt("Usuario SSH: ");
-    const password = prompt("Contraseña SSH: ");
-
-    // Determinar el host según la empresa
-    
-    console.log(`\n📦 Conectando al servidor...`);
-    await ssh.connect({
-      host: "192.168.200.3",
-      username,
-      password,
-      tryKeyboard: true,
-    });
-
-    const deployPath = `/var/www/${config.db}`;
-
-    // Primero limpiamos
-    console.log("🧹 Limpiando dist anterior...");
-    await ssh.execCommand(`rm -rf ${deployPath}/dist`);
-
-    // Luego copiamos
-    console.log("📦 Copiando nuevo dist...");
-    await ssh.putDirectory("./dist", `${deployPath}/dist`, {
-      recursive: true,
-      concurrency: 10,
-    });
-
-    await ssh.dispose();
-    console.log("✅ Despliegue completado exitosamente");
-
-    // Volver a configuración local después del despliegue
-    console.log("\n🔄 Volviendo a configuración local...");
-    await updateConfig("local");
-    
-  } catch (error) {
-    console.error("❌ Error en el proceso de despliegue:", error);
-    if (ssh) ssh.dispose();
-    process.exit(1);
-  }
-}
-
 async function updateConfig(empresa) {
   if (!configs[empresa]) {
     console.error(
@@ -252,13 +178,6 @@ async function updateConfig(empresa) {
     console.log(`- Fecha Release: ${currentDate}`);
     console.log(`- Título: ${config.title}`);
 
-
-    if (empresa !== "local") {
-      await deployToServer(empresa);
-    }
-    else if (empresa === "gaesa"){
-      await updateConfig(empresa);
-    }
   } catch (error) {
     console.error("❌ Error en el proceso:", error.message);
     process.exit(1);
