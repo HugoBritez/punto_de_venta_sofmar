@@ -28,8 +28,6 @@ import RuteamientosDashboard from "./views/ruteamientos/RuteamientosDashboard";
 import Pedidos from "./views/pedidos/Pedidos";
 import ConsultaPedidos from "./views/pedidos/ConsultaPedidos";
 import NoExiste from "./views/404";
-import VentaBalcon from "./views/puntodeventa/venta-balcon";
-import PuntoDeVenta from "./views/puntodeventa/punto-de-venta";
 import CobrosDiarios from "./views/cobros/CobrosDiarios";
 import VentaRapida from "./views/puntodeventa/VentaRapida";
 import InformeVentas from "./views/ventas/informeVentas";
@@ -127,12 +125,10 @@ function App() {
                   element={<InformeEntregas />}
                 />
                 <Route path="/cobros" element={<CobrosDiarios />} />
-                <Route path="/venta-balcon" element={<VentaBalcon />} />
                 <Route
                   path="/venta-balcon-nuevo"
                   element={<VentaBalconNuevo />}
                 />
-                <Route path="/punto-de-venta" element={<PuntoDeVenta />} />
                 <Route path="/punto-de-venta-nuevo" element={<PuntoDeVentaNuevo />} />
 
 

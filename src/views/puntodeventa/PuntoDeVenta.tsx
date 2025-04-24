@@ -34,7 +34,6 @@ import {
 import {
   FileText,
   Plus,
-  Tally1,
   X,
   Trash,
   CassetteTape,
@@ -59,7 +58,7 @@ import { useFacturaSend } from "@/hooks/useFacturaSend";
 import { useTipoImpresionFacturaStore } from "@/stores/tipoImpresionFacturaStore";
 import ModeloFacturaReport from "../facturacion/ModeloFacturaReport";
 import ArticuloInfoCard from "@/modules/ArticuloInfoCard";
-import { ArticulosComponent } from "@/ui/articulos/ArticulosComponent";
+import BuscadorClientes from "@/ui/clientes/BuscadorClientes";
 
 interface ItemParaVenta {
   precio_guaranies: number;
@@ -296,7 +295,7 @@ const PuntoDeVentaNuevo = () => {
 
   const  totalesVenta  = useTotalesVenta(itemsParaVenta);
 
-  const [isArticuloModalOpen, setIsArticuloModalOpen] = useState<boolean>(false);
+  const [isBuscadorClientesOpen, setIsBuscadorClientesOpen] = useState<boolean>(false);
 
   const {
     isOpen: isConsultaVentasOpen,
@@ -769,7 +768,7 @@ const PuntoDeVentaNuevo = () => {
       e.preventDefault();
       const currentIndex = hoveredArticulo
         ? articulos.findIndex(
-            (a) => a.id_articulo === hoveredArticulo.id_articulo
+            (a) => a.id_lote === hoveredArticulo.id_lote
           )
         : -1;
 
@@ -2044,14 +2043,6 @@ const formatearDivisasExtranjeras = (num: number) => {
         return;
       }
 
-      if (
-        e.key === "Enter" &&
-        document.activeElement === busquedaPorIdInputRef.current &&
-        articuloBusquedaId === null || articuloBusquedaId === undefined || articuloBusquedaId === ''
-      ) {
-        e.preventDefault();
-        setIsArticuloModalOpen(true);
-      }
       if (e.key === "F6") {
         e.preventDefault();
         cantidadInputRef.current?.focus();
@@ -2351,12 +2342,23 @@ const formatearDivisasExtranjeras = (num: number) => {
   const vendedorCodigoRef = useRef<HTMLInputElement>(null);
   const busquedaPorIdInputRef = useRef<HTMLInputElement>(null);
 
-  const handleClienteIdKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      vendedorCodigoRef.current?.focus();
-    }
-  };
+    const handleClienteIdKeyPress = (
+      e: React.KeyboardEvent<HTMLInputElement>
+    ) => {
+      if (
+        e.key === "Enter" &&
+        clienteCodigoRef.current?.value !== "" &&
+        clienteCodigoRef.current?.value !== null
+      ) {
+        e.preventDefault();
+        vendedorCodigoRef.current?.focus();
+      } else if (
+        (e.key === "Enter" && clienteCodigoRef.current?.value === "") ||
+        clienteCodigoRef.current?.value === null
+      ) {
+        setIsBuscadorClientesOpen(true);
+      }
+    };
 
   const handleClienteKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -2575,14 +2577,23 @@ const formatearDivisasExtranjeras = (num: number) => {
                       handleBuscarClientePorId(e);
                     }}
                     onKeyDown={handleClienteIdKeyPress}
-                    value={clienteBusquedaId || ""}
+                    value={
+                      clienteSeleccionado
+                        ? clienteSeleccionado.cli_interno
+                        : clienteBusquedaId || ""
+                    }
                   />
                   <input
                     ref={clienteNombreRef}
                     type="text"
                     name=""
                     id=""
-                    value={clienteBusqueda}
+                    value={
+                      clienteSeleccionado
+                        ? clienteSeleccionado.cli_razon
+                        : clienteBusqueda || ""
+                    }
+                    readOnly={true}
                     onChange={(e) => {
                       handleBuscarCliente(e);
                     }}
@@ -2628,28 +2639,37 @@ const formatearDivisasExtranjeras = (num: number) => {
                 <div className="flex flex-row gap-2">
                   <input
                     ref={vendedorCodigoRef}
-                    type="number"
-                    name=""
-                    id=""
+                    type="password"
+                    name="vendedor-codigo"
+                    id="vendedor-codigo"
+                    autoComplete="off"
                     className="border rounded-md p-2 w-[80px]"
                     onChange={(e) => {
                       handleBuscarVendedor(e);
                     }}
                     onKeyDown={handleVendedorKeyPress}
-                    value={vendedorBusqueda || ""}
+                    value={
+                      vendedorSeleccionado
+                        ? vendedorSeleccionado.op_codigo
+                        : vendedorBusqueda || ""
+                    }
                   />
                   <input
                     type="text"
                     name=""
                     id=""
-                    value={vendedorSeleccionado?.op_nombre}
+                    value={
+                      vendedorSeleccionado
+                        ? vendedorSeleccionado.op_nombre || ""
+                        : "No hay vendedor seleccionado."
+                    }
                     onChange={(e) => {
                       handleBuscarVendedor(e);
                     }}
                     onClick={() => {
                       setIsVendedorCardVisible(true);
                     }}
-                    disabled
+                    readOnly={true}
                     className="border rounded-md flex-1 p-2 disabled:bg-gray-400 disabled:text-black disabled:font-bold"
                     placeholder="Buscar vendedor"
                   />
@@ -2722,7 +2742,6 @@ const formatearDivisasExtranjeras = (num: number) => {
               <div className="relative w-full">
                 <input
                   type="text"
-                  readOnly={true}
                   value={
                     articuloSeleccionado
                       ? articuloSeleccionado.descripcion
@@ -2789,67 +2808,119 @@ const formatearDivisasExtranjeras = (num: number) => {
                 isVisible={isArticuloCardVisible}
                 items={articulos}
                 onClose={() => setIsArticuloCardVisible(false)}
-                onSelect={handleSelectArticulo}
+                onSelect={(articulo) => {
+                  setArticuloSeleccionado(articulo);
+                  setIsArticuloCardVisible(false);
+                }}
                 className={
                   isMobile
-                    ? "absolute top-24 left-0 right-0 z-999"
-                    : "absolute top-16 left-0 right-0 z-999"
+                    ? "absolute top-24 left-0 right-0 z-999 shadow-md"
+                    : "absolute top-12 left-0 right-0 z-999 shadow-md"
                 }
-                renderItem={(item) => (
-                  <div
-                    className={
-                      isMobile
-                        ? "flex flex-row gap-2 items-center [&>p]:font-semibold [&>p]:text-xs"
-                        : "flex flex-row gap-2 items-center [&>p]:font-bold"
-                    }
-                    onMouseEnter={() => setHoveredArticulo(item)}
-                    onMouseLeave={() => setHoveredArticulo(null)}
-                  >
-                    <p>{item.codigo_barra}</p>
-                    <Tally1 />
-                    <p>{item.descripcion}</p>
-                    <Tally1 />
-                    {monedaSeleccionada?.mo_codigo === 1 ? (
-                      <>
-                        <p>P. Contado</p>
-                        <p>{formatNumber(item.precio_venta_guaranies)}</p>
-                        <p>P. Mostrador</p>
-                        <p>{formatNumber(item.precio_mostrador)}</p>
-                        <p>P. Credito</p>
-                        <p>{formatNumber(item.precio_credito)}</p>
-                      </>
-                    ) : (
-                      <>
-                        <p>
-                          P. Contado{" "}
-                          {monedaSeleccionada?.mo_descripcion.toLowerCase()}:
-                        </p>
-                        <p>{formatNumber(item.precio_venta_dolar)}</p>
-                      </>
-                    )}
-                    <Tally1 />
-                    {item.vencimiento_validacion === 1 ? (
-                      <>
-                        <p
-                          className={
-                            item.estado_vencimiento === "VIGENTE"
-                              ? "text-green-500"
-                              : item.estado_vencimiento === "PROXIMO"
-                              ? "text-yellow-500"
-                              : "text-red-500"
-                          }
-                        >
-                          {item.vencimiento_lote}
-                        </p>
-                        <Tally1 />
-                        <p>Lote: {item.lote}</p>
-                      </>
-                    ) : null}
-                    <Tally1 />
-                    <p>Stock</p>
-                    <p>{item.cantidad_lote}</p>
+                renderGeneral={(items, selectedIndex) => (
+                  <div className="flex flex-row gap-2 ">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="bg-blue-500 text-white [&>th]:p-2 [&>th]:text-center [&>th]:border [&>th]:border-gray-200">
+                          <th>Código</th>
+                          <th>Descripción</th>
+                          <th>Stock</th>
+                          <th>P. {listaPrecios[0]?.lp_descripcion}</th>
+                          <th>P. {listaPrecios[1]?.lp_descripcion}</th>
+                          <th>P. {listaPrecios[2]?.lp_descripcion}</th>
+                          <th>Lote</th>
+                          <th>Vencimiento</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {items.map((articulo, index) => (
+                          <tr
+                            key={articulo.id_lote}
+                            className={`cursor-pointer transition-colors duration-150 [&>td]:p-2 [&>td]:text-center [&>td]:border [&>td]:border-gray-200 ${
+                              index === selectedIndex
+                                ? "bg-blue-100"
+                                : "hover:bg-gray-100"
+                            }`}
+                            onMouseEnter={() => {
+                              setHoveredArticulo(articulo);
+                            }}
+                            onMouseLeave={() => {
+                              setHoveredArticulo(null);
+                            }}
+                            onClick={() => {
+                              setArticuloSeleccionado(articulo);
+                              setIsArticuloCardVisible(false);
+                            }}
+                          >
+                            <td>{articulo.codigo_barra}</td>
+                            <td>{articulo.descripcion}</td>
+                            <td>{articulo.cantidad_lote}</td>
+                            <td>{articulo.precio_venta_guaranies}</td>
+                            <td>{articulo.precio_venta_dolar}</td>
+                            <td>{articulo.precio_venta_real}</td>
+                            <td>{articulo.lote}</td>
+                            <td>{articulo.vencimiento_lote}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
                 )}
+                // renderItem={(item) => (
+                //   <div
+                //     className={
+                //       isMobile
+                //         ? "flex flex-row gap-2 items-center [&>p]:font-semibold [&>p]:text-xs"
+                //         : "flex flex-row gap-2 items-center [&>p]:font-bold"
+                //     }
+                //     onMouseEnter={() => setHoveredArticulo(item)}
+                //     onMouseLeave={() => setHoveredArticulo(null)}
+                //   >
+                //     <p>{item.codigo_barra}</p>
+                //     <Tally1 />
+                //     <p>{item.descripcion}</p>
+                //     <Tally1 />
+                //     {monedaSeleccionada?.mo_codigo === 1 ? (
+                //       <>
+                //         <p>P. Contado</p>
+                //         <p>{formatNumber(item.precio_venta_guaranies)}</p>
+                //         <p>P. Mostrador</p>
+                //         <p>{formatNumber(item.precio_mostrador)}</p>
+                //         <p>P. Credito</p>
+                //         <p>{formatNumber(item.precio_credito)}</p>
+                //       </>
+                //     ) : (
+                //       <>
+                //         <p>
+                //           P. Contado{" "}
+                //           {monedaSeleccionada?.mo_descripcion.toLowerCase()}:
+                //         </p>
+                //         <p>{formatNumber(item.precio_venta_dolar)}</p>
+                //       </>
+                //     )}
+                //     <Tally1 />
+                //     {item.vencimiento_validacion === 1 ? (
+                //       <>
+                //         <p
+                //           className={
+                //             item.estado_vencimiento === "VIGENTE"
+                //               ? "text-green-500"
+                //               : item.estado_vencimiento === "PROXIMO"
+                //               ? "text-yellow-500"
+                //               : "text-red-500"
+                //           }
+                //         >
+                //           {item.vencimiento_lote}
+                //         </p>
+                //         <Tally1 />
+                //         <p>Lote: {item.lote}</p>
+                //       </>
+                //     ) : null}
+                //     <Tally1 />
+                //     <p>Stock</p>
+                //     <p>{item.cantidad_lote}</p>
+                //   </div>
+                // )}
               />
               <ArticuloInfoCard
                 articulo={hoveredArticulo}
@@ -3913,16 +3984,15 @@ const formatearDivisasExtranjeras = (num: number) => {
         isOpen={isEditarVentaOpen}
         onClose={onEditarVentaClose}
       />
-      <ArticulosComponent
-        isOpen={isArticuloModalOpen}
-        setIsOpen={setIsArticuloModalOpen}
-        onSelect={(articulo) => {
-          setArticuloSeleccionado(articulo);
-          cantidadInputRef.current?.focus();
+      <BuscadorClientes
+        isOpen={isBuscadorClientesOpen}
+        setIsOpen={setIsBuscadorClientesOpen}
+        onSelect={(cliente) => {
+          setClienteSeleccionado(cliente);
+          vendedorCodigoRef.current?.focus();
         }}
       />
     </Box>
-    
   );
 };
 

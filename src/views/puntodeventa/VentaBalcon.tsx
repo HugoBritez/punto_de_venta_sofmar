@@ -3964,6 +3964,7 @@ const VentaBalconNuevo = () => {
         setIsOpen={setIsBuscadorClientesOpen}
         onSelect={(cliente) => {
           setClienteSeleccionado(cliente);
+          vendedorCodigoRef.current?.focus();
         }}
       />
     </Box>
