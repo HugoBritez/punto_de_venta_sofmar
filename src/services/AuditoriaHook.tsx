@@ -29,7 +29,7 @@ async function Auditar(entidad: number, accion: number, idReferencia: number | n
     }
 
 
-    export default Auditar;
+    export default Auditar; //probando la nueva rama
 
 
 
