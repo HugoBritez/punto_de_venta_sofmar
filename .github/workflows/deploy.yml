@@ -1,105 +1,116 @@
-# name: Deploy Frontend Clientes
+name: Deploy Frontend Clientes
 
-# on:
-#   push:
-#     branches:
-#       - main
-#   workflow_dispatch:
-#     inputs:
-#       cliente:
-#         description: 'Cliente específico a desplegar'
-#         required: true
-#         type: choice
-#         options:
-#           - acricolor
-#           - lobeck
-#           - distriwembe
-#           - concrecar
-#           - bodega
-#           - truckdiesel
-#           - campomax
-#           - gaesa
-#           - gaesademo
-#           - lamberty
-#           - rustimemo
-#           - buda
-#           - zimer
-#           - mersan
-#           - agrosertaneja
-#           - caofa
-#           - ferrehanh
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      cliente:
+        description: 'Cliente específico a desplegar'
+        required: true
+        type: choice
+        options:
+          - gaesa
+          # - acricolor
+          # - lobeck
+          # - distriwembe
+          # - concrecar
+          # - bodega
+          # - truckdiesel
+          # - campomax
+          # - gaesademo
+          # - lamberty
+          # - rustimemo
+          # - buda
+          # - zimer
+          # - mersan
+          # - agrosertaneja
+          # - caofa
+          # - ferrehanh
+jobs:
+  deploy-single:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: self-hosted
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
 
-# jobs:
-#   deploy-single:
-#     if: github.event_name == 'workflow_dispatch'
-#     runs-on: self-hosted
-#     steps:
-#       - name: Checkout Repository
-#         uses: actions/checkout@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
 
-#       - name: Setup Node.js
-#         uses: actions/setup-node@v3
-#         with:
-#           node-version: '18'
+      - name: Install Dependencies
+        run: npm install
 
-#       - name: Install Dependencies
-#         run: npm install
+      - name: Update Configuration and Build
+        run: |
+          node scripts/updateConfig.js ${{ github.event.inputs.cliente }}
 
-#       - name: Update Configuration and Build
-#         run: |
-#           node scripts/updateConfig.js ${{ github.event.inputs.cliente }}
-
-#       - name: Deploy using WSL
-#         shell: powershell
-#         env:
-#           SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-#           SSH_USER: ${{ secrets.SSH_USER }}
-#           CLIENTE: ${{ github.event.inputs.cliente }}
-#         run: |
-#           $targetPath = if ($env:CLIENTE -eq "gaesa") { "/var/www/gaesa" } else { "/var/www/$env:CLIENTE" }
-#           $targetServer = if ($env:CLIENTE -eq "gaesa") { "192.168.200.11" } else { "192.168.200.3" }
+      - name: Deploy using WSL
+        shell: powershell
+        env:
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          CLIENTE: ${{ github.event.inputs.cliente }}
+        run: |
+          $targetPath = if ($env:CLIENTE -eq "gaesa") { "/var/www/gaesa" } else { "/var/www/$env:CLIENTE" }
+          $targetServer = if ($env:CLIENTE -eq "gaesa") { "192.168.200.11" } else { "192.168.200.3" }
           
-#           wsl -e bash -c "sshpass -p '$env:SSH_PASSWORD' rsync -avz --delete ./dist/ $env:SSH_USER@$targetServer:$targetPath/dist/ && sshpass -p '$env:SSH_PASSWORD' ssh -o StrictHostKeyChecking=no $env:SSH_USER@$targetServer 'systemctl restart nginx'"
+          wsl -e bash -c "sshpass -p '$env:SSH_PASSWORD' rsync -avz --delete ./dist/ $env:SSH_USER@$targetServer:$targetPath/dist/ && sshpass -p '$env:SSH_PASSWORD' ssh -o StrictHostKeyChecking=no $env:SSH_USER@$targetServer 'systemctl restart nginx'"
 
-#   deploy-all:
-#     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-#     runs-on: self-hosted
-#     strategy:
-#       matrix:
-#         cliente: [
-#           'acricolor', 'lobeck', 'distriwembe', 'concrecar', 
-#           'bodega', 'truckdiesel', 'campomax', 'gaesa', 
-#           'gaesademo', 'lamberty', 'rustimemo', 'buda', 
-#           'zimer', 'mersan', 'agrosertaneja', 'caofa', 
-#           'ferrehanh'
-#         ]
-#       # Permite que otros despliegues continúen si uno falla
-#       fail-fast: false
+  deploy-all:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: self-hosted
+    strategy:
+      matrix:
+        cliente: [
+          'gaesa'
+          # 'acricolor', 
+          # 'lobeck', 
+          # 'distriwembe', 
+          # 'concrecar', 
+          # 'bodega', 
+          # 'truckdiesel', 
+          # 'campomax', 
+          # 'gaesademo', 
+          # 'lamberty', 
+          # 'rustimemo', 
+          # 'buda', 
+          # 'zimer', 
+          # 'mersan', 
+          # 'agrosertaneja', 
+          # 'caofa', 
+          # 'ferrehanh'
+        ]
+      # Permite que otros despliegues continúen si uno falla
+      fail-fast: false
       
-#     steps:
-#       - name: Checkout Repository
-#         uses: actions/checkout@v3
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
 
-#       - name: Setup Node.js
-#         uses: actions/setup-node@v3
-#         with:
-#           node-version: '18'
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
 
-#       - name: Install Dependencies
-#         run: npm install
+      - name: Install Dependencies
+        run: npm install
 
-#       - name: Update Configuration and Build
-#         run: |
-#           node scripts/updateConfig.js ${{ matrix.cliente }}
+      - name: Update Configuration and Build
+        run: |
+          node scripts/updateConfig.js ${{ matrix.cliente }}
 
-#       - name: Deploy using WSL
-#         shell: powershell
-#         env:
-#           SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
-#           SSH_USER: ${{ secrets.SSH_USER }}
-#           CLIENTE: ${{ matrix.cliente }}
-#         run: |
-#           $targetPath = if ($env:CLIENTE -eq "gaesa") { "/var/www/gaesa" } else { "/var/www/$env:CLIENTE" }
-#           $targetServer = if ($env:CLIENTE -eq "gaesa") { "192.168.200.11" } else { "192.168.200.3" }
+      - name: Deploy using WSL
+        shell: powershell
+        env:
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          CLIENTE: ${{ matrix.cliente }}
+        run: |
+          $targetPath = if ($env:CLIENTE -eq "gaesa") { "/var/www/gaesa" } else { "/var/www/$env:CLIENTE" }
+          $targetServer = if ($env:CLIENTE -eq "gaesa") { "192.168.200.11" } else { "192.168.200.3" }
           
-#           wsl -e bash -c "sshpass -p '$env:SSH_PASSWORD' rsync -avz --delete ./dist/ $env:SSH_USER@$targetServer:$targetPath/dist/ && sshpass -p '$env:SSH_PASSWORD' ssh -o StrictHostKeyChecking=no $env:SSH_USER@$targetServer 'systemctl restart nginx'"
+          wsl -e bash -c "sshpass -p '$env:SSH_PASSWORD' rsync -avz --delete ./dist/ $env:SSH_USER@$targetServer:$targetPath/dist/ && sshpass -p '$env:SSH_PASSWORD' ssh -o StrictHostKeyChecking=no $env:SSH_USER@$targetServer 'systemctl restart nginx'"
