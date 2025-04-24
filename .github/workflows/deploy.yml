@@ -64,7 +64,7 @@ jobs:
             "192.168.200.3"
           }
           
-          $command = "sshpass -p '$env:SSH_PASSWORD' rsync -avz --delete ./dist/ $env:SSH_USER@$targetServer`:/var/www/gaesa/dist/ && sshpass -p '$env:SSH_PASSWORD' ssh -o StrictHostKeyChecking=no $env:SSH_USER@$targetServer 'systemctl restart nginx'"
+          $command = "sshpass -p '$env:SSH_PASSWORD' rsync -avz -e 'ssh -o StrictHostKeyChecking=no' --delete ./dist/ $env:SSH_USER@$targetServer`:/var/www/gaesa/dist/ && sshpass -p '$env:SSH_PASSWORD' ssh -o StrictHostKeyChecking=no $env:SSH_USER@$targetServer 'systemctl restart nginx'"
           wsl -e bash -c "$command"
 
   deploy-all:
@@ -126,5 +126,5 @@ jobs:
             "192.168.200.3"
           }
           
-          $command = "sshpass -p '$env:SSH_PASSWORD' rsync -avz --delete ./dist/ $env:SSH_USER@$targetServer`:/var/www/gaesa/dist/ && sshpass -p '$env:SSH_PASSWORD' ssh -o StrictHostKeyChecking=no $env:SSH_USER@$targetServer 'systemctl restart nginx'"
+          $command = "sshpass -p '$env:SSH_PASSWORD' rsync -avz -e 'ssh -o StrictHostKeyChecking=no' --delete ./dist/ $env:SSH_USER@$targetServer`:/var/www/gaesa/dist/ && sshpass -p '$env:SSH_PASSWORD' ssh -o StrictHostKeyChecking=no $env:SSH_USER@$targetServer 'systemctl restart nginx'"
           wsl -e bash -c "$command"
