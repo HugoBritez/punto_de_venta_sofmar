@@ -188,18 +188,17 @@ const Sidebar = () => {
           enabled: true,
         },
         {
-          grupo: 2,
-          orden: 102,
+          grupo:  2, //2
+          orden: 102, //102
           id: 421,
           name: "Punto de Venta",
           icon: ShoppingBasket,
           path: "/punto-de-venta-nuevo",
           enabled: true,
         },
-
         {
-          grupo: 2,
-          orden: 104,
+          grupo: 2, //2
+          orden: 104, //104
           id: 429,
           name: "Venta Balcon",
           icon: ShoppingCart,

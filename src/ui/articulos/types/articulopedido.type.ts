@@ -3,4 +3,5 @@ export interface ArticuloPedido {
     fecha: string;
     cliente: string;
     cantidad: number;
+    tipo: number;
 }

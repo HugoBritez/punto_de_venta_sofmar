@@ -61,6 +61,10 @@ import { useFacturacionElectronicaStore } from "@/stores/facturacionElectronicaS
 import { useFacturaSend } from "@/hooks/useFacturaSend";
 import { useTipoImpresionFacturaStore } from "@/stores/tipoImpresionFacturaStore";
 import ModeloFacturaReport from "../facturacion/ModeloFacturaReport";
+import { ArticulosComponent } from "@/ui/articulos/ArticulosComponent";
+import BuscadorClientes from "@/ui/clientes/BuscadorClientes";
+
+
 
 interface ItemParaVenta {
   precio_guaranies: number;
@@ -225,11 +229,9 @@ const VentaBalconNuevo = () => {
   const [depositoSeleccionado, setDepositoSeleccionado] =
     useState<Deposito | null>(null);
 
-  const [clientes, setClientes] = useState<Cliente[]>([]);
   const [clienteSeleccionado, setClienteSeleccionado] =
     useState<Cliente | null>(null);
 
-  const [vendedores, setVendedores] = useState<Vendedor[]>([]);
   const [vendedorSeleccionado, setVendedorSeleccionado] =
     useState<Vendedor | null>(null);
 
@@ -262,8 +264,6 @@ const VentaBalconNuevo = () => {
   const [isArticuloCardVisible, setIsArticuloCardVisible] =
     useState<boolean>(false);
   const [, setIsVendedorCardVisible] = useState<boolean>(false);
-  const [isClienteCardVisible, setIsClienteCardVisible] =
-    useState<boolean>(false);
 
   const [itemsParaVenta, setItemsParaVenta] = useState<ItemParaVenta[]>([]);
 
@@ -311,6 +311,7 @@ const VentaBalconNuevo = () => {
   const [d_codigo, setD_codigo] = useState<number>(0);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isBuscadorClientesOpen, setIsBuscadorClientesOpen] = useState(false);
   const [clienteBusquedaId, setClienteBusquedaId] = useState<number | null>(
     null
   );
@@ -415,6 +416,8 @@ const VentaBalconNuevo = () => {
   const { enviarFacturas } = useFacturaSend();
 
   const toast = useToast();
+
+  const [isArticuloModalOpen, setIsArticuloModalOpen] = useState(false);
 
   const totalesVenta = useTotalesVenta(itemsParaVenta);
 
@@ -528,16 +531,6 @@ const VentaBalconNuevo = () => {
     setArticulos(response.data.body);
   };
 
-  const getClientes = async (busqueda: string) => {
-    const response = await axios.get(`${api_url}clientes/get-clientes`, {
-      params: {
-        buscar: busqueda,
-      },
-    });
-    console.log(response.data.body);
-    setClientes(response.data.body);
-  };
-
   const getClientePorId = async (
     id: number | null,
     id_cliente: number | null
@@ -568,6 +561,7 @@ const VentaBalconNuevo = () => {
 
   useEffect(() => {
     if (clienteSeleccionado) {
+      console.log("Cliente seleccionado", clienteSeleccionado);
       getVendedores(clienteSeleccionado.vendedor_cliente);
     }
   }, [clienteSeleccionado]);
@@ -580,22 +574,9 @@ const VentaBalconNuevo = () => {
       },
     });
     console.log("Respuesta de vendedores", response.data.body);
-    setVendedores(response.data.body);
     setVendedorSeleccionado(response.data.body[0]);
   };
 
-  const handleBuscarArticulo = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const busqueda = e.target.value;
-    setArticuloBusqueda(busqueda);
-    setArticuloSeleccionado(null);
-    if (busqueda.length > 0) {
-      setIsArticuloCardVisible(true);
-      getArticulos(busqueda);
-    } else {
-      setIsArticuloCardVisible(false);
-      setArticulos([]);
-    }
-  };
 
   const handleBuscarArticuloPorId = (
     e: React.ChangeEvent<HTMLInputElement>
@@ -608,24 +589,6 @@ const VentaBalconNuevo = () => {
     } else {
       setIsArticuloCardVisible(false);
       setArticulos([]);
-    }
-  };
-
-  const handleBuscarCliente = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const busqueda = e.target.value;
-    setClienteBusqueda(busqueda);
-    
-    // Si el input está vacío, limpiamos la selección
-    if (busqueda === "") {
-      setClienteSeleccionado(null);
-    }
-    
-    if (busqueda.length >= 0) {
-      setIsClienteCardVisible(true);
-      getClientes(busqueda);
-    } else {
-      setIsClienteCardVisible(false);
-      setClientes([]);
     }
   };
 
@@ -659,18 +622,6 @@ const VentaBalconNuevo = () => {
     setHoveredArticulo(null);
     setArticuloBusqueda("");
     setArticuloBusquedaId("");
-  };
-
-  const handleSelectCliente = (cliente: Cliente) => {
-    setClienteSeleccionado(cliente);
-    setClienteBusqueda(cliente.cli_razon);
-    setClienteBusquedaId(cliente.cli_codigo);
-    getVendedores(cliente.vendedor_cliente);
-    setVendedorSeleccionado(
-      vendedores.find((vendedor) => vendedor.id === cliente.vendedor_cliente) ||
-        null
-    );
-    setIsClienteCardVisible(false);
   };
 
   const crearItemValidado = (
@@ -795,6 +746,8 @@ const VentaBalconNuevo = () => {
         setHoveredArticulo(null);
       } else if (articulos.length > 0) {
         handleSelectArticulo(articulos[0]);
+      } else if (!articuloBusquedaId || articuloBusquedaId === "") {
+        setIsArticuloModalOpen(true); // Si no hay búsqueda, abrimos el modal
       }
     } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
@@ -821,16 +774,18 @@ const VentaBalconNuevo = () => {
     }
   };
 
-  const handleCantidadKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      if (articuloSeleccionado) {
-        agregarItemAVenta();
-      }
-      setCantidad(1);
-      setDescuento(0);
-      busquedaPorIdInputRef.current?.focus();
-    }
-  };
+ const handleCantidadKeyPress = (e: React.KeyboardEvent) => {
+   if (e.key === "Enter") {
+     e.preventDefault();
+     e.stopPropagation();
+     if (articuloSeleccionado) {
+       agregarItemAVenta();
+     }
+     setCantidad(1);
+     setDescuento(0);
+     busquedaPorIdInputRef.current?.focus(); // Volvemos al input de búsqueda
+   }
+ };
 
   const handleCancelarVenta = () => {
     setItemsParaVenta([]);
@@ -2054,6 +2009,12 @@ const VentaBalconNuevo = () => {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Si estamos en el input de cantidad, dejamos que su propio handler lo maneje
+      if (document.activeElement === cantidadInputRef.current) {
+        return;
+      }
+
+      // Mantenemos los atajos existentes
       if (e.key === "F6") {
         e.preventDefault();
         cantidadInputRef.current?.focus();
@@ -2068,20 +2029,15 @@ const VentaBalconNuevo = () => {
         busquedaInputRef.current?.focus();
       } else if (e.key === "F12") {
         e.preventDefault();
-        // Si el modal de finalización está abierto, finalizar la venta
         if (isKCOpen) {
           finalizarVenta();
-        }
-        // Si no está abierto pero hay items y cliente seleccionado, abrir el modal
-        else if (
+        } else if (
           itemsParaVenta.length > 0 &&
           clienteSeleccionado &&
           vendedorSeleccionado
         ) {
           onKCOpen();
-        }
-        // Si no se cumplen las condiciones, mostrar mensaje de error
-        else {
+        } else {
           if (!clienteSeleccionado) {
             toast({
               title: "Error",
@@ -2120,6 +2076,8 @@ const VentaBalconNuevo = () => {
     isKCOpen,
     onKCOpen,
     finalizarVenta,
+    articuloSeleccionado,
+    articuloBusquedaId,
   ]);
 
   const handleKCKeyDown = (e: React.KeyboardEvent) => {
@@ -2449,18 +2407,14 @@ const VentaBalconNuevo = () => {
   };
 
   const handleClienteIdKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && clienteCodigoRef.current?.value !== "" && clienteCodigoRef.current?.value !== null) {
       e.preventDefault();
       vendedorCodigoRef.current?.focus();
+    } else if (e.key === 'Enter' && clienteCodigoRef.current?.value === "" || clienteCodigoRef.current?.value === null) {
+      setIsBuscadorClientesOpen(true);
     }
   };
 
-  const handleClienteKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      vendedorCodigoRef.current?.focus();
-    }
-  };
 
   const handleVendedorKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -2661,33 +2615,17 @@ const VentaBalconNuevo = () => {
                       handleBuscarClientePorId(e);
                     }}
                     onKeyDown={handleClienteIdKeyPress}
-                    value={clienteBusquedaId || ""}
+                    value={clienteSeleccionado ? clienteSeleccionado.cli_interno : clienteBusquedaId || ""}
                   />
                   <input
                     ref={clienteNombreRef}
                     type="text"
                     name=""
                     id=""
-                    value={clienteBusqueda}
-                    onChange={(e) => {
-                      handleBuscarCliente(e);
-                    }}
-                    onKeyDown={handleClienteKeyPress}
-                    onClick={() => {
-                      setIsClienteCardVisible(true);
-                    }}
+                    value={clienteSeleccionado ? clienteSeleccionado.cli_razon : clienteBusqueda}
+                    readOnly={true}
                     className="border rounded-md p-2 flex-1"
-                    placeholder="Buscar cliente"
-                  />
-                  <FloatingCard
-                    isVisible={isClienteCardVisible}
-                    items={clientes}
-                    onClose={() => setIsClienteCardVisible(false)}
-                    onSelect={handleSelectCliente}
-                    className="absolute top-16 left-0 right-0 z-999"
-                    renderItem={(item) => (
-                      <p className="font-bold">{item.cli_razon}</p>
-                    )}
+                    placeholder="No hay cliente seleccionado."
                   />
                 </div>
               </div>
@@ -2716,15 +2654,16 @@ const VentaBalconNuevo = () => {
                 <div className="flex flex-row gap-2">
                   <input
                     ref={vendedorCodigoRef}
-                    type="number"
-                    name=""
-                    id=""
+                    type="password"
+                    name="vendedor-codigo"
+                    id="vendedor-codigo"
+                    autoComplete="off"
                     className="border rounded-md p-2 w-[80px]"
                     onChange={(e) => {
                       handleBuscarVendedor(e);
                     }}
                     onKeyDown={handleVendedorKeyPress}
-                    value={vendedorBusqueda || ""}
+                    value={vendedorSeleccionado ? vendedorSeleccionado.op_codigo : vendedorBusqueda || ""}
                   />
                   <input
                     type="text"
@@ -2733,7 +2672,7 @@ const VentaBalconNuevo = () => {
                     value={
                       vendedorSeleccionado
                         ? vendedorSeleccionado.op_nombre || ""
-                        : vendedorBusqueda || ""
+                        : 'No hay vendedor seleccionado.'
                     }
                     onChange={(e) => {
                       handleBuscarVendedor(e);
@@ -2741,9 +2680,9 @@ const VentaBalconNuevo = () => {
                     onClick={() => {
                       setIsVendedorCardVisible(true);
                     }}
-                    disabled
-                    className="border rounded-md flex-1 p-2 disabled:bg-gray-400 disabled:text-black disabled:font-bold"
-                    placeholder="Buscar vendedor"
+                    readOnly={true}
+                    className="border rounded-md flex-1 p-2"
+                    placeholder="No hay vendedor seleccionado."
                   />
                 </div>
                 {(vendedorSeleccionado || vendedorBusqueda) && (
@@ -2839,6 +2778,7 @@ const VentaBalconNuevo = () => {
               <div className="relative w-full">
                 <input
                   type="text"
+                  readOnly={true}
                   value={
                     articuloSeleccionado
                       ? articuloSeleccionado.descripcion
@@ -2846,16 +2786,6 @@ const VentaBalconNuevo = () => {
                   }
                   className="border rounded-md p-2 flex-1 items-center justify-center w-full"
                   placeholder="Buscar articulo por nombre o codigo de barras"
-                  onClick={() => {
-                    setIsArticuloCardVisible(true);
-                  }}
-                  onFocus={() => {
-                    setIsArticuloCardVisible(true);
-                  }}
-                  onChange={(e) => {
-                    handleBuscarArticulo(e);
-                  }}
-                  onKeyDown={handleKeyPress}
                   ref={busquedaInputRef}
                 />
                 {articuloBusqueda && (
@@ -4020,6 +3950,21 @@ const VentaBalconNuevo = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         items={itemsFaltantes}
+      />
+      <ArticulosComponent
+        isOpen={isArticuloModalOpen}
+        setIsOpen={setIsArticuloModalOpen}
+        onSelect={(articulo) => {
+          setArticuloSeleccionado(articulo);
+          cantidadInputRef.current?.focus();
+        }}
+      />
+      <BuscadorClientes
+        isOpen={isBuscadorClientesOpen}
+        setIsOpen={setIsBuscadorClientesOpen}
+        onSelect={(cliente) => {
+          setClienteSeleccionado(cliente);
+        }}
       />
     </Box>
   );

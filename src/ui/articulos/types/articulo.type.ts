@@ -36,4 +36,5 @@ export interface Articulo {
   cantidad_caja: number;
   precio_sugerido: number;
   presentacion: string;
+  precompra: number;
 }

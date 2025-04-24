@@ -33,6 +33,7 @@ export const useSucursalDataStore = create<SucursalDataState>((set, get) => ({
       const response = await axios.get(`${api_url}sucursales/`, {
         params: {
           busqueda: busqueda,
+          operador: sessionStorage.getItem("user_id"),
         },
       });
       const data: Sucursal[] = response.data.body;

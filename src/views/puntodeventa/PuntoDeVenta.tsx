@@ -568,6 +568,19 @@ const PuntoDeVentaNuevo = () => {
    getVendedores(Number(cajero_id))
  }, [cajero_id])
 
+  const handleBuscarArticulo = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const busqueda = e.target.value;
+    setArticuloBusqueda(busqueda);
+    setArticuloSeleccionado(null);
+    if (busqueda.length > 0) {
+      setIsArticuloCardVisible(true);
+      getArticulos(busqueda);
+    } else {
+      setIsArticuloCardVisible(false);
+      setArticulos([]);
+    }
+  };
+
 
   const handleBuscarArticuloPorId = (
     e: React.ChangeEvent<HTMLInputElement>
@@ -779,6 +792,8 @@ const PuntoDeVentaNuevo = () => {
 
   const handleCantidadKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
+      e.preventDefault();
+      e.stopPropagation();
       if (articuloSeleccionado) {
         agregarItemAVenta();
       }
@@ -2025,7 +2040,15 @@ const formatearDivisasExtranjeras = (num: number) => {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if(e.key === "Enter" && document.activeElement === busquedaPorIdInputRef.current && articuloBusquedaId === null){
+      if (document.activeElement === cantidadInputRef.current) {
+        return;
+      }
+
+      if (
+        e.key === "Enter" &&
+        document.activeElement === busquedaPorIdInputRef.current &&
+        articuloBusquedaId === null || articuloBusquedaId === undefined || articuloBusquedaId === ''
+      ) {
         e.preventDefault();
         setIsArticuloModalOpen(true);
       }
@@ -2707,6 +2730,16 @@ const formatearDivisasExtranjeras = (num: number) => {
                   }
                   className="border rounded-md p-2 flex-1 items-center justify-center w-full"
                   placeholder="Buscar articulo por nombre o codigo de barras"
+                  onClick={() => {
+                    setIsArticuloCardVisible(true);
+                  }}
+                  onFocus={() => {
+                    setIsArticuloCardVisible(true);
+                  }}
+                  onChange={(e) => {
+                    handleBuscarArticulo(e);
+                  }}
+                  onKeyDown={handleKeyPress}
                   ref={busquedaInputRef}
                 />
                 {articuloBusqueda && (
@@ -3883,6 +3916,10 @@ const formatearDivisasExtranjeras = (num: number) => {
       <ArticulosComponent
         isOpen={isArticuloModalOpen}
         setIsOpen={setIsArticuloModalOpen}
+        onSelect={(articulo) => {
+          setArticuloSeleccionado(articulo);
+          cantidadInputRef.current?.focus();
+        }}
       />
     </Box>
     

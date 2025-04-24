@@ -12,4 +12,6 @@ export interface BusquedaDTO {
   proveedor?: number;
   cod_interno?: number;
   articulo?: number;
+  lote?: number;
+  negativo?: boolean;
 }

@@ -14,10 +14,27 @@ export const buscarArticulos = async ({
   categoria,
   ubicacion,
   proveedor,
-  cod_interno
+  cod_interno,
+  lote,
+  negativo
 }: BusquedaDTO): Promise<Articulo[]> => {
   try {
-    const response = await axios.get(`${api_url}articulos/consulta-articulos`, {
+    console.log("enviando datos en servicio", {
+      id_articulo,
+      codigo_barra,
+      busqueda,
+      deposito,
+      stock,
+      moneda,
+      marca,
+      categoria,
+      ubicacion,
+      proveedor,
+      cod_interno,
+      lote,
+      negativo
+    });
+    const response = await axios.get(`${api_url}articulos/buscar-articulos`, {
       params: {
         articulo_id: id_articulo,
         codigo_barra: codigo_barra,
@@ -29,7 +46,9 @@ export const buscarArticulos = async ({
         categoria: categoria,
         ubicacion: ubicacion,
         proveedor: proveedor,
-        cod_interno: cod_interno
+        cod_interno: cod_interno,
+        lote: lote,
+        negativo: negativo
       },
     });
     console.log(response.data);

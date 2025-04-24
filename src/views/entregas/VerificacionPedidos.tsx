@@ -863,9 +863,10 @@ const VerificacionPedidos = () => {
                   </label>
                   <input
                     type="number"
+                    min={0}
                     className="w-full p-2 border rounded"
-                    value={cantidad || ""}
-                    onChange={(e) => setCantidad(Number(e.target.value))}
+                    value={cantidad === null ? "" : cantidad}
+                    onChange={(e) => setCantidad(e.target.value === "" ? null : Number(e.target.value))}
                   />
                 </div>
               </div>
