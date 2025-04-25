@@ -68,7 +68,7 @@ const FormularioArticulo = () => {
       </div>
     );
   };
-
+  
   return (
     <div className="flex flex-col items-center justify-center h-screen p-2">
       <div className="flex flex-col w-full h-full bg-white rounded-md shadow-xs">

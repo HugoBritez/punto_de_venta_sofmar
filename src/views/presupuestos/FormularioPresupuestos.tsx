@@ -46,6 +46,8 @@ import ArticuloInfoCard from "@/modules/ArticuloInfoCard";
 import { PresupuestosPendientes } from "./ui/PresupuestosPendientes";
 import { NotaPresupuesto } from "./pdf/NotaPresupuesto";
 import { createRoot } from "react-dom/client";
+import { ArticulosComponent } from "@/ui/articulos/ArticulosComponent";
+import BuscadorClientes from "@/ui/clientes/BuscadorClientes";
 
 interface ItemParaPresupuesto {
   depre_articulo: number;
@@ -94,14 +96,14 @@ const FormularioPresupuestos = () => {
   const { depositos, fetchDepositos } = useDepositosStore();
   const { monedas, fetchMonedas } = useMonedasStore();
   const { listaPrecios, fetchListaPrecios } = useListaPreciosStore();
-  const [clientes, setClientes] = useState<Cliente[]>([]);
   const { cotizaciones, fetchCotizaciones } = useCotizacionesStore();
-
-  const [vendedores, setVendedores] = useState<Vendedor[]>([]);
+  const [, setVendedores] = useState<Vendedor[]>([]);
   const [fecha, setFecha] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
   const [articulos, setArticulos] = useState<ArticuloBusqueda[]>([]);
+
+  const [isBuscadorClientesOpen, setIsBuscadorClientesOpen] = useState<boolean>(false);
 
   //estados para todo lo seleccionado
   const [sucursalSeleccionada, setSucursalSeleccionada] =
@@ -136,12 +138,9 @@ const FormularioPresupuestos = () => {
   const [articuloBusquedaId, setArticuloBusquedaId] = useState<string>("");
 
   const [clienteBusqueda, setClienteBusqueda] = useState<string>("");
-  const [isClienteCardVisible, setIsClienteCardVisible] =
-    useState<boolean>(false);
 
   const [vendedorBusqueda, setVendedorBusqueda] = useState<string>("");
-  const [isVendedorCardVisible, setIsVendedorCardVisible] =
-    useState<boolean>(false);
+
   const [, setVendedorBusquedaId] = useState<string>("");
 
   const [hoveredArticulo, setHoveredArticulo] = useState<ArticuloBusqueda | null>(
@@ -166,7 +165,8 @@ const FormularioPresupuestos = () => {
   >(null);
 
   const [, setOperadores] = useState<Vendedor[]>([]);
-
+  const clienteRef = useRef<HTMLInputElement>(null);
+  const vendedorRef = useRef<HTMLInputElement>(null);
   const cantidadItemInputRef = useRef<HTMLInputElement>(null);
   const descuentoItemInputRef = useRef<HTMLInputElement>(null);
   const busquedaItemPorIdInputRef = useRef<HTMLInputElement>(null);
@@ -205,6 +205,7 @@ const FormularioPresupuestos = () => {
   const [mostrarMarcaCheck, setMostrarMarcaCheck] = useState<boolean>(true);
   const [impresoraCheck, setImpresoraCheck] = useState<boolean>(true);
   const [pdfCheck, setPdfCheck] = useState<boolean>(false);
+  const [isArticuloModalOpen, setIsArticuloModalOpen] = useState<boolean>(false);
 
 
   const {
@@ -255,16 +256,6 @@ const FormularioPresupuestos = () => {
     }
   }
 
-  const getClientes = async (busqueda: string) => {
-    const response = await axios.get(`${api_url}clientes/get-clientes`, {
-      params: {
-        buscar: busqueda,
-      },
-    });
-    console.log(response.data.body);
-    setClientes(response.data.body);
-  };
-
   const getClientePorId = async (
     id: number | null,
     id_cliente: number | null
@@ -305,14 +296,14 @@ const FormularioPresupuestos = () => {
     setOperadorSeleccionado(response.data.body[0]);
   };
 
-  const buscarVendedores = async (busqueda: string) => {
-    const response = await axios.get(`${api_url}usuarios/vendedores`, {
-      params: {
-        busqueda: busqueda,
-      },
-    });
-    setVendedores(response.data.body);
-  };
+  // const buscarVendedores = async (busqueda: string) => {
+  //   const response = await axios.get(`${api_url}usuarios/vendedores`, {
+  //     params: {
+  //       busqueda: busqueda,
+  //     },
+  //   });
+  //   setVendedores(response.data.body);
+  // };
 
   const handleBuscarArticulos = (e: React.ChangeEvent<HTMLInputElement>) => {
     const busqueda = e.target.value;
@@ -341,17 +332,7 @@ const FormularioPresupuestos = () => {
     }
   };
 
-  const handleBuscarCliente = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const busqueda = e.target.value;
-    setClienteBusqueda(busqueda);
-    if (busqueda.length >= 0) {
-      setIsClienteCardVisible(true);
-      getClientes(busqueda);
-    } else {
-      setIsClienteCardVisible(false);
-      setClientes([]);
-    }
-  };
+
 
   const handleBuscarClientePorId = (e: React.ChangeEvent<HTMLInputElement>) => {
     console.log("Buscando cliente por id", e);
@@ -395,32 +376,14 @@ const FormularioPresupuestos = () => {
     }
   };
 
-  const handleBuscarVendedor = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const busqueda = e.target.value;
-    setVendedorBusqueda(busqueda);
-    if (busqueda.length >= 0) {
-      setIsVendedorCardVisible(true);
-      buscarVendedores(busqueda);
-    } else {
-      setIsVendedorCardVisible(false);
-      setVendedores([]);
-    }
-  };
-
-  const handleSelectCliente = (cliente: Cliente) => {
-    setClienteSeleccionado(cliente);
-    handleBuscarVendedorPorId(cliente.vendedor_cliente);
-    setVendedorSeleccionado(
-      vendedores.find((vendedor) => vendedor.id === cliente.vendedor_cliente) ||
-        null
-    );
-  };
-
-  const handleSelectVendedor = (vendedor: Vendedor) => {
-    setVendedorSeleccionado(vendedor);
-    setIsVendedorCardVisible(false);
-    setVendedores([]);
-  };
+  // const handleSelectCliente = (cliente: Cliente) => {
+  //   setClienteSeleccionado(cliente);
+  //   handleBuscarVendedorPorId(cliente.vendedor_cliente);
+  //   setVendedorSeleccionado(
+  //     vendedores.find((vendedor) => vendedor.id === cliente.vendedor_cliente) ||
+  //       null
+  //   );
+  // };
 
   const handleSelectArticulo = (item: ArticuloBusqueda) => {
     setArticuloSeleccionado(item);
@@ -586,6 +549,8 @@ const FormularioPresupuestos = () => {
         setHoveredArticulo(null);
       } else if (articulos.length > 0) {
         handleSelectArticulo(articulos[0]);
+      } else if (!articuloBusquedaId || articuloBusquedaId === "") {
+        setIsArticuloModalOpen(true); // Si no hay búsqueda, abrimos el modal
       }
     } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
@@ -975,6 +940,47 @@ const FormularioPresupuestos = () => {
     }, 2000);
   };
 
+    useEffect(() => {
+      const handleGlobalEnter = (e: KeyboardEvent) => {
+        if (e.key === "Enter" && document.activeElement === document.body) {
+          e.preventDefault();
+          clienteRef.current?.focus();
+        }
+      };
+
+      document.addEventListener("keydown", handleGlobalEnter);
+      return () => {
+        document.removeEventListener("keydown", handleGlobalEnter);
+      };
+    }, []);
+
+      const handleClienteIdKeyPress = (
+        e: React.KeyboardEvent<HTMLInputElement>
+      ) => {
+        if (
+          e.key === "Enter" &&
+          clienteRef.current?.value !== "" &&
+          clienteRef.current?.value !== null
+        ) {
+          e.preventDefault();
+          vendedorRef.current?.focus();
+        } else if (
+          (e.key === "Enter" && clienteRef.current?.value === "") ||
+          clienteRef.current?.value === null
+        ) {
+          setIsBuscadorClientesOpen(true);
+        }
+      };
+
+      const handleVendedorKeyPress = (
+        e: React.KeyboardEvent<HTMLInputElement>
+      ) => {
+        if (e.key === "Enter" && vendedorRef.current?.value !== "" && vendedorRef.current?.value !== null) {
+          e.preventDefault();
+          busquedaItemPorIdInputRef.current?.focus();
+        } 
+      };
+
   return (
     <Box
       w={"100%"}
@@ -1120,34 +1126,32 @@ const FormularioPresupuestos = () => {
                 Cliente:
               </label>
               <input
+                ref={clienteRef}
                 type="number"
                 name="cliente_id"
                 id="cliente_id"
                 className="bg-white rounded-md p-2"
                 placeholder="Buscar cliente por id"
-                value={busquedaClienteId || ""}
+                value={
+                  clienteSeleccionado
+                    ? clienteSeleccionado.cli_interno
+                    : busquedaClienteId || ""
+                }
                 onChange={(e) => handleBuscarClientePorId(e)}
+                onKeyDown={handleClienteIdKeyPress}
               />
               <input
                 type="text"
                 name="cliente_nombre"
                 id="cliente_nombre"
                 className="bg-white rounded-md p-2 w-full"
-                placeholder="Buscar cliente por nombre"
+                disabled
+                placeholder="No se ha seleccionado un cliente"
                 value={
                   clienteSeleccionado
                     ? clienteSeleccionado.cli_razon
                     : clienteBusqueda
                 }
-                onChange={(e) => handleBuscarCliente(e)}
-              />
-              <FloatingCard
-                items={clientes}
-                onClose={() => setIsClienteCardVisible(false)}
-                onSelect={handleSelectCliente}
-                renderItem={(cliente) => cliente.cli_razon}
-                isVisible={isClienteCardVisible}
-                className="absolute top-16 left-0 right-0 z-999"
               />
             </div>
             <div
@@ -1168,27 +1172,21 @@ const FormularioPresupuestos = () => {
                 placeholder="Buscar vendedor por id"
                 value={busquedaVendedorId || ""}
                 onChange={(e) => handleBuscarVendedorPorId(e)}
+                onKeyDown={handleVendedorKeyPress}
+                ref={vendedorRef}
               />
               <input
                 type="text"
                 name="vendedor_nombre"
                 id="vendedor_nombre"
                 className="bg-white rounded-md p-2 w-full"
-                placeholder="Buscar vendedor por nombre"
+                disabled
+                placeholder="No se ha seleccionado un vendedor"
                 value={
                   vendedorSeleccionado
                     ? vendedorSeleccionado.op_nombre
                     : vendedorBusqueda
                 }
-                onChange={(e) => handleBuscarVendedor(e)}
-              />
-              <FloatingCard
-                items={vendedores}
-                onClose={() => setIsVendedorCardVisible(false)}
-                onSelect={handleSelectVendedor}
-                renderItem={(vendedor) => vendedor.op_nombre}
-                isVisible={isVendedorCardVisible}
-                className="absolute top-16 left-0 right-0 z-999"
               />
             </div>
           </div>
@@ -1598,7 +1596,7 @@ const FormularioPresupuestos = () => {
               }
               placeholder="Lote"
               value={
-                articuloSeleccionado 
+                articuloSeleccionado
                   ? articuloSeleccionado.lote || "N/A"
                   : "N/A"
               }
@@ -1701,7 +1699,8 @@ const FormularioPresupuestos = () => {
                 <p>{item.descripcion}</p>
                 <Tally1 />
                 <p>P. Contado</p>
-                <p>{formatNumber(item.precio_venta_guaranies)}</p>-<p>P. Mostrador</p>
+                <p>{formatNumber(item.precio_venta_guaranies)}</p>-
+                <p>P. Mostrador</p>
                 <p>{formatNumber(item.precio_mostrador)}</p>-<p>P. Credito</p>
                 <p>{formatNumber(item.precio_credito)}</p>
                 <Tally1 />
@@ -2173,6 +2172,22 @@ const FormularioPresupuestos = () => {
           </ModalFooter>
         </ModalContent>
       </Modal>
+      <ArticulosComponent
+        isOpen={isArticuloModalOpen}
+        setIsOpen={setIsArticuloModalOpen}
+        onSelect={(articulo) => {
+          setArticuloSeleccionado(articulo);
+          cantidadItemInputRef.current?.focus();
+        }}
+      />
+      <BuscadorClientes
+        isOpen={isBuscadorClientesOpen}
+        setIsOpen={setIsBuscadorClientesOpen}
+        onSelect={(cliente: Cliente) => {
+          setClienteSeleccionado(cliente);
+          vendedorRef.current?.focus();
+        }}
+      />
     </Box>
   );
 };
