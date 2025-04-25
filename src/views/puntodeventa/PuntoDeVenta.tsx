@@ -200,7 +200,8 @@ const PuntoDeVentaNuevo = () => {
   const [fecha, setFecha] = useState(new Date().toISOString().split("T")[0]);
 
   const [sucursales, setSucursales] = useState<Sucursal[]>([]);
-  const [sucursalSeleccionada, setSucursalSeleccionada] = useState<Sucursal | null>(null);
+  const [sucursalSeleccionada, setSucursalSeleccionada] =
+    useState<Sucursal | null>(null);
 
   const [depositos, setDepositos] = useState<Deposito[]>([]);
   const [depositoSeleccionado, setDepositoSeleccionado] =
@@ -260,7 +261,6 @@ const PuntoDeVentaNuevo = () => {
   const tipoDocumentoKCInputRef = useRef<HTMLInputElement>(null);
   const tipoVentaKCInputRef = useRef<HTMLInputElement>(null);
   const montoEntregadoKCInputRef = useRef<HTMLInputElement>(null);
-  
 
   const [cotizacionDolar, setCotizacionDolar] = useState<number>(7770);
   const [cotizacionReal, setCotizacionReal] = useState<number>(1200);
@@ -279,9 +279,8 @@ const PuntoDeVentaNuevo = () => {
     null
   );
 
-  const [hoveredArticulo, setHoveredArticulo] = useState<ArticuloBusqueda | null>(
-    null
-  );
+  const [hoveredArticulo, setHoveredArticulo] =
+    useState<ArticuloBusqueda | null>(null);
 
   const [d_codigo, setD_codigo] = useState<number>(0);
 
@@ -293,9 +292,10 @@ const PuntoDeVentaNuevo = () => {
     }>
   >([]);
 
-  const  totalesVenta  = useTotalesVenta(itemsParaVenta);
+  const totalesVenta = useTotalesVenta(itemsParaVenta);
 
-  const [isBuscadorClientesOpen, setIsBuscadorClientesOpen] = useState<boolean>(false);
+  const [isBuscadorClientesOpen, setIsBuscadorClientesOpen] =
+    useState<boolean>(false);
   const searchTimeOutRef = useRef<NodeJS.Timeout | null>(null);
 
   const {
@@ -342,7 +342,9 @@ const PuntoDeVentaNuevo = () => {
   const [, setNumeroPresupuesto] = useState<number | null>(null);
 
   const [ventaIdEdicion, setVentaIdEdicion] = useState<number | null>(null);
-  const [clienteBusquedaId, setClienteBusquedaId] = useState<number | null>(null);
+  const [clienteBusquedaId, setClienteBusquedaId] = useState<number | null>(
+    null
+  );
 
   const configuraciones = JSON.parse(
     sessionStorage.getItem("configuraciones") || "[]"
@@ -356,25 +358,23 @@ const PuntoDeVentaNuevo = () => {
 
   const tipoImpresionDoc = configuraciones[5].valor || 0;
 
-    const { tipoImpresion, fetchTipoImpresion } =
-      useTipoImpresionFacturaStore();
-    const [tipoImpresionFactura, setTipoImpresionFactura] = useState<
-      number | null
-    >(null);
+  const { tipoImpresion, fetchTipoImpresion } = useTipoImpresionFacturaStore();
+  const [tipoImpresionFactura, setTipoImpresionFactura] = useState<
+    number | null
+  >(null);
 
-    function determinarTipoDeImpresionFactura() {
-      if (
-        tipoImpresion ===
-        "thisform.imprimirventa1.imprimir_factura_elect_report"
-      ) {
-        setTipoImpresionFactura(1); //impresion hoja grande
-      } else if (
-        tipoImpresion ===
-        "thisform.imprimirventa1.imprimir_factura_ticket_electronica"
-      ) {
-        setTipoImpresionFactura(2); // impresion tipo ticket
-      }
+  function determinarTipoDeImpresionFactura() {
+    if (
+      tipoImpresion === "thisform.imprimirventa1.imprimir_factura_elect_report"
+    ) {
+      setTipoImpresionFactura(1); //impresion hoja grande
+    } else if (
+      tipoImpresion ===
+      "thisform.imprimirventa1.imprimir_factura_ticket_electronica"
+    ) {
+      setTipoImpresionFactura(2); // impresion tipo ticket
     }
+  }
 
   const cajero_id = sessionStorage.getItem("user_id");
 
@@ -389,7 +389,11 @@ const PuntoDeVentaNuevo = () => {
       tipo_documento: tipoImpresionDoc === "1" ? "FACTURA" : "TICKET",
       cantidad_cuotas: 1,
       entrega_inicial: 0,
-      fecha_vencimiento_timbrado: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0],
+      fecha_vencimiento_timbrado: new Date(
+        new Date().setMonth(new Date().getMonth() + 1)
+      )
+        .toISOString()
+        .split("T")[0],
     });
 
   const toast = useToast();
@@ -510,12 +514,9 @@ const PuntoDeVentaNuevo = () => {
     setArticulos(response.data.body);
   };
 
-
   useEffect(() => {
-    console.log('vendedorSeleccionado', vendedorSeleccionado)
-  }, [vendedorSeleccionado])
-
-
+    console.log("vendedorSeleccionado", vendedorSeleccionado);
+  }, [vendedorSeleccionado]);
 
   const getClientes = async (busqueda: string) => {
     const response = await axios.get(`${api_url}clientes/get-clientes`, {
@@ -553,7 +554,6 @@ const PuntoDeVentaNuevo = () => {
     }
   };
 
-
   const getVendedores = async (busqueda: number) => {
     const response = await axios.get(`${api_url}usuarios/vendedores`, {
       params: {
@@ -564,9 +564,9 @@ const PuntoDeVentaNuevo = () => {
     setVendedorSeleccionado(response.data.body[0]);
   };
 
- useEffect(()=>{
-   getVendedores(Number(cajero_id))
- }, [cajero_id])
+  useEffect(() => {
+    getVendedores(Number(cajero_id));
+  }, [cajero_id]);
 
   const handleBuscarArticulo = (e: React.ChangeEvent<HTMLInputElement>) => {
     const busqueda = e.target.value;
@@ -601,7 +601,6 @@ const PuntoDeVentaNuevo = () => {
     };
   }, []);
 
-
   const handleBuscarArticuloPorId = (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -618,12 +617,12 @@ const PuntoDeVentaNuevo = () => {
   const handleBuscarCliente = (e: React.ChangeEvent<HTMLInputElement>) => {
     const busqueda = e.target.value;
     setClienteBusqueda(busqueda);
-    
+
     // Si el input está vacío, limpiamos la selección
     if (busqueda === "") {
       setClienteSeleccionado(null);
     }
-    
+
     if (busqueda.length >= 0) {
       setIsClienteCardVisible(true);
       getClientes(busqueda);
@@ -788,9 +787,7 @@ const PuntoDeVentaNuevo = () => {
     } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
       const currentIndex = hoveredArticulo
-        ? articulos.findIndex(
-            (a) => a.id_lote === hoveredArticulo.id_lote
-          )
+        ? articulos.findIndex((a) => a.id_lote === hoveredArticulo.id_lote)
         : -1;
 
       if (e.key === "ArrowDown") {
@@ -907,26 +904,26 @@ const PuntoDeVentaNuevo = () => {
   const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
 
   // Formatear los números con 2 decimales y separador de miles
-const formatNumber = (num: number | string) => {
-  // Convertir a número si es string
-  const numValue = typeof num === "string" ? Number(num) : num;
+  const formatNumber = (num: number | string) => {
+    // Convertir a número si es string
+    const numValue = typeof num === "string" ? Number(num) : num;
 
-  // Definir la cantidad de decimales según la moneda
-  const decimals = monedaSeleccionada?.mo_codigo === 1 ? 0 : 2;
+    // Definir la cantidad de decimales según la moneda
+    const decimals = monedaSeleccionada?.mo_codigo === 1 ? 0 : 2;
 
-  // Formatear según la configuración regional y la cantidad de decimales
-  return numValue.toLocaleString("es-PY", {
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  });
-};
+    // Formatear según la configuración regional y la cantidad de decimales
+    return numValue.toLocaleString("es-PY", {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    });
+  };
 
-const formatearDivisasExtranjeras = (num: number) => {
-  return num.toLocaleString("es-PY", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-};
+  const formatearDivisasExtranjeras = (num: number) => {
+    return num.toLocaleString("es-PY", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
 
   const totalExentasFormateado = formatNumber(totalExentas);
   const totalCincoFormateado = formatNumber(totalCinco);
@@ -1375,7 +1372,8 @@ const formatearDivisasExtranjeras = (num: number) => {
                         : "PYG",
                     monedaDescripcion:
                       monedaSeleccionada?.mo_descripcion || "Guaraníes",
-                    cambio: monedaSeleccionada?.mo_codigo != 1 ? cotizacionDolar : 0,
+                    cambio:
+                      monedaSeleccionada?.mo_codigo != 1 ? cotizacionDolar : 0,
                   },
                 ]
               : [],
@@ -1478,7 +1476,10 @@ const formatearDivisasExtranjeras = (num: number) => {
 
       let responseFacturaSend: any = null;
 
-      if (usaFacturaElectronica === 1 && opcionesFinalizacion.tipo_documento === "FACTURA") {
+      if (
+        usaFacturaElectronica === 1 &&
+        opcionesFinalizacion.tipo_documento === "FACTURA"
+      ) {
         console.log("Factura send: ", dataFacturaSend);
         responseFacturaSend = await enviarFacturas([dataFacturaSend]);
         console.log("Respuesta factura send: ", responseFacturaSend);
@@ -1572,11 +1573,11 @@ const formatearDivisasExtranjeras = (num: number) => {
       const detalleVentas = itemsParaVenta.map((item) => ({
         deve_articulo: item.deve_articulo,
         deve_cantidad: item.deve_cantidad,
-        deve_precio: item.deve_precio ,
-        deve_descuento: item.deve_descuento ,
-        deve_exentas: item.deve_exentas ,
-        deve_cinco: item.deve_cinco ,
-        deve_diez: item.deve_diez ,
+        deve_precio: item.deve_precio,
+        deve_descuento: item.deve_descuento,
+        deve_exentas: item.deve_exentas,
+        deve_cinco: item.deve_cinco,
+        deve_diez: item.deve_diez,
         deve_color: item.deve_color,
         deve_bonificacion: item.deve_bonificacion,
         deve_vendedor: item.deve_vendedor,
@@ -1627,19 +1628,47 @@ const formatearDivisasExtranjeras = (num: number) => {
 
         setUltimaVentaId(response.data.body.ventaId);
 
-      
         if (imprimirFactura) {
           if (tipoImpresionFactura === 1) {
-            isMobile ? (await imprimirFacturaComponenteReport(response.data.body.ventaId, "download")) : (await imprimirFacturaComponenteReport(response.data.body.ventaId, "print"))
+            isMobile
+              ? await imprimirFacturaComponenteReport(
+                  response.data.body.ventaId,
+                  "download"
+                )
+              : await imprimirFacturaComponenteReport(
+                  response.data.body.ventaId,
+                  "print"
+                );
           } else if (tipoImpresionFactura === 2) {
-            isMobile ? (await imprimirFacturaComponente(response.data.body.ventaId, "download")) : (await imprimirFacturaComponente(response.data.body.ventaId, "print"))
+            isMobile
+              ? await imprimirFacturaComponente(
+                  response.data.body.ventaId,
+                  "download"
+                )
+              : await imprimirFacturaComponente(
+                  response.data.body.ventaId,
+                  "print"
+                );
           }
         }
         if (imprimirTicket) {
-          isMobile ? (await imprimirTicketComponente(response.data.body.ventaId, "download")) : (await imprimirTicketComponente(response.data.body.ventaId, "print"))
+          isMobile
+            ? await imprimirTicketComponente(
+                response.data.body.ventaId,
+                "download"
+              )
+            : await imprimirTicketComponente(
+                response.data.body.ventaId,
+                "print"
+              );
         }
         if (imprimirNotaInterna) {
-          isMobile ? (await imprimirNotaComponente(response.data.body.ventaId, "download")) : (await imprimirNotaComponente(response.data.body.ventaId, "print"))
+          isMobile
+            ? await imprimirNotaComponente(
+                response.data.body.ventaId,
+                "download"
+              )
+            : await imprimirNotaComponente(response.data.body.ventaId, "print");
         }
       }
     } catch (error) {
@@ -2011,7 +2040,6 @@ const formatearDivisasExtranjeras = (num: number) => {
     );
   };
 
-
   function calcularMontoEntregado(
     valor: number,
     moneda: "GS" | "USD" | "BRL" | "ARS"
@@ -2063,7 +2091,13 @@ const formatearDivisasExtranjeras = (num: number) => {
       if (document.activeElement === cantidadInputRef.current) {
         return;
       }
-
+      if (
+        e.key === "F12" &&
+        (document.activeElement === busquedaPorIdInputRef.current ||
+          document.activeElement === busquedaInputRef.current)
+      ) {
+        return;
+      }
       if (e.key === "F6") {
         e.preventDefault();
         cantidadInputRef.current?.focus();
@@ -2117,9 +2151,7 @@ const formatearDivisasExtranjeras = (num: number) => {
         }
       }
     };
-
     window.addEventListener("keydown", handleKeyDown);
-
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
@@ -2181,30 +2213,36 @@ const formatearDivisasExtranjeras = (num: number) => {
     return vuelto;
   };
 
-    const imprimirFacturaComponenteReport = async (ventaId: number, accion: "print" | "download" | "b64" = "print") => {
-      const facturaDiv = document.createElement("div");
-      facturaDiv.style.display = "none";
-      document.body.appendChild(facturaDiv);
+  const imprimirFacturaComponenteReport = async (
+    ventaId: number,
+    accion: "print" | "download" | "b64" = "print"
+  ) => {
+    const facturaDiv = document.createElement("div");
+    facturaDiv.style.display = "none";
+    document.body.appendChild(facturaDiv);
 
-      const root = createRoot(facturaDiv);
-      root.render(
-        <ModeloFacturaReport
-          id_venta={ventaId}
-          monto_entregado={montoEntregado || 0}
-          monto_recibido={montoEntregado || 0}
-          vuelto={calcularVueltoGuaranies()}
-          onImprimir={true}
-          accion={accion}
-        />
-      );
+    const root = createRoot(facturaDiv);
+    root.render(
+      <ModeloFacturaReport
+        id_venta={ventaId}
+        monto_entregado={montoEntregado || 0}
+        monto_recibido={montoEntregado || 0}
+        vuelto={calcularVueltoGuaranies()}
+        onImprimir={true}
+        accion={accion}
+      />
+    );
 
-      setTimeout(() => {
-        root.unmount();
-        document.body.removeChild(facturaDiv);
-      }, 2000);
-    };
+    setTimeout(() => {
+      root.unmount();
+      document.body.removeChild(facturaDiv);
+    }, 2000);
+  };
 
-  const imprimirFacturaComponente = async (ventaId: number, accion: "print" | "download" | "b64" = "print") => {
+  const imprimirFacturaComponente = async (
+    ventaId: number,
+    accion: "print" | "download" | "b64" = "print"
+  ) => {
     const facturaDiv = document.createElement("div");
     facturaDiv.style.display = "none";
     document.body.appendChild(facturaDiv);
@@ -2227,7 +2265,10 @@ const formatearDivisasExtranjeras = (num: number) => {
     }, 2000);
   };
 
-  const imprimirNotaComponente = async (ventaId: number, accion: "print" | "download" | "b64" = "print") => {
+  const imprimirNotaComponente = async (
+    ventaId: number,
+    accion: "print" | "download" | "b64" = "print"
+  ) => {
     const notaDiv = document.createElement("div");
     notaDiv.style.display = "none";
     document.body.appendChild(notaDiv);
@@ -2250,7 +2291,10 @@ const formatearDivisasExtranjeras = (num: number) => {
     }, 2000);
   };
 
-  const imprimirTicketComponente = async (ventaId: number, accion: "print" | "download" | "b64" = "print") => {
+  const imprimirTicketComponente = async (
+    ventaId: number,
+    accion: "print" | "download" | "b64" = "print"
+  ) => {
     // Componente oculto que solo se usa para generar el PDF
     const ticketDiv = document.createElement("div");
     ticketDiv.style.display = "none";
@@ -2273,123 +2317,123 @@ const formatearDivisasExtranjeras = (num: number) => {
     }, 2000);
   };
 
-   const handleCambiarPrecio = (
-     e: React.ChangeEvent<HTMLInputElement>,
-     item: ItemParaVenta
-   ) => {
-     const nuevoPrecio = Number(e.target.value);
-     const montoTotal = nuevoPrecio * item.deve_cantidad;
+  const handleCambiarPrecio = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    item: ItemParaVenta
+  ) => {
+    const nuevoPrecio = Number(e.target.value);
+    const montoTotal = nuevoPrecio * item.deve_cantidad;
 
-     // Si la moneda seleccionada es guaraníes, ese es el precio base
-     const precioBaseGuaranies =
-       monedaSeleccionada?.mo_codigo === 1
-         ? nuevoPrecio
-         : monedaSeleccionada?.mo_codigo === 2
-         ? nuevoPrecio * cotizacionDolar
-         : monedaSeleccionada?.mo_codigo === 3
-         ? nuevoPrecio * cotizacionReal // Real a Guaraní multiplica
-         : nuevoPrecio * cotizacionPeso;
+    // Si la moneda seleccionada es guaraníes, ese es el precio base
+    const precioBaseGuaranies =
+      monedaSeleccionada?.mo_codigo === 1
+        ? nuevoPrecio
+        : monedaSeleccionada?.mo_codigo === 2
+        ? nuevoPrecio * cotizacionDolar
+        : monedaSeleccionada?.mo_codigo === 3
+        ? nuevoPrecio * cotizacionReal // Real a Guaraní multiplica
+        : nuevoPrecio * cotizacionPeso;
 
-     // Para dólar dividimos, para real y peso multiplicamos
-     const nuevoPrecioDolares = precioBaseGuaranies / cotizacionDolar;
-     const nuevoPrecioReales = precioBaseGuaranies * (1 / cotizacionReal); // Guaraní a Real divide
-     const nuevoPrecioPesos = precioBaseGuaranies * (1 / cotizacionPeso); // Asumiendo que peso funciona igual que real
+    // Para dólar dividimos, para real y peso multiplicamos
+    const nuevoPrecioDolares = precioBaseGuaranies / cotizacionDolar;
+    const nuevoPrecioReales = precioBaseGuaranies * (1 / cotizacionReal); // Guaraní a Real divide
+    const nuevoPrecioPesos = precioBaseGuaranies * (1 / cotizacionPeso); // Asumiendo que peso funciona igual que real
 
-     setItemsParaVenta(
-       itemsParaVenta.map((itemActual) =>
-         itemActual.loteid === item.loteid
-           ? {
-               ...itemActual,
-               deve_precio: nuevoPrecio,
-               precio_guaranies: precioBaseGuaranies,
-               precio_dolares: nuevoPrecioDolares,
-               precio_reales: nuevoPrecioReales,
-               precio_pesos: nuevoPrecioPesos,
-               deve_exentas: itemActual.deve_exentas > 0 ? montoTotal : 0,
-               deve_cinco: itemActual.deve_cinco > 0 ? montoTotal : 0,
-               deve_diez: itemActual.deve_diez > 0 ? montoTotal : 0,
-               deve_cinco_x: itemActual.deve_cinco > 0 ? montoTotal * 0.05 : 0,
-               deve_diez_x: itemActual.deve_diez > 0 ? montoTotal * 0.1 : 0,
-             }
-           : itemActual
-       )
-     );
-   };
+    setItemsParaVenta(
+      itemsParaVenta.map((itemActual) =>
+        itemActual.loteid === item.loteid
+          ? {
+              ...itemActual,
+              deve_precio: nuevoPrecio,
+              precio_guaranies: precioBaseGuaranies,
+              precio_dolares: nuevoPrecioDolares,
+              precio_reales: nuevoPrecioReales,
+              precio_pesos: nuevoPrecioPesos,
+              deve_exentas: itemActual.deve_exentas > 0 ? montoTotal : 0,
+              deve_cinco: itemActual.deve_cinco > 0 ? montoTotal : 0,
+              deve_diez: itemActual.deve_diez > 0 ? montoTotal : 0,
+              deve_cinco_x: itemActual.deve_cinco > 0 ? montoTotal * 0.05 : 0,
+              deve_diez_x: itemActual.deve_diez > 0 ? montoTotal * 0.1 : 0,
+            }
+          : itemActual
+      )
+    );
+  };
 
-   const handleCambiarDescuento = (
-     e: React.ChangeEvent<HTMLInputElement>,
-     item: ItemParaVenta
-   ) => {
-     const nuevoDescuento = e.target.value;
-     const montoTotal = Number(nuevoDescuento) * item.deve_cantidad;
-     setItemsParaVenta(
-       itemsParaVenta.map((itemActual) =>
-         itemActual.loteid === item.loteid
-           ? {
-               ...itemActual,
-               deve_descuento: Number(nuevoDescuento),
-               deve_exentas: itemActual.deve_exentas > 0 ? montoTotal : 0,
-               deve_cinco: itemActual.deve_cinco > 0 ? montoTotal : 0,
-               deve_diez: itemActual.deve_diez > 0 ? montoTotal : 0,
-             }
-           : itemActual
-       )
-     );
-   };
+  const handleCambiarDescuento = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    item: ItemParaVenta
+  ) => {
+    const nuevoDescuento = e.target.value;
+    const montoTotal = Number(nuevoDescuento) * item.deve_cantidad;
+    setItemsParaVenta(
+      itemsParaVenta.map((itemActual) =>
+        itemActual.loteid === item.loteid
+          ? {
+              ...itemActual,
+              deve_descuento: Number(nuevoDescuento),
+              deve_exentas: itemActual.deve_exentas > 0 ? montoTotal : 0,
+              deve_cinco: itemActual.deve_cinco > 0 ? montoTotal : 0,
+              deve_diez: itemActual.deve_diez > 0 ? montoTotal : 0,
+            }
+          : itemActual
+      )
+    );
+  };
 
-   const handleCambiarCantidad = (
-     e: React.ChangeEvent<HTMLInputElement>,
-     item: ItemParaVenta
-   ) => {
-     const nuevaCantidad = Number(e.target.value);
-     const montoTotal = item.deve_precio * nuevaCantidad;
-     setItemsParaVenta(
-       itemsParaVenta.map((itemActual) =>
-         itemActual.loteid === item.loteid
-           ? {
-               ...itemActual,
-               deve_cantidad: nuevaCantidad,
-               deve_exentas: itemActual.deve_exentas > 0 ? montoTotal : 0,
-               deve_cinco: itemActual.deve_cinco > 0 ? montoTotal : 0,
-               deve_diez: itemActual.deve_diez > 0 ? montoTotal : 0,
-             }
-           : itemActual
-       )
-     );
-   };
+  const handleCambiarCantidad = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    item: ItemParaVenta
+  ) => {
+    const nuevaCantidad = Number(e.target.value);
+    const montoTotal = item.deve_precio * nuevaCantidad;
+    setItemsParaVenta(
+      itemsParaVenta.map((itemActual) =>
+        itemActual.loteid === item.loteid
+          ? {
+              ...itemActual,
+              deve_cantidad: nuevaCantidad,
+              deve_exentas: itemActual.deve_exentas > 0 ? montoTotal : 0,
+              deve_cinco: itemActual.deve_cinco > 0 ? montoTotal : 0,
+              deve_diez: itemActual.deve_diez > 0 ? montoTotal : 0,
+            }
+          : itemActual
+      )
+    );
+  };
 
   const clienteCodigoRef = useRef<HTMLInputElement>(null);
   const clienteNombreRef = useRef<HTMLInputElement>(null);
   const vendedorCodigoRef = useRef<HTMLInputElement>(null);
   const busquedaPorIdInputRef = useRef<HTMLInputElement>(null);
 
-    const handleClienteIdKeyPress = (
-      e: React.KeyboardEvent<HTMLInputElement>
-    ) => {
-      if (
-        e.key === "Enter" &&
-        clienteCodigoRef.current?.value !== "" &&
-        clienteCodigoRef.current?.value !== null
-      ) {
-        e.preventDefault();
-        vendedorCodigoRef.current?.focus();
-      } else if (
-        (e.key === "Enter" && clienteCodigoRef.current?.value === "") ||
-        clienteCodigoRef.current?.value === null
-      ) {
-        setIsBuscadorClientesOpen(true);
-      }
-    };
+  const handleClienteIdKeyPress = (
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    if (
+      e.key === "Enter" &&
+      clienteCodigoRef.current?.value !== "" &&
+      clienteCodigoRef.current?.value !== null
+    ) {
+      e.preventDefault();
+      vendedorCodigoRef.current?.focus();
+    } else if (
+      (e.key === "Enter" && clienteCodigoRef.current?.value === "") ||
+      clienteCodigoRef.current?.value === null
+    ) {
+      setIsBuscadorClientesOpen(true);
+    }
+  };
 
   const handleClienteKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault();
       busquedaPorIdInputRef.current?.focus();
     }
   };
 
   const handleVendedorKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       e.preventDefault();
       busquedaPorIdInputRef.current?.focus();
     }
@@ -2397,15 +2441,15 @@ const formatearDivisasExtranjeras = (num: number) => {
 
   useEffect(() => {
     const handleGlobalEnter = (e: KeyboardEvent) => {
-      if (e.key === 'Enter' && document.activeElement === document.body) {
+      if (e.key === "Enter" && document.activeElement === document.body) {
         e.preventDefault();
         clienteCodigoRef.current?.focus();
       }
     };
 
-    document.addEventListener('keydown', handleGlobalEnter);
+    document.addEventListener("keydown", handleGlobalEnter);
     return () => {
-      document.removeEventListener('keydown', handleGlobalEnter);
+      document.removeEventListener("keydown", handleGlobalEnter);
     };
   }, []);
 
