@@ -296,6 +296,7 @@ const PuntoDeVentaNuevo = () => {
   const  totalesVenta  = useTotalesVenta(itemsParaVenta);
 
   const [isBuscadorClientesOpen, setIsBuscadorClientesOpen] = useState<boolean>(false);
+  const searchTimeOutRef = useRef<NodeJS.Timeout | null>(null);
 
   const {
     isOpen: isConsultaVentasOpen,
@@ -571,14 +572,34 @@ const PuntoDeVentaNuevo = () => {
     const busqueda = e.target.value;
     setArticuloBusqueda(busqueda);
     setArticuloSeleccionado(null);
-    if (busqueda.length > 0) {
-      setIsArticuloCardVisible(true);
-      getArticulos(busqueda);
-    } else {
+
+    // Limpiar el timeout anterior si existe
+    if (searchTimeOutRef.current) {
+      clearTimeout(searchTimeOutRef.current);
+    }
+
+    // Si el input está vacío, limpiar resultados inmediatamente
+    if (busqueda.length === 0) {
       setIsArticuloCardVisible(false);
       setArticulos([]);
+      return;
     }
+
+    // Configurar un nuevo timeout para la búsqueda
+    searchTimeOutRef.current = setTimeout(() => {
+      setIsArticuloCardVisible(true);
+      getArticulos(busqueda);
+    }, 300); // Esperar 300ms después de que el usuario deje de escribir
   };
+
+  // Limpiar el timeout cuando el componente se desmonte
+  useEffect(() => {
+    return () => {
+      if (searchTimeOutRef.current) {
+        clearTimeout(searchTimeOutRef.current);
+      }
+    };
+  }, []);
 
 
   const handleBuscarArticuloPorId = (
