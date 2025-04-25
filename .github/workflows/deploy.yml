@@ -119,7 +119,7 @@ jobs:
           CLIENTE: ${{ matrix.cliente }}
         run: |
           $targetServer = if ($env:CLIENTE -eq "gaesa") {
-            "192.168.102.6"
+            "192.168.102.8"
           } elseif ($env:CLIENTE -eq "gaesademo") {
             "192.168.200.3"
           } else {
