@@ -10,10 +10,12 @@ import {
   Check,
   Search,
   Printer,
+  FileText,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReporteItemsScaneados from "./pdfs/reporte-items-scanneados";
+import { generarExcelReporteInventario } from './excel/ReporteInventarioExcel';
 
 interface ConfirmModalProps {
   isOpen: boolean;
@@ -70,7 +72,6 @@ interface InventariosDisponibles {
   sucursal_id: number;
   sucursal_nombre: string;
 }
-
 
 interface FloatingCardProps {
   inventarios: InventariosDisponibles[];
@@ -188,6 +189,191 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   );
 };
 
+interface ReportesModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  depositos: Deposito[];
+  onGenerarReporte: (
+    depositoId: number,
+    fechaInicio: string,
+    fechaFin: string
+  ) => void;
+}
+
+const ReportesModal: React.FC<ReportesModalProps> = ({
+  isOpen,
+  onClose,
+  depositos,
+  onGenerarReporte,
+}) => {
+  const [depositoSeleccionado, setDepositoSeleccionado] = useState<
+    number | null
+  >(null);
+  const [fechaInicio, setFechaInicio] = useState<string>("");
+  const [fechaFin, setFechaFin] = useState<string>("");
+  const toast = useToast();
+
+  // Cerrar con ESC
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [onClose]);
+
+  const handleSubmit = () => {
+    // Verificamos que haya al menos un depósito O ambas fechas
+    const tieneDeposito = !!depositoSeleccionado;
+    const tieneFechas = !!(fechaInicio && fechaFin);
+
+    if (!tieneDeposito && !tieneFechas) {
+      toast({
+        title: "Error",
+        description: "Debe seleccionar un depósito o un rango de fechas",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    // Si hay fecha inicio, debe haber fecha fin y viceversa
+    if ((fechaInicio && !fechaFin) || (!fechaInicio && fechaFin)) {
+      toast({
+        title: "Error",
+        description: "Debe seleccionar ambas fechas para el rango",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    onGenerarReporte(depositoSeleccionado || 0, fechaInicio, fechaFin);
+    onClose();
+  };
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          {/* Overlay */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-black bg-opacity-50"
+            onClick={onClose}
+          />
+
+          {/* Modal */}
+          <div className="fixed inset-0 z-50 overflow-y-auto">
+            <div className="flex min-h-full items-center justify-center p-4">
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: 20 }}
+                transition={{
+                  duration: 0.2,
+                  ease: [0.4, 0, 0.2, 1],
+                }}
+                className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Header */}
+                <div className="bg-white px-4 pt-5 pb-4 sm:p-6">
+                  <div className="mb-4">
+                    <h3 className="text-lg font-medium leading-6 text-gray-900">
+                      Generar Reporte de Inventario
+                    </h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                      Seleccione los parámetros para generar el reporte
+                    </p>
+                  </div>
+
+                  {/* Formulario */}
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Depósito
+                      </label>
+                      <select
+                        className="mt-1 w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm bg-white focus:outline-none"
+                        value={depositoSeleccionado || ""}
+                        onChange={(e) =>
+                          setDepositoSeleccionado(Number(e.target.value))
+                        }
+                      >
+                        <option value="">Seleccione un depósito</option>
+                        {depositos.map((deposito) => (
+                          <option
+                            key={deposito.dep_codigo}
+                            value={deposito.dep_codigo}
+                          >
+                            {deposito.dep_descripcion}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Fecha Inicio
+                      </label>
+                      <input
+                        type="date"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm bg-white focus:outline-none"
+                        value={fechaInicio}
+                        onChange={(e) => setFechaInicio(e.target.value)}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Fecha Fin
+                      </label>
+                      <input
+                        type="date"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm bg-white focus:outline-none"
+                        value={fechaFin}
+                        onChange={(e) => setFechaFin(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    type="button"
+                    className="inline-flex w-full justify-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-base font-medium text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 sm:ml-3 sm:w-auto sm:text-sm"
+                    onClick={handleSubmit}
+                  >
+                    Generar Reporte
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    type="button"
+                    className="mt-3 inline-flex w-full justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-base font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                    onClick={onClose}
+                  >
+                    Cancelar
+                  </motion.button>
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+};
+
 const AutorizacionAjusteDeStock = () => {
   const [autorizaciones, setAutorizaciones] = useState<
     AutorizacionAjusteDeStock[]
@@ -206,13 +392,13 @@ const AutorizacionAjusteDeStock = () => {
   >([]);
   const [showInventarioCard, setShowInventarioCard] = useState(false);
 
-  const [inventarioSeleccionado, setInventarioSeleccionado] = useState<
-    InventariosDisponibles | null
-  >(null);
+  const [inventarioSeleccionado, setInventarioSeleccionado] =
+    useState<InventariosDisponibles | null>(null);
 
   const toast = useToast();
 
   const [mostrarReporte, setMostrarReporte] = useState(false);
+  const [showReportesModal, setShowReportesModal] = useState(false);
 
   // Nuevo useEffect separado que depende del depositoId
 
@@ -253,74 +439,73 @@ const AutorizacionAjusteDeStock = () => {
     fetchDepositos();
   }, []);
 
-const fetchReporte = async () => {
-  if(!inventarioSeleccionado) {
-    toast({
-      title: "Error",
-      description: "No se ha seleccionado un inventario",
-      status: "error",
-      duration: 3000,
-      isClosable: true,
-    });
-    return;
-  }
-  try {
-    const response = await axios.get(`${api_url}inventarios/anomalias`, {
-      params: {
-        nro_inventario: inventarioSeleccionado?.nro_inventario || 0,
-        sucursal: sucursaleSeleccionada?.id || 0,
-        deposito: depositoSeleccionado?.dep_codigo || 0,
-      },
-    });
-    console.log(response.data.body);
-    setAutorizaciones(response.data.body);
-    setLoading(false);
-  } catch (error) {
-    console.error("Error al obtener el reporte de anomalias:", error);
-    setLoading(false);
-  }
-};
-
-useEffect(() => {
-  console.log('inventarioSeleccionado', inventarioSeleccionado);
-}, [inventarioSeleccionado]);
-
-
- const autorizarInventario = async (
-  id: number,
-  operador: number,
-  sucursal: number,
-  deposito: number,
-  nro_inventario: number,
- ) => {
-  try {
-    const response =  await axios.post(`${api_url}inventarios/autorizar`, {
-      id,
-      operador,
-      sucursal,
-      deposito,
-      nro_inventario,
-    });
-    console.log(response.data.body);
-    if(response.data.body.error === false){
+  const fetchReporte = async () => {
+    if (!inventarioSeleccionado) {
       toast({
-        title: "Inventario autorizado",
-        description: "El inventario ha sido autorizado correctamente",
-        status: "success",
+        title: "Error",
+        description: "No se ha seleccionado un inventario",
+        status: "error",
         duration: 3000,
         isClosable: true,
       });
-    } else {
-      toast({
-        title: "Error",
-        description: response.data.body.mensaje,
-        status: "error",
-        duration: 3000,
-      });
+      return;
     }
-    fetchInventariosDisponibles();
-    setAutorizaciones([]);
-  } catch (error) {
+    try {
+      const response = await axios.get(`${api_url}inventarios/anomalias`, {
+        params: {
+          nro_inventario: inventarioSeleccionado?.nro_inventario || 0,
+          sucursal: sucursaleSeleccionada?.id || 0,
+          deposito: depositoSeleccionado?.dep_codigo || 0,
+        },
+      });
+      console.log(response.data.body);
+      setAutorizaciones(response.data.body);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error al obtener el reporte de anomalias:", error);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    console.log("inventarioSeleccionado", inventarioSeleccionado);
+  }, [inventarioSeleccionado]);
+
+  const autorizarInventario = async (
+    id: number,
+    operador: number,
+    sucursal: number,
+    deposito: number,
+    nro_inventario: number
+  ) => {
+    try {
+      const response = await axios.post(`${api_url}inventarios/autorizar`, {
+        id,
+        operador,
+        sucursal,
+        deposito,
+        nro_inventario,
+      });
+      console.log(response.data.body);
+      if (response.data.body.error === false) {
+        toast({
+          title: "Inventario autorizado",
+          description: "El inventario ha sido autorizado correctamente",
+          status: "success",
+          duration: 3000,
+          isClosable: true,
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: response.data.body.mensaje,
+          status: "error",
+          duration: 3000,
+        });
+      }
+      fetchInventariosDisponibles();
+      setAutorizaciones([]);
+    } catch (error) {
       console.error("Error al autorizar el inventario:", error);
     }
   };
@@ -364,10 +549,10 @@ useEffect(() => {
                     className="w-full text-left p-2 hover:bg-gray-50 rounded transition-colors flex justify-between items-center"
                   >
                     <div>
-                      <div className="font-medium">Inventario #{inv.nro_inventario}</div>
-                      <div className="text-sm text-gray-500">
-                        {inv.fecha}
+                      <div className="font-medium">
+                        Inventario #{inv.nro_inventario}
                       </div>
+                      <div className="text-sm text-gray-500">{inv.fecha}</div>
                     </div>
                     <ChartColumn size={16} className="text-gray-400" />
                   </button>
@@ -458,6 +643,50 @@ useEffect(() => {
     }
   };
 
+  const handleGenerarReportePersonalizado = async (
+    depositoId: number,
+    fechaInicio: string,
+    fechaFin: string
+  ) => {
+    try {
+      const params: any = {
+        sucursal: sucursaleSeleccionada?.id || 0
+      };
+
+      if (depositoId) {
+        params.deposito = depositoId;
+      }
+
+      if (fechaInicio && fechaFin) {
+        params.fecha_inicio = fechaInicio;
+        params.fecha_fin = fechaFin;
+      }
+
+      // Hacer la llamada al API
+      const response = await axios.get(`${api_url}inventarios/reporte`, { params });
+      
+      // Generar el Excel con los datos
+      generarExcelReporteInventario(response.data.body);
+
+      toast({
+        title: "Éxito",
+        description: "Reporte Excel generado correctamente",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+    } catch (error) {
+      console.error("Error al generar reporte personalizado:", error);
+      toast({
+        title: "Error",
+        description: "Error al generar el reporte personalizado",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
   return (
     <Flex direction="column" gap={2} w="full" h="100vh" bg="gray.100" p={2}>
       <HeaderComponent
@@ -525,6 +754,15 @@ useEffect(() => {
           ))}
         </Select>
         <div className="flex flex-row gap-2">
+          <Button
+            onClick={() => setShowReportesModal(true)}
+            colorScheme="purple"
+          >
+            <div className="flex flex-row gap-2">
+              Reportes Personalizados
+              <FileText />
+            </div>
+          </Button>
           <Button onClick={fetchReporte} colorScheme="green">
             <div className="flex flex-row gap-2">
               Buscar <Search />
@@ -570,10 +808,12 @@ useEffect(() => {
               <strong>Nro. Ajuste:</strong> {autorizaciones[0].id_inventario}
             </p>
             <p>
-              <strong>Nro. Inventario:</strong> {autorizaciones[0].nro_inventario}
+              <strong>Nro. Inventario:</strong>{" "}
+              {autorizaciones[0].nro_inventario}
             </p>
             <p>
-              <strong>Estado del Inventario:</strong> {autorizaciones[0].estado_inventario}
+              <strong>Estado del Inventario:</strong>{" "}
+              {autorizaciones[0].estado_inventario}
             </p>
             <p>
               <strong>Sucursal:</strong> {autorizaciones[0].nombre_sucursal}
@@ -591,7 +831,10 @@ useEffect(() => {
               <strong>Operador:</strong> {autorizaciones[0].operador_nombre}
             </p>
           </div>
-          {autorizaciones && autorizaciones[0] && autorizaciones[0].items && autorizaciones[0].items.length > 0 ? (
+          {autorizaciones &&
+          autorizaciones[0] &&
+          autorizaciones[0].items &&
+          autorizaciones[0].items.length > 0 ? (
             <>
               <div className="flex flex-col gap-2 w-full border-2 border-gray-300 rounded-md p-2">
                 <table className="w-full border-2 border-gray-300">
@@ -616,7 +859,10 @@ useEffect(() => {
                         ) {
                           return a.diferencia_total < 0 ? -1 : 1;
                         }
-                        return Math.abs(b.diferencia_total) - Math.abs(a.diferencia_total);
+                        return (
+                          Math.abs(b.diferencia_total) -
+                          Math.abs(a.diferencia_total)
+                        );
                       })
                       .map((item) => (
                         <tr
@@ -632,13 +878,25 @@ useEffect(() => {
                         >
                           <td>{item.cod_interno}</td>
                           <td>{item.articulo}</td>
-                          <td>{item.items_lotes[0]?.lote || '-'}</td>
-                          <td className="text-center">{item.cantidad_inicial_total}</td>
-                          <td className="text-center">{item.cantidad_scanner_total || 0}</td>
-                          <td className="text-right">{item.diferencia_total}</td>
-                          <td className="text-right">{item.costo_diferencia_total}</td>
+                          <td>{item.items_lotes[0]?.lote || "-"}</td>
                           <td className="text-center">
-                            {item.diferencia_total < 0 ? 'PÉRDIDA' : item.diferencia_total > 0 ? 'GANANCIA' : 'SIN CAMBIO'}
+                            {item.cantidad_inicial_total}
+                          </td>
+                          <td className="text-center">
+                            {item.cantidad_scanner_total || 0}
+                          </td>
+                          <td className="text-right">
+                            {item.diferencia_total}
+                          </td>
+                          <td className="text-right">
+                            {item.costo_diferencia_total}
+                          </td>
+                          <td className="text-center">
+                            {item.diferencia_total < 0
+                              ? "PÉRDIDA"
+                              : item.diferencia_total > 0
+                              ? "GANANCIA"
+                              : "SIN CAMBIO"}
                           </td>
                         </tr>
                       ))}
@@ -712,6 +970,12 @@ useEffect(() => {
           }}
         />
       )}
+      <ReportesModal
+        isOpen={showReportesModal}
+        onClose={() => setShowReportesModal(false)}
+        depositos={depositos}
+        onGenerarReporte={handleGenerarReportePersonalizado}
+      />
     </Flex>
   );
 };
