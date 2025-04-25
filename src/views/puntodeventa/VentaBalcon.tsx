@@ -1393,7 +1393,7 @@ const VentaBalconNuevo = () => {
         } else if (responseFacturaSend.success === false) {
           toast({
             title: "Error al emitir la factura electronica",
-            description: `Error:${responseFacturaSend.error}`,
+            description: `Error:${responseFacturaSend.errores[0].error}`,
             status: "warning",
             duration: 50000,
             isClosable: true,

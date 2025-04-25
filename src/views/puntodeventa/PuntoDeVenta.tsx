@@ -778,6 +778,7 @@ const PuntoDeVentaNuevo = () => {
     if (e.key === "Enter") {
       if (articuloSeleccionado) {
         agregarItemAVenta();
+        busquedaPorIdInputRef.current?.focus();
       } else if (hoveredArticulo) {
         handleSelectArticulo(hoveredArticulo);
         setHoveredArticulo(null);
@@ -1493,7 +1494,7 @@ const PuntoDeVentaNuevo = () => {
         } else if (responseFacturaSend.success === false) {
           toast({
             title: "Error al emitir la factura electronica",
-            description: `Error:${responseFacturaSend.error}`,
+            description: `Error:${responseFacturaSend.errores[0].error}`,
             status: "warning",
             duration: 50000,
             isClosable: true,
@@ -2093,7 +2094,7 @@ const PuntoDeVentaNuevo = () => {
       }
       if (
         e.key === "F12" &&
-        (document.activeElement === busquedaPorIdInputRef.current ||
+        (
           document.activeElement === busquedaInputRef.current)
       ) {
         return;
@@ -2915,6 +2916,7 @@ const PuntoDeVentaNuevo = () => {
                             onClick={() => {
                               setArticuloSeleccionado(articulo);
                               setIsArticuloCardVisible(false);
+                              busquedaPorIdInputRef.current?.focus();
                             }}
                           >
                             <td>{articulo.codigo_barra}</td>
