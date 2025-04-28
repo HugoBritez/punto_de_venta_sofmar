@@ -59,6 +59,7 @@ import { useTipoImpresionFacturaStore } from "@/stores/tipoImpresionFacturaStore
 import ModeloFacturaReport from "../facturacion/ModeloFacturaReport";
 import ArticuloInfoCard from "@/modules/ArticuloInfoCard";
 import BuscadorClientes from "@/ui/clientes/BuscadorClientes";
+import { useConfiguraciones } from "@/services/configuraciones/configuracionesHook";
 
 interface ItemParaVenta {
   precio_guaranies: number;
@@ -284,6 +285,8 @@ const PuntoDeVentaNuevo = () => {
 
   const [d_codigo, setD_codigo] = useState<number>(0);
 
+  const { clientePorDefecto } = useConfiguraciones();
+
   const [cuotasList, setCuotasList] = useState<
     Array<{
       fecha: string;
@@ -443,10 +446,11 @@ const PuntoDeVentaNuevo = () => {
         `${api_url}clientes/get-clientes`,
         {
           params: {
-            id_cliente: 1,
+            id_cliente: clientePorDefecto?.valor,
           },
         }
       );
+      console.log("Cliente por defecto en config", clientePorDefecto);
       console.log("Cliente por defecto", responseClientePorDefecto.data.body);
       setClienteSeleccionado(responseClientePorDefecto.data.body[0]);
     } catch (error) {
@@ -514,9 +518,6 @@ const PuntoDeVentaNuevo = () => {
     setArticulos(response.data.body);
   };
 
-  useEffect(() => {
-    console.log("vendedorSeleccionado", vendedorSeleccionado);
-  }, [vendedorSeleccionado]);
 
   const getClientes = async (busqueda: string) => {
     const response = await axios.get(`${api_url}clientes/get-clientes`, {
@@ -831,7 +832,6 @@ const PuntoDeVentaNuevo = () => {
     setArticuloBusqueda("");
     setCantidad(1);
     setDescuento(0);
-    setClienteSeleccionado(null);
     setClienteBusqueda("");
     setClienteBusquedaId(null);
   };
