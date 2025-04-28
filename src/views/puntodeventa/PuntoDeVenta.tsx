@@ -401,6 +401,21 @@ const PuntoDeVentaNuevo = () => {
 
   const toast = useToast();
   const { enviarFacturas } = useFacturaSend();
+  
+
+  const getClientePorDefecto = async () => {
+    const responseClientePorDefecto = await axios.get(
+      `${api_url}clientes/get-clientes`,
+      {
+        params: {
+          id_cliente: clientePorDefecto?.valor,
+        },
+      }
+    );
+    console.log("Cliente por defecto en config", clientePorDefecto);
+    console.log("Cliente por defecto", responseClientePorDefecto.data.body);
+    setClienteSeleccionado(responseClientePorDefecto.data.body[0]);
+  };
 
   async function getDatos() {
     try {
@@ -436,23 +451,12 @@ const PuntoDeVentaNuevo = () => {
         console.log(configuraciones[49].valor);
         setPrecioSeleccionado(responseListaPrecios.data.body[1]);
       }
+      getClientePorDefecto();
 
       const responseCotizaciones = await axios.get(`${api_url}cotizaciones/`);
       setCotizacionDolar(responseCotizaciones.data.body[0].usd_venta);
       setCotizacionPeso(responseCotizaciones.data.body[0].ars_venta);
       setCotizacionReal(responseCotizaciones.data.body[0].brl_venta);
-
-      const responseClientePorDefecto = await axios.get(
-        `${api_url}clientes/get-clientes`,
-        {
-          params: {
-            id_cliente: clientePorDefecto?.valor,
-          },
-        }
-      );
-      console.log("Cliente por defecto en config", clientePorDefecto);
-      console.log("Cliente por defecto", responseClientePorDefecto.data.body);
-      setClienteSeleccionado(responseClientePorDefecto.data.body[0]);
     } catch (error) {
       toast({
         title: "Error al obtener los datos",
@@ -1672,6 +1676,8 @@ const PuntoDeVentaNuevo = () => {
             : await imprimirNotaComponente(response.data.body.ventaId, "print");
         }
       }
+
+      getClientePorDefecto();
     } catch (error) {
       console.error("Error al finalizar la venta:", error);
       toast({
@@ -2402,41 +2408,20 @@ const PuntoDeVentaNuevo = () => {
       )
     );
   };
-
-  const clienteCodigoRef = useRef<HTMLInputElement>(null);
-  const clienteNombreRef = useRef<HTMLInputElement>(null);
   const vendedorCodigoRef = useRef<HTMLInputElement>(null);
   const busquedaPorIdInputRef = useRef<HTMLInputElement>(null);
 
   const handleClienteIdKeyPress = (
     e: React.KeyboardEvent<HTMLInputElement>
   ) => {
-    if (
-      e.key === "Enter" &&
-      clienteCodigoRef.current?.value !== "" &&
-      clienteCodigoRef.current?.value !== null
-    ) {
-      e.preventDefault();
-      vendedorCodigoRef.current?.focus();
-    } else if (
-      (e.key === "Enter" && clienteCodigoRef.current?.value === "") ||
-      clienteCodigoRef.current?.value === null
-    ) {
-      setIsBuscadorClientesOpen(true);
-    }
-  };
-
-  const handleClienteKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      e.preventDefault();
-      busquedaPorIdInputRef.current?.focus();
-    }
-  };
-
-  const handleVendedorKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      busquedaPorIdInputRef.current?.focus();
+      if (e.currentTarget.value !== "" && e.currentTarget.value !== null) {
+        e.preventDefault();
+        tipoDocumentoKCInputRef.current?.focus();
+      } else {
+        onCloseKCOpen(); // Cierra el modal KC
+        setTimeout(() => setIsBuscadorClientesOpen(true), 200); // Abre el buscador de clientes
+      }
     }
   };
 
@@ -2444,7 +2429,7 @@ const PuntoDeVentaNuevo = () => {
     const handleGlobalEnter = (e: KeyboardEvent) => {
       if (e.key === "Enter" && document.activeElement === document.body) {
         e.preventDefault();
-        clienteCodigoRef.current?.focus();
+        busquedaPorIdInputRef.current?.focus();
       }
     };
 
@@ -2634,15 +2619,11 @@ const PuntoDeVentaNuevo = () => {
                 <p className="text-sm font-bold">Cliente:</p>
                 <div className="flex flex-row gap-2">
                   <input
-                    ref={clienteCodigoRef}
                     type="number"
                     name=""
                     id=""
+                    readOnly={true}
                     className="border rounded-md p-2 w-[80px]"
-                    onChange={(e) => {
-                      handleBuscarClientePorId(e);
-                    }}
-                    onKeyDown={handleClienteIdKeyPress}
                     value={
                       clienteSeleccionado
                         ? clienteSeleccionado.cli_interno
@@ -2650,7 +2631,6 @@ const PuntoDeVentaNuevo = () => {
                     }
                   />
                   <input
-                    ref={clienteNombreRef}
                     type="text"
                     name=""
                     id=""
@@ -2660,13 +2640,6 @@ const PuntoDeVentaNuevo = () => {
                         : clienteBusqueda || ""
                     }
                     readOnly={true}
-                    onChange={(e) => {
-                      handleBuscarCliente(e);
-                    }}
-                    onKeyDown={handleClienteKeyPress}
-                    onClick={() => {
-                      setIsClienteCardVisible(true);
-                    }}
                     className="border rounded-md p-2 flex-1"
                     placeholder="Buscar cliente"
                   />
@@ -2713,7 +2686,6 @@ const PuntoDeVentaNuevo = () => {
                     onChange={(e) => {
                       handleBuscarVendedor(e);
                     }}
-                    onKeyDown={handleVendedorKeyPress}
                     value={
                       vendedorSeleccionado
                         ? vendedorSeleccionado.op_codigo
@@ -3399,8 +3371,13 @@ const PuntoDeVentaNuevo = () => {
                   onChange={(e) => {
                     handleBuscarClientePorId(e);
                   }}
+                  onKeyDown={(e) => {
+                    handleClienteIdKeyPress(e);
+                  }}
                   value={
-                    clienteSeleccionado ? clienteSeleccionado.cli_codigo : ""
+                    clienteSeleccionado
+                      ? clienteSeleccionado.cli_interno
+                      : clienteBusquedaId || ""
                   }
                 />
                 <input
@@ -3479,34 +3456,45 @@ const PuntoDeVentaNuevo = () => {
 
                   <div className="flex flex-row gap-2 items-center">
                     <input
-                      type="checkbox"
+                      type="radio"
                       className="w-4 h-4"
+                      name="impresion"
                       checked={imprimirFactura}
-                      onChange={(e) => setImprimirFactura(e.target.checked)}
-                      disabled={
-                        opcionesFinalizacion.tipo_documento === "TICKET"
-                      }
+                      onChange={() => {
+                        setImprimirFactura(true);
+                        setImprimirTicket(false);
+                        setImprimirNotaInterna(false);
+                      }}
+                      disabled={opcionesFinalizacion.tipo_documento === "TICKET"}
                     />
                     <p className="text-md font-bold">Impr. factura</p>
                   </div>
                   <div className="flex flex-row gap-2 items-center">
                     <input
-                      type="checkbox"
+                      type="radio"
                       className="w-4 h-4"
+                      name="impresion"
                       checked={imprimirTicket}
-                      onChange={(e) => setImprimirTicket(e.target.checked)}
-                      disabled={
-                        opcionesFinalizacion.tipo_documento === "FACTURA"
-                      }
+                      onChange={() => {
+                        setImprimirFactura(false);
+                        setImprimirTicket(true);
+                        setImprimirNotaInterna(false);
+                      }}
+                      disabled={opcionesFinalizacion.tipo_documento === "FACTURA"}
                     />
                     <p className="text-md font-bold">Impr. ticket</p>
                   </div>
                   <div className="flex flex-row gap-2 items-center">
                     <input
-                      type="checkbox"
+                      type="radio"
                       className="w-4 h-4"
+                      name="impresion"
                       checked={imprimirNotaInterna}
-                      onChange={(e) => setImprimirNotaInterna(e.target.checked)}
+                      onChange={() => {
+                        setImprimirFactura(false);
+                        setImprimirTicket(false);
+                        setImprimirNotaInterna(true);
+                      }}
                     />
                     <p className="text-md font-bold">Impr. nota interna</p>
                   </div>
@@ -3987,6 +3975,7 @@ const PuntoDeVentaNuevo = () => {
                             : 0
                         }
                         readOnly
+
                         className="border rounded-md p-2 text-right bg-black w-full text-green-500 border-green-500  font-bold text-2xl"
                       />
                     </div>
@@ -4056,7 +4045,11 @@ const PuntoDeVentaNuevo = () => {
         setIsOpen={setIsBuscadorClientesOpen}
         onSelect={(cliente) => {
           setClienteSeleccionado(cliente);
-          vendedorCodigoRef.current?.focus();
+          setIsBuscadorClientesOpen(false);
+          setTimeout(() => onKCOpen(), 200); // Vuelve a abrir el modal KC
+          setTimeout(() => {
+            clienteKCInputRef.current?.focus();
+          }, 300);
         }}
       />
     </Box>
