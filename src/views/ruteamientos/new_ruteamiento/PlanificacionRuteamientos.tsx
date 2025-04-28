@@ -109,8 +109,6 @@ const PlanificacionRuteamientos = () => {
   const operadorNombre = sessionStorage.getItem("user_name");
 
 
-  const permiso_movimiento =Number(sessionStorage.getItem("operador_movimiento"));
-
   const operador_rol = Number(sessionStorage.getItem("rol"));
   
 
@@ -221,9 +219,7 @@ const PlanificacionRuteamientos = () => {
   };
 
   const tienePermisos = () =>{
-    if(permiso_movimiento === 1){
-      return vendedoresSeleccionadosParaFiltro;
-    } else if (operador_rol === 7 || operador_rol === 11){
+    if (operador_rol === 7 || operador_rol === 11){
       return vendedoresSeleccionadosParaFiltro;
     } else {
       return vendedorActual;
@@ -231,9 +227,7 @@ const PlanificacionRuteamientos = () => {
   }
 
   const tienePermisosBooleano = () => {
-    if (permiso_movimiento === 1) {
-      return false;
-    } else if (operador_rol === 7 || operador_rol === 11) {
+    if (operador_rol === 7 || operador_rol === 11) {
       return false;
     } else {
       return true;
