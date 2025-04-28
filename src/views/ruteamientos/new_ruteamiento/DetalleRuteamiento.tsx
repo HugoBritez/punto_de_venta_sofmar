@@ -1023,7 +1023,7 @@ const DetalleRuteamiento = ({
                 )} llegó a su destino en la visita #${ruteamientoId}`
               );
 
-              sessionStorage.setItem(`llegadaMarcada_${ruteamientoId}`, "true");
+              localStorage.setItem(`llegadaMarcada_${ruteamientoId}`, "true");
             }
           } catch (error) {
             toast({
@@ -1137,8 +1137,9 @@ const DetalleRuteamiento = ({
     }
   };
 
+
   useEffect(() => {
-    const llegadaPreviamenteMarcada = sessionStorage.getItem(
+    const llegadaPreviamenteMarcada = localStorage.getItem(
       `llegadaMarcada_${ruteamientoId}`
     );
     if (llegadaPreviamenteMarcada === "true") {
