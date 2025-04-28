@@ -120,6 +120,7 @@ export interface Cliente {
     cli_distrito: number;
     cli_distrito_descripcion: string;
     cli_ciudad_descripcion: string;
+    zona: string;
 }
 
 export interface Nota {
@@ -364,6 +365,7 @@ export interface Camion {
 export interface Proveedor {
   pro_codigo: number;
   pro_razon: string;
+  pro_zona: string;
 }
 
 export interface Reparto {
@@ -394,6 +396,7 @@ export interface DetalleReparto {
 
 export interface DetalleEntrega {
  id: number;
+ cliente_zona: string;
  fecha: string;
  factura: string;
  cliente: string;

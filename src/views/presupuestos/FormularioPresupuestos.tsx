@@ -332,18 +332,18 @@ const FormularioPresupuestos = () => {
     }
   };
 
-
-
   const handleBuscarClientePorId = (e: React.ChangeEvent<HTMLInputElement>) => {
     console.log("Buscando cliente por id", e);
     const busqueda = typeof e === "number" ? e : e.target.value;
     if (busqueda === "" || busqueda === null) {
       setClienteSeleccionado(null);
+      setBusquedaClienteId(null);
     } else if (busqueda) {
-      getClientePorId(null, Number(busqueda));
+      getClientePorId(Number(busqueda), null);
       setBusquedaClienteId(Number(busqueda));
     } else {
       setClienteSeleccionado(null);
+      setBusquedaClienteId(null);
     }
   };
 
@@ -354,11 +354,13 @@ const FormularioPresupuestos = () => {
     const busqueda = typeof e === "number" ? e : e.target.value;
     if (busqueda === "" || busqueda === null) {
       setVendedorSeleccionado(null);
+      setBusquedaVendedorId(null);
     } else if (busqueda) {
       getVendedoresPorId(Number(busqueda));
       setBusquedaVendedorId(Number(busqueda));
     } else {
       setVendedorSeleccionado(null);
+      setBusquedaVendedorId(null);
     }
   };
 

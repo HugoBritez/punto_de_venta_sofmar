@@ -89,6 +89,7 @@ interface DetalleRuteo {
   obs: string;
   hora_e: string;
   hora_s: string;
+  cliente_zona: string;
   detalle_pedidos?: DetallePedido;
   detalle_ventas?: DetalleVenta;
   detalle_pagos?: DetallePago;
@@ -109,6 +110,7 @@ interface RepartoResponse {
 
 interface ItemTabla {
   tipo: string;
+  zona: string;
   id: number | undefined;
   fecha: string;
   factura: string;
@@ -273,6 +275,7 @@ const RuteamientoPedidos = () => {
     try {
       const response = await fetchVentasAPI(fecha_desde, fecha_hasta, clienteSeleccionadoParaFiltro);
       setVentas(response);
+      console.log("Ventas", response);
     } catch (error) {
       console.error("Error al obtener ventas:", error);
     }
@@ -301,6 +304,7 @@ const RuteamientoPedidos = () => {
     try {
       const response = await fetchPedidosAPI(fecha_desde, fecha_hasta, clienteSeleccionadoParaFiltro);
       setPedidos(response);
+      console.log("Pedidos", response);
     } catch (error) {
       console.error("Error al obtener pedidos:", error);
     }
@@ -311,7 +315,7 @@ const RuteamientoPedidos = () => {
     try {
       const response = await fetchClientesAPI(busqueda);
       setClientes(response);
-
+      console.log("Clientes", response);
     } catch (error) {
       console.error("Error al obtener clientes:", error);
     }
@@ -321,6 +325,7 @@ const RuteamientoPedidos = () => {
     try {
       const response = await fetchProveedoresAPI();
       setProveedores(response);
+      console.log("Proveedores", response);
     } catch (error) {
       console.error("Error al obtener proveedores:", error);
     }
@@ -420,6 +425,7 @@ const RuteamientoPedidos = () => {
       detalle_ruteo: detalleRuteoSeleccionado.map((detalle) => ({
         monto: detalle.monto,
         estado: 1,
+        cliente_zona: detalle.cliente_zona,
         obs: detalle.obs || "",
         hora_e: detalle.hora_e || "",
         hora_s: detalle.hora_s || "",
@@ -491,6 +497,7 @@ const RuteamientoPedidos = () => {
       detalle_pedidos: {
         pedido: itemSeleccionado.id,
       },
+      cliente_zona: itemSeleccionado.cliente_zona,
     };
     setDetalleRuteoSeleccionado([...detalleRuteoSeleccionado, nuevoDetalle]);
     onDetallePedidoClose();
@@ -521,13 +528,14 @@ const RuteamientoPedidos = () => {
       detalle_ventas: {
         venta: itemSeleccionado.id,
       },
+      cliente_zona: itemSeleccionado.cliente_zona,
     };
     setDetalleRuteoSeleccionado([...detalleRuteoSeleccionado, nuevoDetalle]);
     onDetalleVentaClose();
   };
 
   // Para pagos (mantener para cuando se implemente)
-  const agregarDetallePago = (pago: { id: number; monto: number }) => {
+  const agregarDetallePago = (pago: { id: number; monto: number, cliente_zona: string }) => {
     const yaExiste = detalleRuteoSeleccionado.some(
       (detalle) => detalle.detalle_pagos?.pago === pago.id
     );
@@ -546,12 +554,13 @@ const RuteamientoPedidos = () => {
       detalle_pagos: {
         pago: pago.id,
       },
+      cliente_zona: pago.cliente_zona,
     };
     setDetalleRuteoSeleccionado([...detalleRuteoSeleccionado, nuevoDetalle]);
   };
 
   // Para cobros (mantener para cuando se implemente)
-  const agregarDetalleCobro = (cobro: { id: number; monto: number }) => {
+  const agregarDetalleCobro = (cobro: { id: number; monto: number, cliente_zona: string }) => {
     const yaExiste = detalleRuteoSeleccionado.some(
       (detalle) => detalle.detalle_cobros?.cobro === cobro.id
     );
@@ -564,12 +573,13 @@ const RuteamientoPedidos = () => {
     const nuevoDetalle: DetalleRuteo = {
       monto: 0,
       estado: 1,
-      obs: "",
+      obs: "",  
       hora_e: "",
       hora_s: "",
       detalle_cobros: {
         cobro: cobro.id,
       },
+      cliente_zona: cobro.cliente_zona,
     };
     setDetalleRuteoSeleccionado([...detalleRuteoSeleccionado, nuevoDetalle]);
   };
@@ -815,6 +825,9 @@ const deseleccionarItem = (id: number | undefined) => {
                 Tipo
               </Text>
               <Text flex={1} fontWeight="bold">
+                Zona
+              </Text>
+              <Text flex={1} fontWeight="bold">
                 ID
               </Text>
               <Text flex={1} fontWeight="bold">
@@ -841,7 +854,7 @@ const deseleccionarItem = (id: number | undefined) => {
             </Flex>
           )}
           {[
-            ...[...ventas, ...pedidos] 
+            ...[...ventas, ...pedidos]
               .sort((a, b) => {
                 if (a.factura && !b.factura) return -1;
                 if (!a.factura && b.factura) return 1;
@@ -850,6 +863,7 @@ const deseleccionarItem = (id: number | undefined) => {
               .map(
                 (item): ItemTabla => ({
                   tipo: pedidos.includes(item) ? "Pedido" : "Venta",
+                  zona: item.cliente_zona,
                   id: item.id,
                   fecha: item.fecha,
                   factura: item.factura,
@@ -883,6 +897,7 @@ const deseleccionarItem = (id: number | undefined) => {
               .map(
                 (detalle): ItemTabla => ({
                   tipo: detalle.detalle_pagos ? "Pago" : "Cobro",
+                  zona: detalle.cliente_zona,
                   id:
                     detalle.detalle_pagos?.pago ||
                     detalle.detalle_cobros?.cobro,
@@ -958,6 +973,10 @@ const deseleccionarItem = (id: number | undefined) => {
                     <Text>#{item.id}</Text>
                   </Flex>
                   <Flex justify="space-between">
+                    <Text color="gray.600">Zona:</Text>
+                    <Text>{item.zona}</Text>
+                  </Flex>
+                  <Flex justify="space-between">
                     <Text color="gray.600">Fecha:</Text>
                     <Text>{item.fecha}</Text>
                   </Flex>
@@ -1025,6 +1044,7 @@ const deseleccionarItem = (id: number | undefined) => {
                   </Box>
                 )}
                 <Text flex={1}>{item.tipo}</Text>
+                <Text flex={1}>{item.zona}</Text>
                 <Text flex={1}>{item.id}</Text>
                 <Text flex={1}>{item.fecha}</Text>
                 <Text flex={1}>{item.factura}</Text>
@@ -1139,7 +1159,9 @@ const deseleccionarItem = (id: number | undefined) => {
                   cursor={"pointer"}
                   _hover={{ bg: "gray.200" }}
                 >
-                  <Text>{chofer.nombre} - {chofer.rol}</Text>
+                  <Text>
+                    {chofer.nombre} - {chofer.rol}
+                  </Text>
                 </Box>
               ))}
             </Flex>
@@ -1186,7 +1208,7 @@ const deseleccionarItem = (id: number | undefined) => {
                   cursor={"pointer"}
                   _hover={{ bg: "gray.200" }}
                   onClick={() => {
-                    agregarDetalleCobro({ id: cliente.cli_codigo, monto: 0 });
+                    agregarDetalleCobro({ id: cliente.cli_codigo, monto: 0, cliente_zona: cliente.zona });
                     onCobroModalClose();
                   }}
                 >
@@ -1229,7 +1251,7 @@ const deseleccionarItem = (id: number | undefined) => {
                   cursor={"pointer"}
                   _hover={{ bg: "gray.200" }}
                   onClick={() => {
-                    agregarDetallePago({ id: proveedor.pro_codigo, monto: 0 });
+                    agregarDetallePago({ id: proveedor.pro_codigo, monto: 0, cliente_zona: proveedor.pro_zona });
                   }}
                 >
                   <Text>{proveedor.pro_razon}</Text>

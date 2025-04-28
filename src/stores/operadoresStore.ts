@@ -4,7 +4,7 @@ import axios from "axios";
 
 import { api_url } from "../utils";
 
-interface Operador {
+export interface Operador {
   op_codigo: number;
   op_nombre: string;
 }
@@ -21,13 +21,15 @@ interface OperadoresState {
   cargarOperadores: (busqueda?: string) => Promise<void>;
   obtenerOperadores: () => OperadorAdapter[];
   obtenerOperadorPorId: (id: number) => OperadorAdapter | undefined;
+  getOperadorPorCodInterno: (id: number) => Promise<void>;
+  vendedorSeleccionado: Operador | null;
 }
 
 export const useOperadoresStore = create<OperadoresState>((set, get) => ({
   operadoresOriginales: [],
   operadores: [],
   cargando: false,
-
+  vendedorSeleccionado: null,
   cargarOperadores: async (busqueda?: string) => {
     try {
       set({ cargando: true });
@@ -52,6 +54,24 @@ export const useOperadoresStore = create<OperadoresState>((set, get) => ({
       console.error("Error al cargar operadores:", error);
     } finally {
       set({ cargando: false });
+    }
+  },
+
+  getOperadorPorCodInterno: async (id: number) => {
+    try {
+      set({cargando: true})
+      set({vendedorSeleccionado: null})
+      const response = await axios.get(`${api_url}usuarios/vendedores/`, {
+        params: {
+          id_vendedor: id,
+        },
+      });
+      console.log("response", response.data.body);
+      set({ vendedorSeleccionado: response.data.body[0] });
+    } catch (error) {
+      console.error("Error al obtener el operador por cod interno:", error);
+    } finally {
+      set({cargando: false})
     }
   },
 

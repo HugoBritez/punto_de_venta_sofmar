@@ -42,7 +42,7 @@ export interface DetallePedidoDTO {
  dp_lote: string;
  dp_vence: string;
  dp_vendedor: number;
- dp_codigolote: string;
+ dp_codigolote: number;
  dp_facturado: number;
  dp_porcomision: number;
  dp_actorizado: number;
@@ -53,35 +53,42 @@ export interface DetallePedidoDTO {
  cantidad_cargada: number;
 }
 
+export interface DetallePedidoTabla extends DetallePedidoDTO {
+  codigo: string;
+  descripcion: string;
+  precioUnitario: number;
+  subtotal: number;
+}
+
 export interface DetalleFaltanteDTO {
     d_detalle_pedido: number;
     d_cantidad: number;
     d_situacion: number;
-}
+} 
 
 export interface Pedido {
-    pedido_id: number;
-    cliente: string;
-    moneda: string;
-    fecha: string;
-    factura: string;
-    area: string;
-    siguiente_area: string;
-    estado: string;
-    condicion: string;
-    operador: string;
-    vendedor: string;
-    p_cantcuotas: number;
-    p_entrega: number;
-    p_autorizar_a_contado: number;
-    imprimir: number;
-    imprimir_preparacion: number;
-    cliente_id: number;
-    cantidad_cajas: number;
-    obs: string;
-    total: number;
-    detalles: DetallePedido[];
-    faltante: number;
+  pedido_id: number;
+  cliente: string;
+  moneda: string;
+  fecha: string;
+  factura: string;
+  area: string;
+  siguiente_area: string;
+  estado: string;
+  condicion: string;
+  operador: string;
+  vendedor: string;
+  p_cantcuotas: number;
+  p_entrega: number;
+  p_autorizar_a_contado: number;
+  imprimir: number;
+  imprimir_preparacion: number;
+  cliente_id: number;
+  cantidad_cajas: number;
+  obs: string;
+  total: number;
+  detalles: DetallePedido[];
+  faltante: number;
 }
 
 export interface DetallePedido {

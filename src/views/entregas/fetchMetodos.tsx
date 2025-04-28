@@ -62,7 +62,7 @@ const fetchPedidos = async (fecha_desde: string, fecha_hasta: string, cliente: n
 }
 
 const fetchClientes = async (busqueda: string = '') => {
-    const response = await axios.get(`${api_url}clientes/`, {
+    const response = await axios.get(`${api_url}clientes/get-clientes`, {
         params: {
             buscar: busqueda
         }

@@ -172,7 +172,7 @@ export default function PedidoModalEstilizado({ isOpen, onClose, pedidoId }: Pre
       setLogoUrl(imageUrl);
     } catch (error) {
       console.error("Error fetching logo", error);
-      toast({
+      toast({  
         title: 'Error',
         description: 'No se pudo obtener el logo.',
         status: 'error',
