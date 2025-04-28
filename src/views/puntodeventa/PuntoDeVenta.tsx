@@ -852,22 +852,22 @@ const PuntoDeVentaNuevo = () => {
     }
   }, [sucursalSeleccionada]);
 
-  const totalExentas = itemsParaVenta.reduce(
-    (total, item) => total + item.deve_exentas,
-    0
-  );
-  const totalCinco = itemsParaVenta.reduce(
-    (total, item) => total + item.deve_cinco,
-    0
-  );
-  const totalDiez = itemsParaVenta.reduce(
-    (total, item) => total + item.deve_diez,
-    0
-  );
-  const totalItems = itemsParaVenta.reduce(
-    (total, item) => total + item.deve_cantidad,
-    0
-  );
+  // const totalExentas = itemsParaVenta.reduce(
+  //   (total, item) => total + item.deve_exentas,
+  //   0
+  // );
+  // const totalCinco = itemsParaVenta.reduce(
+  //   (total, item) => total + item.deve_cinco,
+  //   0
+  // );
+  // const totalDiez = itemsParaVenta.reduce(
+  //   (total, item) => total + item.deve_diez,
+  //   0
+  // );
+  // const totalItems = itemsParaVenta.reduce(
+  //   (total, item) => total + item.deve_cantidad,
+  //   0
+  // );
   const totalPagar = itemsParaVenta.reduce(
     //siempre en la moneda seleccionada
     (total, item) => total + item.deve_precio * item.deve_cantidad,
@@ -902,7 +902,7 @@ const PuntoDeVentaNuevo = () => {
 
   const totalPagarFinal = totalPagar - totalDescuento; //siempre en la moneda seleccionada
 
-  const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
+  // const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
 
   // Formatear los números con 2 decimales y separador de miles
   const formatNumber = (num: number | string) => {
@@ -926,13 +926,13 @@ const PuntoDeVentaNuevo = () => {
     });
   };
 
-  const totalExentasFormateado = formatNumber(totalExentas);
-  const totalCincoFormateado = formatNumber(totalCinco);
-  const totalDiezFormateado = formatNumber(totalDiez);
-  const totalItemsFormateado = formatNumber(totalItems);
-  const totalPagarFormateado = formatNumber(totalPagar);
-  const totalDescuentoItemsFormateado = formatNumber(totalDescuentoItems);
-  const totalDescuentoFormateado = formatNumber(totalDescuento);
+  // const totalExentasFormateado = formatNumber(totalExentas);
+  // const totalCincoFormateado = formatNumber(totalCinco);
+  // const totalDiezFormateado = formatNumber(totalDiez);
+  // const totalItemsFormateado = formatNumber(totalItems);
+  // const totalPagarFormateado = formatNumber(totalPagar);
+  // const totalDescuentoItemsFormateado = formatNumber(totalDescuentoItems);
+  // const totalDescuentoFormateado = formatNumber(totalDescuento);
   const totalDolaresFormateado = formatearDivisasExtranjeras(
     totalesVenta.dolares
   );
@@ -940,7 +940,7 @@ const PuntoDeVentaNuevo = () => {
     totalesVenta.reales
   );
   const totalPesosFormateado = formatearDivisasExtranjeras(totalesVenta.pesos);
-  const porcentajeDescuentoFormateado = porcentajeDescuento;
+  // const porcentajeDescuentoFormateado = porcentajeDescuento;
   const totalEnGuaraniesFormateado = formatNumber(totalesVenta.guaranies);
 
   const ResumenVentasCliente = ({
@@ -2778,7 +2778,7 @@ const PuntoDeVentaNuevo = () => {
         >
           <Box
             w={"100%"}
-            h={isMobile ? "100%" : "65%"}
+            h={isMobile ? "100%" : "90%"}
             bg="white"
             shadow="sm"
             rounded="md"
@@ -2994,21 +2994,21 @@ const PuntoDeVentaNuevo = () => {
                 isVisible={hoveredArticulo !== null}
               />
             </div>
-            <div className="flex flex-col  w-full h-[calc(100%-50px)] overflow-y-auto">
+            <div className="flex flex-col  w-full h-[calc(100%-50px)] overflow-y-auto ">
               <table>
-                <thead className="bg-gray-100">
-                  <tr className="text-md font-bold [&>th]:p-2 [&>th]:text-center [&>th]:border [&>th]:border-gray-200">
+                <thead className="bg-blue-500 text-white">
+                  <tr className="text-md font-bold [&>th]:p-2 [&>th]:text-center [&>th]:border [&>th]:border-gray-200 [&>th]:text-3xl">
                     <th>Cod. de Barras</th>
                     <th>Descripcion</th>
                     <th>Cantidad</th>
-                    <th>V/B</th>
-                    <th>Lote</th>
-                    <th>Vencimiento</th>
+                    {/* <th>V/B</th> */}
+                    {/* <th>Lote</th> */}
+                    {/* <th>Vencimiento</th> */}
                     <th>Precio U.</th>
                     <th>Descuento</th>
-                    <th>Exentas</th>
-                    <th>5%</th>
-                    <th>10%</th>
+                    {/* <th>Exentas</th> */}
+                    {/* <th>5%</th> */}
+                    {/* <th>10%</th> */}
                     <th>SubTotal</th>
                     <th></th>
                   </tr>
@@ -3017,7 +3017,7 @@ const PuntoDeVentaNuevo = () => {
                   {itemsParaVenta.map((item) => (
                     <tr
                       key={item.deve_articulo}
-                      className="[&>td]:px-2 [&>td]:py-1 [&>td]:border [&>td]:border-gray-200"
+                      className="[&>td]:px-2 [&>td]:py-1 [&>td]:border [&>td]:border-gray-200 [&>td]:text-2xl [&>td]:font-bold"
                     >
                       <td>{item.cod_barra}</td>
                       <td>
@@ -3055,9 +3055,9 @@ const PuntoDeVentaNuevo = () => {
                           }}
                         />
                       </td>
-                      <td className="text-center">{item.deve_bonificacion}</td>
-                      <td className="text-center">{item.deve_lote}</td>
-                      <td className="text-center">{item.deve_vencimiento}</td>
+                      {/* <td className="text-center">{item.deve_bonificacion}</td> */}
+                      {/* <td className="text-center">{item.deve_lote}</td> */}
+                      {/* <td className="text-center">{item.deve_vencimiento}</td> */}
                       <td className="text-right">
                         <input
                           type="number"
@@ -3088,15 +3088,15 @@ const PuntoDeVentaNuevo = () => {
                           }}
                         />
                       </td>
-                      <td className="text-right">
+                      {/* <td className="text-right">
                         {formatNumber(item.deve_exentas)}
-                      </td>
-                      <td className="text-right">
+                      </td> */}
+                      {/* <td className="text-right">
                         {formatNumber(item.deve_cinco)}
-                      </td>
-                      <td className="text-right">
+                      </td> */}
+                      {/* <td className="text-right">
                         {formatNumber(item.deve_diez)}
-                      </td>
+                      </td> */}
                       <td className="text-right">
                         {formatNumber(
                           (item.deve_precio -
@@ -3120,12 +3120,12 @@ const PuntoDeVentaNuevo = () => {
           </Box>
           <Box
             w={"100%"}
-            h={isMobile ? "20%" : "30%"}
+            h={isMobile ? "20%" : "10%"}
             shadow="sm"
             rounded="md"
-            className="flex flex-row gap-2 bg-blue-200"
+            className="flex flex-row gap-2 bg-blue-200  items-end"
           >
-            <div className="flex flex-col-reverse gap-2 p-2 w-full bg-orange-200 m-2 rounded-md">
+            {/* <div className="flex flex-col-reverse gap-2 p-2 w-full bg-orange-200 m-2 rounded-md">
               <div className="flex flex-row gap-2 w-full flex-1 items-center">
                 <p className="text-md font-bold">Total exentas:</p>
                 <div className="bg-white px-4 py-2 rounded-md w-1/2 ml-auto">
@@ -3150,8 +3150,8 @@ const PuntoDeVentaNuevo = () => {
                   </p>
                 </div>
               </div>
-            </div>
-            <div className="flex flex-col gap-2 p-2 w-full">
+            </div> */}
+            {/* <div className="flex flex-col gap-2 p-2 w-full">
               <div className="flex flex-row gap-2 w-full flex-1 items-center">
                 <p className="text-md font-bold">Subtotal:</p>
                 <div className="bg-white px-4 py-2 rounded-md w-1/2 ml-auto">
@@ -3176,8 +3176,8 @@ const PuntoDeVentaNuevo = () => {
                   </p>
                 </div>
               </div>
-            </div>
-            <div className="flex flex-col gap-2 p-2 w-full">
+            </div> */}
+            {/* <div className="flex flex-col gap-2 p-2 w-full">
               <div className="flex flex-row gap-2 w-full flex-1 items-center">
                 <p className="text-md font-bold">Porcentaje de descuento:</p>
                 <div className="bg-white px-4 py-2 rounded-md w-1/2 ml-auto">
@@ -3194,36 +3194,36 @@ const PuntoDeVentaNuevo = () => {
                   </p>
                 </div>
               </div>
-            </div>
-            <div className="flex flex-col gap-2 p-2 w-full  bg-blue-300  m-2 rounded-md">
+            </div> */}
+            <div className="flex flex-row gap-2 p-2 w-full  bg-blue-300  m-2 rounded-md">
               <div className="flex flex-row gap-2 w-full flex-1 items-center">
-                <p className="text-md font-bold">Total GS.:</p>
-                <div className=" px-4 py-2 rounded-md w-1/2 ml-auto bg-blue-800">
-                  <p className="text-right text-xl font-bold text-white">
+                <p className="text-xl font-bold">Total GS.:</p>
+                <div className=" px-4 py-2 rounded-md w-3/4 ml-auto bg-black">
+                  <p className="text-right text-5xl font-bold text-green-500 ">
                     {totalEnGuaraniesFormateado}
                   </p>
                 </div>
               </div>
               <div className="flex flex-row gap-2 w-full flex-1 items-center">
                 <p className="text-md font-bold">Total USD:</p>
-                <div className=" px-4 py-2 rounded-md w-1/2 ml-auto bg-blue-800">
-                  <p className="text-right text-xl font-bold text-white">
+                <div className=" px-4 py-2 rounded-md w-3/4 ml-auto bg-blue-800">
+                  <p className="text-right text-5xl font-bold text-white">
                     {totalDolaresFormateado}
                   </p>
                 </div>
               </div>
               <div className="flex flex-row gap-2 w-full flex-1 items-center">
                 <p className="text-md font-bold">Total BRL:</p>
-                <div className=" px-4 py-2 rounded-md w-1/2 ml-auto bg-blue-800">
-                  <p className="text-right text-xl font-bold text-white">
+                <div className=" px-4 py-2 rounded-md w-3/4 ml-auto bg-blue-800">
+                  <p className="text-right text-5xl font-bold text-white">
                     {totalRealesFormateado}
                   </p>
                 </div>
               </div>
               <div className="flex flex-row gap-2 w-full flex-1 items-center">
                 <p className="text-md font-bold">Total ARS:</p>
-                <div className=" px-4 py-2 rounded-md w-1/2 ml-auto bg-blue-800">
-                  <p className="text-right text-xl font-bold text-white">
+                <div className=" px-4 py-2 rounded-md w-3/4 ml-auto bg-blue-800">
+                  <p className="text-right text-5xl font-bold text-white">
                     {totalPesosFormateado}
                   </p>
                 </div>

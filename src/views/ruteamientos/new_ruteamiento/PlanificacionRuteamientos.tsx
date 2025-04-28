@@ -111,8 +111,6 @@ const PlanificacionRuteamientos = () => {
 
   const operador_rol = Number(sessionStorage.getItem("rol"));
   
-
-
   const handlePeriodoChange = (index: number) => {
     setPeriodoSeleccionado(index);
     const hoy = new Date();
@@ -220,19 +218,23 @@ const PlanificacionRuteamientos = () => {
 
   const tienePermisos = () =>{
     if (operador_rol === 7 || operador_rol === 11){
+    if (operador_rol === 7 || operador_rol === 11){
       return vendedoresSeleccionadosParaFiltro;
     } else {
       return vendedorActual;
     }
   }
+}
 
   const tienePermisosBooleano = () => {
+    if (operador_rol === 7 || operador_rol === 11) {
     if (operador_rol === 7 || operador_rol === 11) {
       return false;
     } else {
       return true;
     }
   };
+}
 
   const fetchRuteamientos = async () => {
     try {

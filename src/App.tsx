@@ -53,9 +53,7 @@ import PlanificacionRuteamientos from "./views/ruteamientos/new_ruteamiento/Plan
 import VerificadorControl from "./views/compras/control_ingreso/components/VerificadorControl";
 import ConsultaPedidosFaltantes from "./views/entregas/ConsultaPedidosFaltantes";
 import GestionDirecciones from "./views/direcciones/GestionDirecciones";
-// import FormularioPedidos from "./views/pedidos/FormularioPedidos/FormularioPedidos";
-
-import Pedido from "./views/pedidos/Pedidos";
+ import FormularioPedidos from "./views/pedidos/FormularioPedidos/FormularioPedidos";
 
 const ProtectedLayout: React.FC = () => {
   const { auth, isLoading } = useAuth();
@@ -165,7 +163,7 @@ function App() {
                   path="/rutas-dashboard"
                   element={<RuteamientosDashboard />}
                 />
-                <Route path="/registrar-pedido" element={<Pedido />} />
+                <Route path="/registrar-pedido" element={<FormularioPedidos />} />
                 <Route
                   path="/consultar-pedidos"
                   element={<ConsultaPedidos />}
