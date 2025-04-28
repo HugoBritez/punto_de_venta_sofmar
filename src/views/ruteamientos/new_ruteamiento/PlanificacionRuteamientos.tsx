@@ -113,8 +113,6 @@ const PlanificacionRuteamientos = () => {
 
   const operador_rol = Number(sessionStorage.getItem("rol"));
   
-
-
   const handlePeriodoChange = (index: number) => {
     setPeriodoSeleccionado(index);
     const hoy = new Date();
