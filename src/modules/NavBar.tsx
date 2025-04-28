@@ -206,8 +206,8 @@ const Sidebar = () => {
           enabled: true,
         },
         {
-          grupo: 2,
-          orden: 98,
+          grupo: 999,
+          orden: 999,
           id: 401,
           name: "Reg. de Pedidos",
           icon: Handshake,
