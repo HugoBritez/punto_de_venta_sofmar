@@ -25,6 +25,7 @@ import { SwitchProvider } from "./services/SwitchContext";
 import ConsultaPresupuestos from "./views/presupuestos/ConsultaPresupuesto";
 import Rutas from "./views/ruteamientos/Rutas";
 import RuteamientosDashboard from "./views/ruteamientos/RuteamientosDashboard";
+import Pedidos from "./views/pedidos/Pedidos";
 import ConsultaPedidos from "./views/pedidos/ConsultaPedidos";
 import NoExiste from "./views/404";
 import CobrosDiarios from "./views/cobros/CobrosDiarios";
@@ -53,7 +54,6 @@ import PlanificacionRuteamientos from "./views/ruteamientos/new_ruteamiento/Plan
 import VerificadorControl from "./views/compras/control_ingreso/components/VerificadorControl";
 import ConsultaPedidosFaltantes from "./views/entregas/ConsultaPedidosFaltantes";
 import GestionDirecciones from "./views/direcciones/GestionDirecciones";
-import Pedidos from "./views/pedidos/Pedidos";
 // import FormularioPedidos from "./views/pedidos/FormularioPedidos/FormularioPedidos";
 const ProtectedLayout: React.FC = () => {
   const { auth, isLoading } = useAuth();
