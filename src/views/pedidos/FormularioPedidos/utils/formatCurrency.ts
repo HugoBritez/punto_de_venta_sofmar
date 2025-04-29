@@ -1,16 +1,7 @@
-export const formatCurrency = (amount: number, moneda: string) => {
-  const currencySymbol: { [key: string]: string } = {
-    USD: "$",
-    PYG: "₲",
-  };
-
+export const formatCurrency = (amount: number, moneda: string = "PYG") => {
   return new Intl.NumberFormat("es-PY", {
-    style: "currency",
-    currency: moneda,
+    style: "decimal",
     minimumFractionDigits: moneda === "PYG" ? 0 : 2,
     maximumFractionDigits: moneda === "PYG" ? 0 : 2,
-  })
-    .format(amount)
-    .replace(/\s/g, "")
-    .replace(moneda, currencySymbol[moneda]);
+  }).format(amount);
 };

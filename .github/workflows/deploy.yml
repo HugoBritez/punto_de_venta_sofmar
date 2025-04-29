@@ -49,23 +49,21 @@ jobs:
           node scripts/updateConfig.js ${{ github.event.inputs.cliente }}
           npm run build
 
-      - name: Deploy using WSL
-        shell: powershell
+      - name: Deploy
         env:
           SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
           SSH_USER: ${{ secrets.SSH_USER }}
           CLIENTE: ${{ github.event.inputs.cliente }}
         run: |
-          $targetServer = if ($env:CLIENTE -eq "gaesa") {
-            "192.168.102.6"
-          } elseif ($env:CLIENTE -eq "gaesademo") {
-            "192.168.200.3"
-          } else {
-            "192.168.200.3"
-          }
+          if [ "$CLIENTE" = "gaesa" ]; then
+            TARGET_SERVER="192.168.102.6"
+          elif [ "$CLIENTE" = "gaesademo" ]; then
+            TARGET_SERVER="192.168.200.3"
+          else
+            TARGET_SERVER="192.168.200.3"
+          fi
           
-          $command = "sshpass -p '$env:SSH_PASSWORD' rsync -avz -e 'ssh -o StrictHostKeyChecking=no' --delete ./dist/ $env:SSH_USER@$targetServer`:/var/www/$env:CLIENTE/dist/"
-          wsl -e bash -c "$command"
+          sshpass -p "$SSH_PASSWORD" rsync -avz -e 'ssh -o StrictHostKeyChecking=no' --delete ./dist/ "$SSH_USER@$TARGET_SERVER:/var/www/$CLIENTE/dist/"
 
   deploy-all:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -111,20 +109,18 @@ jobs:
           node scripts/updateConfig.js ${{ matrix.cliente }}
           npm run build
 
-      - name: Deploy using WSL
-        shell: powershell
+      - name: Deploy
         env:
           SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
           SSH_USER: ${{ secrets.SSH_USER }}
           CLIENTE: ${{ matrix.cliente }}
         run: |
-          $targetServer = if ($env:CLIENTE -eq "gaesa") {
-            "192.168.102.8"
-          } elseif ($env:CLIENTE -eq "gaesademo") {
-            "192.168.200.3"
-          } else {
-            "192.168.200.3"
-          }
+          if [ "$CLIENTE" = "gaesa" ]; then
+            TARGET_SERVER="192.168.102.8"
+          elif [ "$CLIENTE" = "gaesademo" ]; then
+            TARGET_SERVER="192.168.200.3"
+          else
+            TARGET_SERVER="192.168.200.3"
+          fi
           
-          $command = "sshpass -p '$env:SSH_PASSWORD' rsync -avz -e 'ssh -o StrictHostKeyChecking=no' --delete ./dist/ $env:SSH_USER@$targetServer`:/var/www/$env:CLIENTE/dist/"
-          wsl -e bash -c "$command"
+          sshpass -p "$SSH_PASSWORD" rsync -avz -e 'ssh -o StrictHostKeyChecking=no' --delete ./dist/ "$SSH_USER@$TARGET_SERVER:/var/www/$CLIENTE/dist/"

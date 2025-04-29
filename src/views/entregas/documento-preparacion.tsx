@@ -10,6 +10,7 @@ interface PreparacionPedido {
   deposito: string;
   sucursal: string;
   cliente: string;
+  obs: string;
   articulos: [
     {
       cod_interno: number;
@@ -32,6 +33,7 @@ const DocumentoPreparacion = ({
   fecha_desde,
   fecha_hasta,
   estado,
+  obs,
   action = "print",
   onComplete,
   onError
@@ -42,6 +44,7 @@ const DocumentoPreparacion = ({
   fecha_desde: string | null;
   fecha_hasta: string | null;
   estado: number | null;
+  obs: string;
   action?: "print" | "generate";
   onComplete?: () => void;
   onError?: (error: any) => void;
@@ -173,6 +176,12 @@ const generarPDF = async (data: PreparacionPedido[]) => {
             },
           ],
           margin: [0, 10],
+        },
+        {
+          text: `Observacion: ${obs}`,
+          alignment: "right",
+          fontSize: 8,
+          margin: [0, 5],
         },
         {
           text: `Operador: ${operador}`,

@@ -385,7 +385,8 @@ const imprimirDocumentoPreparacion = async (
   fecha_desde: string | null,
   fecha_hasta: string | null,
   estado: number | null,
-  action: "print" | "generate"
+  action: "print" | "generate",
+  obs: string | null
 ) =>{
   return new Promise<void>((resolve, reject)=>{
     const preparacionDiv = document.createElement("div");
@@ -401,6 +402,7 @@ const imprimirDocumentoPreparacion = async (
         fecha_hasta={fecha_hasta}
         estado={estado}
         action={action}
+        obs={obs || ""}
         onComplete={() => {
           root.unmount();
           document.body.removeChild(preparacionDiv);
@@ -469,7 +471,8 @@ const handleImprimir = async (action: "print" | "generate") => {
           fechaDesde,
           fechaHasta,
           estado,
-          action
+          action,
+          pedidoSeleccionado.obs
         );
       }
     } catch (error) {
@@ -799,6 +802,7 @@ const actualizarEstadoPedidos = async (pedidoIds: number[]) => {
                     <th>Condicion</th>
                     <th>Operador</th>
                     <th>Deposito</th>
+                    <th>Observacion</th>
                   </tr>
                 </thead>
                 {pedidosNuevo.length === 0 ? (
@@ -851,6 +855,7 @@ const actualizarEstadoPedidos = async (pedidoIds: number[]) => {
                         <td>{pedido.condicion}</td>
                         <td>{pedido.operador}</td>
                         <td>{pedido.deposito}</td>
+                        <td>{pedido.obs}</td>
                       </tr>
                     ))}
                   </tbody>

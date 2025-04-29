@@ -206,8 +206,8 @@ const Sidebar = () => {
           enabled: true,
         },
         {
-          grupo: 999,
-          orden: 999,
+          grupo: 2, // recordar anotar id y grupo anterior
+          orden: 17,
           id: 401,
           name: "Reg. de Pedidos",
           icon: Handshake,

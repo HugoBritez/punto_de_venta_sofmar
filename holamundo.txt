@@ -23,9 +23,6 @@ import { useClientesStore } from "@/stores/clientesStore";
 import BuscadorClientes from "@/ui/clientes/BuscadorClientes";
 import { ArticulosComponent } from "@/ui/articulos/ArticulosComponent";
 import { formatCurrency } from "./utils/formatCurrency";
-import { usePedidos } from "./hooks/usePedidos";
-
-
 
 const FormularioPedidos = () => {
   const { sucursales, fetchSucursales } = useSucursalesStore();
@@ -55,15 +52,12 @@ const FormularioPedidos = () => {
   const [busquedaVendedor, setBusquedaVendedor] = useState<string>("");
 
   const user = sessionStorage.getItem("user_name");
-  const operador = sessionStorage.getItem("user_id");
-
-  
 
   const [pedidoDTO, setPedidoDTO] = useState<PedidoDTO>({
     p_fecha: fechaPedido,
-    p_nropedido: "",
+    p_nro_pedido: "",
     p_cliente: 0,
-    p_operador: operador ? Number(operador) : 0,
+    p_operador: 0,
     p_moneda: 0,
     p_deposito: 0,
     p_sucursal: 0,
@@ -71,8 +65,8 @@ const FormularioPedidos = () => {
     p_obs: "",
     p_estado: 0,
     p_vendedor: 0,
-    p_area: 1,
-    p_tipo_estado: 1,
+    p_area: 0,
+    p_tipo_estado: 0,
     p_credito: 0,
     p_imprimir: 0,
     p_interno: 0,
@@ -110,8 +104,6 @@ const FormularioPedidos = () => {
 
   const toast = useToast();
 
-  const { insertarPedido } = usePedidos();
-
   const handleBusquedaPorCodigoBarra = async (busqueda: string) => {
     if (depositoSeleccionado?.dep_codigo && monedaSeleccionada?.mo_codigo) {
       const articulo = await getArticulosPorCodBarra(
@@ -121,30 +113,14 @@ const FormularioPedidos = () => {
         monedaSeleccionada?.mo_codigo
       );
       if (articulo) {
-        setArticulo(articulo[0]);
+        setArticulo(articulo);
         setCodigoBarraArticulo(articulo.ar_codbarra);
         cantidadRef.current?.focus();
         setPrecioArticulo(articulo.ar_pvg);
         setDescuentoArticulo(0);
         setBonificacionArticulo(0);
         setCantidadArticulo(1);
-      } else {
-        toast({
-          title: "Error",
-          description: "No se encontró el artículo o no está disponible en la moneda seleccionada",
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
       }
-    } else {
-      toast({
-        title: "Error",
-        description: "Debe seleccionar un depósito y una moneda",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
     }
   };
 
@@ -196,33 +172,17 @@ const FormularioPedidos = () => {
 
   //EFFECT PARA SELECCIONAR POR DEFECTO
   useEffect(() => {
-    if (listaPrecios.length > 0 && !precioSeleccionado) {
+    if (listaPrecios.length > 0) {
       setPrecioSeleccionado(listaPrecios[0]);
-      setPedidoDTO(prev => ({
-        ...prev,
-        p_lista_precio: listaPrecios[0].lp_codigo
-      }));
     }
-    if (depositos.length > 0 && !depositoSeleccionado) {
+    if (depositos.length > 0) {
       setDepositoSeleccionado(depositos[0]);
-      setPedidoDTO(prev => ({
-        ...prev,
-        p_deposito: depositos[0].dep_codigo
-      }));
     }
-    if (sucursales.length > 0 && !sucursalSeleccionada) {
+    if (sucursales.length > 0) {
       setSucursalSeleccionada(sucursales[0]);
-      setPedidoDTO(prev => ({
-        ...prev,
-        p_sucursal: sucursales[0].id
-      }));
     }
-    if (monedas.length > 0 && !monedaSeleccionada) {
+    if (monedas.length > 0) {
       setMonedaSeleccionada(monedas[0]);
-      setPedidoDTO(prev => ({
-        ...prev,
-        p_moneda: monedas[0].mo_codigo
-      }));
     }
   }, [listaPrecios, depositos, sucursales, monedas]);
 
@@ -242,6 +202,7 @@ const FormularioPedidos = () => {
     }
 
     if (vendedorSeleccionado) {
+      console.log("vendedorSeleccionado", vendedorSeleccionado);
       setPedidoDTO((prev) => ({
         ...prev,
         p_vendedor: vendedorSeleccionado.op_codigo,
@@ -262,11 +223,18 @@ const FormularioPedidos = () => {
     if (monedaSeleccionada) {
       setPedidoDTO((prev) => ({
         ...prev,
-        p_moneda: monedaSeleccionada.mo_codigo,
-      }));
+
+         p_moneda: monedaSeleccionada.mo_codigo,
+           // este es otro insert
+      })); //hola este es un compentario desde lazyvim gg
     }
     if (precioSeleccionado) {
-      setPedidoDTO((prev) => ({
+      setPedidoDTO((prev) => setCodigoBarraArticulo(articulo.ar_codbarra);
+          cantidadRef.current?.focus();
+          setPrecioArticulo(articulo.ar_pvg);
+          setDescuentoArticulo(0);
+          setBonificacionArticulo(0);
+          setCantidadArticulo(1);({
         ...prev,
         p_lista_precio: precioSeleccionado.lp_codigo,
       }));
@@ -276,33 +244,7 @@ const FormularioPedidos = () => {
     vendedorSeleccionado,
     sucursalSeleccionada,
     depositoSeleccionado,
-    monedaSeleccionada,
-    precioSeleccionado
   ]);
-
-  // Agregar useEffect para actualizar el operador cuando cambie
-  useEffect(() => {
-    if (operador) {
-      setPedidoDTO(prev => ({
-        ...prev,
-        p_operador: Number(operador)
-      }));
-    }
-  }, [operador]);
-
-  const handleGlobalKeyDown = (e: KeyboardEvent) => {
-    if (e.key === "Enter" && e.ctrlKey) {
-      e.preventDefault();
-      clienteRef.current?.focus();
-    }
-  };
-
-  useEffect(() => {
-    window.addEventListener("keydown", handleGlobalKeyDown);
-    return () => {
-      window.removeEventListener("keydown", handleGlobalKeyDown);
-    };
-  }, []);
 
   // Focus al input de cliente solo al cargar la página
   useEffect(() => {
@@ -312,7 +254,6 @@ const FormularioPedidos = () => {
   const handleClienteKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && busquedaCliente) {
       cargarClientesPorId(Number(busquedaCliente));
-      vendedorRef.current?.focus();
     } else if (
       e.key === "Enter" &&
       (busquedaCliente === "" || busquedaCliente === null)
@@ -324,7 +265,6 @@ const FormularioPedidos = () => {
   const handleVendedorKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && !vendedorSeleccionado && busquedaVendedor) {
       getOperadorPorCodInterno(Number(busquedaVendedor));
-      articuloCodigoRef.current?.focus();
     } else if (e.key === "Enter" && vendedorSeleccionado) {
       articuloCodigoRef.current?.focus();
     }
@@ -337,43 +277,7 @@ const FormularioPedidos = () => {
       setModalArticulosOpen(true);
     } else if (e.key === "Enter" && codigoBarraArticulo.length > 0) {
       handleBusquedaPorCodigoBarra(codigoBarraArticulo);
-      cantidadRef.current?.focus();
     }
-  };
-
-  const handleCantidadKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      bonificacionRef.current?.focus();
-    }
-  };
-
-  const handleBonificacionKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      descuentoRef.current?.focus();
-    }
-  };
-
-  const handleDescuentoKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      precioRef.current?.focus();
-    }
-  };
-
-  const handlePrecioKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && articulo) {
-      handleAgregarItem(
-        articulo,
-        cantidadArticulo,
-        precioArticulo,
-        descuentoArticulo,
-        bonificacionArticulo
-      );
-      articuloCodigoRef.current?.focus();
-    }
-  };
-
-  const cancelarPedido = () => {
-    window.location.reload();
   };
 
   // Agrega este useEffect para hacer focus cuando se selecciona un vendedor
@@ -382,23 +286,6 @@ const FormularioPedidos = () => {
       articuloCodigoRef.current?.focus();
     }
   }, [vendedorSeleccionado]);
-
-  // Agrega este useEffect para asegurar que el cliente se actualice en el pedidoDTO
-  useEffect(() => {
-    if (clienteSeleccionadoInterno) {
-      setPedidoDTO((prev) => ({
-        ...prev,
-        p_cliente: clienteSeleccionadoInterno.cli_codigo,
-      }));
-    }
-  }, [clienteSeleccionadoInterno]);
-
-  // Agrega este useEffect para hacer focus cuando se selecciona un artículo
-  useEffect(() => {
-    if (articulo) {
-      cantidadRef.current?.focus();
-    }
-  }, [articulo]);
 
   return (
     <div className="flex h-screen w-full bg-gray-100 flex-col gap-2 p-2">
@@ -496,7 +383,9 @@ const FormularioPedidos = () => {
               className="rounded-md p-1 border-2 border-gray-300 w-1/4 focus:outline-none"
               value={busquedaCliente}
               onChange={(e) => setBusquedaCliente(e.target.value)}
-              onKeyDown={handleClienteKeyDown}
+              onKeyDown={(e) => {
+                handleClienteKeyDown(e);
+              }}
             />
             <input
               type="text"
@@ -521,7 +410,9 @@ const FormularioPedidos = () => {
               className="rounded-md p-1 border-2 border-gray-300 w-1/4 focus:outline-none"
               value={busquedaVendedor}
               onChange={(e) => setBusquedaVendedor(e.target.value)}
-              onKeyDown={handleVendedorKeyDown}
+              onKeyDown={(e) => {
+                handleVendedorKeyDown(e);
+              }}
             />
             <input
               type="text"
@@ -544,7 +435,7 @@ const FormularioPedidos = () => {
               name="listaPrecio"
               id="listaPrecio"
               className="rounded-md p-1 border-2 border-gray-300"
-              value={precioSeleccionado?.lp_codigo}
+              value={precioSeleccionado?.lp_descripcion}
               onChange={(e) =>
                 setPrecioSeleccionado(
                   listaPrecios.find(
@@ -572,7 +463,7 @@ const FormularioPedidos = () => {
               name="moneda"
               id="moneda"
               className="rounded-md p-1 border-2 border-gray-300"
-              value={monedaSeleccionada?.mo_codigo}
+              value={monedaSeleccionada?.mo_descripcion}
               onChange={(e) =>
                 setMonedaSeleccionada(
                   monedas.find(
@@ -782,7 +673,9 @@ const FormularioPedidos = () => {
             className="rounded-md p-1 border-2 border-gray-300 w-full"
             ref={articuloCodigoRef}
             placeholder="Codigo de barras:"
-            onKeyDown={handleArticuloKeyDown}
+            onKeyDown={(e) => {
+              handleArticuloKeyDown(e);
+            }}
             value={codigoBarraArticulo}
             onChange={(e) => setCodigoBarraArticulo(e.target.value)}
           />
@@ -808,7 +701,11 @@ const FormularioPedidos = () => {
             value={cantidadArticulo}
             onChange={(e) => setCantidadArticulo(Number(e.target.value))}
             ref={cantidadRef}
-            onKeyDown={handleCantidadKeyDown}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                bonificacionRef.current?.focus();
+              }
+            }}
           />
         </div>
         <div className="flex flex-col items-start w-24">
@@ -822,7 +719,11 @@ const FormularioPedidos = () => {
             value={bonificacionArticulo}
             onChange={(e) => setBonificacionArticulo(Number(e.target.value))}
             ref={bonificacionRef}
-            onKeyDown={handleBonificacionKeyDown}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                descuentoRef.current?.focus();
+              }
+            }}
           />
         </div>
         <div className="flex flex-col items-start w-24">
@@ -836,21 +737,38 @@ const FormularioPedidos = () => {
             value={descuentoArticulo}
             onChange={(e) => setDescuentoArticulo(Number(e.target.value))}
             ref={descuentoRef}
-            onKeyDown={handleDescuentoKeyDown}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                precioRef.current?.focus();
+              }
+            }}
           />
         </div>
         <div className="flex flex-col items-start w-24">
-          <label htmlFor="precio" className="text-xs font-bold mb-1">Precio:</label>
+          <label htmlFor="descuento" className="text-xs font-bold mb-1">Precio:</label>
           <input
             type="number"
             name="precio"
             id="precio"
             className="rounded-md p-1 border-2 border-gray-300 w-full"
             placeholder="Precio:"
-            value={articulo ? formatCurrency(articulo.precio_venta_guaranies): 0}
+            value={precioArticulo}
             onChange={(e) => setPrecioArticulo(Number(e.target.value))}
             ref={precioRef}
-            onKeyDown={handlePrecioKeyDown}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                if (articulo) {
+                  handleAgregarItem(
+                    articulo,
+                    cantidadArticulo,
+                    precioArticulo,
+                    descuentoArticulo,
+                    bonificacionArticulo
+                  );
+                }
+                articuloCodigoRef.current?.focus();
+              }
+            }}
           />
         </div>
         <div className="flex flex-col items-start w-20">
@@ -877,7 +795,7 @@ const FormularioPedidos = () => {
             value={
               articulo
                 ? articulo.iva === 0
-                  ? formatCurrency(articulo.precio_venta_guaranies)
+                  ? articulo.precio_venta_guaranies
                   : 0
                 : "Exenta"
             }
@@ -895,7 +813,7 @@ const FormularioPedidos = () => {
             value={
               articulo
                 ? articulo.iva === 2
-                  ? formatCurrency(articulo.precio_venta_guaranies)
+                  ? articulo.precio_venta_guaranies
                   : 0
                 : "5%"
             }
@@ -913,7 +831,7 @@ const FormularioPedidos = () => {
             value={
               articulo
                 ? articulo.iva === 1
-                  ? formatCurrency(articulo.precio_venta_guaranies)
+                  ? articulo.precio_venta_guaranies
                   : 0
                 : "10%"
             }
@@ -1022,20 +940,11 @@ const FormularioPedidos = () => {
             </div>
           </div>
           <div className="flex flex-row gap-2 my-6">
-            <button className="bg-blue-500 text-white rounded-md p-2 flex flex-row gap-2 items-center"
-              onClick={() => {
-                insertarPedido(pedidoDTO, detallePedido);
-                cancelarPedido();
-              }}
-            >
+            <button className="bg-blue-500 text-white rounded-md p-2 flex flex-row gap-2 items-center">
               <Check />
               <p className="text-md font-bold">Guardar Pedido</p>
             </button>
-            <button className="bg-red-500 text-white rounded-md p-2 flex flex-row gap-2 items-center"
-              onClick={() => {
-                cancelarPedido();
-              }}
-            >
+            <button className="bg-red-500 text-white rounded-md p-2 flex flex-row gap-2 items-center">
               <X />
               <p className="text-sm font-bold">Cancelar</p>
             </button>
@@ -1098,10 +1007,6 @@ const FormularioPedidos = () => {
         onSelect={(cliente) => {
           setClienteSeleccionadoInterno(cliente);
           setBusquedaCliente(cliente.cli_interno.toString());
-          setPedidoDTO(prev => ({
-            ...prev,
-            p_cliente: cliente.cli_codigo
-          }));
           vendedorRef.current?.focus();
         }}
       />
@@ -1112,6 +1017,7 @@ const FormularioPedidos = () => {
           setArticulo(articulo);
           setCodigoBarraArticulo(articulo.ar_codbarra);
           cantidadRef.current?.focus();
+          setPrecioArticulo(articulo.ar_pvg);
           setDescuentoArticulo(0);
           setBonificacionArticulo(0);
           setCantidadArticulo(1);

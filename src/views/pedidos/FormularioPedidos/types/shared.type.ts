@@ -1,6 +1,6 @@
 export interface PedidoDTO {
  p_fecha: string;
- p_nro_pedido: string;
+ p_nropedido: string;
  p_cliente: number;
  p_operador: number;
  p_moneda: number;
