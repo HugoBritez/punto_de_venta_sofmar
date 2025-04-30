@@ -64,8 +64,6 @@ import ModeloFacturaReport from "../facturacion/ModeloFacturaReport";
 import { ArticulosComponent } from "@/ui/articulos/ArticulosComponent";
 import BuscadorClientes from "@/ui/clientes/BuscadorClientes";
 
-
-
 interface ItemParaVenta {
   precio_guaranies: number;
   precio_dolares: number;
@@ -804,6 +802,7 @@ const VentaBalconNuevo = () => {
     getDatos();
     obtenerDatosFacturacion();
     fetchTipoImpresion();
+    clienteCodigoRef.current?.focus();
   }, []);
 
   useEffect(() => {
