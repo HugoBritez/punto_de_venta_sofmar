@@ -401,7 +401,7 @@ const PuntoDeVentaNuevo = () => {
 
   const toast = useToast();
   const { enviarFacturas } = useFacturaSend();
-  
+
 
   const getClientePorDefecto = async () => {
     const responseClientePorDefecto = await axios.get(
@@ -1039,9 +1039,8 @@ const PuntoDeVentaNuevo = () => {
                     key={venta.codigo}
                     className={`${setColor(
                       venta.estado
-                    )} hover:bg-gray-50 cursor-pointer ${
-                      ventaSeleccionada === venta.codigo ? "bg-blue-100" : ""
-                    }`}
+                    )} hover:bg-gray-50 cursor-pointer ${ventaSeleccionada === venta.codigo ? "bg-blue-100" : ""
+                      }`}
                     onClick={() => {
                       setVentaSeleccionada(venta.codigo);
                       fetchDetalleVenta(venta.codigo);
@@ -1238,17 +1237,17 @@ const PuntoDeVentaNuevo = () => {
           monedaSeleccionada?.mo_codigo === 1
             ? "PYG"
             : monedaSeleccionada?.mo_codigo === 2
-            ? "USD"
-            : monedaSeleccionada?.mo_codigo === 3
-            ? "BRL"
-            : monedaSeleccionada?.mo_codigo === 4
-            ? "ARS"
-            : "PYG",
+              ? "USD"
+              : monedaSeleccionada?.mo_codigo === 3
+                ? "BRL"
+                : monedaSeleccionada?.mo_codigo === 4
+                  ? "ARS"
+                  : "PYG",
         cambio: monedaSeleccionada?.mo_codigo != 1 ? cotizacionDolar : 0,
         cliente: {
           contribuyente:
             clienteSeleccionado.cli_tipo_doc === 1 ||
-            clienteSeleccionado.cli_tipo_doc === 18
+              clienteSeleccionado.cli_tipo_doc === 18
               ? true
               : false,
           ruc:
@@ -1261,8 +1260,8 @@ const PuntoDeVentaNuevo = () => {
             clienteSeleccionado.cli_tipo_doc === 1
               ? 1
               : clienteSeleccionado.cli_tipo_doc === 18
-              ? 3
-              : 2,
+                ? 3
+                : 2,
           numeroCasa: "001",
           departamento: clienteSeleccionado.cli_departamento || 1,
           departamentoDescripcion: clienteSeleccionado.dep_descripcion || "",
@@ -1362,55 +1361,55 @@ const PuntoDeVentaNuevo = () => {
           entregas:
             opcionesFinalizacion.tipo_venta === "CONTADO"
               ? [
-                  {
-                    tipo: 1, // Efectivo
-                    monto: totalPagarFinal.toString(),
-                    moneda:
-                      monedaSeleccionada?.mo_codigo === 1
-                        ? "PYG"
-                        : monedaSeleccionada?.mo_codigo === 2
+                {
+                  tipo: 1, // Efectivo
+                  monto: totalPagarFinal.toString(),
+                  moneda:
+                    monedaSeleccionada?.mo_codigo === 1
+                      ? "PYG"
+                      : monedaSeleccionada?.mo_codigo === 2
                         ? "USD"
                         : monedaSeleccionada?.mo_codigo === 3
-                        ? "BRL"
-                        : monedaSeleccionada?.mo_codigo === 4
-                        ? "ARS"
-                        : "PYG",
-                    monedaDescripcion:
-                      monedaSeleccionada?.mo_descripcion || "Guaraníes",
-                    cambio:
-                      monedaSeleccionada?.mo_codigo != 1 ? cotizacionDolar : 0,
-                  },
-                ]
+                          ? "BRL"
+                          : monedaSeleccionada?.mo_codigo === 4
+                            ? "ARS"
+                            : "PYG",
+                  monedaDescripcion:
+                    monedaSeleccionada?.mo_descripcion || "Guaraníes",
+                  cambio:
+                    monedaSeleccionada?.mo_codigo != 1 ? cotizacionDolar : 0,
+                },
+              ]
               : [],
 
           // Para CRÉDITO
           credito:
             opcionesFinalizacion.tipo_venta === "CREDITO"
               ? {
-                  tipo: 1, // Plazo
-                  plazo: `${opcionesFinalizacion.cantidad_cuotas || 1} cuotas`,
-                  cuotas: opcionesFinalizacion.cantidad_cuotas || 1,
-                  montoEntrega: opcionesFinalizacion.entrega_inicial || 0,
-                  infoCuotas: Array.from(
-                    { length: opcionesFinalizacion.cantidad_cuotas || 1 },
-                    (_) => {
-                      return {
-                        moneda:
-                          monedaSeleccionada?.mo_codigo === 1
-                            ? "PYG"
-                            : monedaSeleccionada?.mo_codigo === 2
+                tipo: 1, // Plazo
+                plazo: `${opcionesFinalizacion.cantidad_cuotas || 1} cuotas`,
+                cuotas: opcionesFinalizacion.cantidad_cuotas || 1,
+                montoEntrega: opcionesFinalizacion.entrega_inicial || 0,
+                infoCuotas: Array.from(
+                  { length: opcionesFinalizacion.cantidad_cuotas || 1 },
+                  (_) => {
+                    return {
+                      moneda:
+                        monedaSeleccionada?.mo_codigo === 1
+                          ? "PYG"
+                          : monedaSeleccionada?.mo_codigo === 2
                             ? "USD"
                             : monedaSeleccionada?.mo_codigo === 3
-                            ? "BRL"
-                            : monedaSeleccionada?.mo_codigo === 4
-                            ? "ARS"
-                            : "PYG",
-                        monto: 0,
-                        vencimiento: "",
-                      };
-                    }
-                  ),
-                }
+                              ? "BRL"
+                              : monedaSeleccionada?.mo_codigo === 4
+                                ? "ARS"
+                                : "PYG",
+                      monto: 0,
+                      vencimiento: "",
+                    };
+                  }
+                ),
+              }
               : null,
         },
         items: itemsParaVenta.map((item) => {
@@ -1538,10 +1537,10 @@ const PuntoDeVentaNuevo = () => {
         factura:
           opcionesFinalizacion.tipo_documento === "FACTURA"
             ? opcionesFinalizacion.nro_emision +
-              "-" +
-              opcionesFinalizacion.nro_establecimiento +
-              "-000" +
-              opcionesFinalizacion.nro_factura
+            "-" +
+            opcionesFinalizacion.nro_establecimiento +
+            "-000" +
+            opcionesFinalizacion.nro_factura
             : null,
         credito: opcionesFinalizacion.tipo_venta === "CREDITO" ? 1 : 0,
         saldo:
@@ -1637,42 +1636,42 @@ const PuntoDeVentaNuevo = () => {
           if (tipoImpresionFactura === 1) {
             isMobile
               ? await imprimirFacturaComponenteReport(
-                  response.data.body.ventaId,
-                  "download"
-                )
+                response.data.body.ventaId,
+                "download"
+              )
               : await imprimirFacturaComponenteReport(
-                  response.data.body.ventaId,
-                  "print"
-                );
+                response.data.body.ventaId,
+                "print"
+              );
           } else if (tipoImpresionFactura === 2) {
             isMobile
               ? await imprimirFacturaComponente(
-                  response.data.body.ventaId,
-                  "download"
-                )
+                response.data.body.ventaId,
+                "download"
+              )
               : await imprimirFacturaComponente(
-                  response.data.body.ventaId,
-                  "print"
-                );
+                response.data.body.ventaId,
+                "print"
+              );
           }
         }
         if (imprimirTicket) {
           isMobile
             ? await imprimirTicketComponente(
-                response.data.body.ventaId,
-                "download"
-              )
+              response.data.body.ventaId,
+              "download"
+            )
             : await imprimirTicketComponente(
-                response.data.body.ventaId,
-                "print"
-              );
+              response.data.body.ventaId,
+              "print"
+            );
         }
         if (imprimirNotaInterna) {
           isMobile
             ? await imprimirNotaComponente(
-                response.data.body.ventaId,
-                "download"
-              )
+              response.data.body.ventaId,
+              "download"
+            )
             : await imprimirNotaComponente(response.data.body.ventaId, "print");
         }
       }
@@ -2336,10 +2335,10 @@ const PuntoDeVentaNuevo = () => {
       monedaSeleccionada?.mo_codigo === 1
         ? nuevoPrecio
         : monedaSeleccionada?.mo_codigo === 2
-        ? nuevoPrecio * cotizacionDolar
-        : monedaSeleccionada?.mo_codigo === 3
-        ? nuevoPrecio * cotizacionReal // Real a Guaraní multiplica
-        : nuevoPrecio * cotizacionPeso;
+          ? nuevoPrecio * cotizacionDolar
+          : monedaSeleccionada?.mo_codigo === 3
+            ? nuevoPrecio * cotizacionReal // Real a Guaraní multiplica
+            : nuevoPrecio * cotizacionPeso;
 
     // Para dólar dividimos, para real y peso multiplicamos
     const nuevoPrecioDolares = precioBaseGuaranies / cotizacionDolar;
@@ -2350,18 +2349,18 @@ const PuntoDeVentaNuevo = () => {
       itemsParaVenta.map((itemActual) =>
         itemActual.loteid === item.loteid
           ? {
-              ...itemActual,
-              deve_precio: nuevoPrecio,
-              precio_guaranies: precioBaseGuaranies,
-              precio_dolares: nuevoPrecioDolares,
-              precio_reales: nuevoPrecioReales,
-              precio_pesos: nuevoPrecioPesos,
-              deve_exentas: itemActual.deve_exentas > 0 ? montoTotal : 0,
-              deve_cinco: itemActual.deve_cinco > 0 ? montoTotal : 0,
-              deve_diez: itemActual.deve_diez > 0 ? montoTotal : 0,
-              deve_cinco_x: itemActual.deve_cinco > 0 ? montoTotal * 0.05 : 0,
-              deve_diez_x: itemActual.deve_diez > 0 ? montoTotal * 0.1 : 0,
-            }
+            ...itemActual,
+            deve_precio: nuevoPrecio,
+            precio_guaranies: precioBaseGuaranies,
+            precio_dolares: nuevoPrecioDolares,
+            precio_reales: nuevoPrecioReales,
+            precio_pesos: nuevoPrecioPesos,
+            deve_exentas: itemActual.deve_exentas > 0 ? montoTotal : 0,
+            deve_cinco: itemActual.deve_cinco > 0 ? montoTotal : 0,
+            deve_diez: itemActual.deve_diez > 0 ? montoTotal : 0,
+            deve_cinco_x: itemActual.deve_cinco > 0 ? montoTotal * 0.05 : 0,
+            deve_diez_x: itemActual.deve_diez > 0 ? montoTotal * 0.1 : 0,
+          }
           : itemActual
       )
     );
@@ -2377,12 +2376,12 @@ const PuntoDeVentaNuevo = () => {
       itemsParaVenta.map((itemActual) =>
         itemActual.loteid === item.loteid
           ? {
-              ...itemActual,
-              deve_descuento: Number(nuevoDescuento),
-              deve_exentas: itemActual.deve_exentas > 0 ? montoTotal : 0,
-              deve_cinco: itemActual.deve_cinco > 0 ? montoTotal : 0,
-              deve_diez: itemActual.deve_diez > 0 ? montoTotal : 0,
-            }
+            ...itemActual,
+            deve_descuento: Number(nuevoDescuento),
+            deve_exentas: itemActual.deve_exentas > 0 ? montoTotal : 0,
+            deve_cinco: itemActual.deve_cinco > 0 ? montoTotal : 0,
+            deve_diez: itemActual.deve_diez > 0 ? montoTotal : 0,
+          }
           : itemActual
       )
     );
@@ -2398,17 +2397,16 @@ const PuntoDeVentaNuevo = () => {
       itemsParaVenta.map((itemActual) =>
         itemActual.loteid === item.loteid
           ? {
-              ...itemActual,
-              deve_cantidad: nuevaCantidad,
-              deve_exentas: itemActual.deve_exentas > 0 ? montoTotal : 0,
-              deve_cinco: itemActual.deve_cinco > 0 ? montoTotal : 0,
-              deve_diez: itemActual.deve_diez > 0 ? montoTotal : 0,
-            }
+            ...itemActual,
+            deve_cantidad: nuevaCantidad,
+            deve_exentas: itemActual.deve_exentas > 0 ? montoTotal : 0,
+            deve_cinco: itemActual.deve_cinco > 0 ? montoTotal : 0,
+            deve_diez: itemActual.deve_diez > 0 ? montoTotal : 0,
+          }
           : itemActual
       )
     );
   };
-  const vendedorCodigoRef = useRef<HTMLInputElement>(null);
   const busquedaPorIdInputRef = useRef<HTMLInputElement>(null);
 
   const handleClienteIdKeyPress = (
@@ -2620,8 +2618,9 @@ const PuntoDeVentaNuevo = () => {
                 <div className="flex flex-row gap-2">
                   <input
                     type="number"
-                    name=""
-                    id=""
+                    name="cliente-codigo"
+                    id="cliente-codigo"
+                    autoComplete="off"
                     readOnly={true}
                     className="border rounded-md p-2 w-[80px]"
                     value={
@@ -2632,8 +2631,9 @@ const PuntoDeVentaNuevo = () => {
                   />
                   <input
                     type="text"
-                    name=""
-                    id=""
+                    name="cliente-nombre"
+                    id="cliente-nombre"
+                    autoComplete="off"
                     value={
                       clienteSeleccionado
                         ? clienteSeleccionado.cli_razon
@@ -2676,22 +2676,6 @@ const PuntoDeVentaNuevo = () => {
               <div className="flex flex-col gap-2 flex-1 relative">
                 <p className="text-sm font-bold">Cajero:</p>
                 <div className="flex flex-row gap-2">
-                  <input
-                    ref={vendedorCodigoRef}
-                    type="password"
-                    name="vendedor-codigo"
-                    id="vendedor-codigo"
-                    autoComplete="off"
-                    className="border rounded-md p-2 w-[80px]"
-                    onChange={(e) => {
-                      handleBuscarVendedor(e);
-                    }}
-                    value={
-                      vendedorSeleccionado
-                        ? vendedorSeleccionado.op_codigo
-                        : vendedorBusqueda || ""
-                    }
-                  />
                   <input
                     type="text"
                     name=""
@@ -2874,11 +2858,10 @@ const PuntoDeVentaNuevo = () => {
                         {items.map((articulo, index) => (
                           <tr
                             key={articulo.id_lote}
-                            className={`cursor-pointer transition-colors duration-150 [&>td]:p-2 [&>td]:text-center [&>td]:border [&>td]:border-gray-200 ${
-                              index === selectedIndex
+                            className={`cursor-pointer transition-colors duration-150 [&>td]:p-2 [&>td]:text-center [&>td]:border [&>td]:border-gray-200 ${index === selectedIndex
                                 ? "bg-blue-100"
                                 : "hover:bg-gray-100"
-                            }`}
+                              }`}
                             onMouseEnter={() => {
                               setHoveredArticulo(articulo);
                             }}
@@ -2905,61 +2888,61 @@ const PuntoDeVentaNuevo = () => {
                     </table>
                   </div>
                 )}
-                // renderItem={(item) => (
-                //   <div
-                //     className={
-                //       isMobile
-                //         ? "flex flex-row gap-2 items-center [&>p]:font-semibold [&>p]:text-xs"
-                //         : "flex flex-row gap-2 items-center [&>p]:font-bold"
-                //     }
-                //     onMouseEnter={() => setHoveredArticulo(item)}
-                //     onMouseLeave={() => setHoveredArticulo(null)}
-                //   >
-                //     <p>{item.codigo_barra}</p>
-                //     <Tally1 />
-                //     <p>{item.descripcion}</p>
-                //     <Tally1 />
-                //     {monedaSeleccionada?.mo_codigo === 1 ? (
-                //       <>
-                //         <p>P. Contado</p>
-                //         <p>{formatNumber(item.precio_venta_guaranies)}</p>
-                //         <p>P. Mostrador</p>
-                //         <p>{formatNumber(item.precio_mostrador)}</p>
-                //         <p>P. Credito</p>
-                //         <p>{formatNumber(item.precio_credito)}</p>
-                //       </>
-                //     ) : (
-                //       <>
-                //         <p>
-                //           P. Contado{" "}
-                //           {monedaSeleccionada?.mo_descripcion.toLowerCase()}:
-                //         </p>
-                //         <p>{formatNumber(item.precio_venta_dolar)}</p>
-                //       </>
-                //     )}
-                //     <Tally1 />
-                //     {item.vencimiento_validacion === 1 ? (
-                //       <>
-                //         <p
-                //           className={
-                //             item.estado_vencimiento === "VIGENTE"
-                //               ? "text-green-500"
-                //               : item.estado_vencimiento === "PROXIMO"
-                //               ? "text-yellow-500"
-                //               : "text-red-500"
-                //           }
-                //         >
-                //           {item.vencimiento_lote}
-                //         </p>
-                //         <Tally1 />
-                //         <p>Lote: {item.lote}</p>
-                //       </>
-                //     ) : null}
-                //     <Tally1 />
-                //     <p>Stock</p>
-                //     <p>{item.cantidad_lote}</p>
-                //   </div>
-                // )}
+              // renderItem={(item) => (
+              //   <div
+              //     className={
+              //       isMobile
+              //         ? "flex flex-row gap-2 items-center [&>p]:font-semibold [&>p]:text-xs"
+              //         : "flex flex-row gap-2 items-center [&>p]:font-bold"
+              //     }
+              //     onMouseEnter={() => setHoveredArticulo(item)}
+              //     onMouseLeave={() => setHoveredArticulo(null)}
+              //   >
+              //     <p>{item.codigo_barra}</p>
+              //     <Tally1 />
+              //     <p>{item.descripcion}</p>
+              //     <Tally1 />
+              //     {monedaSeleccionada?.mo_codigo === 1 ? (
+              //       <>
+              //         <p>P. Contado</p>
+              //         <p>{formatNumber(item.precio_venta_guaranies)}</p>
+              //         <p>P. Mostrador</p>
+              //         <p>{formatNumber(item.precio_mostrador)}</p>
+              //         <p>P. Credito</p>
+              //         <p>{formatNumber(item.precio_credito)}</p>
+              //       </>
+              //     ) : (
+              //       <>
+              //         <p>
+              //           P. Contado{" "}
+              //           {monedaSeleccionada?.mo_descripcion.toLowerCase()}:
+              //         </p>
+              //         <p>{formatNumber(item.precio_venta_dolar)}</p>
+              //       </>
+              //     )}
+              //     <Tally1 />
+              //     {item.vencimiento_validacion === 1 ? (
+              //       <>
+              //         <p
+              //           className={
+              //             item.estado_vencimiento === "VIGENTE"
+              //               ? "text-green-500"
+              //               : item.estado_vencimiento === "PROXIMO"
+              //               ? "text-yellow-500"
+              //               : "text-red-500"
+              //           }
+              //         >
+              //           {item.vencimiento_lote}
+              //         </p>
+              //         <Tally1 />
+              //         <p>Lote: {item.lote}</p>
+              //       </>
+              //     ) : null}
+              //     <Tally1 />
+              //     <p>Stock</p>
+              //     <p>{item.cantidad_lote}</p>
+              //   </div>
+              // )}
               />
               <ArticuloInfoCard
                 articulo={hoveredArticulo}
@@ -3002,11 +2985,11 @@ const PuntoDeVentaNuevo = () => {
                               setItemsParaVenta(
                                 itemsParaVenta.map((currentItem) =>
                                   currentItem.deve_articulo ===
-                                  item.deve_articulo
+                                    item.deve_articulo
                                     ? {
-                                        ...currentItem,
-                                        articulo: e.target.value,
-                                      }
+                                      ...currentItem,
+                                      articulo: e.target.value,
+                                    }
                                     : currentItem
                                 )
                               );
@@ -3034,11 +3017,10 @@ const PuntoDeVentaNuevo = () => {
                         <input
                           type="number"
                           min="0"
-                          className={`border rounded-md p-1 ${
-                            item.deve_precio !== item.precio_original
+                          className={`border rounded-md p-1 ${item.deve_precio !== item.precio_original
                               ? "bg-yellow-100"
                               : ""
-                          }`}
+                            }`}
                           value={item.deve_precio}
                           onChange={(e) => {
                             handleCambiarPrecio(e, item);
@@ -3050,9 +3032,8 @@ const PuntoDeVentaNuevo = () => {
                           type="number"
                           min="0"
                           max="100"
-                          className={`border rounded-md p-1 w-16 text-center ${
-                            permisos_descuento === 0 ? "bg-gray-100" : ""
-                          }`}
+                          className={`border rounded-md p-1 w-16 text-center ${permisos_descuento === 0 ? "bg-gray-100" : ""
+                            }`}
                           value={item.deve_descuento}
                           disabled={permisos_descuento === 0}
                           onChange={(e) => {
@@ -3073,7 +3054,7 @@ const PuntoDeVentaNuevo = () => {
                         {formatNumber(
                           (item.deve_precio -
                             (item.deve_descuento * item.deve_precio) / 100) *
-                            item.deve_cantidad
+                          item.deve_cantidad
                         )}
                       </td>
                       <td className="flex items-center justify-center">
@@ -3364,8 +3345,9 @@ const PuntoDeVentaNuevo = () => {
                 <input
                   type="number"
                   ref={clienteKCInputRef}
-                  name=""
-                  id=""
+                  name="cliente-codigo"
+                  id="cliente-codigo"
+                  autoComplete="off"
                   className="border rounded-md p-2 w-[80px]"
                   tabIndex={1}
                   onChange={(e) => {
@@ -3382,8 +3364,9 @@ const PuntoDeVentaNuevo = () => {
                 />
                 <input
                   type="text"
-                  name=""
-                  id=""
+                  name="cliente-nombre"
+                  id="cliente-nombre"
+                  autoComplete="off"
                   value={
                     clienteSeleccionado
                       ? clienteSeleccionado.cli_razon
@@ -3419,11 +3402,10 @@ const PuntoDeVentaNuevo = () => {
                 >
                   <button
                     tabIndex={-1}
-                    className={`px-4 py-2 rounded-md ${
-                      opcionesFinalizacion.tipo_documento === "TICKET"
+                    className={`px-4 py-2 rounded-md ${opcionesFinalizacion.tipo_documento === "TICKET"
                         ? "bg-blue-500 text-white"
                         : "bg-gray-200"
-                    }`}
+                      }`}
                     onClick={() => {
                       setOpcionesFinalizacion({
                         ...opcionesFinalizacion,
@@ -3437,11 +3419,10 @@ const PuntoDeVentaNuevo = () => {
                   </button>
                   <button
                     tabIndex={-1}
-                    className={`px-4 py-2 rounded-md ${
-                      opcionesFinalizacion.tipo_documento === "FACTURA"
+                    className={`px-4 py-2 rounded-md ${opcionesFinalizacion.tipo_documento === "FACTURA"
                         ? "bg-blue-500 text-white"
                         : "bg-gray-200"
-                    }`}
+                      }`}
                     onClick={() => {
                       setOpcionesFinalizacion({
                         ...opcionesFinalizacion,
@@ -3594,11 +3575,10 @@ const PuntoDeVentaNuevo = () => {
                 >
                   <button
                     tabIndex={-1}
-                    className={`px-4 py-2 rounded-md ${
-                      opcionesFinalizacion.tipo_venta === "CONTADO"
+                    className={`px-4 py-2 rounded-md ${opcionesFinalizacion.tipo_venta === "CONTADO"
                         ? "bg-blue-500 text-white"
                         : "bg-gray-200"
-                    }`}
+                      }`}
                     onClick={() =>
                       setOpcionesFinalizacion({
                         ...opcionesFinalizacion,
@@ -3612,11 +3592,10 @@ const PuntoDeVentaNuevo = () => {
                   </button>
                   <button
                     tabIndex={-1}
-                    className={`px-4 py-2 rounded-md ${
-                      opcionesFinalizacion.tipo_venta === "CREDITO"
+                    className={`px-4 py-2 rounded-md ${opcionesFinalizacion.tipo_venta === "CREDITO"
                         ? "bg-blue-500 text-white"
                         : "bg-gray-200"
-                    }`}
+                      }`}
                     onClick={() =>
                       setOpcionesFinalizacion({
                         ...opcionesFinalizacion,
@@ -3864,7 +3843,7 @@ const PuntoDeVentaNuevo = () => {
                         readOnly
                         value={
                           montoEntregado &&
-                          montoEntregado - totalPagarGuaranies < 0
+                            montoEntregado - totalPagarGuaranies < 0
                             ? Math.abs(montoEntregado - totalPagarGuaranies)
                             : 0
                         }
@@ -3878,10 +3857,10 @@ const PuntoDeVentaNuevo = () => {
                         readOnly
                         value={
                           montoEntregadoDolar &&
-                          montoEntregadoDolar - totalPagarDolares < 0
+                            montoEntregadoDolar - totalPagarDolares < 0
                             ? Math.abs(
-                                montoEntregadoDolar - totalPagarDolares
-                              ).toFixed(2)
+                              montoEntregadoDolar - totalPagarDolares
+                            ).toFixed(2)
                             : 0
                         }
                         className="border rounded-md p-2 text-right bg-white w-full text-red-600 font-bold text-2xl"
@@ -3894,12 +3873,12 @@ const PuntoDeVentaNuevo = () => {
                         readOnly
                         value={
                           montoEntregadoReal &&
-                          montoEntregadoReal - totalPagarReales < 0
+                            montoEntregadoReal - totalPagarReales < 0
                             ? Number(
-                                Math.abs(
-                                  montoEntregadoReal - totalPagarReales
-                                ).toFixed(2)
-                              )
+                              Math.abs(
+                                montoEntregadoReal - totalPagarReales
+                              ).toFixed(2)
+                            )
                             : 0
                         }
                         className="border rounded-md p-2 text-right bg-white w-full text-red-600 font-bold text-2xl"
@@ -3912,13 +3891,13 @@ const PuntoDeVentaNuevo = () => {
                         readOnly
                         value={
                           montoEntregadoPeso &&
-                          montoEntregadoPeso - totalPagarPesos < 0
+                            montoEntregadoPeso - totalPagarPesos < 0
                             ? Number(
-                                Math.abs(
-                                  (montoEntregadoPeso - totalPagarPesos) /
-                                    cotizacionPeso
-                                ).toFixed(2)
-                              )
+                              Math.abs(
+                                (montoEntregadoPeso - totalPagarPesos) /
+                                cotizacionPeso
+                              ).toFixed(2)
+                            )
                             : 0
                         }
                         className="border rounded-md p-2 text-right bg-white w-full text-red-600 font-bold text-2xl"
@@ -3932,10 +3911,10 @@ const PuntoDeVentaNuevo = () => {
                         type="text"
                         value={
                           montoEntregado &&
-                          totalPagarGuaranies - montoEntregado < 0
+                            totalPagarGuaranies - montoEntregado < 0
                             ? formatNumber(
-                                Math.abs(totalPagarGuaranies - montoEntregado)
-                              )
+                              Math.abs(totalPagarGuaranies - montoEntregado)
+                            )
                             : 0
                         }
                         readOnly
@@ -3948,12 +3927,12 @@ const PuntoDeVentaNuevo = () => {
                         type="number"
                         value={
                           montoEntregadoDolar &&
-                          totalPagarDolares - montoEntregadoDolar < 0
+                            totalPagarDolares - montoEntregadoDolar < 0
                             ? Number(
-                                Math.abs(
-                                  totalPagarDolares - montoEntregadoDolar
-                                ).toFixed(2)
-                              )
+                              Math.abs(
+                                totalPagarDolares - montoEntregadoDolar
+                              ).toFixed(2)
+                            )
                             : 0
                         }
                         readOnly
@@ -3966,12 +3945,12 @@ const PuntoDeVentaNuevo = () => {
                         type="number"
                         value={
                           montoEntregadoReal &&
-                          totalPagarReales - montoEntregadoReal < 0
+                            totalPagarReales - montoEntregadoReal < 0
                             ? Number(
-                                Math.abs(
-                                  totalPagarReales - montoEntregadoReal
-                                ).toFixed(2)
-                              )
+                              Math.abs(
+                                totalPagarReales - montoEntregadoReal
+                              ).toFixed(2)
+                            )
                             : 0
                         }
                         readOnly
@@ -3985,12 +3964,12 @@ const PuntoDeVentaNuevo = () => {
                         type="number"
                         value={
                           montoEntregadoPeso &&
-                          totalPagarPesos - montoEntregadoPeso < 0
+                            totalPagarPesos - montoEntregadoPeso < 0
                             ? Number(
-                                Math.abs(
-                                  totalPagarPesos - montoEntregadoPeso
-                                ).toFixed(2)
-                              )
+                              Math.abs(
+                                totalPagarPesos - montoEntregadoPeso
+                              ).toFixed(2)
+                            )
                             : 0
                         }
                         readOnly

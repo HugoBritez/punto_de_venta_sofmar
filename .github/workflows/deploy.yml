@@ -13,7 +13,7 @@ on:
         options:
           - gaesa
           - gaesademo
-          # - acricolor
+          - acricolor
           # - lobeck
           # - distriwembe
           # - concrecar
@@ -72,8 +72,8 @@ jobs:
       matrix:
         cliente: [
           'gaesa',
-          'gaesademo'
-          # 'acricolor', 
+          'gaesademo',
+          'acricolor', 
           # 'lobeck', 
           # 'distriwembe', 
           # 'concrecar', 
