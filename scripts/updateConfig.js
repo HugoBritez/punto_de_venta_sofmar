@@ -15,7 +15,7 @@ function getCurrentDate() {
 
 const configs = {
   acricolor: {
-    api_url: "https://db.sofmar.com.py:4009/api/",
+    api_url: "https://db.sofmar.com.py:4008/api/",
     db: "acricolor",
     version: "1.2.4",
     title: "Acricolor",
