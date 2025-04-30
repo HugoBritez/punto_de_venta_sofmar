@@ -784,7 +784,7 @@ const VentaBalconNuevo = () => {
      busquedaPorIdInputRef.current?.focus(); // Volvemos al input de búsqueda
    }
  };
-
+//asdfas
   const handleCancelarVenta = () => {
     setItemsParaVenta([]);
     setArticuloSeleccionado(null);
