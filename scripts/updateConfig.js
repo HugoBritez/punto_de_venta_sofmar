@@ -122,6 +122,12 @@ const configs = {
     version: "1.2.4",
     title: "Ferrehanh",
   },
+  ferrehanh: {
+    api_url: "https://node.sofmar.com.py:4029/api/",
+    db: "medical",
+    version: "1.2.4",
+    title: "Medical",
+  },
 };
 
 async function updateConfig(empresa) {
