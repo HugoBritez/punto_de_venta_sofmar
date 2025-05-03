@@ -42,6 +42,7 @@ interface PedidosNuevo {
   area: string;
   siguiente_area: string;
   estado: "Pendiente" | "Facturado" | "Todos";
+  estado_num: number;
   condicion: "Crédito" | "Contado";
   operador: string;
   vendedor: string;
@@ -159,17 +160,33 @@ export default function ConsultaPedidos({
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-  function setColor(estado: string, impreso: number) {
-    if (impreso === 1) {
-      return "bg-violet-400";
-    }
-    if (impreso === 0 && estado === "Anulado") {
-      return "bg-pink-300";
-    }
+  function setColor(estado: number, impreso: number, cant_cuotas: number) {
+    // estado: lnVar
+    // impreso: lnVarimp
+    // cant_cuotas: lnCuot
 
-    if (estado === "Facturado" && impreso === 0) {
-      return "bg-yellow-300";
+    // Rojo: Rgb(255,45,45) -> bg-red-500
+    if (estado === 1 && cant_cuotas > 0) {
+      return "bg-red-500";
     }
+    // Rosado: Rgb(240,210,239) -> bg-pink-200
+    if (estado === 0 && (impreso === 0 || impreso === 1)) {
+      return "bg-pink-200";
+    }
+    // Blanco: Rgb(255,255,255) -> bg-white
+    if (estado === 1 && impreso === 0) {
+      return "bg-white";
+    }
+    // Azul: Rgb(157,157,255) -> bg-blue-300
+    if (estado === 1 && impreso === 1) {
+      return "bg-violet-300";
+    }
+    // Amarillo: Rgb(255,255,128) -> bg-yellow-200
+    if (estado === 2 && (impreso === 0 || impreso === 1)) {
+      return "bg-yellow-200";
+    }
+    // Por defecto, sin color especial
+    return "";
   }
 
   const getPedidosNuevo = async () => {
@@ -655,9 +672,9 @@ export default function ConsultaPedidos({
                         className={
                           isMobile
                             ? `border border-gray-200 hover:bg-gray-200 cursor-pointer [&>td]:px-2 [&>td]:text-xs [&>td]:border-r [&>td]:border-gray-200
-                  ${setColor(pedido.estado, pedido.imprimir)}`
+                  ${setColor(pedido.estado_num, pedido.imprimir, pedido.p_cantcuotas)}`
                             : `border border-gray-200 hover:bg-gray-200 cursor-pointer [&>td]:px-2 [&>td]:border-r [&>td]:border-gray-200
-                  ${setColor(pedido.estado, pedido.imprimir)}`
+                  ${setColor(pedido.estado_num, pedido.imprimir, pedido.p_cantcuotas)}`
                         }
                         onClick={() => {
                           handleSelectPedido(pedido);

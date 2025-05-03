@@ -337,8 +337,9 @@ const PuntoDeVentaNuevo = () => {
     onClose: onEditarVentaClose,
   } = useDisclosure();
 
-  const [buscarItemsConStock, setBuscarItemsConStock] =
-    useState<boolean>(false);
+  const [buscarItemsConStock, setBuscarItemsConStock] = useState<boolean>(false);
+  const [busquedaPorScanner, setBusquedaPorScanner] = useState<boolean>(true);
+  const [, setCodigoBarrasBuffer] = useState<string>("");
 
   const [numeroPedido, setNumeroPedido] = useState<number | null>(null);
 
@@ -507,15 +508,17 @@ const PuntoDeVentaNuevo = () => {
 
   const getArticulos = async (
     busqueda: string,
-    id_articulo?: string | null
+    id_articulo?: string | null,
+    codigo_barra?: string | null
   ) => {
     setArticulos([]);
     const response = await axios.get(`${api_url}articulos/buscar-articulos`, {
       params: {
-        id_articulo: id_articulo,
+        articulo_id: id_articulo,
         busqueda: busqueda,
         deposito: depositoSeleccionado?.dep_codigo,
         stock: buscarItemsConStock,
+        codigo_barra: codigo_barra,
       },
     });
     console.log(response.data.body);
@@ -606,16 +609,58 @@ const PuntoDeVentaNuevo = () => {
     };
   }, []);
 
-  const handleBuscarArticuloPorId = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const busqueda = e.target.value;
-    setArticuloBusquedaId(busqueda);
-    setArticuloSeleccionado(null);
-    if (busqueda.length > 0) {
-      getArticulos("", busqueda);
-    } else {
-      setArticulos([]);
+
+
+  const handleBuscarArticuloPorId = async (codigo: string) => {
+    try {
+      const response = await axios.get(`${api_url}articulos/buscar-articulos`, {
+        params: {
+          codigo_barra: codigo,
+          deposito: depositoSeleccionado?.dep_codigo,
+          stock: buscarItemsConStock,
+        },
+      });
+
+      if (response.data.body && response.data.body.length > 0) {
+        const articulo = response.data.body[0];
+        const nuevoItem = crearItemValidado(articulo, 1, 0);
+        if (nuevoItem) {
+          setItemsParaVenta(prev => [...prev, nuevoItem]);
+          // Limpiamos los campos después de agregar el artículo
+          setTimeout(() => {
+            setArticuloBusquedaId("");
+            setCodigoBarrasBuffer("");
+            busquedaPorIdInputRef.current?.focus();
+          }, 100); // Pequeño delay para que se vea el código antes de limpiarlo
+        }
+      } else {
+        toast({
+          title: "Artículo no encontrado",
+          description: "No se encontró ningún artículo con ese código",
+          status: "warning",
+          duration: 3000,
+        });
+        // Limpiamos después de mostrar el error
+        setTimeout(() => {
+          setArticuloBusquedaId("");
+          setCodigoBarrasBuffer("");
+          busquedaPorIdInputRef.current?.focus();
+        }, 1000); // Delay más largo para que se pueda ver el código que causó el error
+      }
+    } catch (error) {
+      console.error("Error al buscar artículo:", error);
+      toast({
+        title: "Error",
+        description: "Hubo un error al buscar el artículo",
+        status: "error",
+        duration: 3000,
+      });
+      // Limpiamos después de mostrar el error
+      setTimeout(() => {
+        setArticuloBusquedaId("");
+        setCodigoBarrasBuffer("");
+        busquedaPorIdInputRef.current?.focus();
+      }, 1000);
     }
   };
 
@@ -2437,6 +2482,47 @@ const PuntoDeVentaNuevo = () => {
     };
   }, []);
 
+  const handleScannerInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const valor = e.target.value;
+
+    if (busquedaPorScanner) {
+      // Actualizamos el valor visible en el input
+      setArticuloBusquedaId(valor);
+      setCodigoBarrasBuffer(valor);
+
+      // La mayoría de los scanners terminan con un enter (\n o \r)
+      if (valor.includes('\n') || valor.includes('\r')) {
+        // Limpiamos caracteres especiales del código
+        const codigoLimpio = valor.replace(/[\n\r]/g, '').trim();
+        if (codigoLimpio.length > 0) {
+          console.log('Código escaneado:', codigoLimpio);
+          handleBuscarArticuloPorId(codigoLimpio);
+        }
+      }
+    } else {
+      // Modo manual
+      setArticuloBusquedaId(valor);
+      getArticulos("", null, valor);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (busquedaPorScanner && (e.key === 'Enter' || e.key === 'Return')) {
+      e.preventDefault(); // Prevenir comportamiento por defecto del Enter
+      const valor = (e.target as HTMLInputElement).value.trim();
+      if (valor.length > 0) {
+        console.log('Código escaneado (por Enter):', valor);
+        handleBuscarArticuloPorId(valor);
+      }
+    } else if (!busquedaPorScanner && e.key === 'Enter') {
+      e.preventDefault();
+      const valor = (e.target as HTMLInputElement).value.trim();
+      if (valor.length > 0) {
+        handleBuscarArticuloPorId(valor);
+      }
+    }
+  };
+
   return (
     <Box
       h={"100vh"}
@@ -2734,7 +2820,7 @@ const PuntoDeVentaNuevo = () => {
         >
           <Box
             w={"100%"}
-            h={isMobile ? "100%" : "90%"}
+            h={isMobile ? "100%" : "85%"}
             bg="white"
             shadow="sm"
             rounded="md"
@@ -2746,19 +2832,14 @@ const PuntoDeVentaNuevo = () => {
                   : "flex flex-row gap-2 p-2 border-b relative"
               }
             >
+
               <input
                 type="text"
-                value={
-                  articuloSeleccionado
-                    ? articuloSeleccionado.codigo_barra
-                    : articuloBusquedaId ?? ""
-                }
-                className="border rounded-md p-2 flex-1 items-center justify-center w-32 text-center "
-                placeholder=""
-                onChange={(e) => {
-                  handleBuscarArticuloPorId(e);
-                }}
-                onKeyDown={handleKeyPress}
+                value={articuloSeleccionado ? articuloSeleccionado.codigo_barra : articuloBusquedaId ?? ""}
+                className="border rounded-md p-2 flex-1 items-center justify-center w-32 text-center"
+                placeholder={busquedaPorScanner ? "Escanear código..." : "Buscar por código..."}
+                onChange={handleScannerInput}
+                onKeyDown={handleKeyDown}
                 ref={busquedaPorIdInputRef}
               />
               <div className="relative w-full">
@@ -2859,8 +2940,8 @@ const PuntoDeVentaNuevo = () => {
                           <tr
                             key={articulo.id_lote}
                             className={`cursor-pointer transition-colors duration-150 [&>td]:p-2 [&>td]:text-center [&>td]:border [&>td]:border-gray-200 ${index === selectedIndex
-                                ? "bg-blue-100"
-                                : "hover:bg-gray-100"
+                              ? "bg-blue-100"
+                              : "hover:bg-gray-100"
                               }`}
                             onMouseEnter={() => {
                               setHoveredArticulo(articulo);
@@ -2949,7 +3030,7 @@ const PuntoDeVentaNuevo = () => {
                 isVisible={hoveredArticulo !== null}
               />
             </div>
-            <div className="flex flex-col  w-full h-[calc(100%-50px)] overflow-y-auto ">
+            <div className="flex flex-col  w-full h-[calc(100%-100px)] overflow-y-auto ">
               <table>
                 <thead className="bg-blue-500 text-white">
                   <tr className="text-md font-bold [&>th]:p-2 [&>th]:text-center [&>th]:border [&>th]:border-gray-200 [&>th]:text-3xl">
@@ -3018,8 +3099,8 @@ const PuntoDeVentaNuevo = () => {
                           type="number"
                           min="0"
                           className={`border rounded-md p-1 ${item.deve_precio !== item.precio_original
-                              ? "bg-yellow-100"
-                              : ""
+                            ? "bg-yellow-100"
+                            : ""
                             }`}
                           value={item.deve_precio}
                           onChange={(e) => {
@@ -3205,13 +3286,23 @@ const PuntoDeVentaNuevo = () => {
               <p>F6 para agregar cantidad</p>
               <p>F12 para finalizar venta</p>
             </div>
-            <div className="flex flex-row gap-2 items-center justify-center">
-              <input
-                type="checkbox"
-                checked={buscarItemsConStock}
-                onChange={(e) => setBuscarItemsConStock(e.target.checked)}
-              />
-              <p className="text-md font-bold">Buscar items con stock</p>
+            <div className="flex flex-row gap-2">
+              <div className="flex flex-row gap-2 items-center justify-center">
+                <input
+                  type="checkbox"
+                  checked={buscarItemsConStock}
+                  onChange={(e) => setBuscarItemsConStock(e.target.checked)}
+                />
+                <p className="text-sm font-bold">Buscar items con stock</p>
+              </div>
+              <div className="flex flex-row gap-2 items-center justify-center">
+                <input
+                  type="checkbox"
+                  checked={busquedaPorScanner}
+                  onChange={(e) => setBusquedaPorScanner(e.target.checked)}
+                />
+                <p className="text-sm font-bold">Búsqueda por scanner</p>
+              </div>
             </div>
             <button className="flex flex-row gap-2 items-center justify-center bg-slate-400 p-2 rounded-md">
               <FileSearch size={32} color="white" />
@@ -3403,8 +3494,8 @@ const PuntoDeVentaNuevo = () => {
                   <button
                     tabIndex={-1}
                     className={`px-4 py-2 rounded-md ${opcionesFinalizacion.tipo_documento === "TICKET"
-                        ? "bg-blue-500 text-white"
-                        : "bg-gray-200"
+                      ? "bg-blue-500 text-white"
+                      : "bg-gray-200"
                       }`}
                     onClick={() => {
                       setOpcionesFinalizacion({
@@ -3420,8 +3511,8 @@ const PuntoDeVentaNuevo = () => {
                   <button
                     tabIndex={-1}
                     className={`px-4 py-2 rounded-md ${opcionesFinalizacion.tipo_documento === "FACTURA"
-                        ? "bg-blue-500 text-white"
-                        : "bg-gray-200"
+                      ? "bg-blue-500 text-white"
+                      : "bg-gray-200"
                       }`}
                     onClick={() => {
                       setOpcionesFinalizacion({
@@ -3576,8 +3667,8 @@ const PuntoDeVentaNuevo = () => {
                   <button
                     tabIndex={-1}
                     className={`px-4 py-2 rounded-md ${opcionesFinalizacion.tipo_venta === "CONTADO"
-                        ? "bg-blue-500 text-white"
-                        : "bg-gray-200"
+                      ? "bg-blue-500 text-white"
+                      : "bg-gray-200"
                       }`}
                     onClick={() =>
                       setOpcionesFinalizacion({
@@ -3593,8 +3684,8 @@ const PuntoDeVentaNuevo = () => {
                   <button
                     tabIndex={-1}
                     className={`px-4 py-2 rounded-md ${opcionesFinalizacion.tipo_venta === "CREDITO"
-                        ? "bg-blue-500 text-white"
-                        : "bg-gray-200"
+                      ? "bg-blue-500 text-white"
+                      : "bg-gray-200"
                       }`}
                     onClick={() =>
                       setOpcionesFinalizacion({

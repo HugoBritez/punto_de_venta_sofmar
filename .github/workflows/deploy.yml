@@ -11,10 +11,10 @@ on:
         required: true
         type: choice
         options:
-          - gaesa
+          # gaesa
           - gaesademo
-          - acricolor
-          # - lobeck
+          # - acricolor
+          - medical
           # - distriwembe
           # - concrecar
           # - bodega
@@ -71,10 +71,10 @@ jobs:
     strategy:
       matrix:
         cliente: [
-          'gaesa',
+          # 'gaesa',
           'gaesademo',
-          'acricolor', 
-          # 'lobeck', 
+          # 'acricolor', 
+          'medical', 
           # 'distriwembe', 
           # 'concrecar', 
           # 'bodega', 

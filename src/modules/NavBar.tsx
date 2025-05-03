@@ -7,6 +7,7 @@ import {
   GridItem,
   useMediaQuery,
   useDisclosure,
+  Tooltip,
 } from "@chakra-ui/react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -68,8 +69,6 @@ const Sidebar = () => {
   const permisos_menu_local = (() => {
     try {
       const stored = sessionStorage.getItem("permisos_menu");
-
-
       // Verificar que stored no sea null, undefined o una cadena vacía
       if (!stored || stored === "undefined" || stored === "") {
 
@@ -511,17 +510,18 @@ useEffect(() => {
   setMenuItems(menuConPermisos);
 }, []);
 
-  const handleMouseEnter = () => {
+  const handleClick = () => {
     if (isLargerThan768) {
-      setIsExpanded(true);
+      setIsExpanded(!isExpanded);
+      if (!isExpanded) {
+        setExpandedItem(null); // Cierra los subitems cuando se contrae el menú
+      }
     }
   };
 
-  const handleMouseLeave = () => {
-    if (isLargerThan768) {
-      setIsExpanded(false);
-      setExpandedItem(null);
-    }
+  const handleItemClick = (e: React.MouseEvent, itemName: string) => {
+    e.stopPropagation(); // Evita que el clic se propague al menú principal
+    toggleItemExpansion(itemName);
   };
 
   const handleLogout = () => {
@@ -554,45 +554,55 @@ useEffect(() => {
     <GridItem key={item.name} borderTopLeftRadius="15px">
       {item.subItems ? (
         <Box>
-          <Flex
-            direction="column"
-            align="center"
-            justify="center"
-            h="100%"
-            px={2}
-            pt={2}
-            mx={2}
-            mt={4}
-            borderRadius={"8px"}
-            transition="all 0.3s"
-            className={item.enabled ? "hover:bg-blue-100" : ""}
-            opacity={item.enabled ? 1 : 0.5}
-            onClick={() => toggleItemExpansion(item.name)}
-            cursor="pointer"
+          <Tooltip
+            label={item.name}
+            placement="right"
+            isDisabled={isExpanded}
+            hasArrow
           >
-            <Icon as={item.icon} boxSize={6} color="black" />
-            <Text fontSize="xs" mt={1} textAlign="center" color="black">
-              {isLargerThan768 ? (isExpanded ? item.name : "") : item.name}
-            </Text>
-            {(isExpanded || !isLargerThan768) && (
-              <Icon
-                as={expandedItem === item.name ? ChevronUp : ChevronDown}
-                boxSize={4}
-                color="black"
-                mt={1}
-              />
-            )}
-          </Flex>
-          {expandedItem === item.name && (
+            <Flex
+              direction="column"
+              align="center"
+              justify="center"
+              h="100%"
+              px={2}
+              pt={2}
+              mx={2}
+              mt={4}
+              borderRadius={"8px"}
+              transition="all 0.3s"
+              className={item.enabled ? "hover:bg-blue-100" : ""}
+              opacity={item.enabled ? 1 : 0.5}
+              onClick={(e) => handleItemClick(e, item.name)}
+              cursor="pointer"
+            >
+              <Icon as={item.icon} boxSize={6} color="black" />
+              <Text fontSize="xs" mt={1} textAlign="center" color="black">
+                {isExpanded ? item.name : ""}
+              </Text>
+              {isExpanded && (
+                <Icon
+                  as={expandedItem === item.name ? ChevronUp : ChevronDown}
+                  boxSize={4}
+                  color="black"
+                  mt={1}
+                />
+              )}
+            </Flex>
+          </Tooltip>
+          {expandedItem === item.name && isExpanded && (
             <Box
-              ml={isLargerThan768 && isExpanded ? 4 : 0}
+              ml={4}
               transition="all 0.3s"
             >
               {item.subItems.map((subItem) => (
                 <Link
                   key={subItem.name}
                   to={subItem.path}
-                  onClick={onClose}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onClose();
+                  }}
                   style={{
                     width: "100%",
                     height: "100%",
@@ -620,7 +630,7 @@ useEffect(() => {
                       }
                       mr={2}
                     />
-                    {(isExpanded || !isLargerThan768) && (
+                    {isExpanded && (
                       <Text fontSize="md" color="black">
                         {subItem.name}
                       </Text>
@@ -632,42 +642,56 @@ useEffect(() => {
           )}
         </Box>
       ) : (
-        <Link
-          to={item.enabled ? item.path : "#"}
-          style={{
-            width: "100%",
-            height: "100%",
-            pointerEvents: item.enabled ? "auto" : "none",
-          }}
+        <Tooltip
+          label={item.name}
+          placement="right"
+          isDisabled={isExpanded}
+          hasArrow
         >
-          <Flex
-            direction="column"
-            align="center"
-            justify="center"
+          <Box
+            onClick={handleClick}
+            cursor="pointer"
+            w="100%"
             h="100%"
-            px={2}
-            py={2}
-            mx={2}
-            my={4}
-            borderRadius={"8px"}
-            transition="all 0.3s"
-            className={item.enabled ? "hover:bg-blue-100" : ""}
-            opacity={item.enabled ? 1 : 0.5}
           >
-            <Icon
-              as={item.icon}
-              boxSize={6}
-              color={
-                location.pathname === item.path && item.enabled
-                  ? "blue.500"
-                  : "black"
-              }
-            />
-            <Text fontSize="xs" mt={1} textAlign="center" color="black">
-              {isLargerThan768 ? (isExpanded ? item.name : "") : item.name}
-            </Text>
-          </Flex>
-        </Link>
+            <Link
+              to={item.enabled ? item.path : "#"}
+              style={{
+                width: "100%",
+                height: "100%",
+                pointerEvents: item.enabled ? "auto" : "none",
+              }}
+            >
+              <Flex
+                direction="column"
+                align="center"
+                justify="center"
+                h="100%"
+                px={2}
+                py={2}
+                mx={2}
+                my={4}
+                borderRadius={"8px"}
+                transition="all 0.3s"
+                className={item.enabled ? "hover:bg-blue-100" : ""}
+                opacity={item.enabled ? 1 : 0.5}
+              >
+                <Icon
+                  as={item.icon}
+                  boxSize={6}
+                  color={
+                    location.pathname === item.path && item.enabled
+                      ? "blue.500"
+                      : "black"
+                  }
+                />
+                <Text fontSize="xs" mt={1} textAlign="center" color="black">
+                  {isExpanded ? item.name : ""}
+                </Text>
+              </Flex>
+            </Link>
+          </Box>
+        </Tooltip>
       )}
     </GridItem>
   );
@@ -723,8 +747,12 @@ useEffect(() => {
         transition="all 0.3s"
         opacity={isExpanded ? 1 : 0}
         visibility={isExpanded ? "visible" : "hidden"}
-        onClick={handleMouseLeave}
+        onClick={() => {
+          setIsExpanded(false);
+          setExpandedItem(null);
+        }}
         zIndex={999}
+        pointerEvents={isExpanded ? "auto" : "none"}
       />
       <Box
         as="nav"
@@ -737,8 +765,7 @@ useEffect(() => {
         color="blue.500"
         transition="all 0.3s"
         zIndex={1000}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
+        onClick={handleClick}
         overflowY="auto"
         borderRadius="md"
         boxShadow="lg"

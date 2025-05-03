@@ -314,6 +314,9 @@ const VentaBalconNuevo = () => {
     null
   );
 
+  const [busquedaPorScanner, setBusquedaPorScanner] = useState<boolean>(true);
+
+
   const [cuotasList, setCuotasList] = useState<
     Array<{
       fecha: string;
@@ -576,19 +579,66 @@ const VentaBalconNuevo = () => {
   };
 
 
-  const handleBuscarArticuloPorId = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const busqueda = e.target.value;
-    setArticuloBusquedaId(busqueda);
-    setArticuloSeleccionado(null);
-    if (busqueda.length > 0) {
-      getArticulos("", null, busqueda);
-    } else {
-      setIsArticuloCardVisible(false);
-      setArticulos([]);
+
+  const handleBuscarArticuloPorId = async (codigo: string) => {
+    try {
+      const response = await axios.get(`${api_url}articulos/buscar-articulos`, {
+        params: {
+          codigo_barra: codigo,
+          deposito: depositoSeleccionado?.dep_codigo,
+          stock: buscarItemsConStock,
+        },
+      });
+
+      if (response.data.body && response.data.body.length > 0) {
+        const articulo = response.data.body[0];
+        setArticuloSeleccionado(articulo);
+        setArticuloBusquedaId("");
+        // Movemos el foco al input de cantidad
+        setTimeout(() => {
+          cantidadInputRef.current?.focus();
+        }, 100);
+      } else {
+        toast({
+          title: "Artículo no encontrado",
+          description: "No se encontró ningún artículo con ese código",
+          status: "warning",
+          duration: 3000,
+        });
+        // Limpiamos después de mostrar el error
+        setTimeout(() => {
+          setArticuloBusquedaId("");
+          busquedaPorIdInputRef.current?.focus();
+        }, 1000); // Delay más largo para que se pueda ver el código que causó el error
+      }
+    } catch (error) {
+      console.error("Error al buscar artículo:", error);
+      toast({
+        title: "Error",
+        description: "Hubo un error al buscar el artículo",
+        status: "error",
+        duration: 3000,
+      });
+      // Limpiamos después de mostrar el error
+      setTimeout(() => {
+        setArticuloBusquedaId("");
+        busquedaPorIdInputRef.current?.focus();
+      }, 1000);
     }
   };
+  // const handleBuscarArticuloPorId = (
+  //   e: React.ChangeEvent<HTMLInputElement>
+  // ) => {
+  //   const busqueda = e.target.value;
+  //   setArticuloBusquedaId(busqueda);
+  //   setArticuloSeleccionado(null);
+  //   if (busqueda.length > 0) {
+  //     getArticulos("", null, busqueda);
+  //   } else {
+  //     setIsArticuloCardVisible(false);
+  //     setArticulos([]);
+  //   }
+  // };
 
   const handleBuscarClientePorId = (e: React.ChangeEvent<HTMLInputElement>) => {
     const busqueda = e.target.value;
@@ -732,7 +782,16 @@ const VentaBalconNuevo = () => {
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
+    if (busquedaPorScanner && articuloBusquedaId && articuloBusquedaId.length > 0 && (e.key === 'Enter' || e.key === 'Return')) {
+      e.preventDefault();
+      const valor = (e.target as HTMLInputElement).value.trim();
+      if (valor.length > 0) {
+        handleBuscarArticuloPorId(valor);
+      }
+    } else if (busquedaPorScanner && !articuloBusquedaId && articuloBusquedaId === '' && e.key === "Enter") {
+      setIsArticuloModalOpen(true);
+    }
+    else if (!busquedaPorScanner && e.key === "Enter") {
       if (articuloSeleccionado) {
         if (permisos_descuento === 1) {
           descuentoInputRef.current?.focus();
@@ -751,8 +810,8 @@ const VentaBalconNuevo = () => {
       e.preventDefault();
       const currentIndex = hoveredArticulo
         ? articulos.findIndex(
-            (a) => a.id_articulo === hoveredArticulo.id_articulo
-          )
+          (a) => a.id_articulo === hoveredArticulo.id_articulo
+        )
         : -1;
 
       if (e.key === "ArrowDown") {
@@ -772,19 +831,19 @@ const VentaBalconNuevo = () => {
     }
   };
 
- const handleCantidadKeyPress = (e: React.KeyboardEvent) => {
-   if (e.key === "Enter") {
-     e.preventDefault();
-     e.stopPropagation();
-     if (articuloSeleccionado) {
-       agregarItemAVenta();
-     }
-     setCantidad(1);
-     setDescuento(0);
-     busquedaPorIdInputRef.current?.focus(); // Volvemos al input de búsqueda
-   }
- };
-//asdfas
+  const handleCantidadKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      e.stopPropagation();
+      if (articuloSeleccionado) {
+        agregarItemAVenta();
+      }
+      setCantidad(1);
+      setDescuento(0);
+      busquedaPorIdInputRef.current?.focus(); // Volvemos al input de búsqueda
+    }
+  };
+  //asdfas
   const handleCancelarVenta = () => {
     setItemsParaVenta([]);
     setArticuloSeleccionado(null);
@@ -999,9 +1058,8 @@ const VentaBalconNuevo = () => {
                     key={venta.codigo}
                     className={`${setColor(
                       venta.estado
-                    )} hover:bg-gray-50 cursor-pointer ${
-                      ventaSeleccionada === venta.codigo ? "bg-blue-100" : ""
-                    }`}
+                    )} hover:bg-gray-50 cursor-pointer ${ventaSeleccionada === venta.codigo ? "bg-blue-100" : ""
+                      }`}
                     onClick={() => {
                       setVentaSeleccionada(venta.codigo);
                       fetchDetalleVenta(venta.codigo);
@@ -1133,7 +1191,7 @@ const VentaBalconNuevo = () => {
   const finalizarVenta = async () => {
     try {
       if (
-        !clienteSeleccionado 
+        !clienteSeleccionado
       ) {
         toast({
           title: "Error",
@@ -1197,17 +1255,17 @@ const VentaBalconNuevo = () => {
           monedaSeleccionada?.mo_codigo === 1
             ? "PYG"
             : monedaSeleccionada?.mo_codigo === 2
-            ? "USD"
-            : monedaSeleccionada?.mo_codigo === 3
-            ? "BRL"
-            : monedaSeleccionada?.mo_codigo === 4
-            ? "ARS"
-            : "PYG",
+              ? "USD"
+              : monedaSeleccionada?.mo_codigo === 3
+                ? "BRL"
+                : monedaSeleccionada?.mo_codigo === 4
+                  ? "ARS"
+                  : "PYG",
         cambio: monedaSeleccionada?.mo_codigo != 1 ? cotizacionDolar : 0,
         cliente: {
           contribuyente:
             clienteSeleccionado.cli_tipo_doc === 1 ||
-            clienteSeleccionado.cli_tipo_doc === 18
+              clienteSeleccionado.cli_tipo_doc === 18
               ? true
               : false,
           ruc:
@@ -1220,8 +1278,8 @@ const VentaBalconNuevo = () => {
             clienteSeleccionado.cli_tipo_doc === 1
               ? 1
               : clienteSeleccionado.cli_tipo_doc === 18
-              ? 3
-              : 2,
+                ? 3
+                : 2,
           numeroCasa: "001",
           departamento: clienteSeleccionado.cli_departamento || 1,
           departamentoDescripcion: clienteSeleccionado.dep_descripcion || "",
@@ -1256,55 +1314,55 @@ const VentaBalconNuevo = () => {
           entregas:
             opcionesFinalizacion.tipo_venta === "CONTADO"
               ? [
-                  {
-                    tipo: 1, // Efectivo
-                    monto: totalPagarFinal.toString(),
-                    moneda:
-                      monedaSeleccionada?.mo_codigo === 1
-                        ? "PYG"
-                        : monedaSeleccionada?.mo_codigo === 2
+                {
+                  tipo: 1, // Efectivo
+                  monto: totalPagarFinal.toString(),
+                  moneda:
+                    monedaSeleccionada?.mo_codigo === 1
+                      ? "PYG"
+                      : monedaSeleccionada?.mo_codigo === 2
                         ? "USD"
                         : monedaSeleccionada?.mo_codigo === 3
-                        ? "BRL"
-                        : monedaSeleccionada?.mo_codigo === 4
-                        ? "ARS"
-                        : "PYG",
-                    monedaDescripcion:
-                      monedaSeleccionada?.mo_descripcion || "Guaraníes",
-                    cambio:
-                      monedaSeleccionada?.mo_codigo != 1 ? cotizacionDolar : 0,
-                  },
-                ]
+                          ? "BRL"
+                          : monedaSeleccionada?.mo_codigo === 4
+                            ? "ARS"
+                            : "PYG",
+                  monedaDescripcion:
+                    monedaSeleccionada?.mo_descripcion || "Guaraníes",
+                  cambio:
+                    monedaSeleccionada?.mo_codigo != 1 ? cotizacionDolar : 0,
+                },
+              ]
               : [],
 
           // Para CRÉDITO
           credito:
             opcionesFinalizacion.tipo_venta === "CREDITO"
               ? {
-                  tipo: 1, // Plazo
-                  plazo: `${opcionesFinalizacion.cantidad_cuotas || 1} cuotas`,
-                  cuotas: opcionesFinalizacion.cantidad_cuotas || 1,
-                  montoEntrega: opcionesFinalizacion.entrega_inicial || 0,
-                  infoCuotas: Array.from(
-                    { length: opcionesFinalizacion.cantidad_cuotas || 1 },
-                    (_) => {
-                      return {
-                        moneda:
-                          monedaSeleccionada?.mo_codigo === 1
-                            ? "PYG"
-                            : monedaSeleccionada?.mo_codigo === 2
+                tipo: 1, // Plazo
+                plazo: `${opcionesFinalizacion.cantidad_cuotas || 1} cuotas`,
+                cuotas: opcionesFinalizacion.cantidad_cuotas || 1,
+                montoEntrega: opcionesFinalizacion.entrega_inicial || 0,
+                infoCuotas: Array.from(
+                  { length: opcionesFinalizacion.cantidad_cuotas || 1 },
+                  (_) => {
+                    return {
+                      moneda:
+                        monedaSeleccionada?.mo_codigo === 1
+                          ? "PYG"
+                          : monedaSeleccionada?.mo_codigo === 2
                             ? "USD"
                             : monedaSeleccionada?.mo_codigo === 3
-                            ? "BRL"
-                            : monedaSeleccionada?.mo_codigo === 4
-                            ? "ARS"
-                            : "PYG",
-                        monto: 0,
-                        vencimiento: "",
-                      };
-                    }
-                  ),
-                }
+                              ? "BRL"
+                              : monedaSeleccionada?.mo_codigo === 4
+                                ? "ARS"
+                                : "PYG",
+                      monto: 0,
+                      vencimiento: "",
+                    };
+                  }
+                ),
+              }
               : null,
         },
         items: itemsParaVenta.map((item) => {
@@ -1433,10 +1491,10 @@ const VentaBalconNuevo = () => {
         factura:
           opcionesFinalizacion.tipo_documento === "FACTURA"
             ? opcionesFinalizacion.nro_emision +
-              "-" +
-              opcionesFinalizacion.nro_establecimiento +
-              "-000" +
-              opcionesFinalizacion.nro_factura
+            "-" +
+            opcionesFinalizacion.nro_establecimiento +
+            "-000" +
+            opcionesFinalizacion.nro_factura
             : null,
         credito: opcionesFinalizacion.tipo_venta === "CREDITO" ? 1 : 0,
         saldo:
@@ -2332,10 +2390,10 @@ const VentaBalconNuevo = () => {
       monedaSeleccionada?.mo_codigo === 1
         ? nuevoPrecio
         : monedaSeleccionada?.mo_codigo === 2
-        ? nuevoPrecio * cotizacionDolar
-        : monedaSeleccionada?.mo_codigo === 3
-        ? nuevoPrecio * cotizacionReal // Real a Guaraní multiplica
-        : nuevoPrecio * cotizacionPeso;
+          ? nuevoPrecio * cotizacionDolar
+          : monedaSeleccionada?.mo_codigo === 3
+            ? nuevoPrecio * cotizacionReal // Real a Guaraní multiplica
+            : nuevoPrecio * cotizacionPeso;
 
     // Para dólar dividimos, para real y peso multiplicamos
     const nuevoPrecioDolares = precioBaseGuaranies / cotizacionDolar;
@@ -2346,18 +2404,18 @@ const VentaBalconNuevo = () => {
       itemsParaVenta.map((itemActual) =>
         itemActual.loteid === item.loteid
           ? {
-              ...itemActual,
-              deve_precio: nuevoPrecio,
-              precio_guaranies: precioBaseGuaranies,
-              precio_dolares: nuevoPrecioDolares,
-              precio_reales: nuevoPrecioReales,
-              precio_pesos: nuevoPrecioPesos,
-              deve_exentas: itemActual.deve_exentas > 0 ? montoTotal : 0,
-              deve_cinco: itemActual.deve_cinco > 0 ? montoTotal : 0,
-              deve_diez: itemActual.deve_diez > 0 ? montoTotal : 0,
-              deve_cinco_x: itemActual.deve_cinco > 0 ? montoTotal * 0.05 : 0,
-              deve_diez_x: itemActual.deve_diez > 0 ? montoTotal * 0.1 : 0,
-            }
+            ...itemActual,
+            deve_precio: nuevoPrecio,
+            precio_guaranies: precioBaseGuaranies,
+            precio_dolares: nuevoPrecioDolares,
+            precio_reales: nuevoPrecioReales,
+            precio_pesos: nuevoPrecioPesos,
+            deve_exentas: itemActual.deve_exentas > 0 ? montoTotal : 0,
+            deve_cinco: itemActual.deve_cinco > 0 ? montoTotal : 0,
+            deve_diez: itemActual.deve_diez > 0 ? montoTotal : 0,
+            deve_cinco_x: itemActual.deve_cinco > 0 ? montoTotal * 0.05 : 0,
+            deve_diez_x: itemActual.deve_diez > 0 ? montoTotal * 0.1 : 0,
+          }
           : itemActual
       )
     );
@@ -2373,12 +2431,12 @@ const VentaBalconNuevo = () => {
       itemsParaVenta.map((itemActual) =>
         itemActual.loteid === item.loteid
           ? {
-              ...itemActual,
-              deve_descuento: Number(nuevoDescuento),
-              deve_exentas: itemActual.deve_exentas > 0 ? montoTotal : 0,
-              deve_cinco: itemActual.deve_cinco > 0 ? montoTotal : 0,
-              deve_diez: itemActual.deve_diez > 0 ? montoTotal : 0,
-            }
+            ...itemActual,
+            deve_descuento: Number(nuevoDescuento),
+            deve_exentas: itemActual.deve_exentas > 0 ? montoTotal : 0,
+            deve_cinco: itemActual.deve_cinco > 0 ? montoTotal : 0,
+            deve_diez: itemActual.deve_diez > 0 ? montoTotal : 0,
+          }
           : itemActual
       )
     );
@@ -2394,12 +2452,12 @@ const VentaBalconNuevo = () => {
       itemsParaVenta.map((itemActual) =>
         itemActual.loteid === item.loteid
           ? {
-              ...itemActual,
-              deve_cantidad: nuevaCantidad,
-              deve_exentas: itemActual.deve_exentas > 0 ? montoTotal : 0,
-              deve_cinco: itemActual.deve_cinco > 0 ? montoTotal : 0,
-              deve_diez: itemActual.deve_diez > 0 ? montoTotal : 0,
-            }
+            ...itemActual,
+            deve_cantidad: nuevaCantidad,
+            deve_exentas: itemActual.deve_exentas > 0 ? montoTotal : 0,
+            deve_cinco: itemActual.deve_cinco > 0 ? montoTotal : 0,
+            deve_diez: itemActual.deve_diez > 0 ? montoTotal : 0,
+          }
           : itemActual
       )
     );
@@ -2413,7 +2471,6 @@ const VentaBalconNuevo = () => {
       setIsBuscadorClientesOpen(true);
     }
   };
-
 
   const handleVendedorKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
@@ -2435,6 +2492,34 @@ const VentaBalconNuevo = () => {
       document.removeEventListener('keydown', handleGlobalEnter);
     };
   }, []);
+
+  const handleScannerInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const valor = e.target.value;
+
+    // Siempre actualizamos el valor del input
+    setArticuloBusquedaId(valor);
+    
+    // Si se está borrando el código, limpiamos el artículo seleccionado
+    if (valor === '') {
+      setArticuloSeleccionado(null);
+      return;
+    }
+
+    if (busquedaPorScanner) {
+      // La mayoría de los scanners terminan con un enter (\n o \r)
+      if (valor.includes('\n') || valor.includes('\r')) {
+        // Limpiamos caracteres especiales del código
+        const codigoLimpio = valor.replace(/[\n\r]/g, '').trim();
+        if (codigoLimpio.length > 0) {
+          console.log('Código escaneado:', codigoLimpio);
+          handleBuscarArticuloPorId(codigoLimpio);
+        }
+      }
+    } else {
+      // Modo manual
+      getArticulos("", null, valor);
+    }
+  };
 
   return (
     <Box
@@ -2761,16 +2846,10 @@ const VentaBalconNuevo = () => {
             >
               <input
                 type="text"
-                value={
-                  articuloSeleccionado
-                    ? articuloSeleccionado.codigo_barra
-                    : articuloBusquedaId ?? ""
-                }
-                className="border rounded-md p-2 flex-1 items-center justify-center w-32 text-center "
-                placeholder=""
-                onChange={(e) => {
-                  handleBuscarArticuloPorId(e);
-                }}
+                value={articuloBusquedaId}
+                className="border rounded-md p-2 flex-1 items-center justify-center w-32 text-center"
+                placeholder={busquedaPorScanner ? "Escanear código..." : "Buscar por código..."}
+                onChange={handleScannerInput}
                 onKeyDown={handleKeyPress}
                 ref={busquedaPorIdInputRef}
               />
@@ -2899,8 +2978,8 @@ const VentaBalconNuevo = () => {
                             item.estado_vencimiento === "VIGENTE"
                               ? "text-green-500"
                               : item.estado_vencimiento === "PROXIMO"
-                              ? "text-yellow-500"
-                              : "text-red-500"
+                                ? "text-yellow-500"
+                                : "text-red-500"
                           }
                         >
                           {item.vencimiento_lote}
@@ -2956,11 +3035,11 @@ const VentaBalconNuevo = () => {
                               setItemsParaVenta(
                                 itemsParaVenta.map((currentItem) =>
                                   currentItem.deve_articulo ===
-                                  item.deve_articulo
+                                    item.deve_articulo
                                     ? {
-                                        ...currentItem,
-                                        articulo: e.target.value,
-                                      }
+                                      ...currentItem,
+                                      articulo: e.target.value,
+                                    }
                                     : currentItem
                                 )
                               );
@@ -2988,11 +3067,10 @@ const VentaBalconNuevo = () => {
                         <input
                           type="number"
                           min="0"
-                          className={`border rounded-md p-1 ${
-                            item.deve_precio !== item.precio_original
-                              ? "bg-yellow-100"
-                              : ""
-                          }`}
+                          className={`border rounded-md p-1 ${item.deve_precio !== item.precio_original
+                            ? "bg-yellow-100"
+                            : ""
+                            }`}
                           value={item.deve_precio}
                           onChange={(e) => {
                             handleCambiarPrecio(e, item);
@@ -3004,9 +3082,8 @@ const VentaBalconNuevo = () => {
                           type="number"
                           min="0"
                           max="100"
-                          className={`border rounded-md p-1 w-16 text-center ${
-                            permisos_descuento === 0 ? "bg-gray-100" : ""
-                          }`}
+                          className={`border rounded-md p-1 w-16 text-center ${permisos_descuento === 0 ? "bg-gray-100" : ""
+                            }`}
                           value={item.deve_descuento}
                           disabled={permisos_descuento === 0}
                           onChange={(e) => {
@@ -3027,7 +3104,7 @@ const VentaBalconNuevo = () => {
                         {formatNumber(
                           (item.deve_precio -
                             (item.deve_descuento * item.deve_precio) / 100) *
-                            item.deve_cantidad
+                          item.deve_cantidad
                         )}
                       </td>
                       <td className="flex items-center justify-center">
@@ -3173,13 +3250,23 @@ const VentaBalconNuevo = () => {
               <p>F6 para agregar cantidad</p>
               <p>F12 para finalizar venta</p>
             </div>
-            <div className="flex flex-row gap-2 items-center justify-center">
-              <input
-                type="checkbox"
-                checked={buscarItemsConStock}
-                onChange={(e) => setBuscarItemsConStock(e.target.checked)}
-              />
-              <p className="text-md font-bold">Buscar items con stock</p>
+            <div className="flex flex-row gap-2">
+              <div className="flex flex-row gap-2 items-center justify-center">
+                <input
+                  type="checkbox"
+                  checked={buscarItemsConStock}
+                  onChange={(e) => setBuscarItemsConStock(e.target.checked)}
+                />
+                <p className="text-sm font-bold">Buscar items con stock</p>
+              </div>
+              <div className="flex flex-row gap-2 items-center justify-center">
+                <input
+                  type="checkbox"
+                  checked={busquedaPorScanner}
+                  onChange={(e) => setBusquedaPorScanner(e.target.checked)}
+                />
+                <p className="text-sm font-bold">Búsqueda por scanner</p>
+              </div>
             </div>
             <button className="flex flex-row gap-2 items-center justify-center bg-slate-400 p-2 rounded-md">
               <FileSearch size={32} color="white" />
@@ -3321,11 +3408,10 @@ const VentaBalconNuevo = () => {
                 >
                   <button
                     tabIndex={-1}
-                    className={`px-4 py-2 rounded-md ${
-                      opcionesFinalizacion.tipo_documento === "TICKET"
-                        ? "bg-blue-500 text-white"
-                        : "bg-gray-200"
-                    }`}
+                    className={`px-4 py-2 rounded-md ${opcionesFinalizacion.tipo_documento === "TICKET"
+                      ? "bg-blue-500 text-white"
+                      : "bg-gray-200"
+                      }`}
                     onClick={() => {
                       setOpcionesFinalizacion({
                         ...opcionesFinalizacion,
@@ -3339,11 +3425,10 @@ const VentaBalconNuevo = () => {
                   </button>
                   <button
                     tabIndex={-1}
-                    className={`px-4 py-2 rounded-md ${
-                      opcionesFinalizacion.tipo_documento === "FACTURA"
-                        ? "bg-blue-500 text-white"
-                        : "bg-gray-200"
-                    }`}
+                    className={`px-4 py-2 rounded-md ${opcionesFinalizacion.tipo_documento === "FACTURA"
+                      ? "bg-blue-500 text-white"
+                      : "bg-gray-200"
+                      }`}
                     onClick={() => {
                       setOpcionesFinalizacion({
                         ...opcionesFinalizacion,
@@ -3485,11 +3570,10 @@ const VentaBalconNuevo = () => {
                 >
                   <button
                     tabIndex={-1}
-                    className={`px-4 py-2 rounded-md ${
-                      opcionesFinalizacion.tipo_venta === "CONTADO"
-                        ? "bg-blue-500 text-white"
-                        : "bg-gray-200"
-                    }`}
+                    className={`px-4 py-2 rounded-md ${opcionesFinalizacion.tipo_venta === "CONTADO"
+                      ? "bg-blue-500 text-white"
+                      : "bg-gray-200"
+                      }`}
                     onClick={() =>
                       setOpcionesFinalizacion({
                         ...opcionesFinalizacion,
@@ -3503,11 +3587,10 @@ const VentaBalconNuevo = () => {
                   </button>
                   <button
                     tabIndex={-1}
-                    className={`px-4 py-2 rounded-md ${
-                      opcionesFinalizacion.tipo_venta === "CREDITO"
-                        ? "bg-blue-500 text-white"
-                        : "bg-gray-200"
-                    }`}
+                    className={`px-4 py-2 rounded-md ${opcionesFinalizacion.tipo_venta === "CREDITO"
+                      ? "bg-blue-500 text-white"
+                      : "bg-gray-200"
+                      }`}
                     onClick={() =>
                       setOpcionesFinalizacion({
                         ...opcionesFinalizacion,
@@ -3769,7 +3852,7 @@ const VentaBalconNuevo = () => {
                           readOnly
                           value={
                             montoEntregado &&
-                            montoEntregado - totalPagarGuaranies < 0
+                              montoEntregado - totalPagarGuaranies < 0
                               ? Math.abs(montoEntregado - totalPagarGuaranies)
                               : 0
                           }
@@ -3783,10 +3866,10 @@ const VentaBalconNuevo = () => {
                           readOnly
                           value={
                             montoEntregadoDolar &&
-                            montoEntregadoDolar - totalPagarDolares < 0
+                              montoEntregadoDolar - totalPagarDolares < 0
                               ? Math.abs(
-                                  montoEntregadoDolar - totalPagarDolares
-                                ).toFixed(2)
+                                montoEntregadoDolar - totalPagarDolares
+                              ).toFixed(2)
                               : 0
                           }
                           className="border rounded-md p-2 text-right bg-white w-full text-red-600 font-bold text-2xl"
@@ -3799,12 +3882,12 @@ const VentaBalconNuevo = () => {
                           readOnly
                           value={
                             montoEntregadoReal &&
-                            montoEntregadoReal - totalPagarReales < 0
+                              montoEntregadoReal - totalPagarReales < 0
                               ? Number(
-                                  Math.abs(
-                                    montoEntregadoReal - totalPagarReales
-                                  ).toFixed(2)
-                                )
+                                Math.abs(
+                                  montoEntregadoReal - totalPagarReales
+                                ).toFixed(2)
+                              )
                               : 0
                           }
                           className="border rounded-md p-2 text-right bg-white w-full text-red-600 font-bold text-2xl"
@@ -3817,13 +3900,13 @@ const VentaBalconNuevo = () => {
                           readOnly
                           value={
                             montoEntregadoPeso &&
-                            montoEntregadoPeso - totalPagarPesos < 0
+                              montoEntregadoPeso - totalPagarPesos < 0
                               ? Number(
-                                  Math.abs(
-                                    (montoEntregadoPeso - totalPagarPesos) /
-                                      cotizacionPeso
-                                  ).toFixed(2)
-                                )
+                                Math.abs(
+                                  (montoEntregadoPeso - totalPagarPesos) /
+                                  cotizacionPeso
+                                ).toFixed(2)
+                              )
                               : 0
                           }
                           className="border rounded-md p-2 text-right bg-white w-full text-red-600 font-bold text-2xl"
@@ -3837,10 +3920,10 @@ const VentaBalconNuevo = () => {
                           type="text"
                           value={
                             montoEntregado &&
-                            totalPagarGuaranies - montoEntregado < 0
+                              totalPagarGuaranies - montoEntregado < 0
                               ? formatNumber(
-                                  Math.abs(totalPagarGuaranies - montoEntregado)
-                                )
+                                Math.abs(totalPagarGuaranies - montoEntregado)
+                              )
                               : 0
                           }
                           readOnly
@@ -3853,12 +3936,12 @@ const VentaBalconNuevo = () => {
                           type="number"
                           value={
                             montoEntregadoDolar &&
-                            totalPagarDolares - montoEntregadoDolar < 0
+                              totalPagarDolares - montoEntregadoDolar < 0
                               ? Number(
-                                  Math.abs(
-                                    totalPagarDolares - montoEntregadoDolar
-                                  ).toFixed(2)
-                                )
+                                Math.abs(
+                                  totalPagarDolares - montoEntregadoDolar
+                                ).toFixed(2)
+                              )
                               : 0
                           }
                           readOnly
@@ -3871,12 +3954,12 @@ const VentaBalconNuevo = () => {
                           type="number"
                           value={
                             montoEntregadoReal &&
-                            totalPagarReales - montoEntregadoReal < 0
+                              totalPagarReales - montoEntregadoReal < 0
                               ? Number(
-                                  Math.abs(
-                                    totalPagarReales - montoEntregadoReal
-                                  ).toFixed(2)
-                                )
+                                Math.abs(
+                                  totalPagarReales - montoEntregadoReal
+                                ).toFixed(2)
+                              )
                               : 0
                           }
                           readOnly
@@ -3889,12 +3972,12 @@ const VentaBalconNuevo = () => {
                           type="number"
                           value={
                             montoEntregadoPeso &&
-                            totalPagarPesos - montoEntregadoPeso < 0
+                              totalPagarPesos - montoEntregadoPeso < 0
                               ? Number(
-                                  Math.abs(
-                                    totalPagarPesos - montoEntregadoPeso
-                                  ).toFixed(2)
-                                )
+                                Math.abs(
+                                  totalPagarPesos - montoEntregadoPeso
+                                ).toFixed(2)
+                              )
                               : 0
                           }
                           readOnly
