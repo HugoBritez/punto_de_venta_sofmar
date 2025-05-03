@@ -64,7 +64,7 @@ jobs:
           fi
           
           sshpass -p "$SSH_PASSWORD" rsync -avz -e 'ssh -o StrictHostKeyChecking=no' --delete ./dist/ "$SSH_USER@$TARGET_SERVER:/var/www/$CLIENTE/dist/"
-
+### asfasdfa 
   deploy-all:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: self-hosted
