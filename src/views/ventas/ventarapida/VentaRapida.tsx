@@ -20,7 +20,7 @@ interface TipoRenderizacion {
 }
 
 const VentaRapida = () => {
-    const [ventaDTO, setVentaDTO] = useState<VentaDTO>(
+    const [, setVentaDTO] = useState<VentaDTO>(
         {
             ve_codigo: 0,
             ve_fecha: "",
@@ -60,7 +60,7 @@ const VentaRapida = () => {
         }
     );
     const [detalleVenta, setDetalleVenta] = useState<DetalleVentaTabla[]>([]);
-    const [imprimirFactura, setImprimirFactura] = useState<boolean>(false);
+    const [, setImprimirFactura] = useState<boolean>(false);
     const [precioSeleccionado, setPrecioSeleccionado] = useState<ListaPrecios | null>();
     const [depositoSeleccionado, setDepositoSeleccionado] = useState<Deposito | null>();
     const [cantidad, setCantidad] = useState<number>();
