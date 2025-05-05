@@ -1663,7 +1663,6 @@ const PuntoDeVentaNuevo = () => {
           d_codigo,
           Number(opcionesFinalizacion.nro_factura)
         );
-
         onCloseKCOpen();
 
         handleCancelarVenta();

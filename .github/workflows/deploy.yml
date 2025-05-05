@@ -14,7 +14,7 @@ on:
           - gaesa
           - gaesademo
           # - acricolor
-          - medical
+          # - medical
           # - distriwembe
           # - concrecar
           # - bodega
@@ -74,7 +74,7 @@ jobs:
           'gaesa',
           'gaesademo',
           # 'acricolor', 
-          'medical', 
+          # 'medical', 
           # 'distriwembe', 
           # 'concrecar', 
           # 'bodega', 

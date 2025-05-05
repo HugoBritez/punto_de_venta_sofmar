@@ -1,0 +1,198 @@
+/* Overlay */
+.side-menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease-in-out;
+  z-index: 9998;
+}
+
+.overlay-visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Menú lateral */
+.side-menu {
+  position: fixed;
+  top: 50%;
+  right: -400px;
+  transform: translateY(-50%);
+  width: 400px;
+  min-height: 90vh;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  z-index: 9999;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.menu-visible {
+  transform: translate(calc(-400px - 16px), -50%);
+}
+
+/* Estilos para el contenido del menú */
+.side-menu > div {
+  padding: 1.5rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Estilizar la barra de desplazamiento */
+.side-menu::-webkit-scrollbar {
+  width: 12px;
+}
+
+.side-menu::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.side-menu::-webkit-scrollbar-thumb {
+  background: #CBD5E0;
+  border-radius: 20px;
+}
+
+/* Estilos para los botones del menú */
+.side-menu button {
+  transition: all 0.2s ease-in-out;
+}
+
+.side-menu button:hover {
+  background-color: #EBF8FF;
+  color: #2B6CB0;
+}
+
+/* Estilos para secciones del menú */
+.menu-section {
+  margin-bottom: 1.5rem;
+}
+
+.menu-section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #2D3748;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #E2E8F0;
+}
+
+/* Estilos para filtros */
+.filter-group {
+  margin-bottom: 1rem;
+}
+
+.filter-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #4A5568;
+  margin-bottom: 0.5rem;
+}
+
+.filter-input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #E2E8F0;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.filter-input:focus {
+  outline: none;
+  border-color: #4299E1;
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+}
+
+/* Indicador de arrastre */
+.drag-indicator {
+  position: fixed;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 100px;
+  background-color: #2563eb;
+  border-radius: 0 10px 10px 0;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  z-index: 10000;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 12px;
+  text-transform: uppercase;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  padding: 10px 5px;
+  border: 2px solid #1d4ed8;
+  border-left: none;
+  transition: all 0.3s ease;
+}
+
+.drag-indicator:hover {
+  background-color: #1d4ed8;
+  width: 24px;
+}
+
+.drag-indicator::after {
+  content: 'Deslizar';
+  transform: rotate(180deg);
+}
+
+/* Indicador cuando el menú está abierto */
+.side-menu::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 40px;
+  background-color: #666;
+  border-radius: 0 2px 2px 0;
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+  z-index: 10000;
+}
+
+.side-menu:hover::before {
+  opacity: 1;
+}
+
+/* Indicador cuando el menú está cerrado */
+.side-menu-closed::after {
+  content: '';
+  position: fixed;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+  width: 12px;
+  height: 80px;
+  background-color: #2563eb;
+  border-radius: 0 6px 6px 0;
+  opacity: 1;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
+  z-index: 10000;
+  pointer-events: auto;
+  cursor: pointer;
+  margin-left: 8px;
+  border: 2px solid #1d4ed8;
+  border-left: none;
+}
+
+/* Efecto hover para el indicador cuando está cerrado */
+.side-menu-closed::after:hover {
+  background-color: #1d4ed8;
+  width: 14px;
+  margin-left: 6px;
+} 

@@ -492,12 +492,11 @@ const ModeloFacturaReport = ({
       
       // Calcular espacio en blanco basado en la relación reals
       // 37 items llenos ≈ 85 filas vacías
-      const relacionFilas = 85 / 37; // ≈ 2.3
+      const relacionFilas = 80 / 40; // ≈ 2
       const maxFilasVacias = 85; // Máximo de filas vacías que entran en la hoja
       const espacioEnBlanco = Math.max(20, Math.floor((37 - filasActuales) * relacionFilas));
       const minFilasRequeridas = Math.min(37 + maxFilasVacias, Math.max(15, filasActuales + espacioEnBlanco));
 
-      
       // Si tenemos menos filas que el mínimo, añadir filas vacías
       if (filasActuales < minFilasRequeridas) {
         const filasVaciasNecesarias = minFilasRequeridas - filasActuales;

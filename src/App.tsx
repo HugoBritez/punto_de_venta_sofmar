@@ -28,7 +28,7 @@ import RuteamientosDashboard from "./views/ruteamientos/RuteamientosDashboard";
 import ConsultaPedidos from "./views/pedidos/ConsultaPedidos";
 import NoExiste from "./views/404";
 import CobrosDiarios from "./views/cobros/CobrosDiarios";
-import VentaRapida from "./views/puntodeventa/VentaRapida";
+import  VentaRapida  from "./views/ventas/ventarapida/VentaRapida";
 import InformeVentas from "./views/ventas/informeVentas";
 import RuteamientoPedidos from "./views/entregas/ruteamientopedidos";
 import Entregas from "./views/entregas/entregas";

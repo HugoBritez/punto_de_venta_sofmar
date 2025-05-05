@@ -1,5 +1,7 @@
 export interface Deposito {
   // Definir la estructura de los depósitos si es necesario
+  dep_codigo: number;
+  dep_descripcion: string;
 }
 
 export interface Lote {

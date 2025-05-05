@@ -28,6 +28,7 @@ export const useClientesStore = create<ClientesState>((set, get) => ({
     clienteSeleccionado: null,
     clientesExtended: [],
     cargando: false,
+    
     cargarClientesPorId: async (id: number) => {
         try{
             set({cargando: true});
