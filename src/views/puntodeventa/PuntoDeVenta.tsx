@@ -409,7 +409,7 @@ const PuntoDeVentaNuevo = () => {
       `${api_url}clientes/get-clientes`,
       {
         params: {
-          id_cliente: clientePorDefecto?.valor,
+          id_cliente: clientePorDefecto?.body[0].valor,
         },
       }
     );

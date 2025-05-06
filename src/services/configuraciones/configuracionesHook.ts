@@ -16,9 +16,13 @@ export const useConfiguraciones = () => {
             } catch (error) {
                 console.error("Error al obtener el cliente por defecto", error);
                 setClientePorDefecto({
-                    id: 0,
-                    descripcion: "No se pudo obtener el cliente por defecto",
-                    valor: "1"
+                    error: true,
+                    status: 500,
+                    body: [{
+                        id: 0,
+                        descripcion: "No se pudo obtener el cliente por defecto",
+                        valor: "1"
+                    }]
                 });
             }
         }
