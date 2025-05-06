@@ -33,8 +33,9 @@ export const BuscadorArticulos: React.FC<BuscadorArticulosProps> = ({
 
   const handleSeleccionarArticulo = (articulo: Articulo) => {
     if (editingItem === articulo.id_lote) {
-      const cantidadValida = Math.max(1, cantidad || 1);
-      onSeleccionarArticulo({ ...articulo, cantidad: cantidadValida });
+      const cantidadValida = typeof cantidad === 'number' ? Math.max(1, cantidad) : 1;
+      const articuloConCantidad = { ...articulo, cantidad: cantidadValida };
+      onSeleccionarArticulo(articuloConCantidad);
       setEditingItem(null);
       setCantidad(1);
       setSuccessItem(articulo.id_lote);
@@ -43,6 +44,7 @@ export const BuscadorArticulos: React.FC<BuscadorArticulosProps> = ({
       }, 1500);
     } else {
       setEditingItem(articulo.id_lote);
+      setCantidad(1);
     }
   };
 
@@ -51,6 +53,25 @@ export const BuscadorArticulos: React.FC<BuscadorArticulosProps> = ({
     setMostrarResultados(false);
     setEditingItem(null);
     setCantidad(1);
+  };
+
+  const handleCantidadChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = parseInt(e.target.value);
+    if (!isNaN(value)) {
+      setCantidad(Math.max(1, value));
+    }
+  };
+
+  const handleConfirmarCantidad = (articulo: Articulo) => {
+    const cantidadValida = typeof cantidad === 'number' ? Math.max(1, cantidad) : 1;
+    const articuloConCantidad = { ...articulo, cantidad: cantidadValida };
+    onSeleccionarArticulo(articuloConCantidad);
+    setEditingItem(null);
+    setCantidad(1);
+    setSuccessItem(articulo.id_lote);
+    setTimeout(() => {
+      setSuccessItem(null);
+    }, 1500);
   };
 
   useEffect(() => {
@@ -193,21 +214,11 @@ export const BuscadorArticulos: React.FC<BuscadorArticulosProps> = ({
                               className="w-12 text-center bg-white rounded-md p-1 border border-gray-300 text-sm"
                               value={cantidad}
                               onClick={(e) => e.stopPropagation()}
-                              onChange={(e) => {
-                                const value = parseInt(e.target.value) || 1;
-                                setCantidad(Math.max(1, value));
-                              }}
+                              onChange={handleCantidadChange}
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
                                   e.preventDefault();
-                                  const cantidadValida = Math.max(1, cantidad || 1);
-                                  onSeleccionarArticulo({ ...articulo, cantidad: cantidadValida });
-                                  setEditingItem(null);
-                                  setCantidad(1);
-                                  setSuccessItem(articulo.id_lote);
-                                  setTimeout(() => {
-                                    setSuccessItem(null);
-                                  }, 1500);
+                                  handleConfirmarCantidad(articulo);
                                 }
                               }}
                             />
@@ -223,14 +234,7 @@ export const BuscadorArticulos: React.FC<BuscadorArticulosProps> = ({
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                const cantidadValida = Math.max(1, cantidad || 1);
-                                onSeleccionarArticulo({ ...articulo, cantidad: cantidadValida });
-                                setEditingItem(null);
-                                setCantidad(1);
-                                setSuccessItem(articulo.id_lote);
-                                setTimeout(() => {
-                                  setSuccessItem(null);
-                                }, 1500);
+                                handleConfirmarCantidad(articulo);
                               }}
                               className="ml-auto bg-green-500 text-white rounded-md p-1 hover:bg-green-600"
                             >

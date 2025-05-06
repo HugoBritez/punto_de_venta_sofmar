@@ -14,19 +14,20 @@ import { useSucursalesStore } from "@/stores/sucursalesStore";
 import { useDepositosStore } from "@/stores/depositosStore";
 import { useListaPreciosStore } from "@/stores/listaPreciosStore";
 import { formatCurrency } from "../core/utils/formatCurrency";
+import { BottomSheet } from "@/ui/mobile/BottomSheet/BottomSheet";
 
 interface TipoRenderizacion {
     tipo: "tabla" | "lista"
 }
 
 const VentaRapida = () => {
-    const [, setVentaDTO] = useState<VentaDTO>(
+    const [ventaDTO, setVentaDTO] = useState<VentaDTO>(
         {
             ve_codigo: 0,
-            ve_fecha: "",
+            ve_fecha: new Date().toISOString(),
             ve_operador: 0,
             ve_deposito: 0,
-            ve_moneda: 0,
+            ve_moneda: 1,
             ve_factura: "",
             ve_credito: 0,
             ve_saldo: 0,
@@ -35,7 +36,7 @@ const VentaRapida = () => {
             ve_descuento: 0,
             ve_cuotas: 0,
             ve_cantCuotas: 0,
-            ve_obs: "",
+            ve_obs: "Venta desde dispositivo móvil",
             ve_vendedor: 0,
             ve_sucursal: 0,
             ve_metodo: 0,
@@ -44,7 +45,7 @@ const VentaRapida = () => {
             ve_timbrado: "",
             ve_codeudor: 0,
             ve_pedido: 0,
-            ve_hora: "",
+            ve_hora: new Date().toLocaleTimeString(),
             ve_userpc: "",
             ve_situacion: 0,
             ve_chofer: 0,
@@ -63,7 +64,7 @@ const VentaRapida = () => {
     const [, setImprimirFactura] = useState<boolean>(false);
     const [precioSeleccionado, setPrecioSeleccionado] = useState<ListaPrecios | null>();
     const [depositoSeleccionado, setDepositoSeleccionado] = useState<Deposito | null>();
-    const [cantidad, setCantidad] = useState<number>();
+    const [, setCantidad] = useState<number>();
     const [descuento, setDescuento] = useState<number>();
     const [bonificacion, setBonificacion] = useState<number>();
     const [precioUnitario, setPrecioUnitario] = useState<number>();
@@ -83,16 +84,17 @@ const VentaRapida = () => {
     const { listaPrecios, fetchListaPrecios } = useListaPreciosStore();
 
     const vendedorPorDefecto = sessionStorage.getItem("user_id");
+    const vendedorNombrePorDefecto = sessionStorage.getItem("user_name");
     const { clientePorDefecto } = useConfiguraciones();
 
     const { getOperadorPorCodInterno, vendedorSeleccionado } = useOperadoresStore();
-
+    const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
     const toast = useToast();
 
-    const handleAgregarItem = (articulo: Articulo, cantidad: number, precioUnitario?: number, descuento?: number, bonificacion?: number) => {
+    const handleAgregarItem = (articulo: Articulo) => {
         const resultado = agregarItemVentaRapida(detalleVenta, {
             articulo,
-            cantidad,
+            cantidad: articulo.cantidad || 1,
             precioSeleccionado: precioSeleccionado!,
             depositoSeleccionado: depositoSeleccionado!,
             sucursalSeleccionada: sucursalSeleccionada!,
@@ -127,11 +129,23 @@ const VentaRapida = () => {
     }, []);
 
     useEffect(() => {
-        if (clientePorDefecto) {
-            setVentaDTO(prevState => ({
-                ...prevState,
-                ve_cliente: clientePorDefecto.valor
-            }));
+        if (clientePorDefecto && clientePorDefecto.body && clientePorDefecto.body.length > 0) {
+            console.log('Cliente por defecto completo:', clientePorDefecto);
+            const valorCliente = clientePorDefecto.body[0].valor;
+            console.log('Valor del cliente por defecto:', valorCliente);
+            console.log('Tipo de valor:', typeof valorCliente);
+            const clienteId = parseInt(valorCliente);
+            console.log('Cliente ID convertido:', clienteId);
+            console.log('Es NaN?', isNaN(clienteId));
+            
+            if (!isNaN(clienteId)) {
+                setVentaDTO(prevState => ({
+                    ...prevState,
+                    ve_cliente: clienteId
+                }));
+            } else {
+                console.error('El valor del cliente por defecto no es un número válido:', valorCliente);
+            }
         }
         if (vendedorSeleccionado) {
             setVentaDTO(prevState => ({
@@ -149,6 +163,12 @@ const VentaRapida = () => {
             setVentaDTO(prevState => ({
                 ...prevState,
                 ve_deposito: depositoSeleccionado.dep_codigo
+            }));
+        }
+        if (vendedorNombrePorDefecto) {
+            setVentaDTO(prevState => ({
+                ...prevState,
+                ve_userpc: `Dispositivo de ${vendedorNombrePorDefecto}`
             }));
         }
 
@@ -195,6 +215,11 @@ const VentaRapida = () => {
             setTipoRenderizacion({ tipo: "lista" });
         }
     }, []);
+
+    useEffect(() => {
+        console.log('ventaDTO', ventaDTO)
+        console.log('detalleVenta', detalleVenta)
+    }, [detalleVenta, ventaDTO])
 
 
     const renderArticulos = () => {
@@ -385,15 +410,7 @@ const VentaRapida = () => {
                 deposito={depositoSeleccionado?.dep_codigo}
                 stock={true}
                 moneda={1}
-                onSeleccionarArticulo={(articulo) => {
-                    handleAgregarItem(
-                        articulo,
-                        cantidad!,
-                        precioUnitario!,
-                        descuento!,
-                        bonificacion!
-                    );
-                }}
+                onSeleccionarArticulo={handleAgregarItem}
             />
             <div className="flex flex-col w-full h-[80%] bg-white gap-2 rounded-md">
                 {renderArticulos()}
@@ -401,7 +418,7 @@ const VentaRapida = () => {
 
             <button
                 className="w-full bg-blue-500 text-white py-3 rounded-md hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
-                onClick={() => {/* TODO: Implementar lógica del bottom sheet */ }}
+                onClick={() => setIsBottomSheetOpen(true)}
             >
                 <ArrowUp />
                 Ver totales
@@ -495,6 +512,11 @@ const VentaRapida = () => {
                     </div>
                 </div>
             </SideMenu>
+            <BottomSheet isVisible={isBottomSheetOpen} onClose={() => setIsBottomSheetOpen(false)}>
+                <div className="flex flex-col gap-2">
+                    <h2 className="text-xl font-bold text-gray-800">Totales</h2>
+                </div>
+            </BottomSheet>
 
         </div>
     )

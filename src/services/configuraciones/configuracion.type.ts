@@ -1,5 +1,9 @@
 export interface Configuracion {
-    id: number;
-    descripcion: string;
-    valor: string;
+    error: boolean;
+    status: number;
+    body: Array<{
+        id: number;
+        descripcion: string;
+        valor: string;
+    }>;
 }
