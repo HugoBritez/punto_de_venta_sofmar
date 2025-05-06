@@ -1,8 +1,8 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useBuscadorArticulos } from '../../articulos/hooks/useBuscadorArticulos';
 import { Articulo } from '../../articulos/types/articulo.type';
-import { X } from 'lucide-react';
+import { X, Check } from 'lucide-react';
 import { formatCurrency } from '@/ui/articulos/utils/formatCurrency';
 
 interface BuscadorArticulosProps {
@@ -26,22 +26,39 @@ export const BuscadorArticulos: React.FC<BuscadorArticulosProps> = ({
     moneda
   });
   const [mostrarResultados, setMostrarResultados] = React.useState(false);
+  const [editingItem, setEditingItem] = useState<number | null>(null);
+  const [cantidad, setCantidad] = useState<number>(1);
+  const [successItem, setSuccessItem] = useState<number | null>(null);
   const contenedorRef = useRef<HTMLDivElement>(null);
 
   const handleSeleccionarArticulo = (articulo: Articulo) => {
-    setMostrarResultados(false);
-    onSeleccionarArticulo(articulo);
+    if (editingItem === articulo.id_lote) {
+      const cantidadValida = Math.max(1, cantidad || 1);
+      onSeleccionarArticulo({ ...articulo, cantidad: cantidadValida });
+      setEditingItem(null);
+      setCantidad(1);
+      setSuccessItem(articulo.id_lote);
+      setTimeout(() => {
+        setSuccessItem(null);
+      }, 1500);
+    } else {
+      setEditingItem(articulo.id_lote);
+    }
   };
 
   const handleLimpiar = () => {
     setTermino('');
     setMostrarResultados(false);
+    setEditingItem(null);
+    setCantidad(1);
   };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (contenedorRef.current && !contenedorRef.current.contains(event.target as Node)) {
         setMostrarResultados(false);
+        setEditingItem(null);
+        setCantidad(1);
       }
     };
 
@@ -73,20 +90,7 @@ export const BuscadorArticulos: React.FC<BuscadorArticulosProps> = ({
             onClick={handleLimpiar}
             className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
           >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
+            <X className="w-5 h-5" />
           </motion.button>
         )}
         {cargando && (
@@ -137,20 +141,7 @@ export const BuscadorArticulos: React.FC<BuscadorArticulosProps> = ({
                     onClick={handleLimpiar}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
                   >
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M6 18L18 6M6 6l12 12"
-                      />
-                    </svg>
+                    <X className="w-5 h-5" />
                   </motion.button>
                 )}
                 {cargando && (
@@ -169,31 +160,104 @@ export const BuscadorArticulos: React.FC<BuscadorArticulosProps> = ({
                 <div className="p-4 text-red-500">{error}</div>
               ) : (
                 <div className="grid grid-cols-2 gap-2 p-2">
-                  {resultados.map((articulo, index) => (
+                  {resultados.map((articulo) => (
                     <motion.div
-                      key={index}
+                      key={articulo.id_lote}
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.9 }}
-                      className="bg-gray-50 rounded-lg p-2 shadow-sm hover:shadow-md transition-shadow duration-200 cursor-pointer"
+                      className={`bg-gray-50 rounded-lg p-2 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer ${
+                        editingItem === articulo.id_lote ? 'ring-2 ring-blue-500' : ''
+                      } ${
+                        successItem === articulo.id_lote ? 'bg-green-50 ring-2 ring-green-500' : ''
+                      }`}
                       onClick={() => handleSeleccionarArticulo(articulo)}
                     >
-                      <div className="text-xs font-medium text-gray-900 truncate">
-                        {articulo.descripcion}
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {articulo.codigo_barra && (
-                          <div className="truncate">Cod: {articulo.codigo_barra}</div>
-                        )}
-                        {articulo.cantidad_lote && (
-                          <div className="truncate">Stock: {articulo.cantidad_lote}</div>
-                        )}
-                        {articulo.precio_venta_guaranies && (
-                          <div className="font-semibold text-green-600">
-                            ${formatCurrency(articulo.precio_venta_guaranies)}
+                      {editingItem === articulo.id_lote ? (
+                        <div className="flex flex-col gap-2">
+                          <div className="text-xs font-medium text-gray-900 truncate">
+                            {articulo.descripcion}
                           </div>
-                        )}
-                      </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setCantidad(prev => Math.max(1, prev - 1));
+                              }}
+                              className="bg-gray-200 text-gray-600 rounded-md p-1 hover:bg-gray-300"
+                            >
+                              -
+                            </button>
+                            <input
+                              type="number"
+                              className="w-12 text-center bg-white rounded-md p-1 border border-gray-300 text-sm"
+                              value={cantidad}
+                              onClick={(e) => e.stopPropagation()}
+                              onChange={(e) => {
+                                const value = parseInt(e.target.value) || 1;
+                                setCantidad(Math.max(1, value));
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  const cantidadValida = Math.max(1, cantidad || 1);
+                                  onSeleccionarArticulo({ ...articulo, cantidad: cantidadValida });
+                                  setEditingItem(null);
+                                  setCantidad(1);
+                                  setSuccessItem(articulo.id_lote);
+                                  setTimeout(() => {
+                                    setSuccessItem(null);
+                                  }, 1500);
+                                }
+                              }}
+                            />
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setCantidad(prev => prev + 1);
+                              }}
+                              className="bg-gray-200 text-gray-600 rounded-md p-1 hover:bg-gray-300"
+                            >
+                              +
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const cantidadValida = Math.max(1, cantidad || 1);
+                                onSeleccionarArticulo({ ...articulo, cantidad: cantidadValida });
+                                setEditingItem(null);
+                                setCantidad(1);
+                                setSuccessItem(articulo.id_lote);
+                                setTimeout(() => {
+                                  setSuccessItem(null);
+                                }, 1500);
+                              }}
+                              className="ml-auto bg-green-500 text-white rounded-md p-1 hover:bg-green-600"
+                            >
+                              <Check className="w-5 h-5" />
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="text-xs font-medium text-gray-900 truncate">
+                            {articulo.descripcion}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {articulo.codigo_barra && (
+                              <div className="truncate">Cod: {articulo.codigo_barra}</div>
+                            )}
+                            {articulo.cantidad_lote && (
+                              <div className="truncate">Stock: {articulo.cantidad_lote}</div>
+                            )}
+                            {articulo.precio_venta_guaranies && (
+                              <div className="font-semibold text-green-600">
+                                ${formatCurrency(articulo.precio_venta_guaranies)}
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
                     </motion.div>
                   ))}
                 </div>

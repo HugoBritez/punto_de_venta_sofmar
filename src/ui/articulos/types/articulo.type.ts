@@ -37,4 +37,8 @@ export interface Articulo {
   precio_sugerido: number;
   presentacion: string;
   precompra: number;
+  cantidad?: number;
+  al_codigo: number;
+  al_vencimiento: string;
+  ar_editar_desc: number;
 }

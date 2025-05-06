@@ -152,9 +152,7 @@ const VentaRapida = () => {
             }));
         }
 
-
     }, [clientePorDefecto, vendedorSeleccionado, sucursalSeleccionada, depositoSeleccionado]);
-
 
     useEffect(() => {
         if (sucursales) {
@@ -227,9 +225,9 @@ const VentaRapida = () => {
                                 <tr key={item.cod_barras} className="border [&>td]:border-gray-200 [&>td]:border hover:bg-blue-50">
                                     <td className="py-2 px-4 text-xs">{item.cod_barras}</td>
                                     <td className="py-2 px-4 text-xs">{item.descripcion}</td>
-                                    <td className="py-2 px-4 text-sm">{item.deve_cantidad}</td>
-                                    <td className="py-2 px-4 text-sm">{item.deve_precio}</td>
-                                    <td className="py-2 px-4 text-sm">{item.subtotal}</td>
+                                    <td className="py-2 px-4 text-sm">{item.deve_cantidad || 1}</td>
+                                    <td className="py-2 px-4 text-sm">{formatCurrency(item.deve_precio || 0)}</td>
+                                    <td className="py-2 px-4 text-sm">{formatCurrency(item.subtotal || 0)}</td>
                                 </tr>
                             ))}
                         </tbody>
