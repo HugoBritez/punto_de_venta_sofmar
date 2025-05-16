@@ -102,7 +102,7 @@ export const useDirecciones = () => {
 
     const eliminarDireccion = async (rango: Omit<UbicacionDTO, 'd_tipo_direccion' | 'd_estado'>) => {
         try{
-            if(!rango || rango.d_calle_inicial === '' || rango.d_calle_final === '' || rango.d_predio_inicial === 0 || rango.d_predio_final === 0 || rango.d_piso_inicial === 0 || rango.d_piso_final === 0 || rango.d_direccion_inicial === 0 || rango.d_direccion_final === 0){
+            if(!rango || rango.d_calle_inicial === '' ){
                 setErrorEliminarDireccion("No hay rango de direcciones para eliminar");
                 return;
             }
