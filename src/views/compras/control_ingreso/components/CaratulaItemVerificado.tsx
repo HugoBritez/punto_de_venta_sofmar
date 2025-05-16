@@ -1,4 +1,4 @@
-import { generatePDF } from "@/services/pdfService";
+import { generatePDF } from "@/shared/services/pdfService";
 import { useEffect } from "react";
 
 

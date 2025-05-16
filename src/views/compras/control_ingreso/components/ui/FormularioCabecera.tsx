@@ -3,7 +3,7 @@ import { useVerificarIngresos } from "../../hooks/useVerificarIngresos";
 import { useToast } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import ConfirmationModal from "./ConfirmVerificationModal";
-import { Deposito } from "@/types/shared_interfaces";
+import { Deposito } from "@/shared/types/shared_interfaces";
 import { useIngresos } from "../../hooks/useIngresos";
 interface CabeceraProps {
   filtros: FiltrosDTO;

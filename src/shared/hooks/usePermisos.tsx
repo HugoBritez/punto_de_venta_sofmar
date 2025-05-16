@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getPermisos } from "@/services/PermisosServices";
+import { getPermisos } from "@/shared/services/PermisosServices";
 
 const usePermisos = (menuId: number) => {
     const [tienePermisos, setTienePermisos] = useState(false);

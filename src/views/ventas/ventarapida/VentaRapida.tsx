@@ -1,23 +1,34 @@
 import { VentaDTO, DetalleVentaTabla } from "../types/sharedDTO.type";
 import { useEffect, useState } from "react";
-import { Articulo } from "@/ui/articulos/types/articulo.type";
-import { Deposito } from "@/ui/buscador_articulos/types/articulo";
+import { Articulo } from "@/shared/ui/articulos/types/articulo.type";
+import { Deposito } from "@/shared/ui/buscador_articulos/types/articulo";
 import { agregarItemVentaRapida, eliminarItemVenta, actualizarCantidadItemVenta, actualizarDescripcionItemVenta, actualizarPrecioUnitarioItemVenta } from "../core/services/ventasService";
-import { ListaPrecios, Sucursal } from "@/types/shared_interfaces";
+import { ListaPrecios, Sucursal } from "@/shared/types/shared_interfaces";
 import { useOperadoresStore } from "@/stores/operadoresStore";
 import { useToast } from "@chakra-ui/react";
 import { ShoppingBag, ArchiveX, ArrowUp, Trash2 } from "lucide-react";
-import { SideMenu } from "@/ui/mobile/sidemenu/SideMenu";
-import { BuscadorArticulos } from "@/ui/mobile/buscardor_articulos/BuscadorArticulos";
-import { useConfiguraciones } from "@/services/configuraciones/configuracionesHook";
+import { SideMenu } from "@/shared/ui/mobile/sidemenu/SideMenu";
+import { BuscadorArticulos } from "@/shared/ui/mobile/buscardor_articulos/BuscadorArticulos";
+import { useConfiguraciones } from "@/shared/services/configuraciones/configuracionesHook";
 import { useSucursalesStore } from "@/stores/sucursalesStore";
 import { useDepositosStore } from "@/stores/depositosStore";
 import { useListaPreciosStore } from "@/stores/listaPreciosStore";
 import { formatCurrency } from "../core/utils/formatCurrency";
-import { BottomSheet } from "@/ui/mobile/BottomSheet/BottomSheet";
+import { BottomSheet } from "@/shared/ui/mobile/BottomSheet/BottomSheet";
+import { calcularTotales } from "../core/utils/calcularTotales";
+import { useCrearVenta } from "../core/hooks/useCrearVenta";
+import { useGetFacturas } from "../core/hooks/useGetFacturas";
+import { actualizarUltimaFactura } from "../core/utils/actualizarUltimaFactura";
+import { ImprimirFacturaTicketComponent } from "../core/components/ImprimirFacturaTicketComponent";
+import { ImprimirTicketComponent } from "../core/components/ImprimirTicket";
+
 
 interface TipoRenderizacion {
     tipo: "tabla" | "lista"
+}
+
+interface TipoVenta {
+    tipo: "comun" | "factura"
 }
 
 const VentaRapida = () => {
@@ -31,6 +42,7 @@ const VentaRapida = () => {
             ve_factura: "",
             ve_credito: 0,
             ve_saldo: 0,
+            ve_total: 0,
             ve_devolucion: 0,
             ve_procesado: 0,
             ve_descuento: 0,
@@ -91,6 +103,18 @@ const VentaRapida = () => {
     const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
     const toast = useToast();
 
+    const { total, totalDescuentos, totalAPagar } = calcularTotales(detalleVenta);
+    const [tipoVenta, setTipoVenta] = useState<TipoVenta>({ tipo: "comun" });
+
+    const { insertarVenta, errorDTO, loadingDTO } = useCrearVenta();
+    const { datosFacturacion, obtenerDatosFacturacion } = useGetFacturas();
+
+
+    useEffect(() => {
+        obtenerDatosFacturacion();
+    }, []);
+
+
     const handleAgregarItem = (articulo: Articulo) => {
         const resultado = agregarItemVentaRapida(detalleVenta, {
             articulo,
@@ -137,7 +161,7 @@ const VentaRapida = () => {
             const clienteId = parseInt(valorCliente);
             console.log('Cliente ID convertido:', clienteId);
             console.log('Es NaN?', isNaN(clienteId));
-            
+
             if (!isNaN(clienteId)) {
                 setVentaDTO(prevState => ({
                     ...prevState,
@@ -173,6 +197,13 @@ const VentaRapida = () => {
         }
 
     }, [clientePorDefecto, vendedorSeleccionado, sucursalSeleccionada, depositoSeleccionado]);
+
+    useEffect(() => {
+        setVentaDTO(prevState => ({
+            ...prevState,
+            ve_total: total
+        }));
+    }, [total]);
 
     useEffect(() => {
         if (sucursales) {
@@ -221,6 +252,88 @@ const VentaRapida = () => {
         console.log('detalleVenta', detalleVenta)
     }, [detalleVenta, ventaDTO])
 
+
+    const handleFinalizarVenta = async () => {
+        try {
+            if (detalleVenta.length === 0) {
+                toast({
+                    title: "Error",
+                    description: "No hay artículos en la venta",
+                    status: "error",
+                    duration: 3000,
+                    isClosable: true,
+                });
+                return;
+            }
+
+            if (loadingDTO) {
+                toast({
+                    title: "Procesando",
+                    description: "Ya hay una venta en proceso",
+                    status: "info",
+                    duration: 3000,
+                    isClosable: true,
+                });
+                return;
+            }
+
+            const response = await insertarVenta(ventaDTO, detalleVenta);
+            console.log('venta insertada con exito', response);
+            
+            if (response.success === false) {
+                toast({
+                    title: "Error",
+                    description: typeof errorDTO === 'string' ? errorDTO : "Error al procesar la venta",
+                    status: "error",
+                    duration: 3000,
+                    isClosable: true,
+                });
+                return;
+            }
+
+            if (tipoVenta.tipo === "factura") {
+                console.log('imprimiendo factura', response.body);
+                await actualizarUltimaFactura(datosFacturacion?.d_codigo || 0, datosFacturacion?.d_nro_secuencia || 0);
+                ImprimirFacturaTicketComponent({
+                    accion: "download",
+                    ventaId: response.body,
+                    montoEntregado: 0,
+                    montoRecibido: 0,
+                    vuelto: 0,
+                    onImprimir: true
+                });
+            } else if (tipoVenta.tipo === "comun") {
+                console.log('imprimiendo ticket', response.body);
+                ImprimirTicketComponent({
+                    accion: "download",
+                    ventaId: response.body,
+                    montoEntregado: 0,
+                    montoRecibido: 0,
+                    vuelto: 0,
+                    onImprimir: true
+                });
+            }
+            toast({
+                title: "Éxito",
+                description: "Venta procesada correctamente",
+                status: "success",
+                duration: 3000,
+                isClosable: true,
+            });
+            setDetalleVenta([]);
+            setIsBottomSheetOpen(false);
+
+        } catch (error) {
+            console.error('Error al finalizar venta:', error);
+            toast({
+                title: "Error",
+                description: "Ocurrió un error al procesar la venta",
+                status: "error",
+                duration: 3000,
+                isClosable: true,
+            });
+        }
+    }
 
     const renderArticulos = () => {
         if (detalleVenta.length === 0) {
@@ -513,8 +626,89 @@ const VentaRapida = () => {
                 </div>
             </SideMenu>
             <BottomSheet isVisible={isBottomSheetOpen} onClose={() => setIsBottomSheetOpen(false)}>
-                <div className="flex flex-col gap-2">
-                    <h2 className="text-xl font-bold text-gray-800">Totales</h2>
+                <div className="flex flex-col gap-4 p-4">
+                    <h2 className="text-xl font-bold text-gray-800">Resumen de Venta</h2>
+
+
+                    <div className="flex flex-col gap-3">
+                        <div className="flex flex-col gap-1">
+                            <label className="text-sm text-gray-600">Total</label>
+                            <input
+                                type="text"
+                                readOnly
+                                value={formatCurrency(total)}
+                                className="w-full p-2 bg-gray-50 border border-gray-200 rounded-md text-right text-lg font-semibold"
+                            />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <label className="text-sm text-gray-600">Descuentos</label>
+                            <input
+                                type="text"
+                                readOnly
+                                value={formatCurrency(totalDescuentos)}
+                                className="w-full p-2 bg-gray-50 border border-gray-200 rounded-md text-right text-lg font-semibold"
+                            />
+                        </div>
+                        <div className="flex flex-col gap-1">
+                            <label className="text-sm text-gray-600">Total a Pagar</label>
+                            <input
+                                type="text"
+                                readOnly
+                                value={formatCurrency(totalAPagar)}
+                                className="w-full p-2 bg-gray-50 border border-gray-200 rounded-md text-right text-lg font-semibold text-blue-600"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col gap-4 mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm text-gray-600">Tipo de Venta</span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm text-gray-600">Comun</span>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input
+                                        disabled
+                                        type="checkbox"
+                                        className="sr-only peer"
+                                        checked={tipoVenta.tipo === "factura"}
+                                        onChange={(e) => setTipoVenta({ tipo: e.target.checked ? "factura" : "comun" })}
+                                    />
+                                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                                </label>
+                                <span className="text-sm text-gray-600">Factura</span>
+                            </div>
+                        </div>
+
+                        {tipoVenta.tipo === "factura" && datosFacturacion && (
+                            <div className="flex flex-col gap-2">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm text-gray-600">Nro:</span>
+                                    <span className="font-medium">{datosFacturacion.d_establecimiento} - {datosFacturacion.d_p_emision} - {datosFacturacion.d_nro_secuencia || 'No disponible'}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm text-gray-600">Timbrado:</span>
+                                    <span className="font-medium">{datosFacturacion.d_nrotimbrado || 'No disponible'}</span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="flex gap-3 mt-4">
+                        <button
+                            onClick={() => { }}
+                            className="flex-1 bg-red-500 text-white py-3 rounded-md hover:bg-red-600 transition-colors flex items-center justify-center gap-2 text-sm"
+                        >
+                            <Trash2 className="w-5 h-5" />
+                            Cancelar Venta
+                        </button>
+                        <button
+                            onClick={handleFinalizarVenta}
+                            className="flex-1 bg-green-500 text-white py-3 rounded-md hover:bg-green-600 transition-colors flex items-center justify-center gap-2 text-sm"
+                        >
+                            <ShoppingBag className="w-5 h-5" />
+                            Finalizar Venta
+                        </button>
+                    </div>
                 </div>
             </BottomSheet>
 

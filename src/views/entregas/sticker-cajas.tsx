@@ -3,7 +3,7 @@ import axios from "axios";
 import { useEffect } from "react";
 import { useState } from "react";
 import { useToast } from "@chakra-ui/react";
-import { generatePDF } from "@/services/pdfService";
+import { generatePDF } from "@/shared/services/pdfService";
 import GaesaLogo from "@/assets/logos/gaesa_logo.jpg";
 
 interface StickerData {

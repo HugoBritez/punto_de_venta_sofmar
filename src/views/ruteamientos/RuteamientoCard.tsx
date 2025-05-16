@@ -1,4 +1,4 @@
-import { DetallePedidos, Localizacion, Pedidos } from "@/types/shared_interfaces";
+import { DetallePedidos, Localizacion, Pedidos } from "@/shared/types/shared_interfaces";
 import { api_url } from "@/utils";
 import {
   Badge,
@@ -44,10 +44,10 @@ import {
   SquareMenu,
 } from "lucide-react";
 import {  useState } from "react";
-import { Nota } from "@/types/shared_interfaces";
+import { Nota } from "@/shared/types/shared_interfaces";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import Auditar from "@/services/AuditoriaHook";
+import Auditar from "@/shared/services/AuditoriaHook";
 
 interface RuteamientoCardProps {
   clienteNombre: string;

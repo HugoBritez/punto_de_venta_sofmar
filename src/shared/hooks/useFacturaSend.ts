@@ -5,7 +5,7 @@ import { api_url } from "@/utils";
 import {
   DatosFacturaElectronica,
   FacturaSendResponse,
-} from "@/types/factura_electronica/types";
+} from "@/shared/types/factura_electronica/types";
 
 export const useFacturaSend = () => {
   const [parametros, setParametros] = useState<DatosFacturaElectronica | null>(

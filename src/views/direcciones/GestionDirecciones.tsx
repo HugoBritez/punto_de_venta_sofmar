@@ -3,14 +3,15 @@ import {
   UbicacionDTO,
   AgrupacionDTO,
   ItemsPorDireccionDTO,
+  Ubicacion,
 } from "./types/ubicaciones.type";
 import { useDirecciones } from "./hooks/useDirecciones";
 import { Boxes, Plus } from "lucide-react";
 import { useToast } from "@chakra-ui/react";
 import { useItemsPorDireccion } from "./hooks/useItemsPorDireccion";
-import Modal from "@/ui/modal/Modal";
-import { BuscadorArticulos } from "@/ui/buscador_articulos/BuscadorArticulos";
-import { Articulo } from "@/ui/buscador_articulos/types/articulo";
+import Modal from "@/shared/ui/modal/Modal";
+import { BuscadorArticulos } from "@/shared/ui/buscador_articulos/BuscadorArticulos";
+import { Articulo } from "@/shared/ui/buscador_articulos/types/articulo";
 import DireccionesRotulo from "./DireccionesRotulo";
 import { createRoot } from "react-dom/client";
 
@@ -68,7 +69,7 @@ const GestionDirecciones = () => {
       zona: 0,
     });
 
-  const [itemsPorDireccionDTO, setItemsPorDireccionDTO] =
+  const [itemsPorDireccionDTO, ] =
     useState<ItemsPorDireccionDTO>({
       rango: {
         d_calle_inicial: "",
@@ -85,6 +86,7 @@ const GestionDirecciones = () => {
     });
 
   const [isOpen, setIsOpen] = useState(false);
+  const [selectedDirecciones, setSelectedDirecciones] = useState<Ubicacion[]>([]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type } = e.target;
@@ -95,7 +97,7 @@ const GestionDirecciones = () => {
         type === "radio"
           ? Number(value)
           : type === "number"
-          ? Number(value)
+          ? value === "" ? 0 : Number(value)
           : name === "d_calle_inicial" || name === "d_calle_final"
           ? value.toUpperCase()
           : value,
@@ -103,12 +105,25 @@ const GestionDirecciones = () => {
   };
 
   const handleSeleccionarArticulo = (articulo: Articulo) => {
-    const nuevoDTO = {
-      ...itemsPorDireccionDTO,
-      articulo: articulo.id_articulo,
-    };
-    setItemsPorDireccionDTO(nuevoDTO);
-    crearItemsPorDireccion(nuevoDTO);
+    if (selectedDirecciones.length === 0) {
+      toast({
+        title: "Error",
+        description: "Debe seleccionar al menos una dirección",
+        status: "error",
+        duration: 5000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    selectedDirecciones.forEach(direccion => {
+      const nuevoDTO: ItemsPorDireccionDTO = {
+        articulo: articulo.id_articulo,
+        rango: convertirUbicacionADTO(direccion)
+      };
+      crearItemsPorDireccion(nuevoDTO);
+    });
+
     setIsOpen(false);
     setTimeout(async () => {
       await obtenerItemsPorDireccion();
@@ -176,24 +191,6 @@ const GestionDirecciones = () => {
     }
   };
 
-  const handleChangeRangoItemsPorDireccion = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const { name, value, type } = e.target;
-
-    setItemsPorDireccionDTO({
-      ...itemsPorDireccionDTO,
-      rango: {
-        ...itemsPorDireccionDTO.rango,
-        [name]:
-          type === "number"
-            ? Number(value)
-            : name === "d_calle_inicial" || name === "d_calle_final"
-            ? value.toUpperCase()
-            : value,
-      },
-    });
-  };
 
   const handleCrearUbicacion = async () => {
     try {
@@ -340,29 +337,64 @@ const GestionDirecciones = () => {
     }, 2000);
   }
 
-  const handleImprimirRotulos = async () => {
-    if(
-      !itemsPorDireccionDTO.rango.d_calle_inicial || itemsPorDireccionDTO.rango.d_calle_inicial === "" ||
-      !itemsPorDireccionDTO.rango.d_calle_final || itemsPorDireccionDTO.rango.d_calle_final === "" ||
-      !itemsPorDireccionDTO.rango.d_predio_inicial || itemsPorDireccionDTO.rango.d_predio_inicial === 0 ||
-      !itemsPorDireccionDTO.rango.d_predio_final || itemsPorDireccionDTO.rango.d_predio_final === 0 ||
-      !itemsPorDireccionDTO.rango.d_piso_inicial || itemsPorDireccionDTO.rango.d_piso_inicial === 0 ||
-      !itemsPorDireccionDTO.rango.d_piso_final || itemsPorDireccionDTO.rango.d_piso_final === 0 ||
-      !itemsPorDireccionDTO.rango.d_direccion_inicial || itemsPorDireccionDTO.rango.d_direccion_inicial === 0 ||
-      !itemsPorDireccionDTO.rango.d_direccion_final || itemsPorDireccionDTO.rango.d_direccion_final === 0
-    ){
-      toast({
-        title: "Error",
-        description: "Debe completar todos los campos",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      })
+  const handleDireccionSelection = (direccion: Ubicacion) => {
+    if (!direccion) return;
+
+    setSelectedDirecciones(prev => {
+      const exists = prev.some(d => 
+        d && d.d_calle === direccion.d_calle && 
+        d.d_predio === direccion.d_predio && 
+        d.d_piso === direccion.d_piso && 
+        d.d_direccion === direccion.d_direccion
+      );
+      
+      if (exists) {
+        return prev.filter(d => 
+          d && !(d.d_calle === direccion.d_calle && 
+            d.d_predio === direccion.d_predio && 
+            d.d_piso === direccion.d_piso && 
+            d.d_direccion === direccion.d_direccion)
+        );
+      } else {
+        return [...prev, direccion];
+      }
+    });
+  };
+
+  const convertirUbicacionADTO = (ubicacion: Ubicacion): Omit<UbicacionDTO, 'd_tipo_direccion' | 'd_estado'> => {
+    return {
+      d_calle_inicial: ubicacion.d_calle,
+      d_calle_final: ubicacion.d_calle,
+      d_predio_inicial: ubicacion.d_predio,
+      d_predio_final: ubicacion.d_predio,
+      d_piso_inicial: ubicacion.d_piso,
+      d_piso_final: ubicacion.d_piso,
+      d_direccion_inicial: ubicacion.d_direccion,
+      d_direccion_final: ubicacion.d_direccion
+    };
+  };
+
+  const obtenerArticulosDeDireccionesSeleccionadas = async () => {
+    if (selectedDirecciones.length === 0) {
+      await obtenerItemsPorDireccion();
+      return;
     }
-    else{
-      ComponenteRotulo(itemsPorDireccionDTO.rango)
-    }
-  }
+
+    const articulosPromises = selectedDirecciones.map(direccion => {
+      const dto = convertirUbicacionADTO(direccion);
+      return obtenerItemsPorDireccion({
+        ...dto,
+        d_tipo_direccion: 1,
+        d_estado: 1
+      });
+    });
+    
+    await Promise.all(articulosPromises);
+  };
+
+  useEffect(() => {
+    obtenerArticulosDeDireccionesSeleccionadas();
+  }, [selectedDirecciones]);
 
   return (
     <div className="flex flex-col gap-2 bg-gray-100 h-screen p-2">
@@ -411,6 +443,7 @@ const GestionDirecciones = () => {
                       value={ubicacionDTO.d_predio_inicial}
                       onChange={handleChange}
                       min="0"
+                      step="1"
                       className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </td>
@@ -421,6 +454,7 @@ const GestionDirecciones = () => {
                       value={ubicacionDTO.d_piso_inicial}
                       onChange={handleChange}
                       min="0"
+                      step="1"
                       className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </td>
@@ -431,6 +465,7 @@ const GestionDirecciones = () => {
                       value={ubicacionDTO.d_direccion_inicial}
                       onChange={handleChange}
                       min="0"
+                      step="1"
                       className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </td>
@@ -455,6 +490,7 @@ const GestionDirecciones = () => {
                       value={ubicacionDTO.d_predio_final}
                       onChange={handleChange}
                       min="0"
+                      step="1"
                       className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </td>
@@ -465,6 +501,7 @@ const GestionDirecciones = () => {
                       value={ubicacionDTO.d_piso_final}
                       onChange={handleChange}
                       min="0"
+                      step="1"
                       className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </td>
@@ -475,6 +512,7 @@ const GestionDirecciones = () => {
                       value={ubicacionDTO.d_direccion_final}
                       onChange={handleChange}
                       min="0"
+                      step="1"
                       className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </td>
@@ -587,15 +625,15 @@ const GestionDirecciones = () => {
                     <tr key={index} className="hover:bg-gray-50">
                       <td className="border border-gray-300 px-4 py-2">
                         {ubicacion?.d_calle || ""}
+                      </td> 
+                      <td className="border border-gray-300 px-4 py-2">
+                        {ubicacion?.d_predio || "0"}
                       </td>
                       <td className="border border-gray-300 px-4 py-2">
-                        {ubicacion?.d_predio || ""}
+                        {ubicacion?.d_piso || "0"}
                       </td>
                       <td className="border border-gray-300 px-4 py-2">
-                        {ubicacion?.d_piso || ""}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2">
-                        {ubicacion?.d_direccion || ""}
+                        {ubicacion?.d_direccion || "0"}
                       </td>
                     </tr>
                   ))
@@ -894,142 +932,81 @@ const GestionDirecciones = () => {
           </div>
         </div>
       </div>
+
+      
       {/*FORMULARIO PARA RELACIONAR ITEMS CON SUS RESPECTIVA UBICACIONES */}
       <div className="flex flex-col gap-2 border-4 border-gray-300 rounded-md p-2 bg-white ">
         <p className="font-bold text-xl ">Formulario de items en direcciones</p>
         <div className="flex flex-row gap-2">
-          <div className="flex flex-col">
-            <table className="w-full border-collapse border border-gray-300">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="border border-gray-300 px-4 py-2"></th>
-                  <th className="border border-gray-300 px-4 py-2">CALLE</th>
-                  <th className="border border-gray-300 px-4 py-2">ESTANTE</th>
-                  <th className="border border-gray-300 px-4 py-2">PISO</th>
-                  <th className="border border-gray-300 px-4 py-2">
-                    DIRECCION
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr className="hover:bg-gray-50">
-                  <td className="border border-gray-300 px-4 py-2 font-medium">
-                    Inicial
-                  </td>
-                  <td className="border border-gray-300 px-4 py-2">
-                    <input
-                      type="text"
-                      name="d_calle_inicial"
-                      value={itemsPorDireccionDTO.rango.d_calle_inicial}
-                      onChange={handleChangeRangoItemsPorDireccion}
-                      className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </td>
-                  <td className="border border-gray-300 px-4 py-2">
-                    <input
-                      type="number"
-                      name="d_predio_inicial"
-                      value={itemsPorDireccionDTO.rango.d_predio_inicial}
-                      onChange={handleChangeRangoItemsPorDireccion}
-                      min="0"
-                      className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </td>
-                  <td className="border border-gray-300 px-4 py-2">
-                    <input
-                      type="number"
-                      name="d_piso_inicial"
-                      value={itemsPorDireccionDTO.rango.d_piso_inicial}
-                      onChange={handleChangeRangoItemsPorDireccion}
-                      min="0"
-                      className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </td>
-                  <td className="border border-gray-300 px-4 py-2">
-                    <input
-                      type="number"
-                      name="d_direccion_inicial"
-                      value={itemsPorDireccionDTO.rango.d_direccion_inicial}
-                      onChange={handleChangeRangoItemsPorDireccion}
-                      min="0"
-                      className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </td>
-                </tr>
-                <tr className="hover:bg-gray-50">
-                  <td className="border border-gray-300 px-4 py-2 font-medium">
-                    Final
-                  </td>
-                  <td className="border border-gray-300 px-4 py-2">
-                    <input
-                      type="text"
-                      name="d_calle_final"
-                      value={itemsPorDireccionDTO.rango.d_calle_final}
-                      onChange={handleChangeRangoItemsPorDireccion}
-                      className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </td>
-                  <td className="border border-gray-300 px-4 py-2">
-                    <input
-                      type="number"
-                      name="d_predio_final"
-                      value={itemsPorDireccionDTO.rango.d_predio_final}
-                      onChange={handleChangeRangoItemsPorDireccion}
-                      min="0"
-                      className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </td>
-                  <td className="border border-gray-300 px-4 py-2">
-                    <input
-                      type="number"
-                      name="d_piso_final"
-                      value={itemsPorDireccionDTO.rango.d_piso_final}
-                      onChange={handleChangeRangoItemsPorDireccion}
-                      min="0"
-                      className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </td>
-                  <td className="border border-gray-300 px-4 py-2">
-                    <input
-                      type="number"
-                      name="d_direccion_final"
-                      value={itemsPorDireccionDTO.rango.d_direccion_final}
-                      onChange={handleChangeRangoItemsPorDireccion}
-                      min="0"
-                      className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-            <div className="flex flex-row gap-2 justify-center items-center">
+          <div className="flex flex-col w-1/2">
+            <div className="flex flex-col gap-2">
+              <div className="flex justify-between items-center">
+                <h3 className="font-semibold text-lg">Seleccionar Direcciones</h3>
+                <input
+                  type="text"
+                  placeholder="Buscar dirección"
+                  onChange={handleBusquedaUbicaciones}
+                  className="w-1/2 px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div className="border border-gray-300 rounded-md p-2 max-h-[400px] overflow-y-auto">
+                {loading ? (
+                  <div className="flex justify-center items-center p-4">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                  </div>
+                ) : !ubicaciones || ubicaciones.length === 0 ? (
+                  <p className="text-center text-gray-500 p-4">No hay direcciones disponibles</p>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {ubicaciones.map((ubicacion, index) => (
+                      <div 
+                        key={index} 
+                        className="flex items-center gap-2 p-2 hover:bg-gray-50 border-b border-gray-200 last:border-b-0"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedDirecciones.some(d => 
+                            d && d.d_calle === ubicacion.d_calle && 
+                            d.d_predio === ubicacion.d_predio && 
+                            d.d_piso === ubicacion.d_piso && 
+                            d.d_direccion === ubicacion.d_direccion
+                          )}
+                          onChange={() => handleDireccionSelection(ubicacion)}
+                          className="w-4 h-4 text-blue-500 cursor-pointer"
+                        />
+                        <span className="flex-1">
+                          {ubicacion && `${ubicacion.d_calle} - Estante: ${ubicacion.d_predio} - Piso: ${ubicacion.d_piso} - Dirección: ${ubicacion.d_direccion}`}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="flex flex-row gap-2 justify-center items-center mt-4">
               <button
-                className="bg-red-500 text-white px-4 py-2 rounded-md mt-2"
-                onClick={() =>
-                  eliminarItemsPorDireccion(
-                    itemsPorDireccionDTO.rango,
-                    itemsPorDireccionDTO.articulo
-                  )
-                }
+                className="bg-red-500 text-white px-4 py-2 rounded-md"
+                onClick={() => {
+                  selectedDirecciones.forEach(direccion => 
+                    eliminarItemsPorDireccion(convertirUbicacionADTO(direccion), itemsPorDireccionDTO.articulo)
+                  );
+                  setSelectedDirecciones([]);
+                }}
               >
                 <p className="text-white font-bold">
-                  Eliminar items de esta direccion
+                  Eliminar items de direcciones seleccionadas
                 </p>
               </button>
               <button
-                className="bg-blue-500 text-white px-4 py-2 rounded-md mt-2"
-                onClick={handleImprimirRotulos}
+                className="bg-blue-500 text-white px-4 py-2 rounded-md"
+                onClick={() => {
+                  selectedDirecciones.forEach(direccion => 
+                    ComponenteRotulo(convertirUbicacionADTO(direccion))
+                  );
+                }}
               >
                 <p className="text-white font-bold">
-                  Generar rotulos para esta direccion
-                </p>
-              </button>
-              <button
-                className="bg-orange-500 text-white px-4 py-2 rounded-md mt-2"
-                onClick={() => obtenerItemsPorDireccion(itemsPorDireccionDTO.rango as UbicacionDTO)}
-              >
-                <p className="text-white font-bold">
-                  Buscar items por direccion
+                  Generar rótulos para direcciones seleccionadas
                 </p>
               </button>
             </div>
@@ -1086,13 +1063,25 @@ const GestionDirecciones = () => {
                 )}
                 <tr>
                   <td
-                    className=" px-4 py-2 text-center text-gray-500 items-center justify-center hover:bg-gray-50 "
+                    className="px-4 py-2 text-center text-gray-500 items-center justify-center hover:bg-gray-50"
                     colSpan={5}
                   >
                     <div className="flex flex-row gap-2 items-center justify-center">
                       <button
                         className="bg-blue-500 text-white px-4 py-2 rounded-md flex flex-row gap-2 items-center justify-center"
-                        onClick={() => setIsOpen(true)}
+                        onClick={() => {
+                          if (selectedDirecciones.length === 0) {
+                            toast({
+                              title: "Error",
+                              description: "Debe seleccionar al menos una dirección",
+                              status: "error",
+                              duration: 5000,
+                              isClosable: true,
+                            });
+                            return;
+                          }
+                          setIsOpen(true);
+                        }}
                       >
                         <div className="flex flex-row gap-2 items-center justify-center">
                           Insertar items <Plus size={20} />

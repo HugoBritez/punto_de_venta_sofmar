@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { useAuth } from '../../services/AuthContext';
+import { useAuth } from '../../shared/services/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { 
   Box, 
@@ -20,12 +20,11 @@ import {
 } from '@chakra-ui/react';
 import { LockIcon, AtSignIcon, ViewIcon, ViewOffIcon } from '@chakra-ui/icons';
 import { api_url } from '@/utils';
-import Auditar from '@/services/AuditoriaHook';
 
 import logoSofmar from '@/assets/logos/logo_sofmar.png';
 import bgLogin from '@/assets/bg/login_bg.jpg';
 // import { traerConfiguraciones } from '@/services/ConfiguracionesHook';
-import { getConfiguraciones } from '@/services/ConfiguracionesHook';
+// import { getConfiguraciones } from '@/services/ConfiguracionesHook';
 
 const Login: React.FC = () => {
   const [usuario, setUsuario] = useState('');
@@ -35,23 +34,23 @@ const Login: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
-  const userID = parseInt(sessionStorage.getItem('user_id') || '0');
   const [isMobile] = useMediaQuery('(max-width: 768px)');
 
   const ingresar = async () => {
     try {
-      const response = await axios.post(`${api_url}usuarios/login`, {
-        user: usuario,
-        pass: password,
+      const response = await axios.post(`${api_url}auth/login`, {
+        usuario: usuario,
+        password: password,
       });
+
+      console.log("response", response.data);
 
       // const permisosData = await traerConfiguraciones();
       // setPermisos(permisosData);
-      login(response.data.body);
-      sessionStorage.setItem('permiso_graficos', response.data.body.usuario[0].op_graficos);
+      login(response.data);
+      sessionStorage.setItem('permiso_graficos', response.data.usuario[0].op_graficos);
       navigate('/home');
-      Auditar(10, 4, userID, 0, 'Inicio de Sesión desde la web');
-      getConfiguraciones();
+      // getConfiguraciones();
     } catch (error) {
       console.error('Login error:', error);
       toast({

@@ -34,15 +34,15 @@ import {
   NumberDecrementStepper,
 } from "@chakra-ui/react";
 import axios from "axios";
-import { useAuth } from "@/services/AuthContext";
+import { useAuth } from "@/shared/services/AuthContext";
 import { api_url } from "@/utils";
 import { debounce } from "lodash";
 import ResumenVentas from "../ventas/ResumenVentas";
-import MenuContextual from "../../modules/MenuContextual";
+import MenuContextual from "../../shared/modules/MenuContextual";
 import PresupuestoModal from "./imprimirPresupuesto";
 import PresupuestoModalEstilizado from "./imprimirPresupuestoEstilizado";
-import { useSwitch } from "@/services/SwitchContext";
-import Auditar from "@/services/AuditoriaHook";
+import { useSwitch } from "@/shared/services/SwitchContext";
+import Auditar from "@/shared/services/AuditoriaHook";
 
 interface Sucursal {
   id: number;

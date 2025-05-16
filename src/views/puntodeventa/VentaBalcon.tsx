@@ -11,7 +11,7 @@ import {
   Presupuesto,
   Remisiones,
   Venta,
-} from "@/types/shared_interfaces";
+} from "@/shared/types/shared_interfaces";
 import { api_url } from "@/utils";
 import axios from "axios";
 import {
@@ -44,7 +44,7 @@ import {
 } from "lucide-react";
 import { ShoppingCart } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import FloatingCard from "@/modules/FloatingCard";
+import FloatingCard from "@/shared/modules/FloatingCard";
 import ModeloTicket from "../facturacion/ModeloTicket";
 import ModeloFacturaNuevo from "../facturacion/ModeloFacturaNuevo";
 import ConsultaPedidos from "../pedidos/ConsultaPedidos";
@@ -54,15 +54,15 @@ import ResumenVentas from "../ventas/ResumenVentas";
 import { createRoot } from "react-dom/client";
 import ModeloNotaComun from "../facturacion/ModeloNotaComun";
 import ItemsFaltantesDoc from "./pdf/impresion_articulos_faltantes";
-import Auditar from "@/services/AuditoriaHook";
-import ArticuloInfoCard from "@/modules/ArticuloInfoCard";
-import { FacturaSendResponse } from "@/types/factura_electronica/types";
+import Auditar from "@/shared/services/AuditoriaHook";
+import ArticuloInfoCard from "@/shared/modules/ArticuloInfoCard";
+import { FacturaSendResponse } from "@/shared/types/factura_electronica/types";
 import { useFacturacionElectronicaStore } from "@/stores/facturacionElectronicaStore";
-import { useFacturaSend } from "@/hooks/useFacturaSend";
+import { useFacturaSend } from "@/shared/hooks/useFacturaSend";
 import { useTipoImpresionFacturaStore } from "@/stores/tipoImpresionFacturaStore";
 import ModeloFacturaReport from "../facturacion/ModeloFacturaReport";
-import { ArticulosComponent } from "@/ui/articulos/ArticulosComponent";
-import BuscadorClientes from "@/ui/clientes/BuscadorClientes";
+import { ArticulosComponent } from "@/shared/ui/articulos/ArticulosComponent";
+import BuscadorClientes from "@/shared/ui/clientes/BuscadorClientes";
 
 interface ItemParaVenta {
   precio_guaranies: number;

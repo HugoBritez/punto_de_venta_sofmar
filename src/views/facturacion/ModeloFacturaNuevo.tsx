@@ -1,9 +1,9 @@
-import { Configuraciones } from "@/types/shared_interfaces";
+import { Configuraciones } from "@/shared/types/shared_interfaces";
 import axios from "axios";
 import { api_url } from "@/utils";
 import { useState, useEffect } from "react";
 import { useToast } from "@chakra-ui/react";
-import { generatePDF } from "@/services/pdfService";
+import { generatePDF } from "@/shared/services/pdfService";
 
 interface ModeloTicketProps {
   id_venta?: number;

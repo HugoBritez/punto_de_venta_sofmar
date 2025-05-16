@@ -1,6 +1,6 @@
 import { useEffect} from "react";
 import { useSucursalStore } from "@/stores/sucursalStore";
-import { generatePDF } from "@/services/pdfService";
+import { generatePDF } from "@/shared/services/pdfService";
 
 interface ItemsFaltantesDocProps {
     id_pedido: number;

@@ -68,6 +68,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   const INACTIVITY_THRESHOLD = 30 * 60 * 1000;
 
   useEffect(() => {
+
     const loadAuthState = () => {
       const movimiento = sessionStorage.getItem("operador_movimiento");
       const token = sessionStorage.getItem("token");
@@ -167,6 +168,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   }, [auth?.tokenExpiration, lastActivity]);
 
   const login = (data: LoginData) => {
+
+    console.log("data desde login", data);
     const expirationTime = new Date().getTime() + 30 * 60 * 1000;
 
     const permisosMenu = Array.isArray(data.usuario[0].permisos_menu)

@@ -11,7 +11,7 @@ import {
   Remisiones,
   Venta,
   ArticuloBusqueda,
-} from "@/types/shared_interfaces";
+} from "@/shared/types/shared_interfaces";
 import { api_url } from "@/utils";
 import axios from "axios";
 import {
@@ -42,7 +42,7 @@ import {
 } from "lucide-react";
 import { ShoppingCart } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
-import FloatingCard from "@/modules/FloatingCard";
+import FloatingCard from "@/shared/modules/FloatingCard";
 import ModeloTicket from "../facturacion/ModeloTicket";
 import ConsultaPedidos from "../pedidos/ConsultaPedidos";
 import ConsultaPresupuestos from "../presupuestos/ConsultaPresupuesto";
@@ -51,15 +51,15 @@ import ResumenVentas from "../ventas/ResumenVentas";
 import { createRoot } from "react-dom/client";
 import ModeloFacturaNuevo from "../facturacion/ModeloFacturaNuevo";
 import ModeloNotaComun from "../facturacion/ModeloNotaComun";
-import Auditar from "@/services/AuditoriaHook";
-import { FacturaSendResponse } from "@/types/factura_electronica/types";
+import Auditar from "@/shared/services/AuditoriaHook";
+import { FacturaSendResponse } from "@/shared/types/factura_electronica/types";
 import { useFacturacionElectronicaStore } from "@/stores/facturacionElectronicaStore";
-import { useFacturaSend } from "@/hooks/useFacturaSend";
+import { useFacturaSend } from "@/shared/hooks/useFacturaSend";
 import { useTipoImpresionFacturaStore } from "@/stores/tipoImpresionFacturaStore";
 import ModeloFacturaReport from "../facturacion/ModeloFacturaReport";
-import ArticuloInfoCard from "@/modules/ArticuloInfoCard";
-import BuscadorClientes from "@/ui/clientes/BuscadorClientes";
-import { useConfiguraciones } from "@/services/configuraciones/configuracionesHook";
+import ArticuloInfoCard from "@/shared/modules/ArticuloInfoCard";
+import BuscadorClientes from "@/shared/ui/clientes/BuscadorClientes";
+import { useConfiguraciones } from "@/shared/services/configuraciones/configuracionesHook";
 
 interface ItemParaVenta {
   precio_guaranies: number;

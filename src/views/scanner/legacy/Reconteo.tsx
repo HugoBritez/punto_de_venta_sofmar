@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 
 import { motion, AnimatePresence } from "framer-motion";
-import Auditar from "@/services/AuditoriaHook";
+import Auditar from "@/shared/services/AuditoriaHook";
 
 interface Articulo {
   ar_codigo: number;

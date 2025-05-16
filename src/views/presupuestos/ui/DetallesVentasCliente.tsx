@@ -1,5 +1,5 @@
 import { Box,  IconButton, Heading, Flex } from "@chakra-ui/react";
-import { Cliente } from "@/types/shared_interfaces";
+import { Cliente } from "@/shared/types/shared_interfaces";
 import { api_url } from "@/utils";
 import { useToast } from "@chakra-ui/react";
 import axios from "axios";

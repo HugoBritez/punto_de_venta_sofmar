@@ -39,11 +39,11 @@ import {
   Radio,
 } from "@chakra-ui/react";
 import axios from "axios";
-import { useAuth } from "@/services/AuthContext";
+import { useAuth } from "@/shared/services/AuthContext";
 import { api_url } from "@/utils";
 import { debounce } from "lodash";
 import VentaModal from "../ventas/imprimirVenta";
-import Auditar from "@/services/AuditoriaHook";
+import Auditar from "@/shared/services/AuditoriaHook";
 import ResumenVentas from "../ventas/ResumenVentas";
 
 interface Sucursal {

@@ -25,12 +25,12 @@ import { api_url } from "@/utils";
 import { SearchIcon } from "@chakra-ui/icons";
 import { Handshake } from "lucide-react";
 import PedidoModal from "./imprimirPedido";
-import MenuContextual from "../../modules/MenuContextual";
-import { useSwitch } from "@/services/SwitchContext";
+import MenuContextual from "../../shared/modules/MenuContextual";
+import { useSwitch } from "@/shared/services/SwitchContext";
 import PedidoModalEstilizado from "./imprimirPedidoEstilizado";
-import { Moneda, Sucursal, Vendedor } from "@/types/shared_interfaces";
-import FloatingCard from "@/modules/FloatingCard";
-import ConfirmationModal from "@/modules/ConfirmModal";
+import { Moneda, Sucursal, Vendedor } from "@/shared/types/shared_interfaces";
+import FloatingCard from "@/shared/modules/FloatingCard";
+import ConfirmationModal from "@/shared/modules/ConfirmModal";
 
 
 interface PedidosNuevo {

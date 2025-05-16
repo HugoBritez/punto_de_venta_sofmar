@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Image as ImageIcon, Upload, Settings, Eye } from "lucide-react";
 import fallbackheader from "@/assets/logosdocumentos/fallbackheader.jpg";
 import fallbackfooter from "@/assets/logosdocumentos/fallbackfooter.jpg";
-import { generatePDF } from "@/services/pdfService";
+import { generatePDF } from "@/shared/services/pdfService";
 import { api_url } from "@/utils";
 import axios from "axios";
 import configuracionesWebStore from "@/stores/configuracionesWebStore";

@@ -37,12 +37,12 @@ import {
   NumberInput,
 } from "@chakra-ui/react";
 import axios from "axios";
-import { useAuth } from "@/services/AuthContext";
+import { useAuth } from "@/shared/services/AuthContext";
 import { api_url } from "@/utils";
 import { debounce } from "lodash";
 import VentaModal from "../ventas/imprimirVenta";
-import Auditar from "@/services/AuditoriaHook";
-import { MetodosPago, Factura } from "@/types/shared_interfaces";
+import Auditar from "@/shared/services/AuditoriaHook";
+import { MetodosPago, Factura } from "@/shared/types/shared_interfaces";
 
 interface Sucursal {
   id: number;

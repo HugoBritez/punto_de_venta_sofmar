@@ -11,7 +11,7 @@ import {
   Subcategoria,
   Sucursal,
   Vendedor,
-} from "@/types/shared_interfaces";
+} from "@/shared/types/shared_interfaces";
 import { api_url } from "@/utils";
 import {
   Box,

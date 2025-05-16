@@ -1,5 +1,5 @@
-import Auditar from "@/services/AuditoriaHook";
-import {   Nota } from "@/types/shared_interfaces";
+import Auditar from "@/shared/services/AuditoriaHook";
+import {   Nota } from "@/shared/types/shared_interfaces";
 import { api_url } from "@/utils";
 import {
   Box,

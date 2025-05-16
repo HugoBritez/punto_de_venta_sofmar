@@ -1,4 +1,4 @@
-import { generatePDF } from "@/services/pdfService";
+import { generatePDF } from "@/shared/services/pdfService";
 import { useEffect, useState } from "react";
 import { Rotulo } from "./types/rotulo.type";
 import { useRotulos } from "./hooks/useRotulos";

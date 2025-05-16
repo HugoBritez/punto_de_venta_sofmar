@@ -1,8 +1,8 @@
 import axios from "axios";
 import { api_url } from "@/utils";
 import { useState, useEffect } from "react";
-import { Configuraciones } from "@/types/shared_interfaces";
-import { generatePDF } from "@/services/pdfService";
+import { Configuraciones } from "@/shared/types/shared_interfaces";
+import { generatePDF } from "@/shared/services/pdfService";
 
 interface PreparacionPedido {
   id_pedido: number;

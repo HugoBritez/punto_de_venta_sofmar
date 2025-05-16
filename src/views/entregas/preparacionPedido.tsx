@@ -22,11 +22,11 @@ import { format } from "date-fns";
 import { api_url } from "@/utils";
 import { SearchIcon } from "@chakra-ui/icons";
 import { Handshake, Printer } from "lucide-react";
-import MenuContextual from "../../modules/MenuContextual";
+import MenuContextual from "../../shared/modules/MenuContextual";
 
-import { Moneda, Sucursal, Vendedor } from "@/types/shared_interfaces";
+import { Moneda, Sucursal, Vendedor } from "@/shared/types/shared_interfaces";
 import DocumentoPreparacion from "./documento-preparacion";
-import FloatingCard from "@/modules/FloatingCard";
+import FloatingCard from "@/shared/modules/FloatingCard";
 import StickerCajas from "./sticker-cajas";
 import { createRoot } from "react-dom/client";
 import ReporteEntregasExcel from "./ReporteEntregasExcel";

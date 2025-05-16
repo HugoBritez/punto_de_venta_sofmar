@@ -1,7 +1,6 @@
-import { Moneda } from "@/types/shared_interfaces";
-import { api_url } from "@/utils";
-import axios from "axios";
+import { Moneda } from "@/api/monedasApi";
 import { create } from "zustand";
+import { getMonedas } from "@/api/monedasApi";
 
 interface MonedasStore{
     monedas: Moneda[]
@@ -14,8 +13,8 @@ export const useMonedasStore = create<MonedasStore>((set)=>({
     setMonedas: (monedas: Moneda[])=>set({monedas}),
     fetchMonedas: async ()=>{
         try{
-            const response = await axios.get(`${api_url}monedas/`);
-            set({monedas: response.data.body})
+            const response = await getMonedas();
+            set({monedas: response})
         } catch(error){
             console.error('Error al obtener las monedas:', error)
         }  

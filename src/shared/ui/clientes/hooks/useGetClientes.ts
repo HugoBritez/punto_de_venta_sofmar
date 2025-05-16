@@ -11,7 +11,6 @@ interface UseGetClientes {
     getClientes: (busqueda: BusquedaDTO) => Promise<void>;
 }
 
-
 export const useGetClientes = (): UseGetClientes => {
     const [clientes, setClientes] = useState<Cliente[]>([]);
     const [loading, setLoading] = useState(false);
@@ -30,7 +29,6 @@ export const useGetClientes = (): UseGetClientes => {
     }
 
     return { clientes, loading, error, getClientes };
-    
     
 }
 

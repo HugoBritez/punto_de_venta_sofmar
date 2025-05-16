@@ -20,7 +20,11 @@ export const transformarDetalleVenta = (
         deve_codioot: detalleVentaTabla.deve_codioot,
         deve_costo: detalleVentaTabla.deve_costo,
         deve_costo_art: detalleVentaTabla.deve_costo_art,
+        deve_descripcion_editada: detalleVentaTabla.deve_descripcion_editada,
         deve_cinco_x: detalleVentaTabla.deve_cinco_x,
         deve_diez_x: detalleVentaTabla.deve_diez_x,
+        lote: detalleVentaTabla.lote,
+        lote_id: detalleVentaTabla.lote_id,
+        articulo_editado: detalleVentaTabla.articulo_editado,
     };
 }

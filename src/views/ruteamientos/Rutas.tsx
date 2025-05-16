@@ -7,17 +7,17 @@ import {
   Button,
   useToast,
 } from "@chakra-ui/react";
-import HeaderComponent from "../../modules/Header";
+import HeaderComponent from "../../shared/modules/Header";
 import {  Route, RouteOff, Truck } from "lucide-react";
 import { Grid } from "@chakra-ui/react";
-import { Agenda, Cliente } from "@/types/shared_interfaces";
+import { Agenda, Cliente } from "@/shared/types/shared_interfaces";
 import axios from "axios";
 import { api_url } from "@/utils";
 import { useEffect, useState } from "react";
-import { useAuth } from "@/services/AuthContext";
+import { useAuth } from "@/shared/services/AuthContext";
 import RuteamientoCard from "./RuteamientoCard";
 import RutaActualCard from "./RutaActualCard";
-import Auditar from "@/services/AuditoriaHook";
+import Auditar from "@/shared/services/AuditoriaHook";
 
 const fechaDesde = new Date().toISOString().split("T")[0];
 const fechaHasta = new Date().toISOString().split("T")[0];

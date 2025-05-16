@@ -1,5 +1,5 @@
-import HeaderComponent from "@/modules/Header";
-import { Deposito, Sucursal } from "@/types/shared_interfaces";
+import HeaderComponent from "@/shared/modules/Header";
+import { Deposito, Sucursal } from "@/shared/types/shared_interfaces";
 import { api_url } from "@/utils";
 import { Button, Flex, Select, useToast } from "@chakra-ui/react";
 import axios from "axios";
@@ -400,6 +400,8 @@ const AutorizacionAjusteDeStock = () => {
   const [mostrarReporte, setMostrarReporte] = useState(false);
   const [showReportesModal, setShowReportesModal] = useState(false);
 
+  const user_id = sessionStorage.getItem('user_id');
+
   // Nuevo useEffect separado que depende del depositoId
 
   const fetchInventariosDisponibles = async () => {
@@ -430,7 +432,13 @@ const AutorizacionAjusteDeStock = () => {
     };
 
     const fetchDepositos = async () => {
-      const response = await axios.get(`${api_url}depositos/`);
+      const response = await axios.get(`${api_url}depositos/`,
+        {
+          params : {
+            usuario: user_id
+          }
+        }
+      );
       setDepositos(response.data.body);
       setDepositoSeleccionado(response.data.body[0]);
     };

@@ -1,9 +1,9 @@
-import { Agenda, Configuraciones } from "@/types/shared_interfaces";
+import { Agenda, Configuraciones } from "@/shared/types/shared_interfaces";
 import { api_url } from "@/utils";
 import axios from "axios";
 import React, { useState, useEffect } from "react";
 import {  useToast, Spinner } from "@chakra-ui/react";
-import { generatePDF } from "@/services/pdfService";
+import { generatePDF } from "@/shared/services/pdfService";
 
 interface ReporteAgendasProps {
   Agendas: Agenda[];

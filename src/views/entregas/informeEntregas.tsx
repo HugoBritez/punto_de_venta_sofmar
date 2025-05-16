@@ -5,7 +5,7 @@ import {
   Chofer,
   Configuraciones,
   Sucursal,
-} from "@/types/shared_interfaces";
+} from "@/shared/types/shared_interfaces";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { api_url } from "@/utils";

@@ -2,7 +2,7 @@ import axios from "axios";
 import { api_url } from "@/utils";
 import { useState, useEffect } from "react";
 import { useToast } from "@chakra-ui/react";
-import { generatePDF } from "@/services/pdfService";
+import { generatePDF } from "@/shared/services/pdfService";
 import configuracionesWebStore from "@/stores/configuracionesWebStore";
 
 interface ModeloTicketProps {

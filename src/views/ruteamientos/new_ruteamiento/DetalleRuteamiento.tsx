@@ -1,4 +1,4 @@
-import { Localizacion } from "@/types/shared_interfaces";
+import { Localizacion } from "@/shared/types/shared_interfaces";
 import { api_url } from "@/utils";
 import {
   Badge,
@@ -33,10 +33,10 @@ import {
   Trash,
 } from "lucide-react";
 import { useCallback, useState, useEffect, useMemo } from "react";
-import { Nota } from "@/types/shared_interfaces";
+import { Nota } from "@/shared/types/shared_interfaces";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import Auditar from "@/services/AuditoriaHook";
+import Auditar from "@/shared/services/AuditoriaHook";
 import {
   GoogleMap,
   useJsApiLoader,
@@ -588,6 +588,12 @@ const DetalleRuteamiento = ({
   const [, setLlegadaMarcada] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>("resultados");
 
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [locationQueue, setLocationQueue] = useState<{
+    type: 'llegada' | 'salida';
+    timestamp: string;
+  } | null>(null);
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey && notaNueva.trim()) {
       e.preventDefault();
@@ -857,38 +863,6 @@ const DetalleRuteamiento = ({
     }
   };
 
-  // const anularVisita = async () => {
-  //   try {
-  //     await axios.post(`${api_url}agendas/anular-visita`, {
-  //       a_codigo: ruteamientoId,
-  //     });
-  //     toast({
-  //       title: "Visita anulada",
-  //       description: "La visita fue anulada correctamente",
-  //       status: "success",
-  //       duration: 5000,
-  //       isClosable: true,
-  //     });
-  //     Auditar(
-  //       125,
-  //       3,
-  //       ruteamientoId,
-  //       Number(sessionStorage.getItem("user_id")),
-  //       `Se anuló el ruteamiento #${ruteamientoId}`
-  //     );
-  //     fetchRuteamientos();
-  //   } catch (error) {
-  //     toast({
-  //       title: "Error al anular la visita",
-  //       description:
-  //         "Ocurrió un error al anular la visita, por favor intente nuevamente",
-  //       status: "error",
-  //       duration: 5000,
-  //       isClosable: true,
-  //     });
-  //   }
-  // };
-
   const getColorByPriority = (priority: number) => {
     switch (priority) {
       case 1:
@@ -972,171 +946,166 @@ const DetalleRuteamiento = ({
     [getMapCenter]
   );
 
-  const marcarLlegada = async () => {
-    if (navigator.geolocation) {
+  const getLocationInBackground = () => {
+    return new Promise<GeolocationPosition>((resolve, reject) => {
+      const options = {
+        enableHighAccuracy: true,
+        timeout: 5000,
+        maximumAge: 0
+      };
+
       navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          try {
-            const horaActual = new Date().toLocaleTimeString("es-PY", {
-              hour: "2-digit",
-              minute: "2-digit",
-              second: "2-digit",
-              hour12: false,
-            });
-            
-            const response = await axios.post(
-              `${api_url}agendas/registrar-llegada`,
-              {
-                l_agenda: ruteamientoId,
-                l_fecha: new Date().toISOString().split("T")[0],
-                l_hora_inicio: horaActual,
-                l_obs: "Llegada del vendedor",
-                l_cliente: clienteId,
-                l_operador: sessionStorage.getItem("user_id"),
-                l_longitud: position.coords.longitude.toString(),
-                l_latitud: position.coords.latitude.toString(),
-                l_acuracia: 1,
-                l_estado: 1,
-                l_codigo: 0,
-              }
-            );
-
-            if (response.data.status === 201) {
-              // Actualizar estado local
-              setLlegadaMarcada(true);
-              setHoraLlegada(horaActual);
-              fetchLocalizaciones(ruteamientoId);
-              toast({
-                title: "Llegada marcada",
-                description: "La llegada ha sido marcada exitosamente",
-                status: "success",
-                duration: 2000,
-                isClosable: true,
-              });
-              Auditar(
-                125,
-                1,
-                ruteamientoId,
-                Number(sessionStorage.getItem("user_id")),
-                `El operador #${sessionStorage.getItem(
-                  "user_id"
-                )} llegó a su destino en la visita #${ruteamientoId}`
-              );
-
-              localStorage.setItem(`llegadaMarcada_${ruteamientoId}`, "true");
-            }
-          } catch (error) {
-            toast({
-              title: "Error al marcar la llegada",
-              description:
-                "Ocurrió un error al marcar la llegada, por favor intente nuevamente",
-              status: "error",
-              duration: 2000,
-              isClosable: true,
-            });
-          }
+        (position) => resolve(position),
+        () => {
+          // Si falla, intentar con menor precisión
+          navigator.geolocation.getCurrentPosition(
+            resolve,
+            reject,
+            { ...options, enableHighAccuracy: false }
+          );
         },
-        (error) => {
-          toast({
-            title: "Error obteniendo ubicación",
-            description: error.message,
-            status: "error",
-            duration: 2000,
-            isClosable: true,
-          });
-        }
+        options
       );
-    } else {
-      toast({
-        title: "Geolocalización no soportada",
-        description: "Tu navegador no soporta geolocalización.",
-        status: "error",
-        duration: 2000,
-        isClosable: true,
-      });
-    }
+    });
   };
 
-  const marcarSalida = async () => {
-    // if (!llegadaMarcada) {
-    //   toast({
-    //     title: "Error",
-    //     description: "Debe marcar primero la llegada",
-    //     status: "error",
-    //     duration: 2000,
-    //     isClosable: true,
-    //   });
-    //   return;
-    // }
+  const processLocationQueue = async () => {
+    if (!locationQueue || isProcessing) return;
+
+    setIsProcessing(true);
     try {
-      const horaActual = new Date().toLocaleTimeString("es-PY", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false,
-      });
-      
-      // Registrar la salida
-      const response = await axios.post(`${api_url}agendas/registrar-salida`, {
-        l_agenda: ruteamientoId,
-        l_hora_fin: horaActual,
-      });
+      const position = await getLocationInBackground();
+      const { type, timestamp } = locationQueue;
 
-      if (response.data.status === 201) {
-        // Finalizar la visita
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(
-            async (position) => {
-              await axios.post(`${api_url}agendas/finalizar-visita`, {
-                a_codigo: ruteamientoId,
-                a_latitud: position.coords.latitude.toString(),
-                a_longitud: position.coords.longitude.toString(),
-              });
-              
-              // Actualizar estado local
-              setHoraSalida(horaActual);
-              fetchLocalizaciones(ruteamientoId);
+      if (type === 'llegada') {
+        const response = await axios.post(`${api_url}agendas/registrar-llegada`, {
+          l_agenda: ruteamientoId,
+          l_fecha: new Date().toISOString().split("T")[0],
+          l_hora_inicio: timestamp,
+          l_obs: "Llegada del vendedor",
+          l_cliente: clienteId,
+          l_operador: sessionStorage.getItem("user_id"),
+          l_longitud: position.coords.longitude.toString(),
+          l_latitud: position.coords.latitude.toString(),
+          l_acuracia: 1,
+          l_estado: 1,
+          l_codigo: 0,
+        });
+        
+        if (response.data.status === 201) {
+          setHoraLlegada(timestamp);
+          setLlegadaMarcada(true);
+          fetchLocalizaciones(ruteamientoId);
+          
+          toast({
+            title: "Llegada registrada",
+            status: "success",
+            duration: 2000,
+          });
 
-              toast({
-                title: "Salida marcada",
-                description: "Se registró correctamente la salida y se finalizó la visita",
-                status: "success",
-                duration: 2000,
-                isClosable: true,
-              });
-              
-              Auditar(
-                125,
-                1,
-                ruteamientoId,
-                Number(sessionStorage.getItem("user_id")),
-                `El operador #${sessionStorage.getItem("user_id")} salió de su destino en la visita #${ruteamientoId}`
-              );
-              
-            },
-            (error) => {
-              toast({
-                title: "Error obteniendo ubicación",
-                description: error.message,
-                status: "error",
-                duration: 5000,
-                isClosable: true,
-              });
-            }
+          Auditar(
+            125,
+            1,
+            ruteamientoId,
+            Number(sessionStorage.getItem("user_id")),
+            `El operador #${sessionStorage.getItem("user_id")} llegó a su destino en la visita #${ruteamientoId}`
+          );
+        }
+      } else {
+        const response = await axios.post(`${api_url}agendas/registrar-salida`, {
+          l_agenda: ruteamientoId,
+          l_hora_fin: timestamp,
+        });
+
+        if (response.data.status === 201) {
+          await axios.post(`${api_url}agendas/finalizar-visita`, {
+            a_codigo: ruteamientoId,
+            a_latitud: position.coords.latitude.toString(),
+            a_longitud: position.coords.longitude.toString(),
+          });
+
+          setHoraSalida(timestamp);
+          fetchLocalizaciones(ruteamientoId);
+          
+          toast({
+            title: "Salida registrada",
+            status: "success",
+            duration: 2000,
+          });
+
+          Auditar(
+            125,
+            1,
+            ruteamientoId,
+            Number(sessionStorage.getItem("user_id")),
+            `El operador #${sessionStorage.getItem("user_id")} salió de su destino en la visita #${ruteamientoId}`
           );
         }
       }
     } catch (error) {
       toast({
-        title: "Error",
-        description: "No se pudo marcar la salida",
+        title: `Error al registrar ${locationQueue.type}`,
+        description: "Por favor, intente nuevamente",
         status: "error",
         duration: 2000,
-        isClosable: true,
       });
+    } finally {
+      setLocationQueue(null);
+      setIsProcessing(false);
     }
   };
 
+  useEffect(() => {
+    if (locationQueue) {
+      processLocationQueue();
+    }
+  }, [locationQueue]);
+
+  const marcarLlegada = () => {
+    if (horaLlegada || isProcessing) return;
+
+    const horaActual = new Date().toLocaleTimeString("es-PY", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
+
+    setHoraLlegada(horaActual);
+    setLocationQueue({
+      type: 'llegada',
+      timestamp: horaActual
+    });
+
+    toast({
+      title: "Registrando llegada...",
+      status: "info",
+      duration: 2000,
+    });
+  };
+
+  const marcarSalida = () => {
+    if (horaSalida || !horaLlegada || isProcessing) return;
+
+    const horaActual = new Date().toLocaleTimeString("es-PY", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
+
+    setHoraSalida(horaActual);
+    setLocationQueue({
+      type: 'salida',
+      timestamp: horaActual
+    });
+
+    toast({
+      title: "Registrando salida...",
+      status: "info",
+      duration: 2000,
+    });
+  };
 
   useEffect(() => {
     const llegadaPreviamenteMarcada = localStorage.getItem(
@@ -1260,7 +1229,7 @@ const DetalleRuteamiento = ({
         onClose={onVerDetallesModalClose}
         isOpen={isVerDetallesModalOpen}
         isCentered
-        size={isMobile ? "full" : "6xl"}
+        size={isMobile ? "xl" : "6xl"}
       >
         <ModalOverlay />
         <ModalContent bg={"gray.100"}>
@@ -1366,6 +1335,7 @@ const DetalleRuteamiento = ({
                     className="flex flex-row gap-2 w-full"
                   >
                     <Box
+                      data-testid="boton-llegada"
                       display={"flex"}
                       flexDir={"row"}
                       gap={2}
@@ -1392,6 +1362,7 @@ const DetalleRuteamiento = ({
                       </Box>
                     </Box>
                     <Box
+                      data-testid="boton-salida"
                       display={"flex"}
                       flexDir={"row"}
                       gap={2}

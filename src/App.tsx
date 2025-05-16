@@ -15,13 +15,13 @@ import {
 } from "@chakra-ui/react";
 import Login from "./views/login/Login";
 
-import { AuthProvider, useAuth } from "./services/AuthContext";
-import Sidebar from "./modules/NavBar";
+import { AuthProvider, useAuth } from "./shared/services/AuthContext";
+import Sidebar from "./shared/modules/NavBar";
 import ResumenVentas from "./views/ventas/ResumenVentas";
 import GestionInventario from "./views/inventario/gestionInventario";
 import VentasDashboard from "./views/dashboards/SalesDashboard";
 import Presupuestos from "./views/presupuestos/Presupuestos";
-import { SwitchProvider } from "./services/SwitchContext";
+import { SwitchProvider } from "./shared/services/SwitchContext";
 import ConsultaPresupuestos from "./views/presupuestos/ConsultaPresupuesto";
 import Rutas from "./views/ruteamientos/Rutas";
 import RuteamientosDashboard from "./views/ruteamientos/RuteamientosDashboard";
@@ -36,7 +36,7 @@ import InformeEntregas from "./views/entregas/informeEntregas";
 import Home from "./views/home/home";
 import InventarioScanner from "./views/scanner/ScannerInventario";
 import TomaDeInventario from "./views/inventario/TomaDeInventario";
-import ConsultaArticulos from "./views/inventario/consulta-de-articulos";
+import ConsultaArticulos from "./views/inventario/ConsultaArticulos/consulta-de-articulos";
 import AutorizacionAjusteStock from "./views/inventario/autorizacion-ajuste-stock";
 import PreparacionPedido from "./views/entregas/preparacionPedido";
 import VerificacionPedidos from "./views/entregas/VerificacionPedidos";

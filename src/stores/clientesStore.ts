@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import axios from "axios";
 import { api_url } from "@/utils";
-import { Cliente } from "@/types/shared_interfaces";
+import { Cliente } from "@/shared/types/shared_interfaces";
 
 
 

@@ -1,4 +1,4 @@
-import { Vendedor } from "@/ui/vendedores/types/vendedor.type";
+import { Vendedor } from "@/shared/ui/vendedores/types/vendedor.type";
 import { useState } from "react";
 import { getVendedores as getVendedoresApi } from "../services/vendedoresApi";
 

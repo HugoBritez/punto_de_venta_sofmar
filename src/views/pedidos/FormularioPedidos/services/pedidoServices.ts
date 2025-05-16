@@ -1,13 +1,13 @@
 // src/services/pedidoService.ts
 
-import { Articulo } from "@/ui/articulos/types/articulo.type";
+import { Articulo } from "@/shared/ui/articulos/types/articulo.type";
 import { DetallePedidoTabla } from "@/views/pedidos/FormularioPedidos/types/shared.type";
 import {
   ListaPrecios,
   Moneda,
   Deposito,
   Sucursal,
-} from "@/types/shared_interfaces";
+} from "@/shared/types/shared_interfaces";
 import { Operador } from "@/stores/operadoresStore";
 
 interface ParamsAgregarItem {

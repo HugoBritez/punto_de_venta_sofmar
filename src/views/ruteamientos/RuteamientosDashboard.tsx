@@ -1,4 +1,4 @@
-import { Vendedor } from "@/types/shared_interfaces";
+import { Vendedor } from "@/shared/types/shared_interfaces";
 import { api_url } from "@/utils";
 import {
   Text,

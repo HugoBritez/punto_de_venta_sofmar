@@ -38,7 +38,7 @@ import { format } from "date-fns";
 import { api_url } from "@/utils";
 import { SearchIcon } from "@chakra-ui/icons";
 import { HandCoins, Trash } from "lucide-react";
-import { useAuth } from "@/services/AuthContext";
+import { useAuth } from "@/shared/services/AuthContext";
 import {
   Banco,
   CuentasBancarias,
@@ -48,7 +48,7 @@ import {
   OperacionData,
   Sucursal,
   Tarjetas,
-} from "@/types/shared_interfaces";
+} from "@/shared/types/shared_interfaces";
 
 interface Venta {
   codigo: number;

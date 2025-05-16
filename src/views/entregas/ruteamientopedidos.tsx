@@ -7,7 +7,7 @@ import {
   Entrega,
   Proveedor,
   Cliente,
-} from "@/types/shared_interfaces";
+} from "@/shared/types/shared_interfaces";
 import {
   Box,
   Flex,

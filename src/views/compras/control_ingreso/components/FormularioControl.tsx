@@ -4,7 +4,7 @@ import { FiltrosDTO, Ingreso } from '../types/shared.type'
 import FormularioCabecera from './ui/FormularioCabecera'
 import { useIngresos } from '../hooks/useIngresos'
 import FormularioDetalle from './ui/FormularioDetalle'
-import { Deposito } from '@/types/shared_interfaces';
+import { Deposito } from '@/shared/types/shared_interfaces';
 const FormularioControl = () => {
     const [filtros, setFiltros] = useState<FiltrosDTO>({
         tipo_ingreso: 1,

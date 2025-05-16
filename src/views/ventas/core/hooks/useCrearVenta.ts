@@ -5,6 +5,7 @@ import { ventasApi } from "../services/ventasApi";
 export const useCrearVenta = () => {
     const [errorDTO, setErrorDTO] = useState<string | null>(null);
     const [loadingDTO, setLoadingDTO] = useState<boolean>(false);
+    const [ventaId, setVentaId] = useState<number | null>(null);
 
     const insertarVenta = async (
         venta: VentaDTO,
@@ -13,6 +14,7 @@ export const useCrearVenta = () => {
         try {
             setLoadingDTO(true);
             const response = await ventasApi.insertarVenta(venta, detalles);
+            setVentaId(response.body);
             setLoadingDTO(false);
             return response;
         } catch (error) {
@@ -26,5 +28,6 @@ export const useCrearVenta = () => {
         insertarVenta,
         errorDTO,
         loadingDTO,
+        ventaId,
     }
 }

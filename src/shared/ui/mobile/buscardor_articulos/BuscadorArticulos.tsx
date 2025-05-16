@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useBuscadorArticulos } from '../../articulos/hooks/useBuscadorArticulos';
 import { Articulo } from '../../articulos/types/articulo.type';
 import { X, Check } from 'lucide-react';
-import { formatCurrency } from '@/ui/articulos/utils/formatCurrency';
+import { formatCurrency } from '@/shared/ui/articulos/utils/formatCurrency';
 
 interface BuscadorArticulosProps {
   onSeleccionarArticulo: (articulo: Articulo) => void;
@@ -256,7 +256,7 @@ export const BuscadorArticulos: React.FC<BuscadorArticulosProps> = ({
                             )}
                             {articulo.precio_venta_guaranies && (
                               <div className="font-semibold text-green-600">
-                                ${formatCurrency(articulo.precio_venta_guaranies)}
+                                Gs.{formatCurrency(articulo.precio_venta_guaranies)}
                               </div>
                             )}
                           </div>

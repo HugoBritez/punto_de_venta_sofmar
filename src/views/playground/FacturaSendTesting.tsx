@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { DatosFacturaElectronica, FacturaSendResponse } from "@/types/factura_electronica/types";
-import { useFacturaSendTesting } from "@/hooks/useFacturaSendTesting";
+import { DatosFacturaElectronica, FacturaSendResponse } from "@/shared/types/factura_electronica/types";
+import { useFacturaSendTesting } from "@/shared/hooks/useFacturaSendTesting";
 
 const FacturaSend = () => {
   const [isLoading, ] = useState(false);

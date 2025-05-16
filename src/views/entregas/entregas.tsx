@@ -1,4 +1,4 @@
-import HeaderComponent from "@/modules/Header";
+import HeaderComponent from "@/shared/modules/Header";
 import { api_url } from "@/utils";
 import axios from "axios";
 import {

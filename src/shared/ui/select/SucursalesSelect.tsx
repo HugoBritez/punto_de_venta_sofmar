@@ -3,7 +3,7 @@ import SelectComponent from "./SelectComponent";
 import {
   useSucursalDataStore,
   SucursalAdaptado,
-} from "../../stores/sucursalDataStore";
+} from "../../../stores/sucursalDataStore";
 
 interface CategoriasSelectProps {
   onChange: (categoriaId: number | null) => void;

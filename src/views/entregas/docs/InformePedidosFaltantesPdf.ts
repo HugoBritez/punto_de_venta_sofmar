@@ -1,6 +1,6 @@
-import { Configuraciones } from "@/types/shared_interfaces";
+import { Configuraciones } from "@/shared/types/shared_interfaces";
 import { api_url } from "@/utils";
-import { generatePDF } from "@/services/pdfService";
+import { generatePDF } from "@/shared/services/pdfService";
 import { FiltrosPedidoFaltante, PedidoFaltante } from "../types/shared.type";
 import { useState } from "react";
 import { useEffect } from "react";

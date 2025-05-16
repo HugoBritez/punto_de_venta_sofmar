@@ -29,8 +29,8 @@ import { SearchIcon } from '@chakra-ui/icons'
 import { FilePen, Printer, ShoppingCart } from 'lucide-react'
 import PresupuestoModal from './imprimirPresupuesto'
 import PresupuestoModalEstilizado from './imprimirPresupuestoEstilizado'
-import MenuContextual from '../../modules/MenuContextual'
-import { useSwitch } from '@/services/SwitchContext'
+import MenuContextual from '../../shared/modules/MenuContextual'
+import { useSwitch } from '@/shared/services/SwitchContext'
 
 interface Presupuesto {
   codigo: number

@@ -2,21 +2,21 @@ import { useEffect, useState } from "react";
 import { useCortePedidos } from "./hooks/useCortePedidos";
 import { FiltrosPedidoFaltante, PedidoFaltante, RehacerPedidoDTO } from "./types/shared.type";
 import { ArchiveX } from "lucide-react";
-import ClientesSelect from "@/ui/select/ClientesSelect";
-import OperadoresSelect from "@/ui/select/OperadoresSelect";
-import CategoriasSelect from "@/ui/select/CategoriasSelect";
-import SubCategoriaSelect from "@/ui/select/SubCategoriaSelect";
-import DvlSelect from "@/ui/select/DvlSelect";
-import LineasSelect from "@/ui/select/LineasSelect";
-import MarcasSelect from "@/ui/select/MarcasSelect";
-import { BuscadorArticulos } from "@/ui/buscador_articulos/BuscadorArticulos";
+import ClientesSelect from "@/shared/ui/select/ClientesSelect";
+import OperadoresSelect from "@/shared/ui/select/OperadoresSelect";
+import CategoriasSelect from "@/shared/ui/select/CategoriasSelect";
+import SubCategoriaSelect from "@/shared/ui/select/SubCategoriaSelect";
+import DvlSelect from "@/shared/ui/select/DvlSelect";
+import LineasSelect from "@/shared/ui/select/LineasSelect";
+import MarcasSelect from "@/shared/ui/select/MarcasSelect";
+import { BuscadorArticulos } from "@/shared/ui/buscador_articulos/BuscadorArticulos";
 import pdfIcon from '@/assets/custom_icons/pdf-icon.svg'
 import excelIcon from '@/assets/custom_icons/excel-icon.svg'
 import { ReportePedidosFaltantesPdf } from "./docs/InformePedidosFaltantesPdf";
 import { createRoot } from "react-dom/client";
 import { ReportePedidosFaltantesExcel } from "./docs/InformePedidosFaltantesExcel";
 import { useToast } from "@chakra-ui/react";
-import Modal from "@/ui/modal/Modal";
+import Modal from "@/shared/ui/modal/Modal";
 
 const ConsultaPedidosFaltantes = () => {
     const { pedidosFaltantes,  obtenerPedidoFaltante, reprocesarPedido } = useCortePedidos();

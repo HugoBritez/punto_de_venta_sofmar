@@ -3,7 +3,7 @@ import SelectComponent from "./SelectComponent";
 import {
   useDepositosStore,
   DepositoAdaptado,
-} from "../../stores/depositoStore";
+} from "../../../stores/depositoStore";
 
 interface CategoriasSelectProps {
   onChange: (categoriaId: number | null) => void;

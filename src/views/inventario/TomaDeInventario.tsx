@@ -1,10 +1,10 @@
-import HeaderComponent from "@/modules/Header";
+import HeaderComponent from "@/shared/modules/Header";
 import {
   Deposito,
   SubUbicacion,
   Sucursal,
   Ubicacion,
-} from "@/types/shared_interfaces";
+} from "@/shared/types/shared_interfaces";
 import { api_url } from "@/utils";
 import {
   Flex,
@@ -37,7 +37,7 @@ import {
 import { useEffect, useState } from "react";
 import ReporteAnomalias from "./reporte-anomalias";
 import { motion, AnimatePresence } from "framer-motion";
-import FloatingCard from "@/modules/FloatingCard";
+import FloatingCard from "@/shared/modules/FloatingCard";
 
 interface ArticulosCategoria {
   id: number;
@@ -493,6 +493,11 @@ const TomaDeInventario = () => {
     value: number;
   } | null>(null);
 
+  const [editandoLote, setEditandoLote] = useState<{
+    id: number;
+    value: string;
+  } | null>(null);
+
   const toast = useToast();
 
   const {
@@ -509,6 +514,8 @@ const TomaDeInventario = () => {
     useState<number>(0);
 
   const [isListadoOpen, setIsListadoOpen] = useState(false);
+
+  const user_id = sessionStorage.getItem('user_id');
 
   const fetchUbicaciones = async () => {
     const response = await axios.get(`${api_url}ubicaciones/`);
@@ -614,13 +621,25 @@ const TomaDeInventario = () => {
   };
 
   const fetchDepositos = async () => {
-    const response = await axios.get(`${api_url}depositos/`);
+    const response = await axios.get(`${api_url}depositos/`,
+      {
+        params : {
+          usuario: user_id
+        }
+      }
+    );
     setDepositos(response.data.body);
     setDepositoSeleccionado(response.data.body[0]);
   };
 
   const fetchSucursales = async () => {
-    const response = await axios.get(`${api_url}sucursales/listar`);
+    const response = await axios.get(`${api_url}sucursales/`,
+      {
+        params : {
+          operador: user_id
+        }
+      }
+    );
     setSucursales(response.data.body);
     setSucursalSeleccionada(response.data.body[0]);
   };
@@ -928,6 +947,8 @@ const TomaDeInventario = () => {
           buscar,
         },
       });
+
+      console.log(response.data.body);
 
       setItemsEnInventario(response.data.body);
     } catch (error) {
@@ -1357,6 +1378,24 @@ const TomaDeInventario = () => {
       codigo_barras,
       id_inventario
     );
+  }
+
+  async function handleCambiarLote(
+    id_articulo: number,
+    id_lote: number,
+    cantidad: number,
+    lote: string,
+    codigo_barras: string,
+    id_inventario: number
+  ) {
+    await escanearItem(
+      id_articulo,
+      id_lote,
+      cantidad,
+      lote,
+      codigo_barras,
+      id_inventario
+    )
   }
 
   async function handleEditarCantidadInicial(
@@ -1835,7 +1874,7 @@ const TomaDeInventario = () => {
                 </thead>
                 <tbody className="align-top">
                   {itemsEnInventario.map((item) => (
-                    <tr key={item.lote_id} className="border border-gray-300">
+                    <tr key={item.lote_id} className={`border border-gray-300 ${item.cantidad_escaneada > 0 ? "bg-green-200" : ""}`} >
                       <td className="border border-gray-300 px-2 truncate">
                         {item.ubicacion} / {item.sub_ubicacion}
                       </td>
@@ -1852,7 +1891,55 @@ const TomaDeInventario = () => {
                         {item.vencimiento}
                       </td>
                       <td className="border border-gray-300 px-2 truncate">
-                        {item.lote}
+                        {editandoLote?.id === item.lote_id && item.lote !== '' ? (
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              className="w-20 px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              value={editandoLote.value || item.lote}
+                              onChange={(e) =>
+                                setEditandoLote({
+                                  ...editandoLote,
+                                  value: e.target.value,
+                                })
+                              }
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  handleCambiarLote(
+                                    item.articulo_id,
+                                    item.lote_id,
+                                    item.cantidad_inicial,
+                                    editandoLote.value,
+                                    item.cod_barra,
+                                    inventarioSeleccionado?.id || 0,
+                                  );
+                                  setEditandoLote(null);
+                                } else if (e.key === "Escape") {
+                                  setEditandoLote(null);
+                                }
+                              }}
+                            />
+                            <button
+                              className="text-gray-500 hover:text-gray-700 p-1"
+                              onClick={() => setEditandoLote(null)}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ) : (
+                          <div
+                            className="cursor-pointer hover:bg-gray-100 p-1 rounded transition-colors"
+                            onClick={() =>
+                              setEditandoLote({
+                                id: item.lote_id,
+                                value: item.lote,
+                              })
+                            }
+                          >
+                            {item.lote}
+                          </div>
+                        )}
                       </td>
                       <td className="border border-gray-300 px-2 truncate">
                         {editandoCantidadInicial?.id === item.lote_id ? (
@@ -1861,6 +1948,7 @@ const TomaDeInventario = () => {
                               type="number"
                               className="w-20 px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
                               value={editandoCantidadInicial.value}
+                              disabled
                               onChange={(e) =>
                                 setEditandoCantidadInicial({
                                   ...editandoCantidadInicial,

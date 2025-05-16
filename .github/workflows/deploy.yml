@@ -13,21 +13,21 @@ on:
         options:
           - gaesa
           - gaesademo
-          # - acricolor
-          # - medical
-          # - distriwembe
-          # - concrecar
-          # - bodega
-          # - truckdiesel
-          # - campomax
-          # - lamberty
-          # - rustimemo
-          # - buda
-          # - zimer
-          # - mersan
-          # - agrosertaneja
+          - acricolor
+          - medical
+          - distriwembe
+          - concrecar
+          - bodega
+          - truckdiesel
+          - campomax
+          - lamberty
+          - rustimemo
+          - buda
+          - zimer
+          - mersan
+          - agrosertaneja
           # - caofa
-          # - ferrehanh
+          - ferrehanh
 jobs:
   deploy-single:
     if: github.event_name == 'workflow_dispatch'
@@ -64,7 +64,6 @@ jobs:
           fi
           
           sshpass -p "$SSH_PASSWORD" rsync -avz -e 'ssh -o StrictHostKeyChecking=no' --delete ./dist/ "$SSH_USER@$TARGET_SERVER:/var/www/$CLIENTE/dist/"
-### asfasdfa 
   deploy-all:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: self-hosted
@@ -73,21 +72,21 @@ jobs:
         cliente: [
           'gaesa',
           'gaesademo',
-          # 'acricolor', 
-          # 'medical', 
-          # 'distriwembe', 
-          # 'concrecar', 
-          # 'bodega', 
-          # 'truckdiesel', 
-          # 'campomax', 
-          # 'lamberty', 
-          # 'rustimemo', 
-          # 'buda', 
-          # 'zimer', 
-          # 'mersan', 
-          # 'agrosertaneja', 
+          'acricolor', 
+          'medical', 
+          'distriwembe', 
+          'concrecar', 
+          'bodega', 
+          'truckdiesel', 
+          'campomax', 
+          'lamberty', 
+          'rustimemo', 
+          'buda', 
+          'zimer', 
+          'mersan', 
+          'agrosertaneja', 
           # 'caofa', 
-          # 'ferrehanh'
+          'ferrehanh'
         ]
       # Permite que otros despliegues continúen si uno falla
       fail-fast: false

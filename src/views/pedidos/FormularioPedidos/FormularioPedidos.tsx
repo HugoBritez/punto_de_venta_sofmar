@@ -2,9 +2,9 @@ import { useDepositosStore } from "@/stores/depositosStore";
 import { useSucursalesStore } from "@/stores/sucursalesStore";
 import { useOperadoresStore } from "@/stores/operadoresStore";
 
-import { Articulo } from "@/ui/articulos/types/articulo.type";
+import { Articulo } from "@/shared/ui/articulos/types/articulo.type";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { getArticulosPorCodBarra } from "@/ui/articulos/services/articuloPorCodBarraService";
+import { getArticulosPorCodBarra } from "@/shared/ui/articulos/services/articuloPorCodBarraService";
 import { useMonedasStore } from "@/stores/monedasStore";
 import { PedidoDTO, DetallePedidoTabla } from "./types/shared.type";
 import { useListaPreciosStore } from "@/stores/listaPreciosStore";
@@ -14,14 +14,14 @@ import {
   ListaPrecios,
   Moneda,
   Sucursal,
-} from "@/types/shared_interfaces";
+} from "@/shared/types/shared_interfaces";
 import { useToast } from "@chakra-ui/react";
 import { agregarItemPedido } from "./services/pedidoServices";
 import { calcularTotalesPedido } from "./utils/calcularTotales";
 import { ShoppingCartIcon, Check, X, Plus } from "lucide-react";
 import { useClientesStore } from "@/stores/clientesStore";
-import BuscadorClientes from "@/ui/clientes/BuscadorClientes";
-import { ArticulosComponent } from "@/ui/articulos/ArticulosComponent";
+import BuscadorClientes from "@/shared/ui/clientes/BuscadorClientes";
+import { ArticulosComponent } from "@/shared/ui/articulos/ArticulosComponent";
 import { formatCurrency } from "./utils/formatCurrency";
 import { usePedidos } from "./hooks/usePedidos";
 

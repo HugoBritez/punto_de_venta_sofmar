@@ -4,7 +4,7 @@ import { api_url } from "../../../../utils";
 import { useToast } from "@chakra-ui/react";
 
 import { AnimatePresence, motion } from "framer-motion";
-import Auditar from "@/services/AuditoriaHook";
+import Auditar from "@/shared/services/AuditoriaHook";
 import { ChartColumn } from "lucide-react";
 import { Ingreso, IngresoDetalle, VerificacionItemDTO } from "../types/shared.type";
 import { useVerificarIngresos } from "../hooks/useVerificarIngresos";

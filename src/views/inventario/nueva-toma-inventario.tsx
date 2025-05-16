@@ -1,10 +1,10 @@
-import HeaderComponent from "@/modules/Header";
+import HeaderComponent from "@/shared/modules/Header";
 import {
   Deposito,
   SubUbicacion,
   Sucursal,
   Ubicacion,
-} from "@/types/shared_interfaces";
+} from "@/shared/types/shared_interfaces";
 import { api_url } from "@/utils";
 import {
   Flex,
@@ -38,7 +38,7 @@ import {
 import { useEffect, useState } from "react";
 import ReporteAnomalias from "./reporte-anomalias";
 import { motion, AnimatePresence } from "framer-motion";
-import FloatingCard from "@/modules/FloatingCard";
+import FloatingCard from "@/shared/modules/FloatingCard";
 
 interface ArticulosCategoria {
   id: number;

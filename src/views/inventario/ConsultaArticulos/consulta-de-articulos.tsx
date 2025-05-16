@@ -1,5 +1,4 @@
-import HeaderComponent from "@/modules/Header";
-import { api_url } from "@/utils";
+import HeaderComponent from "@/shared/modules/Header";
 import {
   Flex,
   Input,
@@ -9,12 +8,18 @@ import {
   useMediaQuery,
   useToast,
 } from "@chakra-ui/react";
-import axios from "axios";
 import { Archive } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Deposito, Moneda, Sucursal } from "@/types/shared_interfaces";
+import { Deposito } from "@/api/depositosApi";
+import { Moneda } from "@/api/monedasApi";
+import { Sucursal } from "@/api/sucursalApi";
 import not_found from "@/assets/not-found/not-found.png";
-import { motion, AnimatePresence } from "framer-motion"; // Añadir esta importación
+import { motion, AnimatePresence } from "framer-motion"; 
+import { useSucursalesStore } from "@/stores/sucursalesStore";
+import { useDepositosStore } from "@/stores/depositosStore";
+import { useMonedasStore } from "@/stores/monedasStore";
+import { getArticulos } from "@/api/articulosApi";
+
 
 
 interface Articulos {
@@ -52,16 +57,15 @@ interface Articulos {
   fecha_ultima_venta: string;
 }
 
-
 const ConsultaArticulos = () => {
   const [articulos, setArticulos] = useState<Articulos[]>([]);
-  const [sucursales, setSucursales] = useState<Sucursal[]>([]);
+  const {sucursales, fetchSucursalesPorOperador} = useSucursalesStore()
   const [sucursalSeleccionada, setSucursalSeleccionada] =
     useState<Sucursal | null>(null);
-  const [depositos, setDepositos] = useState<Deposito[]>([]);
+  const {depositos, fetchDepositos} = useDepositosStore()
   const [depositoSeleccionado, setDepositoSeleccionado] =
     useState<Deposito | null>(null);
-  const [monedas, setMonedas] = useState<Moneda[]>([]);
+  const {monedas, fetchMonedas} = useMonedasStore()
   const [monedaSeleccionada, setMonedaSeleccionada] = useState<Moneda | null>(
     null
   );
@@ -79,27 +83,35 @@ const ConsultaArticulos = () => {
   const [isMobile] = useMediaQuery("(max-width: 768px)");
 
   const permisos_ver_costo = sessionStorage.getItem("permiso_ver_utilidad");
+  const operador = Number(sessionStorage.getItem("user_id"));
 
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
 
   const fechArticulos = async (busqueda: string | null = null) => {
     try {
       setLoading(true);
-      const response = await axios.get(
-        `${api_url}articulos/consulta-articulos`,
+      const response = await getArticulos(
+        busqueda,
+        monedaSeleccionada?.moCodigo,
+        stock,
+        depositoSeleccionado?.dep_codigo,
 
-        {
-          params: {
-            busqueda: busqueda,
-            sucursal: sucursalSeleccionada?.id,
-            deposito: depositoSeleccionado?.dep_codigo,
-            moneda: monedaSeleccionada?.mo_codigo,
-            stock: stock,
-          },
-        }
       );
-      console.log('LLAMANDO A FETCHARTICULOS', busqueda)
-      setArticulos(response.data.body);
+      // const response = await axios.get(
+      //   `${api_url}articulos/consulta-articulos`,
+
+      //   {
+      //     params: {
+      //       busqueda: busqueda,
+      //       sucursal: sucursalSeleccionada?.id,
+      //       deposito: depositoSeleccionado?.dep_codigo,
+      //       moneda: monedaSeleccionada?.moCodigo,
+      //       stock: stock,
+      //     },
+      //   }
+      // );
+      // console.log('LLAMANDO A FETCHARTICULOS', busqueda)
+      setArticulos(response);
     } catch (error) {
       console.log(error);
       toast({
@@ -142,24 +154,17 @@ const ConsultaArticulos = () => {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const [monedasRes, depositosRes, sucursalesRes] = await Promise.all([
-          axios.get(`${api_url}monedas/`),
-          axios.get(`${api_url}depositos/`),
-          axios.get(`${api_url}sucursales/listar`)
-        ]);
-
-        setMonedas(monedasRes.data.body);
-        setDepositos(depositosRes.data.body);
-        setSucursales(sucursalesRes.data.body);
-
-        if (monedasRes.data.body.length > 0) {
-          setMonedaSeleccionada(monedasRes.data.body[0]);
+        await fetchSucursalesPorOperador(operador)
+        if (sucursales.length > 0) {
+          setSucursalSeleccionada(sucursales[0]);
         }
-        if (depositosRes.data.body.length > 0) {
-          setDepositoSeleccionado(depositosRes.data.body[0]);
+        await fetchDepositos(sucursalSeleccionada?.id)
+        if (depositos.length > 0) {
+          setDepositoSeleccionado(depositos[0]);
         }
-        if (sucursalesRes.data.body.length > 0) {
-          setSucursalSeleccionada(sucursalesRes.data.body[0]);
+        await fetchMonedas()
+        if (monedas.length > 0) {
+          setMonedaSeleccionada(monedas[0]);
         }
       } catch (error) {
         console.error('Error al cargar datos iniciales:', error);
@@ -172,8 +177,8 @@ const ConsultaArticulos = () => {
         });
       }
     };
-
-    fetchInitialData();
+ 
+      fetchInitialData()
   }, []);
 
   useEffect(() => {
@@ -449,14 +454,14 @@ const formatearNumero = (num: number | string) => {
                       setMonedaSeleccionada(
                         monedas.find(
                           (moneda) =>
-                            moneda.mo_codigo === Number(e.target.value)
+                            moneda.moCodigo === Number(e.target.value)
                         ) || null
                       )
                     }
                   >
                     {monedas.map((moneda) => (
-                      <option key={moneda.mo_codigo} value={moneda.mo_codigo}>
-                        {moneda.mo_descripcion}
+                      <option key={moneda.moCodigo} value={moneda.moCodigo}>
+                        {moneda.moDescripcion}
                       </option>
                     ))}
                   </Select>

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle } from "lucide-react";
-import OperadoresSelect from "@/ui/select/OperadoresSelect";
+import OperadoresSelect from "@/shared/ui/select/OperadoresSelect";
 
 interface ConfirmationModalProps {
   isOpen: boolean;

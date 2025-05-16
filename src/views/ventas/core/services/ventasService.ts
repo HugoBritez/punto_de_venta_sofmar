@@ -1,6 +1,6 @@
-import { Articulo } from "@/ui/articulos/types/articulo.type";
+import { Articulo } from "@/shared/ui/articulos/types/articulo.type";
 import {  DetalleVentaTabla } from "../../types/sharedDTO.type";
-import { ListaPrecios, Sucursal, Deposito } from "@/types/shared_interfaces";
+import { ListaPrecios, Sucursal, Deposito } from "@/shared/types/shared_interfaces";
 import { Operador } from "@/stores/operadoresStore";
 
 
@@ -124,6 +124,10 @@ export function agregarItemVentaRapida(
         descripcion: articulo.descripcion,
         precioUnitario: precioAUsar,
         subtotal: precioAUsar * cantidad - (descuento || 0),
+        lote: articulo.lote,
+        lote_id: articulo.id_lote,
+        articulo_editado: false,
+        deve_descripcion_editada: '',
     }
 
     return { ok: true, detalleVenta: [...detalleVenta, nuevoItem] };
@@ -147,6 +151,12 @@ export function actualizarCantidadItemVenta (
     const newItems = [...detalleVenta];
     newItems[item].deve_cantidad = cantidad;
     newItems[item].subtotal = newItems[item].deve_precio * cantidad - (newItems[item].deve_descuento || 0);
+    newItems[item].deve_diez = newItems[item].deve_diez * cantidad;
+    newItems[item].deve_cinco = newItems[item].deve_cinco * cantidad;
+    newItems[item].deve_exentas = newItems[item].deve_exentas * cantidad;
+    // Recalcular los impuestos como porcentajes del valor base
+    newItems[item].deve_cinco_x = newItems[item].deve_cinco > 0 ? Number(newItems[item].deve_cinco /21) : 0;
+    newItems[item].deve_diez_x = newItems[item].deve_diez > 0 ? Number(newItems[item].deve_diez /11) : 0;
     return { ok: true, detalleVenta: newItems };
 }
 
@@ -158,6 +168,13 @@ export function actualizarPrecioUnitarioItemVenta (
     const newItems = [...detalleVenta];
     newItems[item].deve_precio = precioUnitario;
     newItems[item].subtotal = newItems[item].deve_precio * newItems[item].deve_cantidad - (newItems[item].deve_descuento || 0);
+    // Recalcular los valores base de impuestos
+    newItems[item].deve_exentas = newItems[item].deve_exentas > 0 ? newItems[item].subtotal : 0;
+    newItems[item].deve_cinco = newItems[item].deve_cinco > 0 ? newItems[item].subtotal : 0;
+    newItems[item].deve_diez = newItems[item].deve_diez > 0 ? newItems[item].subtotal : 0;
+    // Recalcular los impuestos como porcentajes del valor base
+    newItems[item].deve_cinco_x = newItems[item].deve_cinco > 0 ? Number(newItems[item].deve_cinco /21) : 0;
+    newItems[item].deve_diez_x = newItems[item].deve_diez > 0 ? Number(newItems[item].deve_diez /11) : 0;
     return { ok: true, detalleVenta: newItems };
 }
 
@@ -170,6 +187,13 @@ export function actualizarDescuentoItemVenta (
     const newItems = [...detalleVenta];
     newItems[item].deve_descuento = descuento;
     newItems[item].subtotal = newItems[item].deve_precio * newItems[item].deve_cantidad - (newItems[item].deve_descuento || 0);
+    // Recalcular los valores base de impuestos
+    newItems[item].deve_exentas = newItems[item].deve_exentas > 0 ? newItems[item].subtotal : 0;
+    newItems[item].deve_cinco = newItems[item].deve_cinco > 0 ? newItems[item].subtotal : 0;
+    newItems[item].deve_diez = newItems[item].deve_diez > 0 ? newItems[item].subtotal : 0;
+    // Recalcular los impuestos como porcentajes del valor base
+    newItems[item].deve_cinco_x = newItems[item].deve_cinco > 0 ? Number(newItems[item].deve_cinco /21) : 0;
+    newItems[item].deve_diez_x = newItems[item].deve_diez > 0 ? Number(newItems[item].deve_diez /11) : 0;
     return { ok: true, detalleVenta: newItems };
 }
 
@@ -181,6 +205,14 @@ export function actualizarBonificacionItemVenta (
 ): ResultadoAgregarItem {
     const newItems = [...detalleVenta];
     newItems[item].deve_bonificacion = bonificacion;
+    // Si hay bonificación, los impuestos se ponen en 0
+    if (bonificacion === 1) {
+        newItems[item].deve_exentas = 0;
+        newItems[item].deve_cinco = 0;
+        newItems[item].deve_diez = 0;
+        newItems[item].deve_cinco_x = 0;
+        newItems[item].deve_diez_x = 0;
+    }
     return { ok: true, detalleVenta: newItems };
 }
 
@@ -191,6 +223,8 @@ export function actualizarDescripcionItemVenta (
 ): ResultadoAgregarItem {
     const newItems = [...detalleVenta];
     newItems[item].descripcion = descripcion;
+    newItems[item].articulo_editado = true;
+    newItems[item].deve_descripcion_editada = descripcion;
     return { ok: true, detalleVenta: newItems };
 }
 

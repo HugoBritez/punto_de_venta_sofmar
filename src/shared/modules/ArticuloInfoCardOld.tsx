@@ -1,4 +1,4 @@
-import { ArticulosNuevo } from "@/types/shared_interfaces";
+import { ArticulosNuevo } from "@/shared/types/shared_interfaces";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BarChart2,

@@ -41,7 +41,7 @@ import {
   Podcast,
   Boxes,
 } from "lucide-react";
-import { useAuth } from "@/services/AuthContext";
+import { useAuth } from "@/shared/services/AuthContext";
 import { db, fechaRelease, version } from "@/utils";
 import CustomDrawer from "./customDrawer";
 
@@ -574,7 +574,12 @@ useEffect(() => {
               transition="all 0.3s"
               className={item.enabled ? "hover:bg-blue-100" : ""}
               opacity={item.enabled ? 1 : 0.5}
-              onClick={(e) => handleItemClick(e, item.name)}
+              onClick={(e) => {
+                if (!isExpanded) {
+                  handleClick();
+                }
+                handleItemClick(e, item.name);
+              }}
               cursor="pointer"
             >
               <Icon as={item.icon} boxSize={6} color="black" />
@@ -650,7 +655,11 @@ useEffect(() => {
           hasArrow
         >
           <Box
-            onClick={handleClick}
+            onClick={() => {
+              if (!isExpanded) {
+                handleClick();
+              }
+            }}
             cursor="pointer"
             w="100%"
             h="100%"

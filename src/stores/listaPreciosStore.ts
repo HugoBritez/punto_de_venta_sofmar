@@ -1,4 +1,4 @@
-import { ListaPrecios } from "@/types/shared_interfaces";
+import { ListaPrecios } from "@/shared/types/shared_interfaces";
 import { api_url } from "@/utils";
 import axios from "axios";
 import { create } from "zustand";

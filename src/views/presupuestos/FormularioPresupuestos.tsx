@@ -23,8 +23,8 @@ import {
   ListaPrecios,
   Moneda,
   Sucursal,
-} from "@/types/shared_interfaces";
-import { Vendedor } from "@/types/shared_interfaces";
+} from "@/shared/types/shared_interfaces";
+import { Vendedor } from "@/shared/types/shared_interfaces";
 import {
   FileText,
   Filter,
@@ -39,15 +39,15 @@ import {
 import { api_url } from "@/utils";
 import axios from "axios";
 import { useCotizacionesStore } from "@/stores/cotizacionesStore";
-import Auditar from "@/services/AuditoriaHook";
+import Auditar from "@/shared/services/AuditoriaHook";
 import { DetallesVentasCliente } from "./ui/DetallesVentasCliente";
-import FloatingCard from "@/modules/FloatingCard";
-import ArticuloInfoCard from "@/modules/ArticuloInfoCard";
+import FloatingCard from "@/shared/modules/FloatingCard";
+import ArticuloInfoCard from "@/shared/modules/ArticuloInfoCard";
 import { PresupuestosPendientes } from "./ui/PresupuestosPendientes";
 import { NotaPresupuesto } from "./pdf/NotaPresupuesto";
 import { createRoot } from "react-dom/client";
-import { ArticulosComponent } from "@/ui/articulos/ArticulosComponent";
-import BuscadorClientes from "@/ui/clientes/BuscadorClientes";
+import { ArticulosComponent } from "@/shared/ui/articulos/ArticulosComponent";
+import BuscadorClientes from "@/shared/ui/clientes/BuscadorClientes";
 
 interface ItemParaPresupuesto {
   depre_articulo: number;

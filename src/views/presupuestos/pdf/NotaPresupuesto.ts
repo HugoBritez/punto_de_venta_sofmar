@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { generatePDF } from "@/services/pdfService";
+import { generatePDF } from "@/shared/services/pdfService";
 import axios from "axios";
 import { useSucursalStore } from "@/stores/sucursalStore";
 import { api_url } from "@/utils";

@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import axios from "axios";
 import { api_url } from "@/utils";
-import { Subcategoria } from "@/types/shared_interfaces";
+import { Subcategoria } from "@/shared/types/shared_interfaces";
 
 interface SubCategoria {
     sc_codigo: number;

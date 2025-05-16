@@ -5,8 +5,8 @@ import { FiltrosDTO } from "../../types/shared.type";
 import { useSucursalesStore } from "@/stores/sucursalesStore";
 
 import { useDepositosStore } from "@/stores/depositosStore";
-import ProveedoresSelect from "@/ui/select/ProveedoresSelect";
-import { Deposito } from "@/types/shared_interfaces";
+import ProveedoresSelect from "@/shared/ui/select/ProveedoresSelect";
+import { Deposito } from "@/shared/types/shared_interfaces";
 import { createRoot } from "react-dom/client";
 import ReporteIngresosComponent from "../ReporteIngresos";
 

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Articulo } from "../types/articulo.type";
-import CategoriasSelect from "@/ui/select/CategoriasSelect";
+import CategoriasSelect from "@/shared/ui/select/CategoriasSelect";
 // import { articuloService } from "../services/articuloService";
 
 const FormularioArticulo = () => {

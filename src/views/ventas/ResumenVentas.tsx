@@ -34,8 +34,8 @@ import {
   PenBox,
   FileInput,
 } from "lucide-react";
-import { useAuth } from "@/services/AuthContext";
-import Auditar from "@/services/AuditoriaHook";
+import { useAuth } from "@/shared/services/AuthContext";
+import Auditar from "@/shared/services/AuditoriaHook";
 import { debounce } from "lodash";
 import {
   Vendedor,
@@ -43,17 +43,17 @@ import {
   Moneda,
   Sucursal,
   ArticulosDirecta,
-} from "@/types/shared_interfaces";
-import FloatingCard from "@/modules/FloatingCard";
+} from "@/shared/types/shared_interfaces";
+import FloatingCard from "@/shared/modules/FloatingCard";
 import UltimaVenta from "./ultimaVenta";
 import { useFacturacionElectronicaStore } from "@/stores/facturacionElectronicaStore";
-import { useFacturaSendTesting } from "@/hooks/useFacturaSendTesting";
-import { FacturaSendResponse } from "@/types/factura_electronica/types";
-import ConfirmationModal from "@/modules/ConfirmModal";
+import { useFacturaSendTesting } from "@/shared/hooks/useFacturaSendTesting";
+import { FacturaSendResponse } from "@/shared/types/factura_electronica/types";
+import ConfirmationModal from "@/shared/modules/ConfirmModal";
 import ModeloFacturaNuevo from "./../facturacion/ModeloFacturaNuevo";
 import ModeloNotaComun from "./../facturacion/ModeloNotaComun";
 import { createRoot } from "react-dom/client";
-import { useFacturaSend } from "@/hooks/useFacturaSend";
+import { useFacturaSend } from "@/shared/hooks/useFacturaSend";
 import { useTipoImpresionFacturaStore } from "@/stores/tipoImpresionFacturaStore";
 import ModeloFacturaReport from "../facturacion/ModeloFacturaReport";
 

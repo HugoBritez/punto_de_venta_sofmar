@@ -1,9 +1,9 @@
-import { Configuraciones } from "@/types/shared_interfaces";
+import { Configuraciones } from "@/shared/types/shared_interfaces";
 import { api_url } from "@/utils";
 import axios from "axios";
 import React, { useState, useEffect } from "react";
 import { Flex, useToast, Spinner } from "@chakra-ui/react";
-import { generatePDF } from "@/services/pdfService";
+import { generatePDF } from "@/shared/services/pdfService";
 
 interface ReporteAnomaliasProps {
   numeroInventario: number;

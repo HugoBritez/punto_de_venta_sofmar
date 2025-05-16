@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { Cliente, Remisiones } from "@/types/shared_interfaces";
+import { Cliente, Remisiones } from "@/shared/types/shared_interfaces";
 import { api_url } from "@/utils";
 import { Box, useToast } from "@chakra-ui/react";
 

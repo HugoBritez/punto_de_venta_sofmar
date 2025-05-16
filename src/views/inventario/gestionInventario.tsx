@@ -14,7 +14,7 @@ import {
   Select,
 } from "@chakra-ui/react";
 import { Archive, Eye } from "lucide-react";
-import { useAuth } from "@/services/AuthContext";
+import { useAuth } from "@/shared/services/AuthContext";
 import { api_url } from "@/utils";
 import axios from "axios";
 import {
@@ -26,8 +26,8 @@ import {
   Categoria,
   Moneda,
   UnidadMedida,
-} from "@/types/shared_interfaces";
-import { ModalMultiselector } from "@/modules/ModalMultiselector";
+} from "@/shared/types/shared_interfaces";
+import { ModalMultiselector } from "@/shared/modules/ModalMultiselector";
 
 interface PaginacionResponse {
   datos: Articulo[];
@@ -299,7 +299,7 @@ const GestionInventario: React.FC = () => {
           unidadesMedidaRes,
         ] = await Promise.all([
           axios.get(`${api_url}marcas/`),
-          axios.get(`${api_url}subcategorias/`),
+          axios.get(`${api_url}subcategorias/todos`),
           axios.get(`${api_url}categorias/`),
           axios.get(`${api_url}proveedores/`),
           axios.get(`${api_url}ubicaciones/`),

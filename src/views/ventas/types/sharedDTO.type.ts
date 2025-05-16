@@ -6,7 +6,9 @@ export interface VentaDTO {
     ve_moneda: number;
     ve_factura: string;
     ve_credito: number;
+
     ve_saldo: number;
+    ve_total: number;
     ve_devolucion: number;
     ve_procesado: number;
     ve_descuento: number;
@@ -54,7 +56,11 @@ export interface DetalleVentaDTO {
     deve_costo: number;
     deve_costo_art: number;
     deve_cinco_x: number;
-    deve_diez_x: number;
+    deve_diez_x: number; 
+    lote: string;
+    lote_id: number;
+    articulo_editado: boolean;
+    deve_descripcion_editada: string;
 }
 
 export interface DetalleVentaTabla extends DetalleVentaDTO {

@@ -33,7 +33,7 @@ import {
   Tbody,
 } from "@chakra-ui/react";
 import { Filter, FilterX, Pencil, Printer, Truck } from "lucide-react";
-import HeaderComponent from "../../modules/Header";
+import HeaderComponent from "../../shared/modules/Header";
 import { useEffect, useState } from "react";
 import {
   addDays,
@@ -47,12 +47,12 @@ import {
 import RuteamientoCard from "./RuteamientoCard";
 import axios from "axios";
 import { api_url } from "@/utils";
-import { Agenda, Cliente, Vendedor } from "@/types/shared_interfaces";
+import { Agenda, Cliente, Vendedor } from "@/shared/types/shared_interfaces";
 import { es } from "date-fns/locale";
-import { useAuth } from "@/services/AuthContext";
-import Auditar from "@/services/AuditoriaHook";
+import { useAuth } from "@/shared/services/AuthContext";
+import Auditar from "@/shared/services/AuditoriaHook";
 import { usePDF } from "react-to-pdf";
-import { ModalMultiselector } from "@/modules/ModalMultiselector";
+import { ModalMultiselector } from "@/shared/modules/ModalMultiselector";
 import { debounce } from "lodash";
 
 const periodos = [
