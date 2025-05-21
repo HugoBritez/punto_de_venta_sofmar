@@ -6,7 +6,6 @@ export interface VentaDTO {
     ve_moneda: number;
     ve_factura: string;
     ve_credito: number;
-
     ve_saldo: number;
     ve_total: number;
     ve_devolucion: number;

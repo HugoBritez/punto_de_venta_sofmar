@@ -4,11 +4,11 @@ import { Articulo } from "@/shared/ui/articulos/types/articulo.type";
 import { DetallePedidoTabla } from "@/views/pedidos/FormularioPedidos/types/shared.type";
 import {
   ListaPrecios,
-  Moneda,
   Deposito,
   Sucursal,
 } from "@/shared/types/shared_interfaces";
 import { Operador } from "@/stores/operadoresStore";
+import { Moneda } from "@/api/monedasApi";
 
 interface ParamsAgregarItem {
   articulo: Articulo;
@@ -50,7 +50,7 @@ export function agregarItemPedido(
   if (!precioSeleccionado?.lp_codigo) {
     return { ok: false, error: "Debe seleccionar un precio" };
   }
-  if (!monedaSeleccionada?.mo_codigo) {
+  if (!monedaSeleccionada?.moCodigo) {
     return { ok: false, error: "Debe seleccionar una moneda" };
   }
   if (!depositoSeleccionado?.dep_codigo) {
@@ -63,7 +63,7 @@ export function agregarItemPedido(
   if (precioUnitario) {
     precioAUsar = precioUnitario;
   } else {
-    if (monedaSeleccionada?.mo_codigo === 1) {
+    if (monedaSeleccionada?.moCodigo === 1) {
       // Guaraníes: puedes elegir entre varios precios
       switch (precioSeleccionado?.lp_codigo) {
         case 1:
@@ -81,7 +81,7 @@ export function agregarItemPedido(
       }
     } else {
       // Otras monedas: solo puedes usar el precio correspondiente a la moneda
-      switch (monedaSeleccionada?.mo_codigo) {
+      switch (monedaSeleccionada?.moCodigo) {
         case 2:
           precioAUsar = articulo.precio_venta_dolar;
           break;

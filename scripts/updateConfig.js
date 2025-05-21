@@ -75,7 +75,7 @@ const configs = {
     title: "Lamberty",
   },
   local: {
-    api_url: "https://localhost:4000/api/",
+    api_url: "https://localhost:5069/api/",
     db: "local",
     version: "1.2.4",
     title: "Sofmar",

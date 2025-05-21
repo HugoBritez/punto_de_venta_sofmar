@@ -1,4 +1,4 @@
-export const api_url = 'https://node.gaesa.com.py:8080/api/'
+export const api_url = 'https://localhost:5069/api/'
 
 //export const api_url = 'https://localhost:4000/api/'
 //export const  api_url = 'https://db.sofmar.com.py:4009/api/' //acricolor
@@ -21,5 +21,5 @@ export const version = '1.2.4'
 
 
 export const fechaRelease = '16/05/2025'
-export const db = 'gaesa'
+export const db = 'local'
 export const userName = sessionStorage.getItem('userName')

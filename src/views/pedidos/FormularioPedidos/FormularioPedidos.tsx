@@ -12,7 +12,6 @@ import {
   Cliente,
   Deposito,
   ListaPrecios,
-  Moneda,
   Sucursal,
 } from "@/shared/types/shared_interfaces";
 import { useToast } from "@chakra-ui/react";
@@ -24,8 +23,7 @@ import BuscadorClientes from "@/shared/ui/clientes/BuscadorClientes";
 import { ArticulosComponent } from "@/shared/ui/articulos/ArticulosComponent";
 import { formatCurrency } from "./utils/formatCurrency";
 import { usePedidos } from "./hooks/usePedidos";
-
-
+import { Moneda } from "@/api/monedasApi";
 
 const FormularioPedidos = () => {
   const { sucursales, fetchSucursales } = useSucursalesStore();
@@ -113,12 +111,12 @@ const FormularioPedidos = () => {
   const { insertarPedido } = usePedidos();
 
   const handleBusquedaPorCodigoBarra = async (busqueda: string) => {
-    if (depositoSeleccionado?.dep_codigo && monedaSeleccionada?.mo_codigo) {
+    if (depositoSeleccionado?.dep_codigo && monedaSeleccionada?.moCodigo) {
       const articulo = await getArticulosPorCodBarra(
         busqueda,
         depositoSeleccionado?.dep_codigo,
         0,
-        monedaSeleccionada?.mo_codigo
+        monedaSeleccionada?.moCodigo
       );
       if (articulo) {
         setArticulo(articulo[0]);
@@ -221,7 +219,7 @@ const FormularioPedidos = () => {
       setMonedaSeleccionada(monedas[0]);
       setPedidoDTO(prev => ({
         ...prev,
-        p_moneda: monedas[0].mo_codigo
+        p_moneda: monedas[0].moCodigo
       }));
     }
   }, [listaPrecios, depositos, sucursales, monedas]);
@@ -262,7 +260,7 @@ const FormularioPedidos = () => {
     if (monedaSeleccionada) {
       setPedidoDTO((prev) => ({
         ...prev,
-        p_moneda: monedaSeleccionada.mo_codigo,
+        p_moneda: monedaSeleccionada.moCodigo,
       }));
     }
     if (precioSeleccionado) {
@@ -572,18 +570,18 @@ const FormularioPedidos = () => {
               name="moneda"
               id="moneda"
               className="rounded-md p-1 border-2 border-gray-300"
-              value={monedaSeleccionada?.mo_codigo}
+              value={monedaSeleccionada?.moCodigo}
               onChange={(e) =>
                 setMonedaSeleccionada(
                   monedas.find(
-                    (moneda) => moneda.mo_codigo === Number(e.target.value)
+                    (moneda) => moneda.moCodigo === Number(e.target.value)
                   )
                 )
               }
             >
               {monedas.map((moneda) => (
-                <option key={moneda.mo_codigo} value={moneda.mo_codigo}>
-                  {moneda.mo_descripcion}
+                <option key={moneda.moCodigo} value={moneda.moCodigo}>
+                  {moneda.moDescripcion}
                 </option>
               ))}
             </select>
