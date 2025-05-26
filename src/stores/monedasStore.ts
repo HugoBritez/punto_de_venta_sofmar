@@ -1,6 +1,6 @@
-import { Moneda } from "@/api/monedasApi";
+import { Moneda } from "@/repos/monedasApi";
 import { create } from "zustand";
-import { getMonedas } from "@/api/monedasApi";
+import { getMonedas } from "@/repos/monedasApi";
 
 interface MonedasStore{
     monedas: Moneda[]

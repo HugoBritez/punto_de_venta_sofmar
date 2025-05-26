@@ -8,7 +8,7 @@ import {
   Sucursal,
 } from "@/shared/types/shared_interfaces";
 import { Operador } from "@/stores/operadoresStore";
-import { Moneda } from "@/api/monedasApi";
+import { Moneda } from "@/repos/monedasApi";
 
 interface ParamsAgregarItem {
   articulo: Articulo;

@@ -10,15 +10,15 @@ import {
 } from "@chakra-ui/react";
 import { Archive } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Deposito } from "@/api/depositosApi";
-import { Moneda } from "@/api/monedasApi";
-import { Sucursal } from "@/api/sucursalApi";
+import { Deposito } from "@/repos/depositosApi";
+import { Moneda } from "@/repos/monedasApi";
+import { Sucursal } from "@/repos/sucursalApi";
 import not_found from "@/assets/not-found/not-found.png";
 import { motion, AnimatePresence } from "framer-motion"; 
 import { useSucursalesStore } from "@/stores/sucursalesStore";
 import { useDepositosStore } from "@/stores/depositosStore";
 import { useMonedasStore } from "@/stores/monedasStore";
-import { getArticulos } from "@/api/articulosApi";
+import { getArticulos } from "@/repos/articulosApi";
 
 
 

@@ -42,13 +42,8 @@ const Login: React.FC = () => {
         usuario: usuario,
         password: password,
       });
-
-      console.log("response", response.data);
-
-      // const permisosData = await traerConfiguraciones();
-      // setPermisos(permisosData);
-      login(response.data);
-      sessionStorage.setItem('permiso_graficos', response.data.usuario[0].op_graficos);
+      login(response.data.data);
+      sessionStorage.setItem('permiso_graficos', response.data.data.usuario[0].op_graficos);
       navigate('/home');
       // getConfiguraciones();
     } catch (error) {
@@ -63,7 +58,7 @@ const Login: React.FC = () => {
     }
   };
 
-
+  
   return (
     <Box w={'100%'} h={'100vh'} alignItems={'center'} justifyContent={'center'} display={'flex'} bg={'gray.50'}>
       <Flex

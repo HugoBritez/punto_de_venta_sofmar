@@ -1,18 +1,13 @@
 import { VentaDTO, DetalleVentaTabla } from "../types/sharedDTO.type";
 import { useEffect, useState } from "react";
 import { Articulo } from "@/shared/ui/articulos/types/articulo.type";
-import { Deposito } from "@/shared/ui/buscador_articulos/types/articulo";
 import { agregarItemVentaRapida, eliminarItemVenta, actualizarCantidadItemVenta, actualizarDescripcionItemVenta, actualizarPrecioUnitarioItemVenta } from "../core/services/ventasService";
-import { ListaPrecios, Sucursal } from "@/shared/types/shared_interfaces";
 import { useOperadoresStore } from "@/stores/operadoresStore";
 import { useToast } from "@chakra-ui/react";
 import { ShoppingBag, ArchiveX, ArrowUp, Trash2 } from "lucide-react";
 import { SideMenu } from "@/shared/ui/mobile/sidemenu/SideMenu";
 import { BuscadorArticulos } from "@/shared/ui/mobile/buscardor_articulos/BuscadorArticulos";
 import { useConfiguraciones } from "@/shared/services/configuraciones/configuracionesHook";
-import { useSucursalesStore } from "@/stores/sucursalesStore";
-import { useDepositosStore } from "@/stores/depositosStore";
-import { useListaPreciosStore } from "@/stores/listaPreciosStore";
 import { formatCurrency } from "../core/utils/formatCurrency";
 import { BottomSheet } from "@/shared/ui/mobile/BottomSheet/BottomSheet";
 import { calcularTotales } from "../core/utils/calcularTotales";
@@ -21,6 +16,12 @@ import { useGetFacturas } from "../core/hooks/useGetFacturas";
 import { actualizarUltimaFactura } from "../core/utils/actualizarUltimaFactura";
 import { ImprimirFacturaTicketComponent } from "../core/components/ImprimirFacturaTicketComponent";
 import { ImprimirTicketComponent } from "../core/components/ImprimirTicket";
+import { useSucursales } from "@/shared/hooks/queries/useSucursales";
+import { SucursalViewModel } from "@/models/viewmodels/sucursalViewModel";
+import { useDepositos } from "@/shared/hooks/queries/useDepositos";
+import { DepositoViewModel } from "@/models/viewmodels/depositoViewModel";
+import { useListaDePrecios } from "@/shared/hooks/queries/useListaDePrecios";
+import { ListaPrecio } from "@/models/viewmodels/ListaPrecioViewModel";
 
 
 interface TipoRenderizacion {
@@ -74,27 +75,22 @@ const VentaRapida = () => {
     );
     const [detalleVenta, setDetalleVenta] = useState<DetalleVentaTabla[]>([]);
     const [, setImprimirFactura] = useState<boolean>(false);
-    const [precioSeleccionado, setPrecioSeleccionado] = useState<ListaPrecios | null>();
-    const [depositoSeleccionado, setDepositoSeleccionado] = useState<Deposito | null>();
+    const [precioSeleccionado, setPrecioSeleccionado] = useState<ListaPrecio | null>();
+    const [depositoSeleccionado, setDepositoSeleccionado] = useState<DepositoViewModel | null>();
     const [, setCantidad] = useState<number>();
     const [descuento, setDescuento] = useState<number>();
     const [bonificacion, setBonificacion] = useState<number>();
     const [precioUnitario, setPrecioUnitario] = useState<number>();
-    const [sucursalSeleccionada, setSucursalSeleccionada] = useState<Sucursal>();
+    const [sucursalSeleccionada, setSucursalSeleccionada] = useState<SucursalViewModel>();
     const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
     const [tipoRenderizacion, setTipoRenderizacion] = useState<TipoRenderizacion>(() => {
         const tipo = localStorage.getItem("tipoRenderizacion");
         if (tipo === "tabla" || tipo === "lista") {
             return { tipo: tipo as "tabla" | "lista" };
         }
-        return { tipo: "tabla" }; // valor por defecto
+        return { tipo: "tabla" };
     });
     const [editingItem, setEditingItem] = useState<number | null>(null);
-
-    const { sucursales, fetchSucursales } = useSucursalesStore();
-    const { depositos, fetchDepositos } = useDepositosStore();
-    const { listaPrecios, fetchListaPrecios } = useListaPreciosStore();
-
     const vendedorPorDefecto = sessionStorage.getItem("user_id");
     const vendedorNombrePorDefecto = sessionStorage.getItem("user_name");
     const { clientePorDefecto } = useConfiguraciones();
@@ -108,6 +104,10 @@ const VentaRapida = () => {
 
     const { insertarVenta, errorDTO, loadingDTO } = useCrearVenta();
     const { datosFacturacion, obtenerDatosFacturacion } = useGetFacturas();
+
+    const { data: sucursales } = useSucursales({ operador: vendedorPorDefecto ? parseInt(vendedorPorDefecto) : 0 });
+    const { data: depositos } = useDepositos();
+    const {data: listaPrecios} = useListaDePrecios();
 
 
     useEffect(() => {
@@ -146,11 +146,6 @@ const VentaRapida = () => {
         setBonificacion(0);
     }
 
-    useEffect(() => {
-        fetchSucursales();
-        fetchDepositos();
-        fetchListaPrecios();
-    }, []);
 
     useEffect(() => {
         if (clientePorDefecto && clientePorDefecto.body && clientePorDefecto.body.length > 0) {
@@ -213,13 +208,13 @@ const VentaRapida = () => {
 
     useEffect(() => {
         if (depositos) {
-            setDepositoSeleccionado(depositos[0]);
+            setDepositoSeleccionado(depositos.data[0]);
         }
     }, [depositos]);
 
     useEffect(() => {
         if (listaPrecios) {
-            setPrecioSeleccionado(listaPrecios[0]);
+            setPrecioSeleccionado(listaPrecios.data[0]);
         }
     }, [listaPrecios]);
     //Effect para setear datos por defecto
@@ -557,11 +552,11 @@ const VentaRapida = () => {
                         <div className="flex flex-col gap-2">
                             <label htmlFor="sucursal" className="text-gray-500 font-bold">Sucursal</label>
                             <select className="bg-gray-100 rounded-md p-2 border border-gray-300" name="sucursal" id="sucursal" onChange={(e) => {
-                                const sucursal = sucursales.find((sucursal) => sucursal.id === parseInt(e.target.value));
+                                const sucursal = sucursales?.find((sucursal) => sucursal.id === parseInt(e.target.value));
                                 setSucursalSeleccionada(sucursal);
                             }}>
                                 {
-                                    sucursales.map((sucursal) => (
+                                    sucursales?.map((sucursal) => (
                                         <option key={sucursal.id} value={sucursal.id}>{sucursal.descripcion}</option>
                                     ))
                                 }
@@ -570,11 +565,11 @@ const VentaRapida = () => {
                         <div className="flex flex-col gap-2">
                             <label htmlFor="deposito" className="text-gray-500 font-bold">Deposito</label>
                             <select className="bg-gray-100 rounded-md p-2 border border-gray-300" name="deposito" id="deposito" onChange={(e) => {
-                                const deposito = depositos.find((deposito) => deposito.dep_codigo === parseInt(e.target.value));
+                                const deposito = depositos?.data.find((deposito) => deposito.dep_codigo === parseInt(e.target.value));
                                 setDepositoSeleccionado(deposito);
                             }}>
                                 {
-                                    depositos.map((deposito) => (
+                                    depositos?.data?.map((deposito) => (
                                         <option key={deposito.dep_codigo} value={deposito.dep_codigo}>{deposito.dep_descripcion}</option>
                                     ))
                                 }
@@ -583,12 +578,12 @@ const VentaRapida = () => {
                         <div className="flex flex-col gap-2">
                             <label htmlFor="listaPrecio" className="text-gray-500 font-bold">Lista de Precios</label>
                             <select className="bg-gray-100 rounded-md p-2 border border-gray-300" name="listaPrecio" id="listaPrecio" onChange={(e) => {
-                                const listaPrecio = listaPrecios.find((listaPrecio) => listaPrecio.lp_codigo === parseInt(e.target.value));
+                                const listaPrecio = listaPrecios?.data.find((listaPrecio) => listaPrecio.lpCodigo === parseInt(e.target.value));
                                 setPrecioSeleccionado(listaPrecio);
                             }}>
                                 {
-                                    listaPrecios.map((listaPrecio) => (
-                                        <option key={listaPrecio.lp_codigo} value={listaPrecio.lp_codigo}>{listaPrecio.lp_descripcion}</option>
+                                    listaPrecios?.data.map((listaPrecio) => (
+                                        <option key={listaPrecio.lpCodigo} value={listaPrecio.lpCodigo}>{listaPrecio.lpDescripcion}</option>
                                     ))
                                 }
                             </select>

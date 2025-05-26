@@ -23,7 +23,7 @@ import BuscadorClientes from "@/shared/ui/clientes/BuscadorClientes";
 import { ArticulosComponent } from "@/shared/ui/articulos/ArticulosComponent";
 import { formatCurrency } from "./utils/formatCurrency";
 import { usePedidos } from "./hooks/usePedidos";
-import { Moneda } from "@/api/monedasApi";
+import { Moneda } from "@/repos/monedasApi";
 
 const FormularioPedidos = () => {
   const { sucursales, fetchSucursales } = useSucursalesStore();

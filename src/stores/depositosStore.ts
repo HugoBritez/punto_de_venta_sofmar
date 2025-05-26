@@ -1,6 +1,6 @@
-import { Deposito } from "@/api/depositosApi";
+import { Deposito } from "@/repos/depositosApi";
 import { create } from "zustand";
-import { getDepositos } from "@/api/depositosApi";
+import { getDepositos } from "@/repos/depositosApi";
 
 
 interface DepositoStore{

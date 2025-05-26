@@ -1,13 +1,14 @@
 import { Articulo } from "@/shared/ui/articulos/types/articulo.type";
 import {  DetalleVentaTabla } from "../../types/sharedDTO.type";
-import { ListaPrecios, Sucursal, Deposito } from "@/shared/types/shared_interfaces";
+import {  Sucursal, Deposito } from "@/shared/types/shared_interfaces";
 import { Operador } from "@/stores/operadoresStore";
+import { ListaPrecio } from "@/models/viewmodels/ListaPrecioViewModel";
 
 
 interface ParamsAgregarItem {
     articulo: Articulo;
     cantidad: number;
-    precioSeleccionado: ListaPrecios;
+    precioSeleccionado: ListaPrecio;
     depositoSeleccionado: Deposito;
     sucursalSeleccionada: Sucursal;
     vendedorSeleccionado: Operador;
@@ -40,7 +41,7 @@ export function agregarItemVentaRapida(
     if (!vendedorSeleccionado?.op_codigo) {
         return { ok: false, error: "Debe seleccionar un vendedor" };
     }
-    if (!precioSeleccionado?.lp_codigo) {
+    if (!precioSeleccionado?.lpCodigo) {
         return { ok: false, error: "Debe seleccionar un precio" };
     }
     if (!depositoSeleccionado?.dep_codigo) {
@@ -57,7 +58,7 @@ export function agregarItemVentaRapida(
     if (precioUnitario) {
         precioAUsar = precioUnitario;
     } else {
-        switch (precioSeleccionado.lp_codigo) {
+        switch (precioSeleccionado.lpCodigo) {
             case 1:
                 precioAUsar = articulo.precio_venta_guaranies;
                 break;

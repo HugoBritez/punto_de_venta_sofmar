@@ -54,10 +54,13 @@ import VerificadorControl from "./views/compras/control_ingreso/components/Verif
 import ConsultaPedidosFaltantes from "./views/entregas/ConsultaPedidosFaltantes";
 import GestionDirecciones from "./views/direcciones/GestionDirecciones";
  import FormularioPedidos from "./views/pedidos/FormularioPedidos/FormularioPedidos";
+ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
 
 const ProtectedLayout: React.FC = () => {
   const { auth, isLoading } = useAuth();
   const [isLargerThan768] = useMediaQuery("(min-width: 768px)");
+  
 
   if (isLoading) {
     return (
@@ -87,7 +90,21 @@ const ProtectedLayout: React.FC = () => {
 };
 
 function App() {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        refetchOnWindowFocus: false,
+        retry: 1,
+        staleTime: 1000 * 60 * 10, // 5 min
+      },
+      mutations: {
+        retry: 1,
+      },
+    },
+  });
+  
   return (
+  <QueryClientProvider client = { queryClient}>
     <SwitchProvider>
       <ChakraProvider>
         <AuthProvider>
@@ -187,6 +204,7 @@ function App() {
         </AuthProvider>
       </ChakraProvider>
     </SwitchProvider>
+    </QueryClientProvider>
   );
 }
 

@@ -1,6 +1,6 @@
-import {  Sucursal } from "@/api/sucursalApi";
+import {  Sucursal } from "@/repos/sucursalApi";
 import { create } from "zustand";
-import { getSucursales } from "@/api/sucursalApi";      
+import { getSucursales } from "@/repos/sucursalApi";      
 
 interface SucursalesStore {
     sucursales:  Sucursal[]

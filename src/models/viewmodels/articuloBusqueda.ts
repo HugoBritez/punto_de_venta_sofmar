@@ -1,0 +1,35 @@
+export interface ArticuloBusqueda {
+  idLote: number;
+  lote: string;
+  idArticulo: number;
+  codigoBarra: string;
+  descripcion: string;
+  stockNegativo: number;
+  precioCosto: number;
+  precioVentaGuaranies: number;
+  precioCredito: number;
+  precioMostrador: number;
+  precio4: number;
+  precioCostoDolar: number;
+  precioVentaDolar: number;
+  precioCostoPesos: number;
+  precioVentaPesos: number;
+  precioCostoReal: number;
+  precioVentaReal: number;
+  vencimientoLote: string;
+  cantidadLote: number;
+  deposito: number;
+  ubicacion: string;
+  subUbicacion: string;
+  marca: string;
+  subcategoria: string;
+  categoria: string;
+  iva: number;
+  vencimientoValidacion: number;
+  ivaDescripcion: string;
+  editarNombre: number;
+  estadoVencimiento: string;
+  proveedor: string;
+  fechaUltimaVenta: string;
+  preCompra: number;
+}
