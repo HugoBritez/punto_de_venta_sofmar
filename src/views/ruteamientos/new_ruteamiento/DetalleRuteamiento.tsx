@@ -1602,7 +1602,6 @@ const DetalleRuteamiento = ({
                             title="Ubicación de llegada"
                           />
                         )}
-
                       {localizaciones.length > 0 &&
                         localizaciones[0]?.l_latitud && (
                           <Marker

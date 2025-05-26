@@ -139,8 +139,6 @@ const RutaActualCard = ({
   const [nota, setNota] = useState<string>("");
   const [notasRuteamiento, setNotasRuteamiento] = useState<Nota[]>([]);
 
-
-
   const toast = useToast();
   const [llegadaMarcada, setLlegadaMarcada] = useState<boolean>(false);
   const {
@@ -160,8 +158,6 @@ const RutaActualCard = ({
     onOpen: onOpenArticulos,
     onClose: onCloseArticulos,
   } = useDisclosure();
-
-
 
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [fechaProxima, setFechaProxima] = useState<string>("");
