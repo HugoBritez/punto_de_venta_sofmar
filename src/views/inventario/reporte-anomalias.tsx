@@ -4,6 +4,7 @@ import axios from "axios";
 import React, { useState, useEffect } from "react";
 import { Flex, useToast, Spinner } from "@chakra-ui/react";
 import { generatePDF } from "@/services/pdfService";
+import { generarReporteAnomaliasExcel } from "./excel/ReporteAnomaliasExcel";
 
 interface ReporteAnomaliasProps {
   numeroInventario: number;
@@ -511,6 +512,13 @@ const ReporteAnomalias: React.FC<ReporteAnomaliasProps> = ({
             </div>
           </Flex>
           <div className="flex flex-row gap-2 w-full items-end justify-end mt-8">
+            <button
+              className="bg-blue-500 text-white p-2 rounded-md"
+              onClick={() => generarReporteAnomaliasExcel(reporte[0])}
+              disabled={loading || !reporte || reporte.length === 0}
+            >
+              Generar EXCEL
+            </button>
             <button
               className="bg-blue-500 text-white p-2 rounded-md"
               onClick={() => generarPDF(reporte)}
