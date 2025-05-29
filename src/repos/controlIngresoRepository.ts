@@ -11,7 +11,7 @@ import axios from "axios";
 
 export const controlIngresosRepository = {
     async GetControlIngreso(params: GetControlIngresoParams): Promise<ResponseViewModel<ControlIngresoEntity>>{
-        const response = await axios.get(`${api_url}/control-ingreso`,
+        const response = await axios.get(`${api_url}control-ingreso`,
             {
                 params: {
                     deposito: params.deposito,
@@ -29,7 +29,7 @@ export const controlIngresosRepository = {
 
 
     async GetItems(params: GetItemsParams): Promise<ResponseViewModel<ControlIngresoItemEntity[]>> {
-        const response = await axios.get(`${api_url}/control-ingreso/items`, {
+        const response = await axios.get(`${api_url}control-ingreso/items`, {
             params: {
                 idCompra: params.idCompra,
                 busqueda: params.busqueda,
@@ -41,17 +41,17 @@ export const controlIngresosRepository = {
     },
 
     async VerificarCompra(dto: VerificarCompraDTO): Promise<ResponseViewModel<boolean>> {
-        const response = await axios.post(`${api_url}/control-ingreso/verificar-compra`, dto);
+        const response = await axios.post(`${api_url}control-ingreso/verificar-compra`, dto);
         return response.data;
     },
 
     async VerificarItem(dto: VerificacionItemDTO): Promise<ResponseViewModel<boolean>> {
-        const response = await axios.post(`${api_url}/control-ingreso/verificar-item`, dto);
+        const response = await axios.post(`${api_url}control-ingreso/verificar-item`, dto);
         return response.data;
     },
 
     async ConfirmarIngreso(dto: ConfirmarIngresoDTO): Promise<ResponseViewModel<boolean>> {
-        const response = await axios.post(`${api_url}/control-ingreso/confirmar`, dto);
+        const response = await axios.post(`${api_url}control-ingreso/confirmar`, dto);
         return response.data;
     }
 

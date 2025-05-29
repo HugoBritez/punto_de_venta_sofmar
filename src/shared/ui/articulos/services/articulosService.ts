@@ -34,7 +34,7 @@ export const buscarArticulos = async ({
       lote,
       negativo
     });
-    const response = await axios.get(`${api_url}articulos/buscar-articulos`, {
+    const response = await axios.get(`${api_url}articulo/buscar`, {
       params: {
         articulo_id: id_articulo,
         codigo_barra: codigo_barra,
@@ -51,8 +51,8 @@ export const buscarArticulos = async ({
         negativo: negativo
       },
     });
-    console.log(response.data);
-    return response.data.body;
+    console.log('articulos en el response', response.data.data);
+    return response.data.data;
   } catch (error) {
     console.error("Error al buscar artículos:", error);
     throw error;

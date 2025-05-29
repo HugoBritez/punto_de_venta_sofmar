@@ -1,4 +1,4 @@
-import { Moneda } from "@/repos/monedasApi";
+import { Moneda } from "@/models/viewmodels/MonedaViewModel";
 import { create } from "zustand";
 import { getMonedas } from "@/repos/monedasApi";
 
@@ -14,7 +14,7 @@ export const useMonedasStore = create<MonedasStore>((set)=>({
     fetchMonedas: async ()=>{
         try{
             const response = await getMonedas();
-            set({monedas: response})
+            set({monedas: response.data})
         } catch(error){
             console.error('Error al obtener las monedas:', error)
         }  

@@ -1,15 +1,17 @@
 import { api_url } from "@/utils";
 import axios from "axios";
-import { Configuracion } from "./configuracion.type";
+import { ConfiguracionViewModel } from "@/models/viewmodels/ConfiguracionesViewModel";
 
 
-export const getConfiguracionesPorId = async (id: number): Promise<Configuracion> => {
-    const response = await axios.get(`${api_url}configuraciones/por_id/`,
+export const getConfiguracionesPorId = async (id: number): Promise<ConfiguracionViewModel> => {
+    const response = await axios.get(`${api_url}configuraciones/`,
         {
             params: {
-                ids: id
+                id: id
             }
         }
     );
-    return response.data;
+
+    console.log("Configuraciones response:", response.data.data);
+    return response.data.data;
 }

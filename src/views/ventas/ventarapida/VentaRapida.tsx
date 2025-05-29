@@ -1,9 +1,6 @@
-import { VentaDTO, DetalleVentaTabla } from "../types/sharedDTO.type";
 import { useEffect, useState } from "react";
-import { Articulo } from "@/shared/ui/articulos/types/articulo.type";
-import { agregarItemVentaRapida, eliminarItemVenta, actualizarCantidadItemVenta, actualizarDescripcionItemVenta, actualizarPrecioUnitarioItemVenta } from "../core/services/ventasService";
-import { useOperadoresStore } from "@/stores/operadoresStore";
-import { useToast } from "@chakra-ui/react";
+import { agregarItemVenta, eliminarItemVenta, actualizarCantidadItemVenta, actualizarDescripcionItemVenta, actualizarPrecioUnitarioItemVenta } from "../core/services/ventasService";
+import { Spinner, useToast } from "@chakra-ui/react";
 import { ShoppingBag, ArchiveX, ArrowUp, Trash2 } from "lucide-react";
 import { SideMenu } from "@/shared/ui/mobile/sidemenu/SideMenu";
 import { BuscadorArticulos } from "@/shared/ui/mobile/buscardor_articulos/BuscadorArticulos";
@@ -11,7 +8,6 @@ import { useConfiguraciones } from "@/shared/services/configuraciones/configurac
 import { formatCurrency } from "../core/utils/formatCurrency";
 import { BottomSheet } from "@/shared/ui/mobile/BottomSheet/BottomSheet";
 import { calcularTotales } from "../core/utils/calcularTotales";
-import { useCrearVenta } from "../core/hooks/useCrearVenta";
 import { useGetFacturas } from "../core/hooks/useGetFacturas";
 import { actualizarUltimaFactura } from "../core/utils/actualizarUltimaFactura";
 import { ImprimirFacturaTicketComponent } from "../core/components/ImprimirFacturaTicketComponent";
@@ -22,6 +18,11 @@ import { useDepositos } from "@/shared/hooks/queries/useDepositos";
 import { DepositoViewModel } from "@/models/viewmodels/depositoViewModel";
 import { useListaDePrecios } from "@/shared/hooks/queries/useListaDePrecios";
 import { ListaPrecio } from "@/models/viewmodels/ListaPrecioViewModel";
+import { useUsuarioPorId } from "@/shared/hooks/queries/useUsuarios";
+import { ArticuloBusqueda } from "@/models/viewmodels/articuloBusqueda";
+import { DetalleVenta } from "@/models/dtos/Ventas/DetalleVenta";
+import { useCrearVenta } from "@/shared/hooks/mutations/ventas/crearVenta";
+import { Venta } from "@/models/dtos/Ventas/Venta";
 
 
 interface TipoRenderizacion {
@@ -33,47 +34,50 @@ interface TipoVenta {
 }
 
 const VentaRapida = () => {
-    const [ventaDTO, setVentaDTO] = useState<VentaDTO>(
+    const [ventaDTO, setVentaDTO] = useState<Venta>(
         {
-            ve_codigo: 0,
-            ve_fecha: new Date().toISOString(),
-            ve_operador: 0,
-            ve_deposito: 0,
-            ve_moneda: 1,
-            ve_factura: "",
-            ve_credito: 0,
-            ve_saldo: 0,
-            ve_total: 0,
-            ve_devolucion: 0,
-            ve_procesado: 0,
-            ve_descuento: 0,
-            ve_cuotas: 0,
-            ve_cantCuotas: 0,
-            ve_obs: "Venta desde dispositivo móvil",
-            ve_vendedor: 0,
-            ve_sucursal: 0,
-            ve_metodo: 0,
-            ve_aplicar_a: 0,
-            ve_retencion: 0,
-            ve_timbrado: "",
-            ve_codeudor: 0,
-            ve_pedido: 0,
-            ve_hora: new Date().toLocaleTimeString(),
-            ve_userpc: "",
-            ve_situacion: 0,
-            ve_chofer: 0,
-            ve_cdc: "",
-            ve_qr: "",
-            ve_km_actual: 0,
-            ve_vehiculo: 0,
-            ve_desc_trabajo: "",
-            ve_kilometraje: 0,
-            ve_mecanico: 0,
-            ve_servicio: 0,
-            ve_siniestro: 0,
+            codigo: 0,
+            fecha: new Date(),
+            operador: 0,
+            deposito: 0,
+            moneda: 1,
+            factura: "",
+            credito: 0,
+            saldo: 0,
+            total: 0,
+            devolucion: 0,
+            procesado: 0,
+            descuento: 0,
+            cuotas: 0,
+            cantCuotas: 0,
+            obs: "Venta desde dispositivo móvil",
+            vendedor: 0,
+            sucursal: 0,
+            metodo: 1,
+            aplicarA: 0,
+            retencion: 0,
+            timbrado: "",
+            codeudor: 1,
+            pedido: 0,
+            hora: new Date().toLocaleTimeString(),
+            userPc: "",
+            situacion: 1,
+            chofer: 0,
+            cdc: "",
+            qr: "",
+            kmActual: 0,
+            vehiculo: 0,
+            descTrabajo: "",
+            kilometraje: 0,
+            mecanico: 0,
+            servicio: 0,
+            siniestro: '',
+            cliente: 0,
+            vencimiento: undefined,
+            estado: 1,
         }
     );
-    const [detalleVenta, setDetalleVenta] = useState<DetalleVentaTabla[]>([]);
+    const [detalleVenta, setDetalleVenta] = useState<DetalleVenta[]>([]);
     const [, setImprimirFactura] = useState<boolean>(false);
     const [precioSeleccionado, setPrecioSeleccionado] = useState<ListaPrecio | null>();
     const [depositoSeleccionado, setDepositoSeleccionado] = useState<DepositoViewModel | null>();
@@ -94,31 +98,34 @@ const VentaRapida = () => {
     const vendedorPorDefecto = sessionStorage.getItem("user_id");
     const vendedorNombrePorDefecto = sessionStorage.getItem("user_name");
     const { clientePorDefecto } = useConfiguraciones();
-
-    const { getOperadorPorCodInterno, vendedorSeleccionado } = useOperadoresStore();
     const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
     const toast = useToast();
-
     const { total, totalDescuentos, totalAPagar } = calcularTotales(detalleVenta);
     const [tipoVenta, setTipoVenta] = useState<TipoVenta>({ tipo: "comun" });
 
-    const { insertarVenta, errorDTO, loadingDTO } = useCrearVenta();
+    const crearVentaMutation = useCrearVenta();
+
+
     const { datosFacturacion, obtenerDatosFacturacion } = useGetFacturas();
 
     const { data: sucursales } = useSucursales({ operador: vendedorPorDefecto ? parseInt(vendedorPorDefecto) : 0 });
     const { data: depositos } = useDepositos();
-    const {data: listaPrecios} = useListaDePrecios();
+    const { data: listaPrecios } = useListaDePrecios();
+    const { data: vendedorSeleccionado} = useUsuarioPorId(parseInt(vendedorPorDefecto ?? "0"));
 
 
     useEffect(() => {
+        if(vendedorSeleccionado){
+            console.log('Vendedor seleccionado desde el useUsuarioPorId:', vendedorSeleccionado);
+        }
         obtenerDatosFacturacion();
     }, []);
 
 
-    const handleAgregarItem = (articulo: Articulo) => {
-        const resultado = agregarItemVentaRapida(detalleVenta, {
+    const handleAgregarItem = (articulo: ArticuloBusqueda, cantidad: number) => {
+        const resultado = agregarItemVenta(detalleVenta, {
             articulo,
-            cantidad: articulo.cantidad || 1,
+            cantidad: cantidad || 1,
             precioSeleccionado: precioSeleccionado!,
             depositoSeleccionado: depositoSeleccionado!,
             sucursalSeleccionada: sucursalSeleccionada!,
@@ -138,7 +145,6 @@ const VentaRapida = () => {
             });
             return;
         }
-
         setDetalleVenta(resultado.detalleVenta!);
         setCantidad(1);
         setPrecioUnitario(0);
@@ -148,9 +154,9 @@ const VentaRapida = () => {
 
 
     useEffect(() => {
-        if (clientePorDefecto && clientePorDefecto.body && clientePorDefecto.body.length > 0) {
+        if (clientePorDefecto ) {
             console.log('Cliente por defecto completo:', clientePorDefecto);
-            const valorCliente = clientePorDefecto.body[0].valor;
+            const valorCliente = clientePorDefecto.valor;
             console.log('Valor del cliente por defecto:', valorCliente);
             console.log('Tipo de valor:', typeof valorCliente);
             const clienteId = parseInt(valorCliente);
@@ -160,7 +166,7 @@ const VentaRapida = () => {
             if (!isNaN(clienteId)) {
                 setVentaDTO(prevState => ({
                     ...prevState,
-                    ve_cliente: clienteId
+                    cliente: clienteId
                 }));
             } else {
                 console.error('El valor del cliente por defecto no es un número válido:', valorCliente);
@@ -169,25 +175,26 @@ const VentaRapida = () => {
         if (vendedorSeleccionado) {
             setVentaDTO(prevState => ({
                 ...prevState,
-                ve_vendedor: vendedorSeleccionado.op_codigo
+                vendedor: vendedorSeleccionado.op_codigo,
+                operador: vendedorSeleccionado.op_codigo
             }));
         }
         if (sucursalSeleccionada) {
             setVentaDTO(prevState => ({
                 ...prevState,
-                ve_sucursal: sucursalSeleccionada.id
+                sucursal: sucursalSeleccionada.id
             }));
         }
         if (depositoSeleccionado) {
             setVentaDTO(prevState => ({
                 ...prevState,
-                ve_deposito: depositoSeleccionado.dep_codigo
+                deposito: depositoSeleccionado.dep_codigo
             }));
         }
         if (vendedorNombrePorDefecto) {
             setVentaDTO(prevState => ({
                 ...prevState,
-                ve_userpc: `Dispositivo de ${vendedorNombrePorDefecto}`
+                userPc: `Dispositivo de ${vendedorNombrePorDefecto}`
             }));
         }
 
@@ -196,7 +203,7 @@ const VentaRapida = () => {
     useEffect(() => {
         setVentaDTO(prevState => ({
             ...prevState,
-            ve_total: total
+            total: total
         }));
     }, [total]);
 
@@ -214,13 +221,9 @@ const VentaRapida = () => {
 
     useEffect(() => {
         if (listaPrecios) {
-            setPrecioSeleccionado(listaPrecios.data[0]);
+            setPrecioSeleccionado(listaPrecios[0]);
         }
     }, [listaPrecios]);
-    //Effect para setear datos por defecto
-    useEffect(() => {
-        getOperadorPorCodInterno(parseInt(vendedorPorDefecto ?? "0"));
-    }, [vendedorPorDefecto]);
 
     useEffect(() => {
         if (tipoRenderizacion.tipo === "tabla") {
@@ -261,7 +264,7 @@ const VentaRapida = () => {
                 return;
             }
 
-            if (loadingDTO) {
+            if (crearVentaMutation.isPending) {
                 toast({
                     title: "Procesando",
                     description: "Ya hay una venta en proceso",
@@ -272,13 +275,12 @@ const VentaRapida = () => {
                 return;
             }
 
-            const response = await insertarVenta(ventaDTO, detalleVenta);
-            console.log('venta insertada con exito', response);
-            
-            if (response.success === false) {
+            const response =  await crearVentaMutation.mutateAsync({ venta: ventaDTO, detalle: detalleVenta });
+
+            if (crearVentaMutation.error) {
                 toast({
                     title: "Error",
-                    description: typeof errorDTO === 'string' ? errorDTO : "Error al procesar la venta",
+                    description: "Error al procesar la venta",
                     status: "error",
                     duration: 3000,
                     isClosable: true,
@@ -287,21 +289,21 @@ const VentaRapida = () => {
             }
 
             if (tipoVenta.tipo === "factura") {
-                console.log('imprimiendo factura', response.body);
+                console.log('imprimiendo factura', response.data);
                 await actualizarUltimaFactura(datosFacturacion?.d_codigo || 0, datosFacturacion?.d_nro_secuencia || 0);
                 ImprimirFacturaTicketComponent({
                     accion: "download",
-                    ventaId: response.body,
+                    ventaId: response.data.codigo,
                     montoEntregado: 0,
                     montoRecibido: 0,
                     vuelto: 0,
                     onImprimir: true
                 });
             } else if (tipoVenta.tipo === "comun") {
-                console.log('imprimiendo ticket', response.body);
+                console.log('imprimiendo ticket', response.data);
                 ImprimirTicketComponent({
                     accion: "download",
-                    ventaId: response.body,
+                    ventaId: response.data.codigo,
                     montoEntregado: 0,
                     montoRecibido: 0,
                     vuelto: 0,
@@ -355,11 +357,11 @@ const VentaRapida = () => {
                         </thead>
                         <tbody>
                             {detalleVenta.map((item) => (
-                                <tr key={item.cod_barras} className="border [&>td]:border-gray-200 [&>td]:border hover:bg-blue-50">
-                                    <td className="py-2 px-4 text-xs">{item.cod_barras}</td>
+                                <tr key={item.codigoBarra} className="border [&>td]:border-gray-200 [&>td]:border hover:bg-blue-50">
+                                    <td className="py-2 px-4 text-xs">{item.codigoBarra}</td>
                                     <td className="py-2 px-4 text-xs">{item.descripcion}</td>
-                                    <td className="py-2 px-4 text-sm">{item.deve_cantidad || 1}</td>
-                                    <td className="py-2 px-4 text-sm">{formatCurrency(item.deve_precio || 0)}</td>
+                                    <td className="py-2 px-4 text-sm">{item.deveCantidad || 1}</td>
+                                    <td className="py-2 px-4 text-sm">{formatCurrency(item.devePrecio || 0)}</td>
                                     <td className="py-2 px-4 text-sm">{formatCurrency(item.subtotal || 0)}</td>
                                 </tr>
                             ))}
@@ -374,7 +376,7 @@ const VentaRapida = () => {
             <div className="flex flex-col gap-2 w-full h-full p-2">
                 {detalleVenta.map((item, index) => (
                     <div
-                        key={item.cod_barras}
+                        key={item.codigoBarra}
                         className={`flex flex-col bg-slate-50 rounded-lg shadow-xs border border-gray-200 transition-all duration-300 ease-in-out ${editingItem === index ? 'p-3' : 'p-2'
                             }`}
                     >
@@ -384,16 +386,16 @@ const VentaRapida = () => {
                                 onClick={() => setEditingItem(index)}
                             >
                                 <div className="flex-1 min-w-0 mr-4">
-                                    <p className="text-gray-600 text-xs truncate">{item.cod_barras}</p>
+                                    <p className="text-gray-600 text-xs truncate">{item.codigoBarra}</p>
                                     <p className="font-medium text-sm text-gray-800 truncate">{item.descripcion}</p>
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <div className="text-right min-w-[60px]">
-                                        <p className="font-medium text-slate-500 text-sm">{item.deve_cantidad || 1}  x {formatCurrency(item.deve_precio || 0)}</p>
+                                        <p className="font-medium text-slate-500 text-sm">{item.deveCantidad || 1}  x {formatCurrency(item.devePrecio || 0)}</p>
                                     </div>
                                     <div className="text-right min-w-[80px]">
                                         <p className="text-xs text-gray-500">Subtotal</p>
-                                        <p className="font-medium text-sm">{formatCurrency(item.subtotal || item.deve_precio || 0)}</p>
+                                        <p className="font-medium text-sm">{formatCurrency(item.subtotal || item.devePrecio || 0)}</p>
                                     </div>
                                 </div>
                             </div>
@@ -403,7 +405,7 @@ const VentaRapida = () => {
                                 onClick={() => setEditingItem(null)}
                             >
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-gray-600 text-xs truncate">{item.cod_barras}</p>
+                                    <p className="text-gray-600 text-xs truncate">{item.codigoBarra}</p>
                                     <input
                                         type="text"
                                         className="w-full bg-white rounded-md p-1.5 border border-gray-300 text-sm mt-1"
@@ -423,7 +425,7 @@ const VentaRapida = () => {
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                const nuevaCantidad = Math.max(1, item.deve_cantidad - 1);
+                                                const nuevaCantidad = Math.max(1, item.deveCantidad - 1);
                                                 const resultado = actualizarCantidadItemVenta(detalleVenta, index, nuevaCantidad);
                                                 if (resultado.ok) {
                                                     setDetalleVenta(resultado.detalleVenta!);
@@ -436,7 +438,7 @@ const VentaRapida = () => {
                                         <input
                                             type="number"
                                             className="w-12 text-center bg-white rounded-md p-1 border border-gray-300 text-sm"
-                                            value={item.deve_cantidad}
+                                            value={item.deveCantidad}
                                             onClick={(e) => e.stopPropagation()}
                                             onChange={(e) => {
                                                 const nuevaCantidad = Math.max(1, parseInt(e.target.value) || 1);
@@ -449,7 +451,7 @@ const VentaRapida = () => {
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                const nuevaCantidad = item.deve_cantidad + 1;
+                                                const nuevaCantidad = item.deveCantidad + 1;
                                                 const resultado = actualizarCantidadItemVenta(detalleVenta, index, nuevaCantidad);
                                                 if (resultado.ok) {
                                                     setDetalleVenta(resultado.detalleVenta!);
@@ -465,7 +467,7 @@ const VentaRapida = () => {
                                         <input
                                             type="number"
                                             className="w-20 text-center bg-white rounded-md p-1 border border-gray-300 text-sm"
-                                            value={item.deve_precio}
+                                            value={item.devePrecio}
                                             onClick={(e) => e.stopPropagation()}
                                             onChange={(e) => {
                                                 const resultado = actualizarPrecioUnitarioItemVenta(detalleVenta, index, parseFloat(e.target.value) || 0);
@@ -523,7 +525,6 @@ const VentaRapida = () => {
             <div className="flex flex-col w-full h-[80%] bg-white gap-2 rounded-md">
                 {renderArticulos()}
             </div>
-
             <button
                 className="w-full bg-blue-500 text-white py-3 rounded-md hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
                 onClick={() => setIsBottomSheetOpen(true)}
@@ -578,11 +579,11 @@ const VentaRapida = () => {
                         <div className="flex flex-col gap-2">
                             <label htmlFor="listaPrecio" className="text-gray-500 font-bold">Lista de Precios</label>
                             <select className="bg-gray-100 rounded-md p-2 border border-gray-300" name="listaPrecio" id="listaPrecio" onChange={(e) => {
-                                const listaPrecio = listaPrecios?.data.find((listaPrecio) => listaPrecio.lpCodigo === parseInt(e.target.value));
+                                const listaPrecio = listaPrecios?.find((listaPrecio) => listaPrecio.lpCodigo === parseInt(e.target.value));
                                 setPrecioSeleccionado(listaPrecio);
                             }}>
                                 {
-                                    listaPrecios?.data.map((listaPrecio) => (
+                                    listaPrecios?.map((listaPrecio) => (
                                         <option key={listaPrecio.lpCodigo} value={listaPrecio.lpCodigo}>{listaPrecio.lpDescripcion}</option>
                                     ))
                                 }
@@ -700,8 +701,14 @@ const VentaRapida = () => {
                             onClick={handleFinalizarVenta}
                             className="flex-1 bg-green-500 text-white py-3 rounded-md hover:bg-green-600 transition-colors flex items-center justify-center gap-2 text-sm"
                         >
+
+                            {crearVentaMutation.isPending? <Spinner/>
+                             : 
+                             <div className="flex gap-2">
                             <ShoppingBag className="w-5 h-5" />
-                            Finalizar Venta
+                            <p>Finalizar Venta</p>
+                             </div>
+                             }
                         </button>
                     </div>
                 </div>

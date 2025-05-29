@@ -1,4 +1,4 @@
-import { ArticuloBusqueda } from "@/shared/types/shared_interfaces";
+import { ArticuloBusqueda } from "@/models/viewmodels/articuloBusqueda";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BarChart2,
@@ -34,11 +34,11 @@ const ArticuloInfoCard = ({ articulo, isVisible }: ArticuloInfoCardProps) => {
             {/* Información principal */}
             <div className="flex flex-col gap-2">
               {/* Vencimiento si existe */}
-              {articulo.vencimiento_validacion === 0 && articulo.vencimiento_lote && (
+              {articulo.vencimientoValidacion === 0 && articulo.vencimientoLote && (
                 <div className="flex items-center gap-2 text-gray-700 mt-1">
                   <Calendar size={18} className="text-orange-500" />
                   <span className="font-semibold">Vencimiento:</span>
-                  <span>{articulo.vencimiento_lote}</span>
+                  <span>{articulo.vencimientoLote}</span>
                 </div>
               )}
 
@@ -47,7 +47,7 @@ const ArticuloInfoCard = ({ articulo, isVisible }: ArticuloInfoCardProps) => {
                 <BarChart2 size={18} className="text-purple-500" />
                 <span className="font-semibold">Ubi./ Sub. Ubi.:</span>
                 <span className="text-sm">{articulo.ubicacion}</span>
-                <span className="text-sm">{articulo.sub_ubicacion}</span>
+                <span className="text-sm">{articulo.subUbicacion}</span>
               </div>
               <div className="flex items-center gap-2 text-gray-700 mt-1">
                 <BarChart2 size={18} className="text-purple-500" />
@@ -62,12 +62,12 @@ const ArticuloInfoCard = ({ articulo, isVisible }: ArticuloInfoCardProps) => {
               <div className="flex items-center gap-2 text-gray-700 mt-1">
                 <BarChart2 size={18} className="text-purple-500" />
                 <span className="font-semibold">Fecha ult. compra.:</span>
-                <span className="text-sm">{articulo.fecha_ultima_compra}</span>
+                <span className="text-sm">{articulo.fechaUltimaVenta}</span>
               </div>
               <div className="flex items-center gap-2 text-gray-700 mt-1">
                 <BarChart2 size={18} className="text-purple-500" />
                 <span className="font-semibold">Fecha ult. venta.:</span>
-                <span className="text-sm">{articulo.fecha_ultima_venta}</span>
+                <span className="text-sm">{articulo.fechaUltimaVenta}</span>
               </div>
             </div>
           </div>

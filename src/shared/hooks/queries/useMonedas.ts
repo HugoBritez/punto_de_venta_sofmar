@@ -10,7 +10,7 @@ export const monedasKey = {
     detail: (id: number) => [...monedasKey.details(), id] as const,
 };
 
-export const useDepositos = () => {
+export const useMonedas = () => {
     return useQuery({
         queryKey: monedasKey.list(),
         queryFn: () => getMonedas(),

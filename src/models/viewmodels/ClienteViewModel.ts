@@ -12,6 +12,8 @@ export interface ClienteViewModel {
     cli_distrito: number;
     cli_distrito_descripcion: string;
     cli_limitecredito: string;
+    deuda_actual: string;
+    credito_disponible: string;
     vendedor_cliente: number;
     cli_dir: string;
     cli_tel: string;

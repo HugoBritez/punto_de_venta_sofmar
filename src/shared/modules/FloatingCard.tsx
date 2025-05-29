@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 
 interface FloatingCardProps<T> {
   isVisible: boolean;
-  items: T[];
+  items: T[] | undefined; // Ahora permite undefined explícitamente
   onClose: () => void;
   onSelect: (item: T) => void;
   renderItem?: (item: T) => React.ReactNode;
@@ -12,7 +12,7 @@ interface FloatingCardProps<T> {
 
 const FloatingCard = <T extends object>({
   isVisible,
-  items,
+  items = [], // Valor por defecto para evitar undefined
   onClose,
   onSelect,
   renderGeneral,
@@ -29,10 +29,13 @@ const FloatingCard = <T extends object>({
 }: FloatingCardProps<T>) => {
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
 
+  // Asegurar que items sea siempre un array
+  const safeItems = items ?? [];
+
   // Resetear el índice seleccionado cuando cambian los items o se oculta
   useEffect(() => {
     setSelectedIndex(-1);
-  }, [items, isVisible]);
+  }, [safeItems, isVisible]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -42,7 +45,7 @@ const FloatingCard = <T extends object>({
         case "ArrowDown":
           e.preventDefault();
           setSelectedIndex((prev) =>
-            prev < items.length - 1 ? prev + 1 : prev
+            prev < safeItems.length - 1 ? prev + 1 : prev
           );
           break;
         case "ArrowUp":
@@ -51,8 +54,8 @@ const FloatingCard = <T extends object>({
           break;
         case "Enter":
           e.preventDefault();
-          if (selectedIndex >= 0 && selectedIndex < items.length) {
-            onSelect(items[selectedIndex]);
+          if (selectedIndex >= 0 && selectedIndex < safeItems.length) {
+            onSelect(safeItems[selectedIndex]);
           }
           break;
         case "Escape":
@@ -61,7 +64,7 @@ const FloatingCard = <T extends object>({
           break;
       }
     },
-    [isVisible, items, selectedIndex, onSelect, onClose]
+    [isVisible, safeItems, selectedIndex, onSelect, onClose]
   );
 
   useEffect(() => {
@@ -89,16 +92,19 @@ const FloatingCard = <T extends object>({
         </button>
       </div>
       <div className="divide-y">
-        {items.length === 0 ? (
+        {safeItems.length === 0 ? (
           <div className="py-2 px-1">
             <p className="text-center text-gray-500 font-semibold">
-              No se encontraron resultados.
+              {items === undefined 
+                ? "Cargando..." 
+                : "No se encontraron resultados."
+              }
             </p>
           </div>
         ) : renderGeneral ? (
-          renderGeneral(items, selectedIndex)
+          renderGeneral(safeItems, selectedIndex)
         ) : (
-          items.map((item, index) => (
+          safeItems.map((item, index) => (
             <div
               key={index}
               className={`py-2 px-1 cursor-pointer transition-colors duration-150

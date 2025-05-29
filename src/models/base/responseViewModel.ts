@@ -1,5 +1,5 @@
 export interface ResponseViewModel<T> {
-    data: T;
+    body: T;
     statusCode: number;
     success: boolean;
 }

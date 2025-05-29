@@ -18,7 +18,7 @@ export const buscarArticulos = async (
   codInterno?: number,
   lote?: string,
   negativo?: boolean,
-): Promise<ResponseViewModel<ArticuloBusqueda[]>> => {
+): Promise<ArticuloBusqueda[]> => {
   const response = await axios.get(`${api_url}articulo/buscar`, {
     params: {
       articuloId,
@@ -36,7 +36,7 @@ export const buscarArticulos = async (
       negativo
     }
   })
-  return response.data
+  return response.data.data;
 }
 
 

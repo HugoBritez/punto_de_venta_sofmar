@@ -1,17 +1,3 @@
-import {
-  Cliente,
-  Deposito,
-  Sucursal,
-  Vendedor,
-  Moneda,
-  MetodosPago,
-  ListaPrecios,
-  PedidosNuevo,
-  Presupuesto,
-  Remisiones,
-  Venta,
-  ArticuloBusqueda,
-} from "@/shared/types/shared_interfaces";
 import { api_url } from "@/utils";
 import axios from "axios";
 import {
@@ -60,38 +46,31 @@ import ModeloFacturaReport from "../facturacion/ModeloFacturaReport";
 import ArticuloInfoCard from "@/shared/modules/ArticuloInfoCard";
 import BuscadorClientes from "@/shared/ui/clientes/BuscadorClientes";
 import { useConfiguraciones } from "@/shared/services/configuraciones/configuracionesHook";
-
-interface ItemParaVenta {
-  precio_guaranies: number;
-  precio_dolares: number;
-  precio_reales: number;
-  precio_pesos: number;
-  deve_articulo: number;
-  articulo: string;
-  deve_cantidad: number;
-  deve_precio: number;
-  deve_descuento: number;
-  deve_exentas: number;
-  deve_cinco: number;
-  deve_diez: number;
-  deve_devolucion: number;
-  deve_vendedor: number;
-  deve_color: number | null;
-  deve_bonificacion: number | null;
-  deve_talle: string | null;
-  deve_codioot: number | null;
-  deve_costo: number | null;
-  deve_costo_art: number | null;
-  deve_cinco_x: number | null;
-  deve_diez_x: number | null;
-  deve_lote?: string | null;
-  loteid?: number | null;
-  deve_vencimiento?: string | null;
-  cod_barra?: string | null;
-  editar_nombre?: number | null;
-  precio_original?: number | null;
-  ar_unidad_medida?: number | null;
-}
+import { SucursalViewModel } from "@/models/viewmodels/sucursalViewModel";
+import { DepositoViewModel } from "@/models/viewmodels/depositoViewModel";
+import { ClienteViewModel } from "@/models/viewmodels/ClienteViewModel";
+import { UsuarioViewModel } from "@/models/viewmodels/usuarioViewModel";
+import { Moneda } from "@/models/viewmodels/MonedaViewModel";
+import { MetodoPago } from "@/models/viewmodels/MetodoDePago";
+import { ArticuloBusqueda } from "@/models/viewmodels/articuloBusqueda";
+import { ListaPrecio } from "@/models/viewmodels/ListaPrecioViewModel";
+import { DetalleVentaDTO } from "../ventas/types/sharedDTO.type";
+import { DetalleVenta } from "@/models/dtos/Ventas/DetalleVenta";
+import { useUsuarioPorId, useUsuarios } from "@/shared/hooks/queries/useUsuarios";
+import { useClientePorDefecto, usePrecioPorDefecto, useTipoImpresion } from "@/shared/hooks/queries/useConfiguraciones";
+import { useSucursales } from "@/shared/hooks/queries/useSucursales";
+import { useDepositos } from "@/shared/hooks/queries/useDepositos";
+import { useListaDePrecios } from "@/shared/hooks/queries/useListaDePrecios";
+import { useBuscarClientes, useClientePorId } from "@/shared/hooks/queries/useClientes";
+import { useArticulosBusqueda } from "@/shared/hooks/queries/articulos/useArticuloBusqueda";
+import { buscarArticulos } from "@/repos/articulosApi";
+import { agregarItemVenta } from "../ventas/core/services/ventasService";
+import { calcularTotales } from "../ventas/core/utils/calcularTotales";
+import { VentaViewModel } from "@/models/viewmodels/Ventas/VentaViewModel";
+import { formatCurrency } from "../ventas/core/utils/formatCurrency";
+import { useMetodosPago } from "@/shared/hooks/queries/useMetodosPago";
+import { useMonedas } from "@/shared/hooks/queries/useMonedas";
+import { Venta } from "@/models/dtos/Ventas/Venta";
 
 interface VentaCliente {
   codigo: number;
@@ -129,20 +108,7 @@ interface OpcionesFinalizacionVenta {
   observacion?: string;
 }
 
-interface DocumentoBase {
-  id: number;
-  tipo: "VENTA" | "PEDIDO" | "PRESUPUESTO" | "REMISION";
-  cliente: number;
-  vendedor?: number;
-  items: Array<{
-    articulo: number;
-    cantidad: number;
-    precio: number;
-    descuento?: number;
-    lote?: string;
-    loteid?: number;
-  }>;
-}
+
 
 interface PedidoModalProps {
   isOpen: boolean;
@@ -164,76 +130,32 @@ interface EditarVentaModalProps {
   onClose: () => void;
 }
 
-const useTotalesVenta = (items: ItemParaVenta[]) => {
-  const [totales, setTotales] = useState({
-    guaranies: 0,
-    dolares: 0,
-    reales: 0,
-    pesos: 0,
-    iva5: 0,
-    iva10: 0,
-  });
-
-  useEffect(() => {
-    const nuevosTotales = items.reduce(
-      (acc, item) => ({
-        guaranies:
-          acc.guaranies + Number(item.precio_guaranies) * item.deve_cantidad,
-        dolares: acc.dolares + Number(item.precio_dolares) * item.deve_cantidad,
-        reales: acc.reales + Number(item.precio_reales) * item.deve_cantidad,
-        pesos:
-          acc.pesos + (Number(item.precio_pesos) || 0) * item.deve_cantidad,
-        iva5: acc.iva5 + Number(item.deve_cinco_x || 0),
-        iva10: acc.iva10 + Number(item.deve_diez_x || 0),
-      }),
-      { guaranies: 0, dolares: 0, reales: 0, pesos: 0, iva5: 0, iva10: 0 }
-    );
-
-    setTotales(nuevosTotales);
-  }, [items]);
-
-  return totales;
-};
-
 const PuntoDeVentaNuevo = () => {
   const [isMobile] = useMediaQuery("(max-width: 768px)");
 
   const [fecha, setFecha] = useState(new Date().toISOString().split("T")[0]);
 
-  const [sucursales, setSucursales] = useState<Sucursal[]>([]);
   const [sucursalSeleccionada, setSucursalSeleccionada] =
-    useState<Sucursal | null>(null);
+    useState<SucursalViewModel | null>(null);
 
-  const [depositos, setDepositos] = useState<Deposito[]>([]);
   const [depositoSeleccionado, setDepositoSeleccionado] =
-    useState<Deposito | null>(null);
+    useState<DepositoViewModel | null>(null);
 
-  const [clientes, setClientes] = useState<Cliente[]>([]);
   const [clienteSeleccionado, setClienteSeleccionado] =
-    useState<Cliente | null>(null);
+    useState<ClienteViewModel | null>(null);
 
-  const [, setVendedores] = useState<Vendedor[]>([]);
   const [vendedorSeleccionado, setVendedorSeleccionado] =
-    useState<Vendedor | null>(null);
+    useState<UsuarioViewModel | null>(null);
 
-  const [monedas, setMonedas] = useState<Moneda[]>([]);
   const [monedaSeleccionada, setMonedaSeleccionada] = useState<Moneda | null>(
     null
   );
-
-  const [metodosPago, setMetodosPago] = useState<MetodosPago[]>([]);
   const [metodoPagoSeleccionado, setMetodoPagoSeleccionado] =
-    useState<MetodosPago | null>(null);
-
-  const [articulos, setArticulos] = useState<ArticuloBusqueda[]>([]);
-
-  const [listaPrecios, setListaPrecios] = useState<ListaPrecios[]>([]);
+    useState<MetodoPago | null>(null);
   const [precioSeleccionado, setPrecioSeleccionado] =
-    useState<ListaPrecios | null>(null);
+    useState<ListaPrecio | null>(null);
 
   const [cantidad, setCantidad] = useState(1);
-
-  const operador = sessionStorage.getItem("user_id");
 
   const [articuloBusqueda, setArticuloBusqueda] = useState<string>("");
   const [articuloBusquedaId, setArticuloBusquedaId] = useState<string | null>(
@@ -242,7 +164,7 @@ const PuntoDeVentaNuevo = () => {
   const [vendedorBusqueda, setVendedorBusqueda] = useState<number | null>(null);
   const [clienteBusqueda, setClienteBusqueda] = useState<string>("");
 
-  const [descuento, setDescuento] = useState<number | null>(null);
+  const [descuento, setDescuento] = useState<number>(0);
 
   const [isArticuloCardVisible, setIsArticuloCardVisible] =
     useState<boolean>(false);
@@ -250,7 +172,54 @@ const PuntoDeVentaNuevo = () => {
   const [isClienteCardVisible, setIsClienteCardVisible] =
     useState<boolean>(false);
 
-  const [itemsParaVenta, setItemsParaVenta] = useState<ItemParaVenta[]>([]);
+  const [ventaDTO, setVentaDTO] = useState<Venta>(
+    {
+      codigo: 0,
+      fecha: new Date(),
+      operador: 0,
+      deposito: 0,
+      moneda: 1,
+      factura: "",
+      credito: 0,
+      saldo: 0,
+      total: 0,
+      devolucion: 0,
+      procesado: 0,
+      descuento: 0,
+      cuotas: 0,
+      cantCuotas: 0,
+      obs: "Venta desde dispositivo móvil",
+      vendedor: 0,
+      sucursal: 0,
+      metodo: 1,
+      aplicarA: 0,
+      retencion: 0,
+      timbrado: "",
+      codeudor: 1,
+      pedido: 0,
+      hora: new Date().toLocaleTimeString(),
+      userPc: "",
+      situacion: 1,
+      chofer: 0,
+      cdc: "",
+      qr: "",
+      kmActual: 0,
+      vehiculo: 0,
+      descTrabajo: "",
+      kilometraje: 0,
+      mecanico: 0,
+      servicio: 0,
+      siniestro: '',
+      cliente: 0,
+      vencimiento: undefined,
+      estado: 1,
+      cajaDefinicion: undefined,
+      confOperacion: undefined,
+    }
+  );
+
+  const [itemsParaVenta, setItemsParaVenta] = useState<DetalleVenta[]>([]);
+  const [precioUnitario, setPrecioUnitario] = useState<number>(0);
 
   const [ultimaVentaId, setUltimaVentaId] = useState<number | null>(null);
 
@@ -263,9 +232,6 @@ const PuntoDeVentaNuevo = () => {
   const tipoVentaKCInputRef = useRef<HTMLInputElement>(null);
   const montoEntregadoKCInputRef = useRef<HTMLInputElement>(null);
 
-  const [cotizacionDolar, setCotizacionDolar] = useState<number>(7770);
-  const [cotizacionReal, setCotizacionReal] = useState<number>(1200);
-  const [cotizacionPeso, setCotizacionPeso] = useState<number>(5);
   const [articuloSeleccionado, setArticuloSeleccionado] =
     useState<ArticuloBusqueda | null>(null);
 
@@ -283,9 +249,6 @@ const PuntoDeVentaNuevo = () => {
   const [hoveredArticulo, setHoveredArticulo] =
     useState<ArticuloBusqueda | null>(null);
 
-  const [d_codigo, setD_codigo] = useState<number>(0);
-
-  const { clientePorDefecto } = useConfiguraciones();
 
   const [cuotasList, setCuotasList] = useState<
     Array<{
@@ -294,8 +257,6 @@ const PuntoDeVentaNuevo = () => {
       saldo: number;
     }>
   >([]);
-
-  const totalesVenta = useTotalesVenta(itemsParaVenta);
 
   const [isBuscadorClientesOpen, setIsBuscadorClientesOpen] =
     useState<boolean>(false);
@@ -350,35 +311,16 @@ const PuntoDeVentaNuevo = () => {
     null
   );
 
-  const configuraciones = JSON.parse(
-    sessionStorage.getItem("configuraciones") || "[]"
-  );
   const permisos_descuento = JSON.parse(
     sessionStorage.getItem("permisos_descuento") || "[]"
   );
 
-  const { usaFacturaElectronica, fetchUsaFacturaElectronica } =
-    useFacturacionElectronicaStore();
 
-  const tipoImpresionDoc = configuraciones[5].valor || 0;
+  const { data: tipoImpresionDoc } = useTipoImpresion();
 
-  const { tipoImpresion, fetchTipoImpresion } = useTipoImpresionFacturaStore();
   const [tipoImpresionFactura, setTipoImpresionFactura] = useState<
     number | null
   >(null);
-
-  function determinarTipoDeImpresionFactura() {
-    if (
-      tipoImpresion === "thisform.imprimirventa1.imprimir_factura_elect_report"
-    ) {
-      setTipoImpresionFactura(1); //impresion hoja grande
-    } else if (
-      tipoImpresion ===
-      "thisform.imprimirventa1.imprimir_factura_ticket_electronica"
-    ) {
-      setTipoImpresionFactura(2); // impresion tipo ticket
-    }
-  }
 
   const cajero_id = sessionStorage.getItem("user_id");
 
@@ -390,7 +332,7 @@ const PuntoDeVentaNuevo = () => {
   const [opcionesFinalizacion, setOpcionesFinalizacion] =
     useState<OpcionesFinalizacionVenta>({
       tipo_venta: "CONTADO",
-      tipo_documento: tipoImpresionDoc === "1" ? "FACTURA" : "TICKET",
+      tipo_documento: tipoImpresionDoc?.id === 1 ? "FACTURA" : "TICKET",
       cantidad_cuotas: 1,
       entrega_inicial: 0,
       fecha_vencimiento_timbrado: new Date(
@@ -399,182 +341,141 @@ const PuntoDeVentaNuevo = () => {
         .toISOString()
         .split("T")[0],
     });
-
   const toast = useToast();
-  const { enviarFacturas } = useFacturaSend();
-
-
-  const getClientePorDefecto = async () => {
-    const responseClientePorDefecto = await axios.get(
-      `${api_url}clientes/get-clientes`,
-      {
-        params: {
-          id_cliente: clientePorDefecto?.body[0].valor,
-        },
-      }
-    );
-    console.log("Cliente por defecto en config", clientePorDefecto);
-    console.log("Cliente por defecto", responseClientePorDefecto.data.body);
-    setClienteSeleccionado(responseClientePorDefecto.data.body[0]);
-  };
-
-  async function getDatos() {
-    try {
-      const responseUltimaVentaId = await axios.get(
-        `${api_url}venta/idUltimaVenta`
-      );
-      setUltimaVentaId(responseUltimaVentaId.data.body[0].id);
-
-      const responseSucursales = await axios.get(`${api_url}sucursales/listar`);
-      setSucursales(responseSucursales.data.body);
-      setSucursalSeleccionada(responseSucursales.data.body[0]);
-
-      const responseDepositos = await axios.get(`${api_url}depositos`);
-      setDepositos(responseDepositos.data.body);
-      setDepositoSeleccionado(responseDepositos.data.body[0]);
-
-      const responseMetodosPago = await axios.get(
-        `${api_url}venta/metodosPago`
-      );
-      setMetodosPago(responseMetodosPago.data.body);
-      setMetodoPagoSeleccionado(responseMetodosPago.data.body[0]);
-
-      const responseMonedas = await axios.get(`${api_url}monedas`);
-      setMonedas(responseMonedas.data.body);
-      setMonedaSeleccionada(responseMonedas.data.body[0]);
-
-      const responseListaPrecios = await axios.get(`${api_url}listasprecios`);
-      setListaPrecios(responseListaPrecios.data.body);
-      if (configuraciones[49].valor === "1") {
-        console.log(configuraciones[49].valor);
-        setPrecioSeleccionado(responseListaPrecios.data.body[0]);
-      } else {
-        console.log(configuraciones[49].valor);
-        setPrecioSeleccionado(responseListaPrecios.data.body[1]);
-      }
-      getClientePorDefecto();
-
-      const responseCotizaciones = await axios.get(`${api_url}cotizaciones/`);
-      setCotizacionDolar(responseCotizaciones.data.body[0].usd_venta);
-      setCotizacionPeso(responseCotizaciones.data.body[0].ars_venta);
-      setCotizacionReal(responseCotizaciones.data.body[0].brl_venta);
-    } catch (error) {
-      toast({
-        title: "Error al obtener los datos",
-        description: "Se ha producido un error al obtener los datos",
-        status: "error",
-      });
+  const { data: sucursales } = useSucursales({ operador: cajero_id ? parseInt(cajero_id) : 0 });
+  const { data: depositos } = useDepositos();
+  const { data: listaPrecios } = useListaDePrecios();
+  const { data: vendedorPorDefecto } = useUsuarioPorId(cajero_id ? parseInt(cajero_id) : 1)
+  const { data: clientePorDefecto } = useClientePorDefecto();
+  const { data: clientePorId } = useClientePorId(clienteBusquedaId ?? 1)
+  const { data: precioPorDefecto } = usePrecioPorDefecto();
+  const { data: articulos, isLoading: loadingArticulos, isError: errorArticulos } = useArticulosBusqueda(
+    {
+      deposito: depositoSeleccionado?.dep_codigo,
+      stock: buscarItemsConStock,
+      moneda: monedaSeleccionada?.moCodigo,
+      busqueda: articuloBusqueda
     }
-  }
+  )
+  const { data: clientes } = useBuscarClientes(clienteBusqueda)
+  const { data: metodosPago } = useMetodosPago();
+  const { data: monedas } = useMonedas()
 
-  const obtenerDatosFacturacion = async () => {
-    try {
-      const response = await axios.get(`${api_url}definicion-ventas/timbrado`, {
-        params: {
-          usuario: operador,
-        },
-      });
-
-      console.log(response.data.body);
-      setOpcionesFinalizacion({
-        ...opcionesFinalizacion,
-        nro_establecimiento: response.data.body[0].d_establecimiento,
-        nro_emision: response.data.body[0].d_p_emision,
-        nro_factura: response.data.body[0].d_nro_secuencia + 1,
-        timbrado: response.data.body[0].d_nrotimbrado,
-      });
-      setD_codigo(response.data.body[0].d_codigo);
-    } catch (err) {
-      console.log(err);
-    }
-  };
-
-  async function actualizarUltimaFactura(codigo: number, numero: number) {
-    try {
-      await axios.post(
-        `${api_url}definicion-ventas/sec?secuencia=${codigo}&codigo=${numero}`
-      );
-    } catch (err) {
-      toast({
-        title: "Error",
-        description:
-          "Hubo un problema al actualizar la secuencia de la factura.",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
-    }
-  }
-
-  const getArticulos = async (
-    busqueda: string,
-    id_articulo?: string | null,
-    codigo_barra?: string | null
-  ) => {
-    setArticulos([]);
-    const response = await axios.get(`${api_url}articulos/buscar-articulos`, {
-      params: {
-        articulo_id: id_articulo,
-        busqueda: busqueda,
-        deposito: depositoSeleccionado?.dep_codigo,
-        stock: buscarItemsConStock,
-        codigo_barra: codigo_barra,
-      },
-    });
-    console.log(response.data.body);
-    setArticulos(response.data.body);
-  };
+  const { total, totalDescuentos, totalAPagar, totalDolares, totalReales, totalPesos } = calcularTotales(itemsParaVenta);
 
 
-  const getClientes = async (busqueda: string) => {
-    const response = await axios.get(`${api_url}clientes/get-clientes`, {
-      params: {
-        buscar: busqueda,
-      },
-    });
-    console.log(response.data.body);
-    setClientes(response.data.body);
-  };
-
-  const getClientePorId = async (
-    id: number | null,
-    id_cliente: number | null
-  ) => {
-    console.log("Buscando cliente", id);
-    try {
-      const response = await axios.get(`${api_url}clientes/get-clientes`, {
-        params: {
-          id_cliente: id_cliente,
-          id: id,
-        },
-      });
-      console.log("Respuesta de cliente", response.data.body);
-      if (response.data.body && response.data.body.length > 0) {
-        setClienteSeleccionado(response.data.body[0]);
-        setClienteBusqueda(response.data.body[0].cli_razon);
-        console.log("Cliente seleccionado", response.data.body[0]);
-      } else {
-        setClienteSeleccionado(null);
-        setClienteBusqueda("");
-      }
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const getVendedores = async (busqueda: number) => {
-    const response = await axios.get(`${api_url}usuarios/vendedores`, {
-      params: {
-        id_vendedor: busqueda,
-      },
-    });
-    setVendedores(response.data.body);
-    setVendedorSeleccionado(response.data.body[0]);
-  };
+  const cotizacionDolar = 7300;
+  const cotizacionPeso = 10;
+  const cotizacionReal = 1300;
 
   useEffect(() => {
-    getVendedores(Number(cajero_id));
-  }, [cajero_id]);
+    if (precioPorDefecto && listaPrecios) {
+      console.log("buscando precio", precioPorDefecto)
+      const precioEncontrado = listaPrecios.find(precio => precio.lpCodigo === Number(precioPorDefecto.valor));
+      if (precioEncontrado) {
+        console.log("precio encontrado y seleccionado", precioEncontrado)
+        setPrecioSeleccionado(precioEncontrado);
+      }
+    }
+  }, [precioPorDefecto, listaPrecios]);
+
+  //efecto para seleccionar por defecto un cliente
+  useEffect(() => {
+    if (clientes) {
+      const clientePreseleccionado = clientes.find(cli => cli.cli_codigo === clientePorDefecto?.id)
+      if (clientePreseleccionado) {
+        setClienteSeleccionado(clientePreseleccionado)
+      }
+    }
+  }, [clientes])
+
+  // efecto para seleccionar un cliente cada que cambie el buscador por id
+  useEffect(() => {
+    if (clientePorId) setClienteSeleccionado(clientePorId)
+  }, [clientePorId])
+
+
+
+  // efecto para seleccioanr al cajero por defecto
+  useEffect(() => {
+    if (vendedorPorDefecto) setVendedorSeleccionado(vendedorPorDefecto)
+  }, [vendedorPorDefecto])
+
+  useEffect(() => {
+    if (sucursales) setSucursalSeleccionada(sucursales[0])
+  }, [sucursales])
+
+  useEffect(() => {
+    if (clienteSeleccionado) {
+      setVentaDTO(prevState => ({
+        ...prevState,
+        cliente: clienteSeleccionado?.cli_codigo
+      }))
+    }
+    if (vendedorSeleccionado) {
+      setVentaDTO(prevState => ({
+        ...prevState,
+        vendedor: vendedorSeleccionado.op_codigo,
+        operador: vendedorSeleccionado.op_codigo,
+        userPc: `Dispositivo de ${vendedorSeleccionado.op_nombre}`
+      }));
+    }
+    if (sucursalSeleccionada) {
+      setVentaDTO(prevState => ({
+        ...prevState,
+        sucursal: sucursalSeleccionada.id
+      }));
+    }
+    if (depositoSeleccionado) {
+      setVentaDTO(prevState => ({
+        ...prevState,
+        deposito: depositoSeleccionado.dep_codigo
+      }));
+    }
+    if (monedaSeleccionada) {
+      setVentaDTO(prevState => ({
+        ...prevState,
+        moneda: monedaSeleccionada.moCodigo
+      }));
+    }
+
+  }, [clientePorDefecto, vendedorSeleccionado, sucursalSeleccionada, depositoSeleccionado]);
+
+
+  useEffect(() => {
+    setVentaDTO(prevState => ({
+      ...prevState,
+      total: total
+    }));
+  }, [total]);
+
+  useEffect(() => {
+    console.log('ventaDTO', ventaDTO)
+    console.log('detalleVenta', itemsParaVenta)
+  }, [itemsParaVenta, ventaDTO])
+
+  // const obtenerDatosFacturacion = async () => {
+  //   try {
+  //     const response = await axios.get(`${api_url}definicion-ventas/timbrado`, {
+  //       params: {
+  //         usuario: operador,
+  //       },
+  //     });
+
+  //     console.log(response.data.body);
+  //     setOpcionesFinalizacion({
+  //       ...opcionesFinalizacion,
+  //       nro_establecimiento: response.data.body[0].d_establecimiento,
+  //       nro_emision: response.data.body[0].d_p_emision,
+  //       nro_factura: response.data.body[0].d_nro_secuencia + 1,
+  //       timbrado: response.data.body[0].d_nrotimbrado,
+  //     });
+  //     setD_codigo(response.data.body[0].d_codigo);
+  //   } catch (err) {
+  //     console.log(err);
+  //   }
+  // };
+
 
   const handleBuscarArticulo = (e: React.ChangeEvent<HTMLInputElement>) => {
     const busqueda = e.target.value;
@@ -589,14 +490,12 @@ const PuntoDeVentaNuevo = () => {
     // Si el input está vacío, limpiar resultados inmediatamente
     if (busqueda.length === 0) {
       setIsArticuloCardVisible(false);
-      setArticulos([]);
       return;
     }
 
     // Configurar un nuevo timeout para la búsqueda
     searchTimeOutRef.current = setTimeout(() => {
       setIsArticuloCardVisible(true);
-      getArticulos(busqueda);
     }, 300); // Esperar 300ms después de que el usuario deje de escribir
   };
 
@@ -609,24 +508,37 @@ const PuntoDeVentaNuevo = () => {
     };
   }, []);
 
-
-
   const handleBuscarArticuloPorId = async (codigo: string) => {
     try {
-      const response = await axios.get(`${api_url}articulos/buscar-articulos`, {
-        params: {
-          codigo_barra: codigo,
-          deposito: depositoSeleccionado?.dep_codigo,
-          stock: buscarItemsConStock,
-        },
-      });
+      const response = await buscarArticulos(
+        undefined,
+        undefined,
+        codigo,
+        monedaSeleccionada?.moCodigo,
+        buscarItemsConStock,
+        depositoSeleccionado?.dep_codigo,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined
+      )
 
-      if (response.data.body && response.data.body.length > 0) {
-        const articulo = response.data.body[0];
-        const nuevoItem = crearItemValidado(articulo, 1, 0);
-        if (nuevoItem) {
-          setItemsParaVenta(prev => [...prev, nuevoItem]);
-          // Limpiamos los campos después de agregar el artículo
+      if (response && response.length > 0) {
+        const articulo = response[0];
+        const nuevoItem = agregarItemVenta(itemsParaVenta, {
+          articulo,
+          cantidad: cantidad || 1,
+          precioSeleccionado: precioSeleccionado!,
+          depositoSeleccionado: depositoSeleccionado!,
+          sucursalSeleccionada: sucursalSeleccionada!,
+          vendedorSeleccionado: vendedorSeleccionado!,
+          precioUnitario,
+          descuento,
+        });
+        if (nuevoItem.ok) {
           setTimeout(() => {
             setArticuloBusquedaId("");
             setCodigoBarrasBuffer("");
@@ -675,18 +587,15 @@ const PuntoDeVentaNuevo = () => {
 
     if (busqueda.length >= 0) {
       setIsClienteCardVisible(true);
-      getClientes(busqueda);
     } else {
       setIsClienteCardVisible(false);
-      setClientes([]);
     }
   };
 
   const handleBuscarClientePorId = (e: React.ChangeEvent<HTMLInputElement>) => {
     const busqueda = e.target.value;
-    setClienteBusquedaId(busqueda ? Number(busqueda) : null);
     if (busqueda.length > 0) {
-      getClientePorId(Number(busqueda), null);
+      setClienteBusquedaId(Number(busqueda));
     } else {
       setClienteSeleccionado(null);
       setClienteBusqueda("");
@@ -696,149 +605,70 @@ const PuntoDeVentaNuevo = () => {
   const handleBuscarVendedor = (e: React.ChangeEvent<HTMLInputElement>) => {
     setIsVendedorCardVisible(true);
     const busqueda = e.target.value;
-    getVendedores(Number(busqueda));
     setVendedorBusqueda(Number(busqueda));
   };
 
   const handleSelectArticulo = (articulo: ArticuloBusqueda) => {
     setArticuloSeleccionado(articulo);
     setIsArticuloCardVisible(false);
-    setArticulos([]);
     setHoveredArticulo(null);
     setArticuloBusqueda("");
     setArticuloBusquedaId("");
   };
 
-  const handleSelectCliente = (cliente: Cliente) => {
+  const handleSelectCliente = (cliente: ClienteViewModel) => {
     setClienteSeleccionado(cliente);
     setClienteBusqueda(cliente.cli_razon);
     setIsClienteCardVisible(false);
   };
 
-  const crearItemValidado = (
-    articulo: ArticuloBusqueda,
-    cantidad: number,
-    descuento: number = 0,
-    vendedor: number = 0
-  ): ItemParaVenta | null => {
-    // 1. Validaciones de stock
+  const handleAgregarItem = (cantidad: number, articulo?: ArticuloBusqueda,) => {
+    if (!articulo) {
+      return;
+    }
+    const resultado = agregarItemVenta(itemsParaVenta, {
+      articulo,
+      cantidad: cantidad || 1,
+      precioSeleccionado: precioSeleccionado!,
+      depositoSeleccionado: depositoSeleccionado!,
+      sucursalSeleccionada: sucursalSeleccionada!,
+      vendedorSeleccionado: vendedorSeleccionado!,
+      precioUnitario,
+      descuento,
+    });
 
-    if (articulo.stock_negativo === 0 && cantidad > articulo.cantidad_lote) {
+    if (!resultado.ok) {
       toast({
         title: "Error",
-        description: "No hay stock disponible para este artículo",
-        status: "error",
+        description: resultado.error,
+        status: "info",
+        duration: 3000,
+        isClosable: true,
       });
-      return null;
+      return;
     }
+    setItemsParaVenta(resultado.detalleVenta!);
+    setCantidad(1);
+    setPrecioUnitario(0);
+    setDescuento(0);
+  }
 
-    let precioUnitarioMonedaActual = 0;
-
-    switch (monedaSeleccionada?.mo_codigo) {
-      case 1:
-        precioUnitarioMonedaActual = articulo.precio_venta_guaranies;
-        break;
-      case 2:
-        precioUnitarioMonedaActual = articulo.precio_venta_dolar;
-        break;
-      case 3:
-        precioUnitarioMonedaActual = articulo.precio_venta_real;
-        break;
-      case 4:
-        precioUnitarioMonedaActual = articulo.precio_venta_pesos;
-        break;
-      default:
-        precioUnitarioMonedaActual = articulo.precio_venta_guaranies;
-    }
-
-    // 8. Cálculo de impuestos
-    let deve_exentas = 0;
-    let deve_cinco = 0;
-    let deve_diez = 0;
-
-    switch (articulo.iva) {
-      case 1: // Exento
-        deve_exentas = precioUnitarioMonedaActual * cantidad;
-        break;
-      case 2: // IVA 10%
-        deve_diez = precioUnitarioMonedaActual * cantidad;
-        break;
-      case 3: // IVA 5%
-        deve_cinco = precioUnitarioMonedaActual * cantidad;
-        break;
-    }
-
-    // 9. Crear el item con todas las validaciones aplicadas
-    const nuevoItem = {
-      precio_guaranies: articulo.precio_venta_guaranies,
-      precio_dolares: articulo.precio_venta_dolar,
-      precio_reales: articulo.precio_venta_real,
-      precio_pesos: articulo.precio_venta_pesos,
-      cod_barra: articulo.codigo_barra,
-      deve_articulo: articulo.id_articulo,
-      articulo: articulo.descripcion,
-      deve_cantidad: cantidad,
-      deve_precio: precioUnitarioMonedaActual,
-      deve_descuento: descuento || 0,
-      deve_exentas: Number(deve_exentas),
-      deve_cinco: Number(deve_cinco),
-      deve_diez: Number(deve_diez),
-      deve_devolucion: 0,
-      deve_vendedor: vendedor || Number(vendedorSeleccionado?.op_codigo) || 0,
-      deve_color: null,
-      deve_bonificacion: null,
-      deve_talle: null,
-      deve_codioot: null,
-      deve_costo: null,
-      deve_costo_art: null,
-      deve_cinco_x: deve_cinco > 0 ? Number(deve_cinco * 0.05) : 0,
-      deve_diez_x: deve_diez > 0 ? Number(deve_diez * 0.1) : 0,
-      editar_nombre: articulo.editar_nombre,
-      deve_lote: articulo.lote,
-      loteid: articulo.id_lote,
-      deve_vencimiento: articulo.vencimiento_lote,
-    };
-
-    return nuevoItem;
-  };
-
-  const agregarItemAVenta = () => {
-    if (!articuloSeleccionado) return;
-
-    const nuevoItem = crearItemValidado(
-      articuloSeleccionado,
-      cantidad,
-      descuento || 0
-    );
-
-    if (nuevoItem) {
-      setItemsParaVenta([...itemsParaVenta, nuevoItem]);
-      setArticuloSeleccionado(null);
-      setArticuloBusqueda("");
-      setCantidad(1);
-      setDescuento(null);
-    }
-  };
-
-  const handleEliminarItem = (articulo: ItemParaVenta) => {
-    setItemsParaVenta(itemsParaVenta.filter((item) => item !== articulo));
-  };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       if (articuloSeleccionado) {
-        agregarItemAVenta();
+        handleAgregarItem(cantidad, articuloSeleccionado);
         busquedaPorIdInputRef.current?.focus();
       } else if (hoveredArticulo) {
         handleSelectArticulo(hoveredArticulo);
         setHoveredArticulo(null);
-      } else if (articulos.length > 0) {
+      } else if (articulos && articulos?.length > 0) {
         handleSelectArticulo(articulos[0]);
       }
-    } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    } else if (articulos && (e.key === "ArrowDown" || e.key === "ArrowUp")) {
       e.preventDefault();
       const currentIndex = hoveredArticulo
-        ? articulos.findIndex((a) => a.id_lote === hoveredArticulo.id_lote)
+        ? articulos.findIndex((a) => a.idLote === hoveredArticulo.idLote)
         : -1;
 
       if (e.key === "ArrowDown") {
@@ -863,7 +693,7 @@ const PuntoDeVentaNuevo = () => {
       e.preventDefault();
       e.stopPropagation();
       if (articuloSeleccionado) {
-        agregarItemAVenta();
+        handleAgregarItem(cantidad, articuloSeleccionado);
       }
       setCantidad(1);
       setDescuento(0);
@@ -882,25 +712,8 @@ const PuntoDeVentaNuevo = () => {
     setCantidad(1);
     setDescuento(0);
     setClienteBusqueda("");
-    setClienteBusquedaId(null);
+    setClienteBusquedaId(0);
   };
-
-  useEffect(() => {
-    getDatos();
-    obtenerDatosFacturacion();
-    fetchTipoImpresion();
-  }, []);
-
-  useEffect(() => {
-    determinarTipoDeImpresionFactura();
-  }, [tipoImpresion]);
-
-  useEffect(() => {
-    if (sucursalSeleccionada) {
-      fetchUsaFacturaElectronica(sucursalSeleccionada.id);
-    }
-  }, [sucursalSeleccionada]);
-
   // const totalExentas = itemsParaVenta.reduce(
   //   (total, item) => total + item.deve_exentas,
   //   0
@@ -917,63 +730,63 @@ const PuntoDeVentaNuevo = () => {
   //   (total, item) => total + item.deve_cantidad,
   //   0
   // );
-  const totalPagar = itemsParaVenta.reduce(
-    //siempre en la moneda seleccionada
-    (total, item) => total + item.deve_precio * item.deve_cantidad,
-    0
-  );
+  // const totalPagar = itemsParaVenta.reduce(
+  //   //siempre en la moneda seleccionada
+  //   (total, item) => total + item.deve_precio * item.deve_cantidad,
+  //   0
+  // );
 
-  const totalPagarGuaranies = itemsParaVenta.reduce(
-    (total, item) => total + item.precio_guaranies * item.deve_cantidad,
-    0
-  );
-  const totalPagarDolares = itemsParaVenta.reduce(
-    (total, item) => total + item.precio_dolares * item.deve_cantidad,
-    0
-  );
-  const totalPagarReales = itemsParaVenta.reduce(
-    (total, item) => total + item.precio_reales * item.deve_cantidad,
-    0
-  );
-  const totalPagarPesos = itemsParaVenta.reduce(
-    (total, item) => total + item.precio_pesos * item.deve_cantidad,
-    0
-  );
+  // const totalPagarGuaranies = itemsParaVenta.reduce(
+  //   (total, item) => total + item.precio_guaranies * item.deve_cantidad,
+  //   0
+  // );
+  // const totalPagarDolares = itemsParaVenta.reduce(
+  //   (total, item) => total + item.precio_dolares * item.deve_cantidad,
+  //   0
+  // );
+  // const totalPagarReales = itemsParaVenta.reduce(
+  //   (total, item) => total + item.precio_reales * item.deve_cantidad,
+  //   0
+  // );
+  // const totalPagarPesos = itemsParaVenta.reduce(
+  //   (total, item) => total + item.precio_pesos * item.deve_cantidad,
+  //   0
+  // );
 
-  const totalDescuentoItems = itemsParaVenta.reduce(
-    (total, item) =>
-      total +
-      (item.deve_descuento * item.deve_precio * item.deve_cantidad) / 100,
-    0
-  );
-  const totalDescuentoFactura = 0;
-  const totalDescuento = totalDescuentoItems + totalDescuentoFactura;
+  // const totalDescuentoItems = itemsParaVenta.reduce(
+  //   (total, item) =>
+  //     total +
+  //     (item.deve_descuento * item.deve_precio * item.deve_cantidad) / 100,
+  //   0
+  // );
+  // const totalDescuentoFactura = 0;
+  // const totalDescuento = totalDescuentoItems + totalDescuentoFactura;
 
-  const totalPagarFinal = totalPagar - totalDescuento; //siempre en la moneda seleccionada
+  // const totalPagarFinal = totalPagar - totalDescuento; //siempre en la moneda seleccionada
 
-  // const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
+  // // const porcentajeDescuento = (totalDescuento / totalPagar) * 100;
 
-  // Formatear los números con 2 decimales y separador de miles
-  const formatNumber = (num: number | string) => {
-    // Convertir a número si es string
-    const numValue = typeof num === "string" ? Number(num) : num;
+  // // Formatear los números con 2 decimales y separador de miles
+  // const formatNumber = (num: number | string) => {
+  //   // Convertir a número si es string
+  //   const numValue = typeof num === "string" ? Number(num) : num;
 
-    // Definir la cantidad de decimales según la moneda
-    const decimals = monedaSeleccionada?.mo_codigo === 1 ? 0 : 2;
+  //   // Definir la cantidad de decimales según la moneda
+  //   const decimals = monedaSeleccionada?.mo_codigo === 1 ? 0 : 2;
 
-    // Formatear según la configuración regional y la cantidad de decimales
-    return numValue.toLocaleString("es-PY", {
-      minimumFractionDigits: decimals,
-      maximumFractionDigits: decimals,
-    });
-  };
+  //   // Formatear según la configuración regional y la cantidad de decimales
+  //   return numValue.toLocaleString("es-PY", {
+  //     minimumFractionDigits: decimals,
+  //     maximumFractionDigits: decimals,
+  //   });
+  // };
 
-  const formatearDivisasExtranjeras = (num: number) => {
-    return num.toLocaleString("es-PY", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-  };
+  // const formatearDivisasExtranjeras = (num: number) => {
+  //   return num.toLocaleString("es-PY", {
+  //     minimumFractionDigits: 2,
+  //     maximumFractionDigits: 2,
+  //   });
+  // };
 
   // const totalExentasFormateado = formatNumber(totalExentas);
   // const totalCincoFormateado = formatNumber(totalCinco);
@@ -982,22 +795,22 @@ const PuntoDeVentaNuevo = () => {
   // const totalPagarFormateado = formatNumber(totalPagar);
   // const totalDescuentoItemsFormateado = formatNumber(totalDescuentoItems);
   // const totalDescuentoFormateado = formatNumber(totalDescuento);
-  const totalDolaresFormateado = formatearDivisasExtranjeras(
-    totalesVenta.dolares
-  );
-  const totalRealesFormateado = formatearDivisasExtranjeras(
-    totalesVenta.reales
-  );
-  const totalPesosFormateado = formatearDivisasExtranjeras(totalesVenta.pesos);
-  // const porcentajeDescuentoFormateado = porcentajeDescuento;
-  const totalEnGuaraniesFormateado = formatNumber(totalesVenta.guaranies);
+  // const totalDolaresFormateado = (
+  //   totalesVenta.dolares
+  // );
+  // const totalRealesFormateado = formatearDivisasExtranjeras(
+  //   totalesVenta.reales
+  // );
+  // const totalPesosFormateado = formatearDivisasExtranjeras(totalesVenta.pesos);
+  // // const porcentajeDescuentoFormateado = porcentajeDescuento;
+  // const totalEnGuaraniesFormateado = formatNumber(totalesVenta.guaranies);
 
   const ResumenVentasCliente = ({
     cliente,
     onClose,
     isModal,
   }: {
-    cliente: Cliente;
+    cliente: ClienteViewModel;
     onClose: () => void;
     isModal: boolean;
   }) => {
@@ -1172,14 +985,14 @@ const PuntoDeVentaNuevo = () => {
     if (
       !opcionesFinalizacion.cantidad_cuotas ||
       !opcionesFinalizacion.fecha_vencimiento_timbrado ||
-      !totalPagarFinal
+      !totalAPagar
     ) {
       setCuotasList([]);
       return;
     }
 
     const montoTotal =
-      totalPagarFinal - (opcionesFinalizacion.entrega_inicial || 0);
+      totalAPagar - (opcionesFinalizacion.entrega_inicial || 0);
     const valorCuota = Math.ceil(
       montoTotal / opcionesFinalizacion.cantidad_cuotas
     );
@@ -1208,7 +1021,7 @@ const PuntoDeVentaNuevo = () => {
     opcionesFinalizacion.cantidad_cuotas,
     opcionesFinalizacion.fecha_vencimiento_timbrado,
     opcionesFinalizacion.entrega_inicial,
-    totalPagarFinal,
+    totalAPagar,
   ]);
 
   // Agregar este efecto para recalcular las cuotas cuando cambien los valores relevantes
@@ -1216,783 +1029,782 @@ const PuntoDeVentaNuevo = () => {
     calcularCuotas();
   }, [calcularCuotas]);
 
-  const finalizarVenta = async () => {
-    try {
-      if (itemsParaVenta.length === 0) {
-        toast({
-          title: "Error",
-          description: "No se han seleccionado articulos para la venta",
-          status: "error",
-          duration: 3000,
-        });
-        return;
-      }
+  // const finalizarVenta = async () => {
+  //   try {
+  //     if (itemsParaVenta.length === 0) {
+  //       toast({
+  //         title: "Error",
+  //         description: "No se han seleccionado articulos para la venta",
+  //         status: "error",
+  //         duration: 3000,
+  //       });
+  //       return;
+  //     }
+  //     if (!clienteSeleccionado) {
+  //       toast({
+  //         title: "Error",
+  //         description: "No se ha seleccionado un cliente",
+  //         status: "error",
+  //         duration: 3000,
+  //       });
+  //       return;
+  //     }
+  //     if (!vendedorSeleccionado) {
+  //       toast({
+  //         title: "Error",
+  //         description: "No se ha seleccionado un vendedor",
+  //         status: "error",
+  //         duration: 3000,
+  //       });
+  //       return;
+  //     }
 
-      if (!clienteSeleccionado) {
-        toast({
-          title: "Error",
-          description: "No se ha seleccionado un cliente",
-          status: "error",
-          duration: 3000,
-        });
-        return;
-      }
-      if (!vendedorSeleccionado) {
-        toast({
-          title: "Error",
-          description: "No se ha seleccionado un vendedor",
-          status: "error",
-          duration: 3000,
-        });
-        return;
-      }
+  // const documentoTipo = (() => {
+  //   switch (clienteSeleccionado.cli_tipo_doc) {
+  //     case 1:
+  //       return 1;
+  //     case 2:
+  //       return 1;
+  //     case 3:
+  //       return 2;
+  //     case 4:
+  //       return 3;
+  //     case 5:
+  //       return 1;
+  //     case 6:
+  //       return 6;
+  //     case 7:
+  //       return 9;
+  //     case 8:
+  //       return 1;
+  //   }
+  // })();
 
-      const documentoTipo = (() => {
-        switch (clienteSeleccionado.cli_tipo_doc) {
-          case 1:
-            return 1;
-          case 2:
-            return 1;
-          case 3:
-            return 2;
-          case 4:
-            return 3;
-          case 5:
-            return 1;
-          case 6:
-            return 6;
-          case 7:
-            return 9;
-          case 8:
-            return 1;
-        }
-      })();
+  // const dataFacturaSend: FacturaSendResponse = {
+  //   tipoDocumento: 1,
+  //   establecimiento: opcionesFinalizacion.nro_establecimiento || 0,
+  //   punto: opcionesFinalizacion.nro_emision || 0,
+  //   numero: opcionesFinalizacion.nro_factura || 0,
+  //   observacion: "",
+  //   fecha: new Date().toISOString().split(".")[0],
+  //   tipoEmision: 1,
+  //   tipoTransaccion: 1,
+  //   tipoImpuesto: 1,
+  //   moneda:
+  //     monedaSeleccionada?.moCodigo === 1
+  //       ? "PYG"
+  //       : monedaSeleccionada?.moCodigo === 2
+  //         ? "USD"
+  //         : monedaSeleccionada?.moCodigo === 3
+  //           ? "BRL"
+  //           : monedaSeleccionada?.moCodigo === 4
+  //             ? "ARS"
+  //             : "PYG",
+  //   cambio: monedaSeleccionada?.moCodigo != 1 ? cotizacionDolar : 0,
+  //   cliente: {
+  //     contribuyente:
+  //       clienteSeleccionado.cli_tipo_doc === 1 ||
+  //         clienteSeleccionado.cli_tipo_doc === 18
+  //         ? true
+  //         : false,
+  //     ruc:
+  //       clienteSeleccionado.cli_tipo_doc === 1
+  //         ? clienteSeleccionado.cli_ruc
+  //         : null,
+  //     razonSocial: clienteSeleccionado.cli_razon,
+  //     nombreFantasia: clienteSeleccionado.cli_descripcion,
+  //     tipoOperacion:
+  //       clienteSeleccionado.cli_tipo_doc === 1
+  //         ? 1
+  //         : clienteSeleccionado.cli_tipo_doc === 18
+  //           ? 3
+  //           : 2,
+  //     numeroCasa: "001",
+  //     departamento: clienteSeleccionado.cli_departamento || 1,
+  //     departamentoDescripcion: clienteSeleccionado.dep_descripcion || "",
+  //     distrito: clienteSeleccionado.cli_distrito || 1,
+  //     distritoDescripcion:
+  //       clienteSeleccionado.cli_distrito_descripcion || "",
+  //     direccion: clienteSeleccionado.cli_dir || "",
+  //     ciudad: clienteSeleccionado.cli_ciudad || 1,
+  //     ciudadDescripcion: clienteSeleccionado.cli_ciudad_descripcion || "",
+  //     pais: "PRY",
+  //     paisDescripcion: "Paraguay",
+  //     tipoContribuyente: 1,
+  //     documentoTipo: documentoTipo,
+  //     telefono: clienteSeleccionado.cli_tel || "",
+  //     celular: clienteSeleccionado.cli_tel || "",
+  //     email: clienteSeleccionado.cli_mail || "",
+  //     codigo: clienteSeleccionado.cli_interno,
+  //   },
+  //   usuario: {
+  //     documentoTipo: 1,
+  //     documentoNumero: vendedorSeleccionado?.op_documento || "",
+  //     nombre: vendedorSeleccionado?.op_nombre || "",
+  //     cargo: "Vendedor",
+  //   },
+  //   factura: {
+  //     presencia: 1,
+  //   },
+  //   // condicion: {
+  //   //   tipo: opcionesFinalizacion.tipo_venta === "CREDITO" ? 2 : 1,
+  //   //   entregas:
+  //   //     opcionesFinalizacion.tipo_venta === "CONTADO"
+  //   //       ? [
+  //   //           {
+  //   //             tipo: 1, // Efectivo
+  //   //             monto: totalPagarFinal.toString(),
+  //   //             moneda:
+  //   //               monedaSeleccionada?.mo_codigo === 1
+  //   //                 ? "PYG"
+  //   //                 : monedaSeleccionada?.mo_codigo === 2
+  //   //                 ? "USD"
+  //   //                 : monedaSeleccionada?.mo_codigo === 3
+  //   //                 ? "BRL"
+  //   //                 : monedaSeleccionada?.mo_codigo === 4
+  //   //                 ? "ARS"
+  //   //                 : "PYG",
+  //   //             cambio: 0.0,
+  //   //           },
+  //   //         ]
+  //   //       : [],
+  //   //   credito:
+  //   //     opcionesFinalizacion.tipo_venta === "CREDITO"
+  //   //       ? {
+  //   //           tipo: 1, // Plazo
+  //   //           plazo: `${
+  //   //             opcionesFinalizacion.cantidad_cuotas || 1
+  //   //           } cuotas`,
+  //   //           cuotas: opcionesFinalizacion.cantidad_cuotas || 1,
+  //   //           infoCuotas: Array.from(
+  //   //             { length: opcionesFinalizacion.cantidad_cuotas || 1 },
+  //   //             (_, i) => {
+  //   //               const montoTotal =
+  //   //                 totalPagarFinal -
+  //   //                 (opcionesFinalizacion.entrega_inicial || 0);
+  //   //               const montoCuota =
+  //   //                 montoTotal /
+  //   //                 (opcionesFinalizacion.cantidad_cuotas || 1);
+  //   //               const fechaVencimiento = new Date();
+  //   //               fechaVencimiento.setDate(
+  //   //                 fechaVencimiento.getDate() + 30 * (i + 1)
+  //   //               );
 
-      const dataFacturaSend: FacturaSendResponse = {
-        tipoDocumento: 1,
-        establecimiento: opcionesFinalizacion.nro_establecimiento || 0,
-        punto: opcionesFinalizacion.nro_emision || 0,
-        numero: opcionesFinalizacion.nro_factura || 0,
-        observacion: "",
-        fecha: new Date().toISOString().split(".")[0],
-        tipoEmision: 1,
-        tipoTransaccion: 1,
-        tipoImpuesto: 1,
-        moneda:
-          monedaSeleccionada?.mo_codigo === 1
-            ? "PYG"
-            : monedaSeleccionada?.mo_codigo === 2
-              ? "USD"
-              : monedaSeleccionada?.mo_codigo === 3
-                ? "BRL"
-                : monedaSeleccionada?.mo_codigo === 4
-                  ? "ARS"
-                  : "PYG",
-        cambio: monedaSeleccionada?.mo_codigo != 1 ? cotizacionDolar : 0,
-        cliente: {
-          contribuyente:
-            clienteSeleccionado.cli_tipo_doc === 1 ||
-              clienteSeleccionado.cli_tipo_doc === 18
-              ? true
-              : false,
-          ruc:
-            clienteSeleccionado.cli_tipo_doc === 1
-              ? clienteSeleccionado.cli_ruc
-              : null,
-          razonSocial: clienteSeleccionado.cli_razon,
-          nombreFantasia: clienteSeleccionado.cli_descripcion,
-          tipoOperacion:
-            clienteSeleccionado.cli_tipo_doc === 1
-              ? 1
-              : clienteSeleccionado.cli_tipo_doc === 18
-                ? 3
-                : 2,
-          numeroCasa: "001",
-          departamento: clienteSeleccionado.cli_departamento || 1,
-          departamentoDescripcion: clienteSeleccionado.dep_descripcion || "",
-          distrito: clienteSeleccionado.cli_distrito || 1,
-          distritoDescripcion:
-            clienteSeleccionado.cli_distrito_descripcion || "",
-          direccion: clienteSeleccionado.cli_direccion || "",
-          ciudad: clienteSeleccionado.cli_ciudad || 1,
-          ciudadDescripcion: clienteSeleccionado.cli_ciudad_descripcion || "",
-          pais: "PRY",
-          paisDescripcion: "Paraguay",
-          tipoContribuyente: 1,
-          documentoTipo: documentoTipo,
-          telefono: clienteSeleccionado.cli_tel || "",
-          celular: clienteSeleccionado.cli_tel || "",
-          email: clienteSeleccionado.cli_mail || "",
-          codigo: clienteSeleccionado.cli_interno,
-        },
-        usuario: {
-          documentoTipo: 1,
-          documentoNumero: vendedorSeleccionado?.op_documento || "",
-          nombre: vendedorSeleccionado?.op_nombre || "",
-          cargo: "Vendedor",
-        },
-        factura: {
-          presencia: 1,
-        },
-        // condicion: {
-        //   tipo: opcionesFinalizacion.tipo_venta === "CREDITO" ? 2 : 1,
-        //   entregas:
-        //     opcionesFinalizacion.tipo_venta === "CONTADO"
-        //       ? [
-        //           {
-        //             tipo: 1, // Efectivo
-        //             monto: totalPagarFinal.toString(),
-        //             moneda:
-        //               monedaSeleccionada?.mo_codigo === 1
-        //                 ? "PYG"
-        //                 : monedaSeleccionada?.mo_codigo === 2
-        //                 ? "USD"
-        //                 : monedaSeleccionada?.mo_codigo === 3
-        //                 ? "BRL"
-        //                 : monedaSeleccionada?.mo_codigo === 4
-        //                 ? "ARS"
-        //                 : "PYG",
-        //             cambio: 0.0,
-        //           },
-        //         ]
-        //       : [],
-        //   credito:
-        //     opcionesFinalizacion.tipo_venta === "CREDITO"
-        //       ? {
-        //           tipo: 1, // Plazo
-        //           plazo: `${
-        //             opcionesFinalizacion.cantidad_cuotas || 1
-        //           } cuotas`,
-        //           cuotas: opcionesFinalizacion.cantidad_cuotas || 1,
-        //           infoCuotas: Array.from(
-        //             { length: opcionesFinalizacion.cantidad_cuotas || 1 },
-        //             (_, i) => {
-        //               const montoTotal =
-        //                 totalPagarFinal -
-        //                 (opcionesFinalizacion.entrega_inicial || 0);
-        //               const montoCuota =
-        //                 montoTotal /
-        //                 (opcionesFinalizacion.cantidad_cuotas || 1);
-        //               const fechaVencimiento = new Date();
-        //               fechaVencimiento.setDate(
-        //                 fechaVencimiento.getDate() + 30 * (i + 1)
-        //               );
+  //   //               return {
+  //   //                 moneda:
+  //   //                   monedaSeleccionada?.mo_codigo === 1
+  //   //                     ? "PYG"
+  //   //                     : monedaSeleccionada?.mo_codigo === 2
+  //   //                     ? "USD"
+  //   //                     : monedaSeleccionada?.mo_codigo === 3
+  //   //                     ? "BRL"
+  //   //                     : monedaSeleccionada?.mo_codigo === 4
+  //   //                     ? "ARS"
+  //   //                     : "PYG",
+  //   //                 monto: montoCuota,
+  //   //                 vencimiento: fechaVencimiento
+  //   //                   .toISOString()
+  //   //                   .split("T")[0],
+  //   //               };
+  //   //             }
+  //   //           ),
+  //   //         }
+  //   //       : null,
+  //   // },
+  //   condicion: {
+  //     tipo: opcionesFinalizacion.tipo_venta === "CREDITO" ? 2 : 1,
 
-        //               return {
-        //                 moneda:
-        //                   monedaSeleccionada?.mo_codigo === 1
-        //                     ? "PYG"
-        //                     : monedaSeleccionada?.mo_codigo === 2
-        //                     ? "USD"
-        //                     : monedaSeleccionada?.mo_codigo === 3
-        //                     ? "BRL"
-        //                     : monedaSeleccionada?.mo_codigo === 4
-        //                     ? "ARS"
-        //                     : "PYG",
-        //                 monto: montoCuota,
-        //                 vencimiento: fechaVencimiento
-        //                   .toISOString()
-        //                   .split("T")[0],
-        //               };
-        //             }
-        //           ),
-        //         }
-        //       : null,
-        // },
-        condicion: {
-          tipo: opcionesFinalizacion.tipo_venta === "CREDITO" ? 2 : 1,
+  //     // Para CONTADO
+  //     entregas:
+  //       opcionesFinalizacion.tipo_venta === "CONTADO"
+  //         ? [
+  //           {
+  //             tipo: 1, // Efectivo
+  //             monto: totalAPagar.toString(),
+  //             moneda:
+  //               monedaSeleccionada?.moCodigo === 1
+  //                 ? "PYG"
+  //                 : monedaSeleccionada?.moCodigo === 2
+  //                   ? "USD"
+  //                   : monedaSeleccionada?.moCodigo === 3
+  //                     ? "BRL"
+  //                     : monedaSeleccionada?.moCodigo === 4
+  //                       ? "ARS"
+  //                       : "PYG",
+  //             monedaDescripcion:
+  //               monedaSeleccionada?.moCodigo || "Guaraníes",
+  //             cambio:
+  //               monedaSeleccionada?.moCodigo != 1 ? cotizacionDolar : 0,
+  //           },
+  //         ]
+  //         : [],
 
-          // Para CONTADO
-          entregas:
-            opcionesFinalizacion.tipo_venta === "CONTADO"
-              ? [
-                {
-                  tipo: 1, // Efectivo
-                  monto: totalPagarFinal.toString(),
-                  moneda:
-                    monedaSeleccionada?.mo_codigo === 1
-                      ? "PYG"
-                      : monedaSeleccionada?.mo_codigo === 2
-                        ? "USD"
-                        : monedaSeleccionada?.mo_codigo === 3
-                          ? "BRL"
-                          : monedaSeleccionada?.mo_codigo === 4
-                            ? "ARS"
-                            : "PYG",
-                  monedaDescripcion:
-                    monedaSeleccionada?.mo_descripcion || "Guaraníes",
-                  cambio:
-                    monedaSeleccionada?.mo_codigo != 1 ? cotizacionDolar : 0,
-                },
-              ]
-              : [],
+  //     // Para CRÉDITO
+  //     credito:
+  //       opcionesFinalizacion.tipo_venta === "CREDITO"
+  //         ? {
+  //           tipo: 1, // Plazo
+  //           plazo: `${opcionesFinalizacion.cantidad_cuotas || 1} cuotas`,
+  //           cuotas: opcionesFinalizacion.cantidad_cuotas || 1,
+  //           montoEntrega: opcionesFinalizacion.entrega_inicial || 0,
+  //           infoCuotas: Array.from(
+  //             { length: opcionesFinalizacion.cantidad_cuotas || 1 },
+  //             (_) => {
+  //               return {
+  //                 moneda:
+  //                   monedaSeleccionada?.mo_codigo === 1
+  //                     ? "PYG"
+  //                     : monedaSeleccionada?.mo_codigo === 2
+  //                       ? "USD"
+  //                       : monedaSeleccionada?.mo_codigo === 3
+  //                         ? "BRL"
+  //                         : monedaSeleccionada?.mo_codigo === 4
+  //                           ? "ARS"
+  //                           : "PYG",
+  //                 monto: 0,
+  //                 vencimiento: "",
+  //               };
+  //             }
+  //           ),
+  //         }
+  //         : null,
+  //   },
+  //   items: itemsParaVenta.map((item) => {
+  //     // Variables para el cálculo de IVA
+  //     let ivaTipo = 1; // Por defecto, Gravado IVA
+  //     let ivaBase = 100;
+  //     let ivaPorcentaje = 10;
+  //     let IVa5 = 0;
+  //     let IVa10 = 0;
+  //     let vartotal = 0;
+  //     let VGravada = 0;
+  //     let vporc = 0;
+  //     if (item.deve_cinco > 0 && item.deve_exentas > 0) {
+  //       // CASE vcinco > 0 AND vexentas > 0
+  //       IVa5 = Math.round((item.deve_cinco / 21) * 100) / 100;
+  //       vartotal = item.deve_cinco + item.deve_exentas - IVa5;
+  //       ivaTipo = 4;
+  //       ivaPorcentaje = 5;
+  //       VGravada = Math.round((item.deve_cinco / 1.05) * 100) / 100;
+  //       vporc = (VGravada * 100) / vartotal;
+  //       ivaBase = parseFloat(vporc.toFixed(8));
+  //     } else if (item.deve_diez > 0 && item.deve_exentas > 0) {
+  //       // CASE vdiez > 0 AND vexentas > 0
+  //       IVa10 = Math.round((item.deve_diez / 11) * 100) / 100;
+  //       vartotal = item.deve_diez + item.deve_exentas - IVa10;
+  //       ivaTipo = 4;
+  //       ivaPorcentaje = 10;
+  //       VGravada = Math.round((item.deve_diez / 1.1) * 100) / 100;
+  //       vporc = (VGravada * 100) / vartotal;
+  //       ivaBase = parseFloat(vporc.toFixed(8));
+  //     } else if (item.deve_cinco > 0) {
+  //       // CASE vcinco > 0
+  //       ivaTipo = 1;
+  //       ivaPorcentaje = 5;
+  //       ivaBase = 100;
+  //     } else if (item.deve_diez > 0) {
+  //       // CASE vdiez > 0
+  //       ivaTipo = 1;
+  //       ivaPorcentaje = 10;
+  //       ivaBase = 100;
+  //     } else if (
+  //       item.deve_cinco === 0 &&
+  //       item.deve_diez === 0 &&
+  //       item.deve_exentas > 0
+  //     ) {
+  //       // Caso para productos exentos
+  //       ivaTipo = 3; // Exento
+  //       ivaPorcentaje = 0;
+  //       ivaBase = 0;
+  //     }
 
-          // Para CRÉDITO
-          credito:
-            opcionesFinalizacion.tipo_venta === "CREDITO"
-              ? {
-                tipo: 1, // Plazo
-                plazo: `${opcionesFinalizacion.cantidad_cuotas || 1} cuotas`,
-                cuotas: opcionesFinalizacion.cantidad_cuotas || 1,
-                montoEntrega: opcionesFinalizacion.entrega_inicial || 0,
-                infoCuotas: Array.from(
-                  { length: opcionesFinalizacion.cantidad_cuotas || 1 },
-                  (_) => {
-                    return {
-                      moneda:
-                        monedaSeleccionada?.mo_codigo === 1
-                          ? "PYG"
-                          : monedaSeleccionada?.mo_codigo === 2
-                            ? "USD"
-                            : monedaSeleccionada?.mo_codigo === 3
-                              ? "BRL"
-                              : monedaSeleccionada?.mo_codigo === 4
-                                ? "ARS"
-                                : "PYG",
-                      monto: 0,
-                      vencimiento: "",
-                    };
-                  }
-                ),
-              }
-              : null,
-        },
-        items: itemsParaVenta.map((item) => {
-          // Variables para el cálculo de IVA
-          let ivaTipo = 1; // Por defecto, Gravado IVA
-          let ivaBase = 100;
-          let ivaPorcentaje = 10;
-          let IVa5 = 0;
-          let IVa10 = 0;
-          let vartotal = 0;
-          let VGravada = 0;
-          let vporc = 0;
-          if (item.deve_cinco > 0 && item.deve_exentas > 0) {
-            // CASE vcinco > 0 AND vexentas > 0
-            IVa5 = Math.round((item.deve_cinco / 21) * 100) / 100;
-            vartotal = item.deve_cinco + item.deve_exentas - IVa5;
-            ivaTipo = 4;
-            ivaPorcentaje = 5;
-            VGravada = Math.round((item.deve_cinco / 1.05) * 100) / 100;
-            vporc = (VGravada * 100) / vartotal;
-            ivaBase = parseFloat(vporc.toFixed(8));
-          } else if (item.deve_diez > 0 && item.deve_exentas > 0) {
-            // CASE vdiez > 0 AND vexentas > 0
-            IVa10 = Math.round((item.deve_diez / 11) * 100) / 100;
-            vartotal = item.deve_diez + item.deve_exentas - IVa10;
-            ivaTipo = 4;
-            ivaPorcentaje = 10;
-            VGravada = Math.round((item.deve_diez / 1.1) * 100) / 100;
-            vporc = (VGravada * 100) / vartotal;
-            ivaBase = parseFloat(vporc.toFixed(8));
-          } else if (item.deve_cinco > 0) {
-            // CASE vcinco > 0
-            ivaTipo = 1;
-            ivaPorcentaje = 5;
-            ivaBase = 100;
-          } else if (item.deve_diez > 0) {
-            // CASE vdiez > 0
-            ivaTipo = 1;
-            ivaPorcentaje = 10;
-            ivaBase = 100;
-          } else if (
-            item.deve_cinco === 0 &&
-            item.deve_diez === 0 &&
-            item.deve_exentas > 0
-          ) {
-            // Caso para productos exentos
-            ivaTipo = 3; // Exento
-            ivaPorcentaje = 0;
-            ivaBase = 0;
-          }
+  //     return {
+  //       codigo: item.deve_articulo,
+  //       descripcion: item.articulo,
+  //       observacion: "",
+  //       unidadMedida: item.ar_unidad_medida || 77, // Unidad
+  //       cantidad: item.deve_cantidad,
+  //       precioUnitario: item.deve_precio,
+  //       cambio: monedaSeleccionada?.mo_codigo != 1 ? cotizacionDolar : 0,
+  //       ivaTipo: ivaTipo,
+  //       ivaBase: ivaBase,
+  //       iva: ivaPorcentaje,
+  //       lote: item.deve_lote || "",
+  //       vencimiento: item.deve_vencimiento || "",
+  //     };
+  //   }),
+  // };
 
-          return {
-            codigo: item.deve_articulo,
-            descripcion: item.articulo,
-            observacion: "",
-            unidadMedida: item.ar_unidad_medida || 77, // Unidad
-            cantidad: item.deve_cantidad,
-            precioUnitario: item.deve_precio,
-            cambio: monedaSeleccionada?.mo_codigo != 1 ? cotizacionDolar : 0,
-            ivaTipo: ivaTipo,
-            ivaBase: ivaBase,
-            iva: ivaPorcentaje,
-            lote: item.deve_lote || "",
-            vencimiento: item.deve_vencimiento || "",
-          };
-        }),
-      };
+  // let responseFacturaSend: any = null;
 
-      let responseFacturaSend: any = null;
+  // if (
+  //   usaFacturaElectronica === 1 &&
+  //   opcionesFinalizacion.tipo_documento === "FACTURA"
+  // ) {
+  //   console.log("Factura send: ", dataFacturaSend);
+  //   responseFacturaSend = await enviarFacturas([dataFacturaSend]);
+  //   console.log("Respuesta factura send: ", responseFacturaSend);
+  //   if (responseFacturaSend.success === true) {
+  //     toast({
+  //       title: "Éxito",
+  //       description: "Factura Electronica emitida correctamente",
+  //       status: "info",
+  //       duration: 3000,
+  //     });
+  //   } else if (responseFacturaSend.success === false) {
+  //     toast({
+  //       title: "Error al emitir la factura electronica",
+  //       description: `Error:${responseFacturaSend.errores[0].error}`,
+  //       status: "warning",
+  //       duration: 50000,
+  //       isClosable: true,
+  //     });
+  //   } else {
+  //     toast({
+  //       title: "Error",
+  //       description: `Error desconocido al emitir la factura electronica`,
+  //       status: "error",
+  //       duration: 3000,
+  //     });
+  //   }
+  // }
 
-      if (
-        usaFacturaElectronica === 1 &&
-        opcionesFinalizacion.tipo_documento === "FACTURA"
-      ) {
-        console.log("Factura send: ", dataFacturaSend);
-        responseFacturaSend = await enviarFacturas([dataFacturaSend]);
-        console.log("Respuesta factura send: ", responseFacturaSend);
-        if (responseFacturaSend.success === true) {
-          toast({
-            title: "Éxito",
-            description: "Factura Electronica emitida correctamente",
-            status: "info",
-            duration: 3000,
-          });
-        } else if (responseFacturaSend.success === false) {
-          toast({
-            title: "Error al emitir la factura electronica",
-            description: `Error:${responseFacturaSend.errores[0].error}`,
-            status: "warning",
-            duration: 50000,
-            isClosable: true,
-          });
-        } else {
-          toast({
-            title: "Error",
-            description: `Error desconocido al emitir la factura electronica`,
-            status: "error",
-            duration: 3000,
-          });
-        }
-      }
+  // const totalAEnviar = () => {
+  //   switch (monedaSeleccionada?.mo_codigo) {
+  //     case 1:
+  //       return totalesVenta.guaranies;
+  //     case 2:
+  //       return totalesVenta.dolares;
+  //     case 3:
+  //       return totalesVenta.reales;
+  //     case 4:
+  //       return totalesVenta.pesos;
+  //     default:
+  //       return totalesVenta.guaranies;
+  //   }
+  // };
+  // Preparar objeto de venta
+  // const venta = {
+  //   ventaId: ventaIdEdicion || null,
+  //   cliente: clienteSeleccionado.cli_codigo,
+  //   operador: Number(operador),
+  //   deposito: depositoSeleccionado?.dep_codigo,
+  //   moneda: monedaSeleccionada?.moCodigo,
+  //   fecha: fecha,
+  //   factura:
+  //     opcionesFinalizacion.tipo_documento === "FACTURA"
+  //       ? opcionesFinalizacion.nro_emision +
+  //       "-" +
+  //       opcionesFinalizacion.nro_establecimiento +
+  //       "-000" +
+  //       opcionesFinalizacion.nro_factura
+  //       : null,
+  //   credito: opcionesFinalizacion.tipo_venta === "CREDITO" ? 1 : 0,
+  //   saldo:
+  //     opcionesFinalizacion.tipo_venta === "CREDITO"
+  //       ? totalAEnviar() - (opcionesFinalizacion.entrega_inicial || 0)
+  //       : totalAEnviar(),
+  //   vencimiento: opcionesFinalizacion.fecha_vencimiento_timbrado || null,
+  //   descuento: totalDescuento,
+  //   total: totalAEnviar(),
+  //   cuotas: opcionesFinalizacion.tipo_venta === "CREDITO" ? 1 : 0,
+  //   cantCuotas: opcionesFinalizacion.cantidad_cuotas || 0,
+  //   obs: opcionesFinalizacion.observacion || "",
+  //   vendedor: vendedorSeleccionado.op_codigo,
+  //   sucursal: sucursales[0].id,
+  //   timbrado:
+  //     opcionesFinalizacion.tipo_documento === "FACTURA"
+  //       ? opcionesFinalizacion.timbrado
+  //       : null,
+  //   pedido: numeroPedido,
+  //   hora: new Date().toLocaleTimeString(),
+  //   userpc: sessionStorage.getItem("user_name") || "Sistema web",
+  //   situacion: 1,
+  //   chofer: null,
+  //   metodo: metodoPagoSeleccionado?.me_codigo || 1,
+  //   ve_cdc: usaFacturaElectronica
+  //     ? responseFacturaSend?.result?.deList[0]?.cdc || ""
+  //     : "",
+  //   ve_qr: usaFacturaElectronica
+  //     ? responseFacturaSend?.result?.deList[0]?.qr || ""
+  //     : "",
+  // };
 
-      const totalAEnviar = () => {
-        switch (monedaSeleccionada?.mo_codigo) {
-          case 1:
-            return totalesVenta.guaranies;
-          case 2:
-            return totalesVenta.dolares;
-          case 3:
-            return totalesVenta.reales;
-          case 4:
-            return totalesVenta.pesos;
-          default:
-            return totalesVenta.guaranies;
-        }
-      };
-      // Preparar objeto de venta
-      const venta = {
-        ventaId: ventaIdEdicion || null,
-        cliente: clienteSeleccionado.cli_codigo,
-        operador: Number(operador),
-        deposito: depositoSeleccionado?.dep_codigo,
-        moneda: monedaSeleccionada?.mo_codigo,
-        fecha: fecha,
-        factura:
-          opcionesFinalizacion.tipo_documento === "FACTURA"
-            ? opcionesFinalizacion.nro_emision +
-            "-" +
-            opcionesFinalizacion.nro_establecimiento +
-            "-000" +
-            opcionesFinalizacion.nro_factura
-            : null,
-        credito: opcionesFinalizacion.tipo_venta === "CREDITO" ? 1 : 0,
-        saldo:
-          opcionesFinalizacion.tipo_venta === "CREDITO"
-            ? totalAEnviar() - (opcionesFinalizacion.entrega_inicial || 0)
-            : totalAEnviar(),
-        vencimiento: opcionesFinalizacion.fecha_vencimiento_timbrado || null,
-        descuento: totalDescuento,
-        total: totalAEnviar(),
-        cuotas: opcionesFinalizacion.tipo_venta === "CREDITO" ? 1 : 0,
-        cantCuotas: opcionesFinalizacion.cantidad_cuotas || 0,
-        obs: opcionesFinalizacion.observacion || "",
-        vendedor: vendedorSeleccionado.op_codigo,
-        sucursal: sucursales[0].id,
-        timbrado:
-          opcionesFinalizacion.tipo_documento === "FACTURA"
-            ? opcionesFinalizacion.timbrado
-            : null,
-        pedido: numeroPedido,
-        hora: new Date().toLocaleTimeString(),
-        userpc: sessionStorage.getItem("user_name") || "Sistema web",
-        situacion: 1,
-        chofer: null,
-        metodo: metodoPagoSeleccionado?.me_codigo || 1,
-        ve_cdc: usaFacturaElectronica
-          ? responseFacturaSend?.result?.deList[0]?.cdc || ""
-          : "",
-        ve_qr: usaFacturaElectronica
-          ? responseFacturaSend?.result?.deList[0]?.qr || ""
-          : "",
-      };
+  // // Preparar detalles de venta
+  // const detalleVentas = itemsParaVenta.map((item) => ({
+  //   deve_articulo: item.deve_articulo,
+  //   deve_cantidad: item.deve_cantidad,
+  //   deve_precio: item.deve_precio,
+  //   deve_descuento: item.deve_descuento,
+  //   deve_exentas: item.deve_exentas,
+  //   deve_cinco: item.deve_cinco,
+  //   deve_diez: item.deve_diez,
+  //   deve_color: item.deve_color,
+  //   deve_bonificacion: item.deve_bonificacion,
+  //   deve_vendedor: item.deve_vendedor,
+  //   deve_codioot: item.deve_codioot,
+  //   deve_costo: item.deve_costo,
+  //   deve_costo_art: item.deve_costo_art,
+  //   deve_cinco_x: item.deve_cinco_x,
+  //   deve_diez_x: item.deve_diez_x,
+  //   lote: item.deve_lote,
+  //   loteid: item.loteid,
+  //   articulo_editado: item.editar_nombre === 1,
+  //   deve_codigo: item.deve_articulo,
+  //   deve_descripcion_editada:
+  //     item.editar_nombre === 1 ? item.articulo : null,
+  // }));
 
-      // Preparar detalles de venta
-      const detalleVentas = itemsParaVenta.map((item) => ({
-        deve_articulo: item.deve_articulo,
-        deve_cantidad: item.deve_cantidad,
-        deve_precio: item.deve_precio,
-        deve_descuento: item.deve_descuento,
-        deve_exentas: item.deve_exentas,
-        deve_cinco: item.deve_cinco,
-        deve_diez: item.deve_diez,
-        deve_color: item.deve_color,
-        deve_bonificacion: item.deve_bonificacion,
-        deve_vendedor: item.deve_vendedor,
-        deve_codioot: item.deve_codioot,
-        deve_costo: item.deve_costo,
-        deve_costo_art: item.deve_costo_art,
-        deve_cinco_x: item.deve_cinco_x,
-        deve_diez_x: item.deve_diez_x,
-        lote: item.deve_lote,
-        loteid: item.loteid,
-        articulo_editado: item.editar_nombre === 1,
-        deve_codigo: item.deve_articulo,
-        deve_descripcion_editada:
-          item.editar_nombre === 1 ? item.articulo : null,
-      }));
 
-      // Enviar datos al backend
-      const response = await axios.post(`${api_url}venta/agregar-venta-nuevo`, {
-        venta,
-        detalle_ventas: detalleVentas,
-      });
+  // Enviar datos al backend
+  //     const response = await axios.post(`${api_url}venta/agregar-venta-nuevo`, {
+  //       venta,
+  //       detalle_ventas: detalleVentas,
+  //     });
 
-      console.log(response.data.body);
+  //     console.log(response.data.body);
 
-      if (response.data.body.status === "success") {
-        toast({
-          title: "Éxito",
-          description: "Venta realizada correctamente",
-          status: "success",
-          duration: 3000,
-        });
+  //     if (response.data.body.status === "success") {
+  //       toast({
+  //         title: "Éxito",
+  //         description: "Venta realizada correctamente",
+  //         status: "success",
+  //         duration: 3000,
+  //       });
 
-        actualizarUltimaFactura(
-          d_codigo,
-          Number(opcionesFinalizacion.nro_factura)
-        );
-        onCloseKCOpen();
+  //       actualizarUltimaFactura(
+  //         d_codigo,
+  //         Number(opcionesFinalizacion.nro_factura)
+  //       );
+  //       onCloseKCOpen();
 
-        handleCancelarVenta();
-        Auditar(
-          5,
-          8,
-          response.data.body.ventaId,
-          operador ? parseInt(operador) : 0,
-          `Venta ID ${response.data.body.ventaId} realizada por ${operador}`
-        );
+  //       handleCancelarVenta();
+  //       Auditar(
+  //         5,
+  //         8,
+  //         response.data.body.ventaId,
+  //         operador ? parseInt(operador) : 0,
+  //         `Venta ID ${response.data.body.ventaId} realizada por ${operador}`
+  //       );
 
-        setUltimaVentaId(response.data.body.ventaId);
+  //       setUltimaVentaId(response.data.body.ventaId);
 
-        if (imprimirFactura) {
-          if (tipoImpresionFactura === 1) {
-            isMobile
-              ? await imprimirFacturaComponenteReport(
-                response.data.body.ventaId,
-                "download"
-              )
-              : await imprimirFacturaComponenteReport(
-                response.data.body.ventaId,
-                "print"
-              );
-          } else if (tipoImpresionFactura === 2) {
-            isMobile
-              ? await imprimirFacturaComponente(
-                response.data.body.ventaId,
-                "download"
-              )
-              : await imprimirFacturaComponente(
-                response.data.body.ventaId,
-                "print"
-              );
-          }
-        }
-        if (imprimirTicket) {
-          isMobile
-            ? await imprimirTicketComponente(
-              response.data.body.ventaId,
-              "download"
-            )
-            : await imprimirTicketComponente(
-              response.data.body.ventaId,
-              "print"
-            );
-        }
-        if (imprimirNotaInterna) {
-          isMobile
-            ? await imprimirNotaComponente(
-              response.data.body.ventaId,
-              "download"
-            )
-            : await imprimirNotaComponente(response.data.body.ventaId, "print");
-        }
-      }
+  //       if (imprimirFactura) {
+  //         if (tipoImpresionFactura === 1) {
+  //           isMobile
+  //             ? await imprimirFacturaComponenteReport(
+  //               response.data.body.ventaId,
+  //               "download"
+  //             )
+  //             : await imprimirFacturaComponenteReport(
+  //               response.data.body.ventaId,
+  //               "print"
+  //             );
+  //         } else if (tipoImpresionFactura === 2) {
+  //           isMobile
+  //             ? await imprimirFacturaComponente(
+  //               response.data.body.ventaId,
+  //               "download"
+  //             )
+  //             : await imprimirFacturaComponente(
+  //               response.data.body.ventaId,
+  //               "print"
+  //             );
+  //         }
+  //       }
+  //       if (imprimirTicket) {
+  //         isMobile
+  //           ? await imprimirTicketComponente(
+  //             response.data.body.ventaId,
+  //             "download"
+  //           )
+  //           : await imprimirTicketComponente(
+  //             response.data.body.ventaId,
+  //             "print"
+  //           );
+  //       }
+  //       if (imprimirNotaInterna) {
+  //         isMobile
+  //           ? await imprimirNotaComponente(
+  //             response.data.body.ventaId,
+  //             "download"
+  //           )
+  //           : await imprimirNotaComponente(response.data.body.ventaId, "print");
+  //       }
+  //     }
 
-      getClientePorDefecto();
-    } catch (error) {
-      console.error("Error al finalizar la venta:", error);
-      toast({
-        title: "Error",
-        description: "No se pudo completar la venta",
-        status: "error",
-        duration: 3000,
-      });
-    }
-  };
+  //     getClientePorDefecto();
+  //   } catch (error) {
+  //     console.error("Error al finalizar la venta:", error);
+  //     toast({
+  //       title: "Error",
+  //       description: "No se pudo completar la venta",
+  //       status: "error",
+  //       duration: 3000,
+  //     });
+  //   }
+  // };
 
-  async function convertirDocumentoAVenta(documento: DocumentoBase) {
-    try {
-      // Limpiar estado actual
-      handleCancelarVenta();
+  // async function convertirDocumentoAVenta(documento: DocumentoBase) {
+  //   try {
+  //     // Limpiar estado actual
+  //     handleCancelarVenta();
 
-      // Obtener datos del cliente
-      await getClientePorId(null, documento.cliente);
+  //     // Obtener datos del cliente
+  //     await getClientePorId(null, documento.cliente);
 
-      // Obtener datos del vendedor
-      if (documento.vendedor) {
-        await getVendedores(documento.vendedor);
-      }
+  //     // Obtener datos del vendedor
+  //     if (documento.vendedor) {
+  //       await getVendedores(documento.vendedor);
+  //     }
 
-      // Procesar cada item
-      for (const item of documento.items) {
-        try {
-          // Buscar artículo
-          console.log("Getting un item", item);
-          const response = await axios.get(
-            `${api_url}articulos/buscar-articulos`,
-            {
-              params: {
-                articulo_id: item.articulo,
-                deposito: depositoSeleccionado?.dep_codigo,
-              },
-            }
-          );
-          console.log(response.data.body);
-          if (response.data.body.length > 0) {
-            const articulo = response.data.body[0];
-            // Crear el nuevo item directamente
-            const nuevoItem = {
-              deve_articulo: articulo.id_articulo,
-              deve_cantidad: item.cantidad,
-              deve_precio: item.precio,
-              deve_descuento: item.descuento || 0,
-              deve_exentas: articulo.iva === 1 ? item.precio : 0,
-              deve_cinco: articulo.iva === 3 ? item.precio : 0,
-              deve_diez: articulo.iva === 2 ? item.precio : 0,
-              deve_color: null,
-              deve_bonificacion: 0 || 0,
-              deve_vendedor: documento.vendedor || 0,
-              deve_codioot: 0 || 0,
-              deve_costo: articulo.costo || 0,
-              deve_costo_art: articulo.costo || 0,
-              deve_cinco_x: articulo.iva === 3 ? item.precio * 0.05 : 0,
-              deve_diez_x: articulo.iva === 2 ? item.precio * 0.1 : 0,
-              deve_lote: item.lote || "",
-              loteid: item.loteid || 0,
-              editar_nombre: 0,
-              articulo: articulo.descripcion,
-              deve_devolucion: 0,
-              deve_vencimiento: null,
-              deve_talle: null,
-            };
+  //     // Procesar cada item
+  //     for (const item of documento.items) {
+  //       try {
+  //         // Buscar artículo
+  //         console.log("Getting un item", item);
+  //         const response = await axios.get(
+  //           `${api_url}articulos/buscar-articulos`,
+  //           {
+  //             params: {
+  //               articulo_id: item.articulo,
+  //               deposito: depositoSeleccionado?.dep_codigo,
+  //             },
+  //           }
+  //         );
+  //         console.log(response.data.body);
+  //         if (response.data.body.length > 0) {
+  //           const articulo = response.data.body[0];
+  //           // Crear el nuevo item directamente
+  //           const nuevoItem = {
+  //             deve_articulo: articulo.id_articulo,
+  //             deve_cantidad: item.cantidad,
+  //             deve_precio: item.precio,
+  //             deve_descuento: item.descuento || 0,
+  //             deve_exentas: articulo.iva === 1 ? item.precio : 0,
+  //             deve_cinco: articulo.iva === 3 ? item.precio : 0,
+  //             deve_diez: articulo.iva === 2 ? item.precio : 0,
+  //             deve_color: null,
+  //             deve_bonificacion: 0 || 0,
+  //             deve_vendedor: documento.vendedor || 0,
+  //             deve_codioot: 0 || 0,
+  //             deve_costo: articulo.costo || 0,
+  //             deve_costo_art: articulo.costo || 0,
+  //             deve_cinco_x: articulo.iva === 3 ? item.precio * 0.05 : 0,
+  //             deve_diez_x: articulo.iva === 2 ? item.precio * 0.1 : 0,
+  //             deve_lote: item.lote || "",
+  //             loteid: item.loteid || 0,
+  //             editar_nombre: 0,
+  //             articulo: articulo.descripcion,
+  //             deve_devolucion: 0,
+  //             deve_vencimiento: null,
+  //             deve_talle: null,
+  //           };
 
-            console.log("Nuevo item", nuevoItem);
+  //           console.log("Nuevo item", nuevoItem);
 
-            setItemsParaVenta((prev) => [...prev, nuevoItem as ItemParaVenta]);
+  //           setItemsParaVenta((prev) => [...prev, nuevoItem as ItemParaVenta]);
 
-            await new Promise((resolve) => setTimeout(resolve, 100));
-          } else {
-            toast({
-              title: "Error",
-              description: `No se encontró el artículo con código ${item.articulo}`,
-              status: "error",
-            });
-          }
-        } catch (error) {
-          console.error("Error al procesar item:", error);
-          toast({
-            title: "Error",
-            description: `Error al procesar el artículo ${item.articulo}`,
-            status: "error",
-          });
-        }
-      }
+  //           await new Promise((resolve) => setTimeout(resolve, 100));
+  //         } else {
+  //           toast({
+  //             title: "Error",
+  //             description: `No se encontró el artículo con código ${item.articulo}`,
+  //             status: "error",
+  //           });
+  //         }
+  //       } catch (error) {
+  //         console.error("Error al procesar item:", error);
+  //         toast({
+  //           title: "Error",
+  //           description: `Error al procesar el artículo ${item.articulo}`,
+  //           status: "error",
+  //         });
+  //       }
+  //     }
 
-      toast({
-        title: "Éxito",
-        description: `${documento.tipo} convertido a venta correctamente`,
-        status: "success",
-      });
-    } catch (error) {
-      console.error("Error al convertir documento a venta:", error);
-      toast({
-        title: "Error",
-        description: "No se pudo convertir el documento a venta",
-        status: "error",
-      });
-    }
-  }
+  //     toast({
+  //       title: "Éxito",
+  //       description: `${documento.tipo} convertido a venta correctamente`,
+  //       status: "success",
+  //     });
+  //   } catch (error) {
+  //     console.error("Error al convertir documento a venta:", error);
+  //     toast({
+  //       title: "Error",
+  //       description: "No se pudo convertir el documento a venta",
+  //       status: "error",
+  //     });
+  //   }
+  // }
 
-  async function obtenerYEditarVenta(id: number) {
-    try {
-      const response = await axios.get(`${api_url}venta/venta-edicion`, {
-        params: { id },
-      });
+  // async function obtenerYEditarVenta(id: number) {
+  //   try {
+  //     const response = await axios.get(`${api_url}venta/venta-edicion`, {
+  //       params: { id },
+  //     });
 
-      setVentaIdEdicion(id);
+  //     setVentaIdEdicion(id);
 
-      console.log(response.data.body);
+  //     console.log(response.data.body);
 
-      const ventaData = response.data.body[0];
+  //     const ventaData = response.data.body[0];
 
-      const venta: DocumentoBase = {
-        id: ventaData.id,
-        tipo: "VENTA",
-        cliente: ventaData.cliente,
-        vendedor: ventaData.vendedor,
-        items: ventaData.items.map((item: any) => ({
-          articulo: item.articulo,
-          cantidad: item.cantidad || 1,
-          precio: item.precio,
-          descuento: item.descuento || 0,
-          lote: item.lote || "",
-          loteid: item.loteid || 0,
-        })),
-      };
+  //     const venta: DocumentoBase = {
+  //       id: ventaData.id,
+  //       tipo: "VENTA",
+  //       cliente: ventaData.cliente,
+  //       vendedor: ventaData.vendedor,
+  //       items: ventaData.items.map((item: any) => ({
+  //         articulo: item.articulo,
+  //         cantidad: item.cantidad || 1,
+  //         precio: item.precio,
+  //         descuento: item.descuento || 0,
+  //         lote: item.lote || "",
+  //         loteid: item.loteid || 0,
+  //       })),
+  //     };
 
-      await convertirDocumentoAVenta(venta);
-    } catch (error) {
-      console.error("Error al obtener venta:", error);
-      toast({
-        title: "Error",
-        description: "No se pudo obtener la venta",
-        status: "error",
-      });
-    }
-  }
+  //     await convertirDocumentoAVenta(venta);
+  //   } catch (error) {
+  //     console.error("Error al obtener venta:", error);
+  //     toast({
+  //       title: "Error",
+  //       description: "No se pudo obtener la venta",
+  //       status: "error",
+  //     });
+  //   }
+  // }
 
-  async function obtenerYConvertirPedido(pedido_id: number) {
-    try {
-      setNumeroPedido(pedido_id);
+  // async function obtenerYConvertirPedido(pedido_id: number) {
+  //   try {
+  //     setNumeroPedido(pedido_id);
 
-      const response = await axios.get(`${api_url}pedidos/obtener`, {
-        params: { id: pedido_id },
-      });
+  //     const response = await axios.get(`${api_url}pedidos/obtener`, {
+  //       params: { id: pedido_id },
+  //     });
 
-      // La respuesta viene como un array, tomamos el primer elemento
-      const pedidoData = response.data.body[0];
+  //     // La respuesta viene como un array, tomamos el primer elemento
+  //     const pedidoData = response.data.body[0];
 
-      if (!pedidoData) {
-        throw new Error("No se encontró el pedido");
-      }
+  //     if (!pedidoData) {
+  //       throw new Error("No se encontró el pedido");
+  //     }
 
-      const pedido: DocumentoBase = {
-        id: pedido_id,
-        tipo: "PEDIDO",
-        cliente: pedidoData.cliente,
-        vendedor: pedidoData.vendedor,
-        items: pedidoData.items.map((item: any) => ({
-          articulo: item.articulo,
-          cantidad: item.cantidad || 1,
-          precio: item.precio,
-          descuento: item.descuento || 0,
-          lote: item.lote || "",
-          loteid: item.loteid,
-        })),
-      };
+  //     const pedido: DocumentoBase = {
+  //       id: pedido_id,
+  //       tipo: "PEDIDO",
+  //       cliente: pedidoData.cliente,
+  //       vendedor: pedidoData.vendedor,
+  //       items: pedidoData.items.map((item: any) => ({
+  //         articulo: item.articulo,
+  //         cantidad: item.cantidad || 1,
+  //         precio: item.precio,
+  //         descuento: item.descuento || 0,
+  //         lote: item.lote || "",
+  //         loteid: item.loteid,
+  //       })),
+  //     };
 
-      await convertirDocumentoAVenta(pedido);
+  //     await convertirDocumentoAVenta(pedido);
 
-      toast({
-        title: "Éxito",
-        description: "Pedido convertido a venta correctamente",
-        status: "success",
-      });
-    } catch (error) {
-      console.error("Error al obtener pedido:", error);
-      toast({
-        title: "Error",
-        description: "No se pudo obtener el pedido",
-        status: "error",
-      });
-    }
-  }
+  //     toast({
+  //       title: "Éxito",
+  //       description: "Pedido convertido a venta correctamente",
+  //       status: "success",
+  //     });
+  //   } catch (error) {
+  //     console.error("Error al obtener pedido:", error);
+  //     toast({
+  //       title: "Error",
+  //       description: "No se pudo obtener el pedido",
+  //       status: "error",
+  //     });
+  //   }
+  // }
 
-  async function obtenerYConvertirPresupuesto(presupuesto_id: number) {
-    try {
-      setNumeroPresupuesto(presupuesto_id);
-      const response = await axios.get(`${api_url}presupuestos/obtener`, {
-        params: { id: presupuesto_id },
-      });
+  // async function obtenerYConvertirPresupuesto(presupuesto_id: number) {
+  //   try {
+  //     setNumeroPresupuesto(presupuesto_id);
+  //     const response = await axios.get(`${api_url}presupuestos/obtener`, {
+  //       params: { id: presupuesto_id },
+  //     });
 
-      console.log(response.data.body);
+  //     console.log(response.data.body);
 
-      const presupuestoData = response.data.body[0];
+  //     const presupuestoData = response.data.body[0];
 
-      if (!presupuestoData) {
-        throw new Error("No se encontró el presupuesto");
-      }
+  //     if (!presupuestoData) {
+  //       throw new Error("No se encontró el presupuesto");
+  //     }
 
-      const presupuesto: DocumentoBase = {
-        id: presupuestoData.id,
-        tipo: "PRESUPUESTO",
-        cliente: presupuestoData.cliente,
-        vendedor: presupuestoData.vendedor,
-        items: presupuestoData.items.map((item: any) => ({
-          articulo: item.articulo,
-          cantidad: item.cantidad || 1,
-          precio: item.precio,
-          descuento: item.descuento || 0,
-          lote: item.lote || "",
-          loteid: item.loteid,
-        })),
-      };
-      await convertirDocumentoAVenta(presupuesto);
-    } catch (error) {
-      console.error("Error al obtener presupuesto:", error);
-      toast({
-        title: "Error",
-        description: "No se pudo obtener el presupuesto",
-        status: "error",
-        duration: 3000,
-      });
-    }
-  }
+  //     const presupuesto: DocumentoBase = {
+  //       id: presupuestoData.id,
+  //       tipo: "PRESUPUESTO",
+  //       cliente: presupuestoData.cliente,
+  //       vendedor: presupuestoData.vendedor,
+  //       items: presupuestoData.items.map((item: any) => ({
+  //         articulo: item.articulo,
+  //         cantidad: item.cantidad || 1,
+  //         precio: item.precio,
+  //         descuento: item.descuento || 0,
+  //         lote: item.lote || "",
+  //         loteid: item.loteid,
+  //       })),
+  //     };
+  //     await convertirDocumentoAVenta(presupuesto);
+  //   } catch (error) {
+  //     console.error("Error al obtener presupuesto:", error);
+  //     toast({
+  //       title: "Error",
+  //       description: "No se pudo obtener el presupuesto",
+  //       status: "error",
+  //       duration: 3000,
+  //     });
+  //   }
+  // }
 
-  async function obtenerYConvertirRemision(remision_id: number) {
-    try {
-      const response = await axios.get(`${api_url}remisiones/obtener`, {
-        params: { id: remision_id },
-      });
+  // async function obtenerYConvertirRemision(remision_id: number) {
+  //   try {
+  //     const response = await axios.get(`${api_url}remisiones/obtener`, {
+  //       params: { id: remision_id },
+  //     });
 
-      console.log(response.data.body);
+  //     console.log(response.data.body);
 
-      const remisionData = response.data.body[0];
+  //     const remisionData = response.data.body[0];
 
-      const remision: DocumentoBase = {
-        id: remisionData.id,
-        tipo: "REMISION",
-        cliente: remisionData.cliente,
-        vendedor: remisionData.vendedor,
-        items: remisionData.items.map((item: any) => ({
-          articulo: item.articulo,
-          cantidad: item.cantidad,
-          precio: item.precio,
-          descuento: item.descuento || 0,
-          lote: item.lote,
-          loteid: item.loteid,
-        })),
-      };
-      await convertirDocumentoAVenta(remision);
-    } catch (error) {
-      console.error("Error al obtener remision:", error);
-      toast({
-        title: "Error",
-        description: "No se pudo obtener la remision",
-        status: "error",
-        duration: 3000,
-      });
-    }
-  }
+  //     const remision: DocumentoBase = {
+  //       id: remisionData.id,
+  //       tipo: "REMISION",
+  //       cliente: remisionData.cliente,
+  //       vendedor: remisionData.vendedor,
+  //       items: remisionData.items.map((item: any) => ({
+  //         articulo: item.articulo,
+  //         cantidad: item.cantidad,
+  //         precio: item.precio,
+  //         descuento: item.descuento || 0,
+  //         lote: item.lote,
+  //         loteid: item.loteid,
+  //       })),
+  //     };
+  //     await convertirDocumentoAVenta(remision);
+  //   } catch (error) {
+  //     console.error("Error al obtener remision:", error);
+  //     toast({
+  //       title: "Error",
+  //       description: "No se pudo obtener la remision",
+  //       status: "error",
+  //       duration: 3000,
+  //     });
+  //   }
+  // }
 
   const EditarVentaModal: React.FC<EditarVentaModalProps> = ({
     isOpen,
     onClose,
   }) => {
-    const handleSelectVenta = (venta: Venta) => {
-      obtenerYEditarVenta(venta.codigo);
+    const handleSelectVenta = (venta: VentaViewModel) => {
       onClose();
     };
     return (
@@ -2002,12 +1814,12 @@ const PuntoDeVentaNuevo = () => {
           <ModalHeader>Editar venta</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <ResumenVentas
+            {/* <ResumenVentas
               onSelectVenta={handleSelectVenta}
               onCloseVenta={onClose}
               isModal={true}
               clienteSeleccionado={clienteSeleccionado || undefined}
-            />
+            /> */}
           </ModalBody>
         </ModalContent>
       </Modal>
@@ -2015,10 +1827,9 @@ const PuntoDeVentaNuevo = () => {
   };
 
   const RemisionModal: React.FC<RemisionModalProps> = ({ isOpen, onClose }) => {
-    const handleSelectRemision = (remision: Remisiones) => {
-      obtenerYConvertirRemision(remision.id);
-      onClose();
-    };
+    // const handleSelectRemision = (remision: Remisiones) => {
+    //   onClose();
+    // };
     return (
       <Modal isOpen={isOpen} onClose={onClose} size="full">
         <ModalOverlay />
@@ -2026,12 +1837,12 @@ const PuntoDeVentaNuevo = () => {
           <ModalHeader>Consulta de Remisiones</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <ConsultaRemisiones
+            {/* <ConsultaRemisiones
               onSelectRemision={handleSelectRemision}
               onClose={onClose}
               isModal={true}
               clienteSeleccionado={clienteSeleccionado || undefined}
-            />
+            /> */}
           </ModalBody>
         </ModalContent>
       </Modal>
@@ -2042,10 +1853,9 @@ const PuntoDeVentaNuevo = () => {
     isOpen,
     onClose,
   }) => {
-    const handleSelectPresupuesto = (presupuesto: Presupuesto) => {
-      obtenerYConvertirPresupuesto(presupuesto.codigo);
-      onClose();
-    };
+    // const handleSelectPresupuesto = (presupuesto: PresupuestoViewModel) => {
+    //   onClose();
+    // };
     return (
       <Modal isOpen={isOpen} onClose={onClose} size="full">
         <ModalOverlay />
@@ -2053,12 +1863,12 @@ const PuntoDeVentaNuevo = () => {
           <ModalHeader>Consulta de Presupuestos</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <ConsultaPresupuestos
+            {/* <ConsultaPresupuestos
               onSelectPresupuesto={handleSelectPresupuesto}
               onClose={onClose}
               isModal={true}
               clienteSeleccionado={clienteSeleccionado || undefined}
-            />
+            /> */}
           </ModalBody>
         </ModalContent>
       </Modal>
@@ -2066,10 +1876,10 @@ const PuntoDeVentaNuevo = () => {
   };
 
   const PedidoModal: React.FC<PedidoModalProps> = ({ isOpen, onClose }) => {
-    const handleSelectPedido = (pedido: PedidosNuevo) => {
-      obtenerYConvertirPedido(pedido.pedido_id);
-      onClose();
-    };
+    // const handleSelectPedido = (pedido: PedidosNuevo) => {
+    //   obtenerYConvertirPedido(pedido.pedido_id);
+    //   onClose();
+    // };
 
     return (
       <Modal isOpen={isOpen} onClose={onClose} size="full">
@@ -2078,12 +1888,12 @@ const PuntoDeVentaNuevo = () => {
           <ModalHeader>Consulta de Pedidos</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <ConsultaPedidos
+            {/* <ConsultaPedidos
               onSelectPedido={handleSelectPedido}
               onClose={onClose}
               isModal={true}
               clienteSeleccionado={clienteSeleccionado}
-            />
+            /> */}
           </ModalBody>
         </ModalContent>
       </Modal>
@@ -2164,7 +1974,7 @@ const PuntoDeVentaNuevo = () => {
         e.preventDefault();
         // Si el modal de finalización está abierto, finalizar la venta
         if (isKCOpen) {
-          finalizarVenta();
+          //TODO APLICAR EL MUTATION AQUI
         }
         // Si no está abierto pero hay items y cliente seleccionado, abrir el modal
         else if (
@@ -2211,7 +2021,6 @@ const PuntoDeVentaNuevo = () => {
     vendedorSeleccionado,
     isKCOpen,
     onKCOpen,
-    finalizarVenta,
   ]);
 
   const handleKCKeyDown = (e: React.KeyboardEvent) => {
@@ -2258,7 +2067,7 @@ const PuntoDeVentaNuevo = () => {
   };
 
   const calcularVueltoGuaranies = () => {
-    const vueltoBruto = (totalPagar || 0) - (montoEntregado || 0);
+    const vueltoBruto = (totalAPagar || 0) - (montoEntregado || 0);
     const vuelto = Math.abs(vueltoBruto);
     return vuelto;
   };
@@ -2341,116 +2150,33 @@ const PuntoDeVentaNuevo = () => {
     }, 2000);
   };
 
-  const imprimirTicketComponente = async (
-    ventaId: number,
-    accion: "print" | "download" | "b64" = "print"
-  ) => {
-    // Componente oculto que solo se usa para generar el PDF
-    const ticketDiv = document.createElement("div");
-    ticketDiv.style.display = "none";
-    document.body.appendChild(ticketDiv);
+  // const imprimirTicketComponente = async (
+  //   ventaId: number,
+  //   accion: "print" | "download" | "b64" = "print"
+  // ) => {
+  //   // Componente oculto que solo se usa para generar el PDF
+  //   const ticketDiv = document.createElement("div");
+  //   ticketDiv.style.display = "none";
+  //   document.body.appendChild(ticketDiv);
 
-    const root = createRoot(ticketDiv);
-    root.render(
-      <ModeloTicket
-        id_venta={ventaId}
-        monto_entregado={montoEntregado || 0}
-        monto_recibido={montoEntregado || 0}
-        vuelto={calcularVueltoGuaranies()}
-        onImprimir={true}
-        accion={accion}
-      />
-    );
-    setTimeout(() => {
-      root.unmount();
-      document.body.removeChild(ticketDiv);
-    }, 2000);
-  };
+  //   const root = createRoot(ticketDiv);
+  //   root.render(
+  //     <ModeloTicket
+  //       id_venta={ventaId}
+  //       monto_entregado={montoEntregado || 0}
+  //       monto_recibido={montoEntregado || 0}
+  //       vuelto={calcularVueltoGuaranies()}
+  //       onImprimir={true}
+  //       accion={accion}
+  //     />
+  //   );
+  //   setTimeout(() => {
+  //     root.unmount();
+  //     document.body.removeChild(ticketDiv);
+  //   }, 2000);
+  // };
 
-  const handleCambiarPrecio = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    item: ItemParaVenta
-  ) => {
-    const nuevoPrecio = Number(e.target.value);
-    const montoTotal = nuevoPrecio * item.deve_cantidad;
 
-    // Si la moneda seleccionada es guaraníes, ese es el precio base
-    const precioBaseGuaranies =
-      monedaSeleccionada?.mo_codigo === 1
-        ? nuevoPrecio
-        : monedaSeleccionada?.mo_codigo === 2
-          ? nuevoPrecio * cotizacionDolar
-          : monedaSeleccionada?.mo_codigo === 3
-            ? nuevoPrecio * cotizacionReal // Real a Guaraní multiplica
-            : nuevoPrecio * cotizacionPeso;
-
-    // Para dólar dividimos, para real y peso multiplicamos
-    const nuevoPrecioDolares = precioBaseGuaranies / cotizacionDolar;
-    const nuevoPrecioReales = precioBaseGuaranies * (1 / cotizacionReal); // Guaraní a Real divide
-    const nuevoPrecioPesos = precioBaseGuaranies * (1 / cotizacionPeso); // Asumiendo que peso funciona igual que real
-
-    setItemsParaVenta(
-      itemsParaVenta.map((itemActual) =>
-        itemActual.loteid === item.loteid
-          ? {
-            ...itemActual,
-            deve_precio: nuevoPrecio,
-            precio_guaranies: precioBaseGuaranies,
-            precio_dolares: nuevoPrecioDolares,
-            precio_reales: nuevoPrecioReales,
-            precio_pesos: nuevoPrecioPesos,
-            deve_exentas: itemActual.deve_exentas > 0 ? montoTotal : 0,
-            deve_cinco: itemActual.deve_cinco > 0 ? montoTotal : 0,
-            deve_diez: itemActual.deve_diez > 0 ? montoTotal : 0,
-            deve_cinco_x: itemActual.deve_cinco > 0 ? montoTotal * 0.05 : 0,
-            deve_diez_x: itemActual.deve_diez > 0 ? montoTotal * 0.1 : 0,
-          }
-          : itemActual
-      )
-    );
-  };
-
-  const handleCambiarDescuento = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    item: ItemParaVenta
-  ) => {
-    const nuevoDescuento = e.target.value;
-    const montoTotal = Number(nuevoDescuento) * item.deve_cantidad;
-    setItemsParaVenta(
-      itemsParaVenta.map((itemActual) =>
-        itemActual.loteid === item.loteid
-          ? {
-            ...itemActual,
-            deve_descuento: Number(nuevoDescuento),
-            deve_exentas: itemActual.deve_exentas > 0 ? montoTotal : 0,
-            deve_cinco: itemActual.deve_cinco > 0 ? montoTotal : 0,
-            deve_diez: itemActual.deve_diez > 0 ? montoTotal : 0,
-          }
-          : itemActual
-      )
-    );
-  };
-
-  const handleCambiarCantidad = (
-    e: React.ChangeEvent<HTMLInputElement>,
-    item: ItemParaVenta
-  ) => {
-    const nuevaCantidad = Number(e.target.value);
-    const montoTotal = item.deve_precio * nuevaCantidad;
-    setItemsParaVenta(
-      itemsParaVenta.map((itemActual) =>
-        itemActual.loteid === item.loteid
-          ? {
-            ...itemActual,
-            deve_cantidad: nuevaCantidad,
-            deve_exentas: itemActual.deve_exentas > 0 ? montoTotal : 0,
-            deve_cinco: itemActual.deve_cinco > 0 ? montoTotal : 0,
-            deve_diez: itemActual.deve_diez > 0 ? montoTotal : 0,
-          }
-          : itemActual
-      )
-    );
-  };
   const busquedaPorIdInputRef = useRef<HTMLInputElement>(null);
 
   const handleClienteIdKeyPress = (
@@ -2501,7 +2227,6 @@ const PuntoDeVentaNuevo = () => {
     } else {
       // Modo manual
       setArticuloBusquedaId(valor);
-      getArticulos("", null, valor);
     }
   };
 
@@ -2581,13 +2306,13 @@ const PuntoDeVentaNuevo = () => {
                   id=""
                   onChange={(e) => {
                     setSucursalSeleccionada(
-                      sucursales.find(
+                      sucursales && sucursales.find(
                         (sucursal) => sucursal.id === parseInt(e.target.value)
                       ) || null
                     );
                   }}
                 >
-                  {sucursales.map((sucursal) => (
+                  {sucursales && sucursales.map((sucursal) => (
                     <option value={sucursal.id}>{sucursal.descripcion}</option>
                   ))}
                 </select>
@@ -2600,14 +2325,14 @@ const PuntoDeVentaNuevo = () => {
                   id=""
                   onChange={(e) => {
                     setDepositoSeleccionado(
-                      depositos.find(
+                      depositos && depositos.body.find(
                         (deposito) =>
                           deposito.dep_codigo === parseInt(e.target.value)
                       ) || null
                     );
                   }}
                 >
-                  {depositos.map((deposito) => (
+                  {depositos && depositos.body.map((deposito) => (
                     <option value={deposito.dep_codigo}>
                       {deposito.dep_descripcion}
                     </option>
@@ -2618,21 +2343,21 @@ const PuntoDeVentaNuevo = () => {
                 <p className="text-sm font-bold">Lista de precios</p>
                 <select
                   className="border rounded-md p-2"
-                  value={precioSeleccionado?.lp_codigo}
+                  value={precioSeleccionado?.lpCodigo}
                   name=""
                   id=""
                   onChange={(e) => {
                     setPrecioSeleccionado(
-                      listaPrecios.find(
+                      listaPrecios && listaPrecios.find(
                         (precio) =>
-                          precio.lp_codigo === parseInt(e.target.value)
+                          precio.lpCodigo === parseInt(e.target.value)
                       ) || null
                     );
                   }}
                 >
-                  {listaPrecios.map((precio) => (
-                    <option value={precio.lp_codigo}>
-                      {precio.lp_descripcion}
+                  {listaPrecios && listaPrecios.map((precio) => (
+                    <option value={precio.lpCodigo}>
+                      {precio.lpDescripcion}
                     </option>
                   ))}
                 </select>
@@ -2644,19 +2369,19 @@ const PuntoDeVentaNuevo = () => {
                   className="border rounded-md p-2"
                   name=""
                   id=""
-                  value={monedaSeleccionada?.mo_codigo}
+                  value={monedaSeleccionada?.moCodigo}
                   onChange={(e) => {
                     setMonedaSeleccionada(
-                      monedas.find(
+                      monedas && monedas.find(
                         (moneda) =>
-                          moneda.mo_codigo === parseInt(e.target.value)
+                          moneda.moCodigo === parseInt(e.target.value)
                       ) || null
                     );
                   }}
                 >
-                  {monedas.map((moneda) => (
-                    <option value={moneda.mo_codigo}>
-                      {moneda.mo_descripcion}
+                  {monedas && monedas.map((moneda) => (
+                    <option value={moneda.moCodigo}>
+                      {moneda.moDescripcion}
                     </option>
                   ))}
                 </select>
@@ -2834,7 +2559,7 @@ const PuntoDeVentaNuevo = () => {
 
               <input
                 type="text"
-                value={articuloSeleccionado ? articuloSeleccionado.codigo_barra : articuloBusquedaId ?? ""}
+                value={articuloSeleccionado ? articuloSeleccionado.codigoBarra : articuloBusquedaId ?? ""}
                 className="border rounded-md p-2 flex-1 items-center justify-center w-32 text-center"
                 placeholder={busquedaPorScanner ? "Escanear código..." : "Buscar por código..."}
                 onChange={handleScannerInput}
@@ -2903,7 +2628,9 @@ const PuntoDeVentaNuevo = () => {
                 ref={cantidadInputRef}
                 onKeyDown={handleCantidadKeyPress}
               />
-              <Button colorScheme="green" onClick={agregarItemAVenta}>
+              <Button colorScheme="green" onClick={
+                () => handleAgregarItem(cantidad, articuloSeleccionado ?? undefined)
+              }>
                 <Plus />
               </Button>
               <FloatingCard
@@ -2927,9 +2654,9 @@ const PuntoDeVentaNuevo = () => {
                           <th>Código</th>
                           <th>Descripción</th>
                           <th>Stock</th>
-                          <th>P. {listaPrecios[0]?.lp_descripcion}</th>
-                          <th>P. {listaPrecios[1]?.lp_descripcion}</th>
-                          <th>P. {listaPrecios[2]?.lp_descripcion}</th>
+                          <th>P. {listaPrecios?.[0]?.lpDescripcion || 'N/A'}</th>
+                          <th>P. {listaPrecios?.[1]?.lpDescripcion || 'N/A'}</th>
+                          <th>P. {listaPrecios?.[2]?.lpDescripcion || 'N/A'}</th>
                           <th>Lote</th>
                           <th>Vencimiento</th>
                         </tr>
@@ -2937,7 +2664,7 @@ const PuntoDeVentaNuevo = () => {
                       <tbody>
                         {items.map((articulo, index) => (
                           <tr
-                            key={articulo.id_lote}
+                            key={articulo.idLote}
                             className={`cursor-pointer transition-colors duration-150 [&>td]:p-2 [&>td]:text-center [&>td]:border [&>td]:border-gray-200 ${index === selectedIndex
                               ? "bg-blue-100"
                               : "hover:bg-gray-100"
@@ -2954,14 +2681,14 @@ const PuntoDeVentaNuevo = () => {
                               busquedaPorIdInputRef.current?.focus();
                             }}
                           >
-                            <td>{articulo.codigo_barra}</td>
+                            <td>{articulo.codigoBarra}</td>
                             <td>{articulo.descripcion}</td>
-                            <td>{articulo.cantidad_lote}</td>
-                            <td>{articulo.precio_venta_guaranies}</td>
-                            <td>{articulo.precio_venta_dolar}</td>
-                            <td>{articulo.precio_venta_real}</td>
+                            <td>{articulo.cantidadLote}</td>
+                            <td>{articulo.precioVentaGuaranies}</td>
+                            <td>{articulo.precioVentaDolar}</td>
+                            <td>{articulo.precioVentaReal}</td>
                             <td>{articulo.lote}</td>
-                            <td>{articulo.vencimiento_lote}</td>
+                            <td>{articulo.vencimientoLote}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -3051,21 +2778,21 @@ const PuntoDeVentaNuevo = () => {
                 <tbody>
                   {itemsParaVenta.map((item) => (
                     <tr
-                      key={item.deve_articulo}
+                      key={item.deveArticulo}
                       className="[&>td]:px-2 [&>td]:py-1 [&>td]:border [&>td]:border-gray-200 [&>td]:text-2xl [&>td]:font-bold"
                     >
-                      <td>{item.cod_barra}</td>
+                      <td>{item.codigoBarra}</td>
                       <td>
-                        {item.editar_nombre === 1 ? (
+                        {item.editarNombre === 1 ? (
                           <input
                             className="border rounded-md w-full"
                             type="text"
-                            value={item.articulo}
+                            value={item.deveArticulo}
                             onChange={(e) => {
                               setItemsParaVenta(
                                 itemsParaVenta.map((currentItem) =>
-                                  currentItem.deve_articulo ===
-                                    item.deve_articulo
+                                  currentItem.deveArticulo ===
+                                    item.deveArticulo
                                     ? {
                                       ...currentItem,
                                       articulo: e.target.value,
@@ -3076,7 +2803,7 @@ const PuntoDeVentaNuevo = () => {
                             }}
                           />
                         ) : (
-                          item.articulo
+                          item.deveArticulo
                         )}
                       </td>
                       <td className="text-center">
@@ -3084,9 +2811,8 @@ const PuntoDeVentaNuevo = () => {
                           type="number"
                           min="1"
                           className="border rounded-md p-1 w-16 text-center"
-                          value={item.deve_cantidad}
+                          value={item.deveCantidad}
                           onChange={(e) => {
-                            handleCambiarCantidad(e, item);
                           }}
                         />
                       </td>
@@ -3097,13 +2823,12 @@ const PuntoDeVentaNuevo = () => {
                         <input
                           type="number"
                           min="0"
-                          className={`border rounded-md p-1 ${item.deve_precio !== item.precio_original
+                          className={`border rounded-md p-1 ${item.devePrecio !== item.precioUnitario
                             ? "bg-yellow-100"
                             : ""
                             }`}
-                          value={item.deve_precio}
+                          value={item.devePrecio}
                           onChange={(e) => {
-                            handleCambiarPrecio(e, item);
                           }}
                         />
                       </td>
@@ -3114,10 +2839,9 @@ const PuntoDeVentaNuevo = () => {
                           max="100"
                           className={`border rounded-md p-1 w-16 text-center ${permisos_descuento === 0 ? "bg-gray-100" : ""
                             }`}
-                          value={item.deve_descuento}
+                          value={item.deveDescuento}
                           disabled={permisos_descuento === 0}
                           onChange={(e) => {
-                            handleCambiarDescuento(e, item);
                           }}
                         />
                       </td>
@@ -3131,16 +2855,16 @@ const PuntoDeVentaNuevo = () => {
                         {formatNumber(item.deve_diez)}
                       </td> */}
                       <td className="text-right">
-                        {formatNumber(
-                          (item.deve_precio -
-                            (item.deve_descuento * item.deve_precio) / 100) *
-                          item.deve_cantidad
+                        {(
+                          (item.devePrecio -
+                            (item.deveDescuento * item.devePrecio) / 100) *
+                          item.deveCantidad
                         )}
                       </td>
                       <td className="flex items-center justify-center">
                         <button
                           className="text-red-500"
-                          onClick={() => handleEliminarItem(item)}
+                          onClick={() => { }}
                         >
                           <Trash />
                         </button>
@@ -3233,7 +2957,7 @@ const PuntoDeVentaNuevo = () => {
                 <p className="text-xl font-bold">Total GS.:</p>
                 <div className=" px-4 py-2 rounded-md w-3/4 ml-auto bg-black">
                   <p className="text-right text-5xl font-bold text-green-500 ">
-                    {totalEnGuaraniesFormateado}
+                    {formatCurrency(totalAPagar)}
                   </p>
                 </div>
               </div>
@@ -3241,7 +2965,7 @@ const PuntoDeVentaNuevo = () => {
                 <p className="text-md font-bold">Total USD:</p>
                 <div className=" px-4 py-2 rounded-md w-3/4 ml-auto bg-blue-800">
                   <p className="text-right text-5xl font-bold text-white">
-                    {totalDolaresFormateado}
+                    {formatCurrency(totalDolares, "USD")}
                   </p>
                 </div>
               </div>
@@ -3249,7 +2973,7 @@ const PuntoDeVentaNuevo = () => {
                 <p className="text-md font-bold">Total BRL:</p>
                 <div className=" px-4 py-2 rounded-md w-3/4 ml-auto bg-blue-800">
                   <p className="text-right text-5xl font-bold text-white">
-                    {totalRealesFormateado}
+                    {formatCurrency(totalReales, "RL")}
                   </p>
                 </div>
               </div>
@@ -3257,7 +2981,7 @@ const PuntoDeVentaNuevo = () => {
                 <p className="text-md font-bold">Total ARS:</p>
                 <div className=" px-4 py-2 rounded-md w-3/4 ml-auto bg-blue-800">
                   <p className="text-right text-5xl font-bold text-white">
-                    {totalPesosFormateado}
+                    {formatCurrency(totalPesos, "ARS")}
                   </p>
                 </div>
               </div>
@@ -3729,7 +3453,7 @@ const PuntoDeVentaNuevo = () => {
                           type="number"
                           disabled={
                             !clienteSeleccionado?.cli_limitecredito ||
-                            clienteSeleccionado.cli_limitecredito <= 0
+                            clienteSeleccionado.cli_limitecredito == "0"
                           }
                           className="border rounded-md p-2"
                           value={opcionesFinalizacion.cantidad_cuotas || ""}
@@ -3749,7 +3473,7 @@ const PuntoDeVentaNuevo = () => {
                           value={opcionesFinalizacion.entrega_inicial || ""}
                           disabled={
                             !clienteSeleccionado?.cli_limitecredito ||
-                            clienteSeleccionado.cli_limitecredito <= 0
+                            clienteSeleccionado.cli_limitecredito == "0"
                           }
                           onChange={(e) =>
                             setOpcionesFinalizacion({
@@ -3766,7 +3490,7 @@ const PuntoDeVentaNuevo = () => {
                           className="border rounded-md p-2"
                           disabled={
                             !clienteSeleccionado?.cli_limitecredito ||
-                            clienteSeleccionado.cli_limitecredito <= 0
+                            clienteSeleccionado.cli_limitecredito == "0"
                           }
                           value={
                             opcionesFinalizacion.fecha_vencimiento_timbrado ||
@@ -3799,10 +3523,10 @@ const PuntoDeVentaNuevo = () => {
                               <tr key={index} className="border-b">
                                 <td className="p-2">{cuota.fecha}</td>
                                 <td className="p-2 text-right">
-                                  {formatNumber(cuota.valor)}
+                                  {formatCurrency(cuota.valor)}
                                 </td>
                                 <td className="p-2 text-right">
-                                  {formatNumber(cuota.saldo)}
+                                  {formatCurrency(cuota.saldo)}
                                 </td>
                               </tr>
                             ))}
@@ -3822,19 +3546,19 @@ const PuntoDeVentaNuevo = () => {
                   <select
                     name=""
                     id=""
-                    value={metodoPagoSeleccionado?.me_codigo}
+                    value={metodoPagoSeleccionado?.id}
                     onChange={(e) =>
                       setMetodoPagoSeleccionado(
-                        metodosPago.find(
+                        metodosPago && metodosPago.find(
                           (metodo) =>
-                            metodo.me_codigo === Number(e.target.value)
+                            metodo.id === Number(e.target.value)
                         ) || null
                       )
                     }
                   >
-                    {metodosPago.map((metodo) => (
-                      <option value={metodo.me_codigo}>
-                        {metodo.me_descripcion}
+                    {metodosPago && metodosPago.map((metodo) => (
+                      <option value={metodo.id}>
+                        {metodo.descripcion}
                       </option>
                     ))}
                   </select>
@@ -3845,7 +3569,7 @@ const PuntoDeVentaNuevo = () => {
                       <p className="font-bold text-lg">Monto total GS:</p>
                       <input
                         type="text"
-                        value={formatNumber(totalPagarGuaranies)}
+                        value={formatCurrency(totalAPagar)}
                         readOnly
                         className="border rounded-md p-2 text-right bg-blue-700 w-full text-white font-bold text-2xl"
                       />
@@ -3854,7 +3578,7 @@ const PuntoDeVentaNuevo = () => {
                       <p className="font-bold text-lg">Monto total USD:</p>
                       <input
                         type="number"
-                        value={totalPagarDolares.toFixed(2)}
+                        value={totalDolares.toFixed(2)}
                         readOnly
                         className="border rounded-md p-2 text-right bg-blue-700 w-full text-white font-bold text-2xl"
                       />
@@ -3863,7 +3587,7 @@ const PuntoDeVentaNuevo = () => {
                       <p className="font-bold text-lg">Monto total BRL:</p>
                       <input
                         type="number"
-                        value={totalPagarReales.toFixed(2)}
+                        value={totalReales.toFixed(2)}
                         readOnly
                         className="border rounded-md p-2 text-right bg-blue-700 w-full text-white font-bold text-2xl"
                       />
@@ -3872,7 +3596,7 @@ const PuntoDeVentaNuevo = () => {
                       <p className="font-bold text-lg">Monto total ARS:</p>
                       <input
                         type="number"
-                        value={totalPagarPesos.toFixed(2)}
+                        value={totalPesos.toFixed(2)}
                         readOnly
                         className="border rounded-md p-2 text-right bg-blue-700 w-full text-white font-bold text-2xl"
                       />
@@ -3933,8 +3657,8 @@ const PuntoDeVentaNuevo = () => {
                         readOnly
                         value={
                           montoEntregado &&
-                            montoEntregado - totalPagarGuaranies < 0
-                            ? Math.abs(montoEntregado - totalPagarGuaranies)
+                            montoEntregado - totalAPagar < 0
+                            ? Math.abs(montoEntregado - totalAPagar)
                             : 0
                         }
                         className="border rounded-md p-2 text-right bg-white w-full text-red-600 font-bold text-2xl"
@@ -3947,9 +3671,9 @@ const PuntoDeVentaNuevo = () => {
                         readOnly
                         value={
                           montoEntregadoDolar &&
-                            montoEntregadoDolar - totalPagarDolares < 0
+                            montoEntregadoDolar - totalDolares < 0
                             ? Math.abs(
-                              montoEntregadoDolar - totalPagarDolares
+                              montoEntregadoDolar - totalDolares
                             ).toFixed(2)
                             : 0
                         }
@@ -3963,10 +3687,10 @@ const PuntoDeVentaNuevo = () => {
                         readOnly
                         value={
                           montoEntregadoReal &&
-                            montoEntregadoReal - totalPagarReales < 0
+                            montoEntregadoReal - totalReales < 0
                             ? Number(
                               Math.abs(
-                                montoEntregadoReal - totalPagarReales
+                                montoEntregadoReal - totalReales
                               ).toFixed(2)
                             )
                             : 0
@@ -3981,10 +3705,10 @@ const PuntoDeVentaNuevo = () => {
                         readOnly
                         value={
                           montoEntregadoPeso &&
-                            montoEntregadoPeso - totalPagarPesos < 0
+                            montoEntregadoPeso - totalPesos < 0
                             ? Number(
                               Math.abs(
-                                (montoEntregadoPeso - totalPagarPesos) /
+                                (montoEntregadoPeso - totalPesos) /
                                 cotizacionPeso
                               ).toFixed(2)
                             )
@@ -4001,9 +3725,9 @@ const PuntoDeVentaNuevo = () => {
                         type="text"
                         value={
                           montoEntregado &&
-                            totalPagarGuaranies - montoEntregado < 0
-                            ? formatNumber(
-                              Math.abs(totalPagarGuaranies - montoEntregado)
+                            totalAPagar - montoEntregado < 0
+                            ? formatCurrency(
+                              Math.abs(totalAPagar - montoEntregado)
                             )
                             : 0
                         }
@@ -4017,10 +3741,10 @@ const PuntoDeVentaNuevo = () => {
                         type="number"
                         value={
                           montoEntregadoDolar &&
-                            totalPagarDolares - montoEntregadoDolar < 0
+                            totalDolares - montoEntregadoDolar < 0
                             ? Number(
                               Math.abs(
-                                totalPagarDolares - montoEntregadoDolar
+                                totalDolares - montoEntregadoDolar
                               ).toFixed(2)
                             )
                             : 0
@@ -4035,10 +3759,10 @@ const PuntoDeVentaNuevo = () => {
                         type="number"
                         value={
                           montoEntregadoReal &&
-                            totalPagarReales - montoEntregadoReal < 0
+                            totalReales - montoEntregadoReal < 0
                             ? Number(
                               Math.abs(
-                                totalPagarReales - montoEntregadoReal
+                                totalReales - montoEntregadoReal
                               ).toFixed(2)
                             )
                             : 0
@@ -4054,10 +3778,10 @@ const PuntoDeVentaNuevo = () => {
                         type="number"
                         value={
                           montoEntregadoPeso &&
-                            totalPagarPesos - montoEntregadoPeso < 0
+                            totalPesos - montoEntregadoPeso < 0
                             ? Number(
                               Math.abs(
-                                totalPagarPesos - montoEntregadoPeso
+                                totalPesos - montoEntregadoPeso
                               ).toFixed(2)
                             )
                             : 0
@@ -4087,7 +3811,7 @@ const PuntoDeVentaNuevo = () => {
             </div>
           </ModalBody>
           <ModalFooter>
-            <Button colorScheme="blue" mr={3} onClick={finalizarVenta}>
+            <Button colorScheme="blue" mr={3} onClick={() => { }}>
               Finalizar Venta
             </Button>
             <Button variant="ghost" onClick={onCloseKCOpen}>

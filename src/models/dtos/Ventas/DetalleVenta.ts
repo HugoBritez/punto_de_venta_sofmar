@@ -16,9 +16,14 @@ export interface DetalleVenta {
     deveCosto: number;
     deveCostoArt: number;
     deveCincoX: number;
-    deveDiezXL: number;
+    deveDiezX: number;
+    editarNombre?: number;
     lote: string;
     loteId: number;
     articuloEditado: boolean;
     deveDescripcionEditada: string;
+    codigoBarra?: string;
+    descripcion?:string; 
+    precioUnitario?: number;
+    subtotal?: number;
 }

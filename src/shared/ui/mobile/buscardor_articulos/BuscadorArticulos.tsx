@@ -1,12 +1,12 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useBuscadorArticulos } from '../../articulos/hooks/useBuscadorArticulos';
-import { Articulo } from '../../articulos/types/articulo.type';
+import { ArticuloBusqueda } from '@/models/viewmodels/articuloBusqueda';
 import { X, Check } from 'lucide-react';
 import { formatCurrency } from '@/shared/ui/articulos/utils/formatCurrency';
+import { useArticulosBusqueda } from '@/shared/hooks/queries/articulos/useArticuloBusqueda';
 
 interface BuscadorArticulosProps {
-  onSeleccionarArticulo: (articulo: Articulo) => void;
+  onSeleccionarArticulo: (articulo: ArticuloBusqueda, cantidad: number) => void;
   placeholder?: string;
   deposito?: number;
   stock?: boolean;
@@ -20,30 +20,36 @@ export const BuscadorArticulos: React.FC<BuscadorArticulosProps> = ({
   stock,
   moneda
 }) => {
-  const { termino, setTermino, resultados, cargando, error } = useBuscadorArticulos({
+
+
+  const [termino, setTermino] = useState<string>('');
+  const { data: articulos, isLoading: cargandoArticulos, error: errorArticulos } = useArticulosBusqueda({
     deposito,
     stock,
-    moneda
+    moneda,
+    busqueda: termino
   });
+
+
   const [mostrarResultados, setMostrarResultados] = React.useState(false);
   const [editingItem, setEditingItem] = useState<number | null>(null);
   const [cantidad, setCantidad] = useState<number>(1);
   const [successItem, setSuccessItem] = useState<number | null>(null);
   const contenedorRef = useRef<HTMLDivElement>(null);
 
-  const handleSeleccionarArticulo = (articulo: Articulo) => {
-    if (editingItem === articulo.id_lote) {
+  const handleSeleccionarArticulo = (articulo: ArticuloBusqueda) => {
+    if (editingItem === articulo.idLote) {
       const cantidadValida = typeof cantidad === 'number' ? Math.max(1, cantidad) : 1;
       const articuloConCantidad = { ...articulo, cantidad: cantidadValida };
-      onSeleccionarArticulo(articuloConCantidad);
+      onSeleccionarArticulo(articuloConCantidad, cantidadValida);
       setEditingItem(null);
       setCantidad(1);
-      setSuccessItem(articulo.id_lote);
+      setSuccessItem(articulo.idLote);
       setTimeout(() => {
         setSuccessItem(null);
       }, 1500);
     } else {
-      setEditingItem(articulo.id_lote);
+      setEditingItem(articulo.idLote);
       setCantidad(1);
     }
   };
@@ -62,13 +68,13 @@ export const BuscadorArticulos: React.FC<BuscadorArticulosProps> = ({
     }
   };
 
-  const handleConfirmarCantidad = (articulo: Articulo) => {
+  const handleConfirmarCantidad = (articulo: ArticuloBusqueda) => {
     const cantidadValida = typeof cantidad === 'number' ? Math.max(1, cantidad) : 1;
     const articuloConCantidad = { ...articulo, cantidad: cantidadValida };
-    onSeleccionarArticulo(articuloConCantidad);
+    onSeleccionarArticulo(articuloConCantidad, cantidadValida);
     setEditingItem(null);
     setCantidad(1);
-    setSuccessItem(articulo.id_lote);
+    setSuccessItem(articulo.idLote);
     setTimeout(() => {
       setSuccessItem(null);
     }, 1500);
@@ -114,7 +120,7 @@ export const BuscadorArticulos: React.FC<BuscadorArticulosProps> = ({
             <X className="w-5 h-5" />
           </motion.button>
         )}
-        {cargando && (
+        {cargandoArticulos && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -165,7 +171,7 @@ export const BuscadorArticulos: React.FC<BuscadorArticulosProps> = ({
                     <X className="w-5 h-5" />
                   </motion.button>
                 )}
-                {cargando && (
+                {cargandoArticulos && (
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -177,24 +183,24 @@ export const BuscadorArticulos: React.FC<BuscadorArticulosProps> = ({
               </div>
             </div>
             <div className="flex-1 overflow-y-auto bg-white">
-              {error ? (
-                <div className="p-4 text-red-500">{error}</div>
+              {errorArticulos ? (
+                <div className="p-4 text-red-500">Hubo un error al traer los articulos.</div>
               ) : (
                 <div className="grid grid-cols-2 gap-2 p-2">
-                  {resultados.map((articulo) => (
+                  {articulos?.map((articulo) => (
                     <motion.div
-                      key={articulo.id_lote}
+                      key={articulo.idLote}
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.9 }}
                       className={`bg-gray-50 rounded-lg p-2 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer ${
-                        editingItem === articulo.id_lote ? 'ring-2 ring-blue-500' : ''
+                        editingItem === articulo.idLote ? 'ring-2 ring-blue-500' : ''
                       } ${
-                        successItem === articulo.id_lote ? 'bg-green-50 ring-2 ring-green-500' : ''
+                        successItem === articulo.idLote ? 'bg-green-50 ring-2 ring-green-500' : ''
                       }`}
                       onClick={() => handleSeleccionarArticulo(articulo)}
                     >
-                      {editingItem === articulo.id_lote ? (
+                      {editingItem === articulo.idLote ? (
                         <div className="flex flex-col gap-2">
                           <div className="text-xs font-medium text-gray-900 truncate">
                             {articulo.descripcion}
@@ -248,15 +254,15 @@ export const BuscadorArticulos: React.FC<BuscadorArticulosProps> = ({
                             {articulo.descripcion}
                           </div>
                           <div className="text-xs text-gray-500 mt-1">
-                            {articulo.codigo_barra && (
-                              <div className="truncate">Cod: {articulo.codigo_barra}</div>
+                            {articulo.codigoBarra && (
+                              <div className="truncate">Cod: {articulo.codigoBarra}</div>
                             )}
-                            {articulo.cantidad_lote && (
-                              <div className="truncate">Stock: {articulo.cantidad_lote}</div>
+                            {articulo.cantidadLote && (
+                              <div className="truncate">Stock: {articulo.cantidadLote}</div>
                             )}
-                            {articulo.precio_venta_guaranies && (
+                            {articulo.precioVentaGuaranies && (
                               <div className="font-semibold text-green-600">
-                                Gs.{formatCurrency(articulo.precio_venta_guaranies)}
+                                Gs.{formatCurrency(articulo.precioVentaGuaranies)}
                               </div>
                             )}
                           </div>

@@ -31,27 +31,9 @@ import PresupuestoModal from './imprimirPresupuesto'
 import PresupuestoModalEstilizado from './imprimirPresupuestoEstilizado'
 import MenuContextual from '../../shared/modules/MenuContextual'
 import { useSwitch } from '@/shared/services/SwitchContext'
+import { PresupuestoViewModel } from '@/models/viewmodels/Presupuestos/PResupuestoVIewModel'
 
-interface Presupuesto {
-  codigo: number
-  codcliente: number
-  cliente: string
-  moneda: string
-  fecha: string
-  codsucursal: number
-  sucursal: string
-  vendedor: string
-  operador: string
-  total: number
-  descuento: number
-  saldo: number
-  condicion: string
-  vencimiento: string
-  factura: string
-  obs: string
-  estado: number
-  estado_desc: string
-}
+
 
 interface DetallePresupuesto {
   det_codigo: number
@@ -87,14 +69,14 @@ const periodos = [
 ]
 
 interface ConsultaPresupuestosProps {
-  onSelectPresupuesto?: (presupuesto: Presupuesto, detalles: DetallePresupuesto[]) => void
+  onSelectPresupuesto?: (presupuesto: PresupuestoViewModel, detalles: DetallePresupuesto[]) => void
   onClose?: () => void
   isModal?: boolean
   clienteSeleccionado?: Cliente | null
 }
 
 export default function ConsultaPresupuestos({ onSelectPresupuesto, onClose, isModal= false, clienteSeleccionado }: ConsultaPresupuestosProps) {
-  const [presupuestos, setPresupuestos] = useState<Presupuesto[]>([])
+  const [presupuestos, setPresupuestos] = useState<PresupuestoViewModel[]>([])
   const [fechaDesde, setFechaDesde] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [fechaHasta, setFechaHasta] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [periodoSeleccionado, setPeriodoSeleccionado] = useState(0)
@@ -232,7 +214,7 @@ export default function ConsultaPresupuestos({ onSelectPresupuesto, onClose, isM
     setIsModalOpen(false)
   }
 
-  const handleSelectPresupuesto = (presupuesto: Presupuesto) => {
+  const handleSelectPresupuesto = (presupuesto: PresupuestoViewModel) => {
     if (onSelectPresupuesto) {
       onSelectPresupuesto(presupuesto, detallePresupuesto);
     }
@@ -328,7 +310,7 @@ export default function ConsultaPresupuestos({ onSelectPresupuesto, onClose, isM
                     <Td>{presupuesto.cliente}</Td>
                     <Td>{format(new Date(presupuesto.fecha.split(' : ')[0]), 'dd/MM/yyyy')}</Td>
                     <Td textAlign="right">{formatNumber(presupuesto.descuento)}</Td>
-                    <Td textAlign="right">{formatNumber(presupuesto.total)}</Td>
+                    <Td textAlign="right">{(presupuesto.total)}</Td>
                     <Td>{presupuesto.vendedor}</Td>
                     <Td>{presupuesto.operador}</Td>
                     <Td>

@@ -15,12 +15,12 @@ interface CrearVentaDTO {
 export const VentasRepository = {
 
     async GetVentas(params: GetVentaParams): Promise<ResponseViewModel<VentaViewModel[]>> {
-        const response = await axios.get(`${api_url}/ventas`, { params });
+        const response = await axios.get(`${api_url}ventas`, { params });
         return response.data;
     },
 
     async CrearVenta(venta: Venta, detalleVenta: DetalleVenta[]): Promise<ResponseViewModel<VentaViewModel>> {
-        const response = await axios.post(`${api_url}/ventas`, {
+        const response = await axios.post(`${api_url}ventas`, {
             venta,
             detalleVenta
         } as CrearVentaDTO);
@@ -28,7 +28,7 @@ export const VentasRepository = {
     },
 
     async GetDetalleVenta(ventaId: number): Promise<ResponseViewModel<DetalleVentaViewModel[]>> {
-        const response = await axios.get(`${api_url}/ventas/detalles`, { params: { ventaId } });
+        const response = await axios.get(`${api_url}ventas/detalles`, { params: { ventaId } });
         return response.data;
     }
 }

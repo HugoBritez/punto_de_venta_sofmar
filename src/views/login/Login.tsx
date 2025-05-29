@@ -42,8 +42,8 @@ const Login: React.FC = () => {
         usuario: usuario,
         password: password,
       });
-      login(response.data.data);
-      sessionStorage.setItem('permiso_graficos', response.data.data.usuario[0].op_graficos);
+      login(response.data.body);
+      sessionStorage.setItem('permiso_graficos', response.data.body.usuario[0].op_graficos);
       navigate('/home');
       // getConfiguraciones();
     } catch (error) {

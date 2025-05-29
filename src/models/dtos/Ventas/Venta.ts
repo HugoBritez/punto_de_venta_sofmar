@@ -9,7 +9,7 @@ export interface Venta {
     credito: number;
     saldo: number;
     total: number;
-    vencimiento: Date;
+    vencimiento?: Date;
     estado: number;
     devolucion: number;
     procesado: number;
@@ -37,4 +37,7 @@ export interface Venta {
     kilometraje: number;
     servicio: number;
     siniestro: string;
+    mecanico: number;
+    cajaDefinicion?:  number;
+    confOperacion?: number;
 }
