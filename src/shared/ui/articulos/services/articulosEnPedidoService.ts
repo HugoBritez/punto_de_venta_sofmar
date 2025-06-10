@@ -4,7 +4,7 @@ import { ArticuloPedido } from "../types/articulopedido.type";
 
 export const getArticulosEnPedido = async (articulo_id: number, id_lote: number): Promise<ArticuloPedido[]> => {
     try{
-        const response = await axios.get(`${api_url}articulos/pedido`,{
+        const response = await axios.get(`${api_url}articulo/pedido`,{
             params: {
                 articulo_id,
                 id_lote

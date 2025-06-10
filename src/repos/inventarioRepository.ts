@@ -1,5 +1,5 @@
 import { InventarioEntity } from "@/models/viewmodels/Inventario/InventarioEntity";
-import { api_url } from "@/utils";
+import { API_URL as api_url } from "@/utils";
 import axios from "axios";
 import { ResponseViewModel } from "@/models/base/responseViewModel";
 import { CerrarInventarioParams } from "@/models/dtos/Inventario/CerrarInventarioParams";

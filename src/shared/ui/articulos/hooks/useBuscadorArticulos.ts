@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { Articulo } from "../types/articulo.type";
 import { buscarArticulos } from "../services/articulosService";
+import { ArticuloBusqueda } from "@/models/viewmodels/articuloBusqueda";
 
 interface UseBuscadorArticulosProps {
   deposito?: number;
@@ -30,7 +30,7 @@ export const useBuscadorArticulos = ({
   negativo
 }: UseBuscadorArticulosProps = {}) => {
   const [termino, setTermino] = useState("");
-  const [resultados, setResultados] = useState<Articulo[]>([]);
+  const [resultados, setResultados] = useState<ArticuloBusqueda[]>([]);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   

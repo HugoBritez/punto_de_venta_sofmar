@@ -1,5 +1,5 @@
 import axios from "axios";
-import { api_url } from "@/utils";
+import { API_URL as api_url } from "@/utils";
 import { ArticuloBusqueda } from "@/models/viewmodels/articuloBusqueda";
 import { ArticuloLote } from "@/models/viewmodels/articuloConsulta";
 import { ResponseViewModel } from "@/models/base/responseViewModel";
@@ -36,7 +36,7 @@ export const buscarArticulos = async (
       negativo
     }
   })
-  return response.data.data;
+  return response.data.body;
 }
 
 

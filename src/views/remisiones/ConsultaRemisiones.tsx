@@ -1,14 +1,15 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { Cliente, Remisiones } from "@/shared/types/shared_interfaces";
+import { Remisiones } from "@/shared/types/shared_interfaces";
 import { api_url } from "@/utils";
 import { Box, useToast } from "@chakra-ui/react";
+import { ClienteViewModel } from "@/models/viewmodels/ClienteViewModel";
 
 interface ConsultaRemisionesProps {
   onSelectRemision?: (remision: Remisiones) => void;
   onClose?: () => void | null;
   isModal?: boolean | null;
-  clienteSeleccionado?: Cliente | null;
+  clienteSeleccionado?: ClienteViewModel | null;
 }
 
 const ConsultaRemisiones = ({

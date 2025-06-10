@@ -23,6 +23,7 @@ import { ArticuloBusqueda } from "@/models/viewmodels/articuloBusqueda";
 import { DetalleVenta } from "@/models/dtos/Ventas/DetalleVenta";
 import { useCrearVenta } from "@/shared/hooks/mutations/ventas/crearVenta";
 import { Venta } from "@/models/dtos/Ventas/Venta";
+import { useVerificarCajaAbierta } from "@/shared/hooks/queries/useCaja";
 
 
 interface TipoRenderizacion {
@@ -75,6 +76,7 @@ const VentaRapida = () => {
             cliente: 0,
             vencimiento: undefined,
             estado: 1,
+            cajaDefinicion: undefined
         }
     );
     const [detalleVenta, setDetalleVenta] = useState<DetalleVenta[]>([]);
@@ -111,15 +113,18 @@ const VentaRapida = () => {
     const { data: sucursales } = useSucursales({ operador: vendedorPorDefecto ? parseInt(vendedorPorDefecto) : 0 });
     const { data: depositos } = useDepositos();
     const { data: listaPrecios } = useListaDePrecios();
-    const { data: vendedorSeleccionado} = useUsuarioPorId(parseInt(vendedorPorDefecto ?? "0"));
-
+    const { data: vendedorSeleccionado } = useUsuarioPorId(parseInt(vendedorPorDefecto ?? "0"));
+    const { data: cajaAbierta } = useVerificarCajaAbierta(
+        1,
+        vendedorSeleccionado?.op_codigo
+    );
 
     useEffect(() => {
-        if(vendedorSeleccionado){
+        if (vendedorSeleccionado) {
             console.log('Vendedor seleccionado desde el useUsuarioPorId:', vendedorSeleccionado);
         }
         obtenerDatosFacturacion();
-    }, []);
+    }, [vendedorSeleccionado]);
 
 
     const handleAgregarItem = (articulo: ArticuloBusqueda, cantidad: number) => {
@@ -154,15 +159,9 @@ const VentaRapida = () => {
 
 
     useEffect(() => {
-        if (clientePorDefecto ) {
-            console.log('Cliente por defecto completo:', clientePorDefecto);
+        if (clientePorDefecto) {
             const valorCliente = clientePorDefecto.valor;
-            console.log('Valor del cliente por defecto:', valorCliente);
-            console.log('Tipo de valor:', typeof valorCliente);
             const clienteId = parseInt(valorCliente);
-            console.log('Cliente ID convertido:', clienteId);
-            console.log('Es NaN?', isNaN(clienteId));
-
             if (!isNaN(clienteId)) {
                 setVentaDTO(prevState => ({
                     ...prevState,
@@ -173,6 +172,7 @@ const VentaRapida = () => {
             }
         }
         if (vendedorSeleccionado) {
+            console.log("vendedor seleccionado")
             setVentaDTO(prevState => ({
                 ...prevState,
                 vendedor: vendedorSeleccionado.op_codigo,
@@ -197,8 +197,15 @@ const VentaRapida = () => {
                 userPc: `Dispositivo de ${vendedorNombrePorDefecto}`
             }));
         }
+        if (cajaAbierta) {
+            setVentaDTO(prevState => ({
+                ...prevState,
+                cajaDefinicion: cajaAbierta.definicion
+            })
+            )
+        }
 
-    }, [clientePorDefecto, vendedorSeleccionado, sucursalSeleccionada, depositoSeleccionado]);
+    }, [clientePorDefecto, vendedorSeleccionado, sucursalSeleccionada, depositoSeleccionado, cajaAbierta]);
 
     useEffect(() => {
         setVentaDTO(prevState => ({
@@ -209,13 +216,14 @@ const VentaRapida = () => {
 
     useEffect(() => {
         if (sucursales) {
+            console.log("SUCURSALES" , sucursales)
             setSucursalSeleccionada(sucursales[0]);
         }
     }, [sucursales]);
 
     useEffect(() => {
         if (depositos) {
-            setDepositoSeleccionado(depositos.data[0]);
+            setDepositoSeleccionado(depositos.body[0]);
         }
     }, [depositos]);
 
@@ -275,7 +283,7 @@ const VentaRapida = () => {
                 return;
             }
 
-            const response =  await crearVentaMutation.mutateAsync({ venta: ventaDTO, detalle: detalleVenta });
+            const response = await crearVentaMutation.mutateAsync({ venta: ventaDTO, detalle: detalleVenta });
 
             if (crearVentaMutation.error) {
                 toast({
@@ -289,21 +297,21 @@ const VentaRapida = () => {
             }
 
             if (tipoVenta.tipo === "factura") {
-                console.log('imprimiendo factura', response.data);
+                console.log('imprimiendo factura', response.body);
                 await actualizarUltimaFactura(datosFacturacion?.d_codigo || 0, datosFacturacion?.d_nro_secuencia || 0);
                 ImprimirFacturaTicketComponent({
                     accion: "download",
-                    ventaId: response.data.codigo,
+                    ventaId: response.body.codigo,
                     montoEntregado: 0,
                     montoRecibido: 0,
                     vuelto: 0,
                     onImprimir: true
                 });
             } else if (tipoVenta.tipo === "comun") {
-                console.log('imprimiendo ticket', response.data);
+                console.log('imprimiendo ticket', response.body);
                 ImprimirTicketComponent({
                     accion: "download",
-                    ventaId: response.data.codigo,
+                    ventaId: response.body.codigo,
                     montoEntregado: 0,
                     montoRecibido: 0,
                     vuelto: 0,
@@ -566,11 +574,11 @@ const VentaRapida = () => {
                         <div className="flex flex-col gap-2">
                             <label htmlFor="deposito" className="text-gray-500 font-bold">Deposito</label>
                             <select className="bg-gray-100 rounded-md p-2 border border-gray-300" name="deposito" id="deposito" onChange={(e) => {
-                                const deposito = depositos?.data.find((deposito) => deposito.dep_codigo === parseInt(e.target.value));
+                                const deposito = depositos?.body.find((deposito) => deposito.dep_codigo === parseInt(e.target.value));
                                 setDepositoSeleccionado(deposito);
                             }}>
                                 {
-                                    depositos?.data?.map((deposito) => (
+                                    depositos?.body?.map((deposito) => (
                                         <option key={deposito.dep_codigo} value={deposito.dep_codigo}>{deposito.dep_descripcion}</option>
                                     ))
                                 }
@@ -702,13 +710,13 @@ const VentaRapida = () => {
                             className="flex-1 bg-green-500 text-white py-3 rounded-md hover:bg-green-600 transition-colors flex items-center justify-center gap-2 text-sm"
                         >
 
-                            {crearVentaMutation.isPending? <Spinner/>
-                             : 
-                             <div className="flex gap-2">
-                            <ShoppingBag className="w-5 h-5" />
-                            <p>Finalizar Venta</p>
-                             </div>
-                             }
+                            {crearVentaMutation.isPending ? <Spinner />
+                                :
+                                <div className="flex gap-2">
+                                    <ShoppingBag className="w-5 h-5" />
+                                    <p>Finalizar Venta</p>
+                                </div>
+                            }
                         </button>
                     </div>
                 </div>

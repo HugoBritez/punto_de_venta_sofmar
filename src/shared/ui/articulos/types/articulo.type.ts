@@ -1,4 +1,4 @@
-export interface Articulo {
+export interface ArticuloDeprecado {
   id_lote: number;
   lote: string;
   id_articulo: number;

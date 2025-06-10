@@ -36,6 +36,8 @@ export interface VentaViewModel {
     ciudad_descripcion: string;
     distrito_id: number;
     distrito_descripcion: string;
+    departamento_id: number;
+    departamento_descripcion: string;
     cliente_telefono: string;
     cliente_email: string;
     cliente_codigo_interno: number;

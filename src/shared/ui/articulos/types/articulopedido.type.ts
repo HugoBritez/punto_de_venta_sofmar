@@ -1,5 +1,5 @@
 export interface ArticuloPedido {
-    id_detalle_pedido: number;
+    idDetallePedido: number;
     fecha: string;
     cliente: string;
     cantidad: number;

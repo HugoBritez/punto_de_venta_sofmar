@@ -1,7 +1,7 @@
-import { Articulo } from "../types/articulo.type";
 import axios from "axios";
 import { api_url } from "@/utils";
 import { BusquedaDTO } from "../types/busquedaDTO.type";
+import { ArticuloBusqueda } from "@/models/viewmodels/articuloBusqueda";
 
 export const buscarArticulos = async ({
   busqueda,
@@ -17,7 +17,7 @@ export const buscarArticulos = async ({
   cod_interno,
   lote,
   negativo
-}: BusquedaDTO): Promise<Articulo[]> => {
+}: BusquedaDTO): Promise<ArticuloBusqueda[]> => {
   try {
     console.log("enviando datos en servicio", {
       id_articulo,
@@ -51,8 +51,8 @@ export const buscarArticulos = async ({
         negativo: negativo
       },
     });
-    console.log('articulos en el response', response.data.data);
-    return response.data.data;
+    console.log('articulos en el response', response.data.body);
+    return response.data.body;
   } catch (error) {
     console.error("Error al buscar artículos:", error);
     throw error;

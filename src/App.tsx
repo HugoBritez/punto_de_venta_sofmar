@@ -55,6 +55,7 @@ import ConsultaPedidosFaltantes from "./views/entregas/ConsultaPedidosFaltantes"
 import GestionDirecciones from "./views/direcciones/GestionDirecciones";
  import FormularioPedidos from "./views/pedidos/FormularioPedidos/FormularioPedidos";
  import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import PersonasList from "./views/CrearPersona/Personas";
 
 
 const ProtectedLayout: React.FC = () => {
@@ -195,6 +196,7 @@ function App() {
                 <Route path="/verificador-ingresos" element={<VerificadorControl />} />
                 <Route path="/consulta-pedidos-faltantes" element={<ConsultaPedidosFaltantes />} />
                 <Route path="/gestion-direcciones" element={<GestionDirecciones />} />
+                <Route path="/crear-persona" element={<PersonasList />} />
               </Route>
               <Route path="/" element={<Navigate to="/home" replace />} />
               <Route path="/404" element={<NoExiste />} />

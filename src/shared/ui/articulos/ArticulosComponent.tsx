@@ -4,12 +4,12 @@ import { BusquedaDTO } from "./types/busquedaDTO.type";
 import Modal from "../modal/Modal";
 import DepositosSelect from "../select/DepositosSelect";
 import SucursalesSelect from "../select/SucursalesSelect";
-import { Articulo } from "./types/articulo.type";
 import useVerArticulosEnPedido from "./hooks/useVerArticulosEnPedido";
 import NotFound from "@/assets/not-found/not-found.png";
 import { Spinner, useToast } from "@chakra-ui/react";
 import { useListasDePrecios } from "./hooks/useListasDePrecio";
 import { formatCurrency } from "./utils/formatCurrency";
+import { ArticuloBusqueda } from "@/models/viewmodels/articuloBusqueda";
 
 interface ArticulosComponentProps {
   isOpen: boolean;
@@ -40,7 +40,7 @@ export const ArticulosComponent = ({
   });
 
   const [articuloSeleccionado, setArticuloSeleccionado] =
-    useState<Articulo | null>(null);
+    useState<ArticuloBusqueda | null>(null);
 
   const [filtroSeleccionado, setFiltroSeleccionado] = useState<string | null>(
     "articulo"
@@ -61,8 +61,8 @@ export const ArticulosComponent = ({
     cargando: cargandoPedido,
     error: errorPedido,
   } = useVerArticulosEnPedido(
-    articuloSeleccionado?.id_articulo || 0,
-    articuloSeleccionado?.id_lote || 0
+    articuloSeleccionado?.idArticulo || 0,
+    articuloSeleccionado?.idLote || 0
   );
 
   const [indiceSeleccionado, setIndiceSeleccionado] = useState<number>(-1);
@@ -198,7 +198,7 @@ export const ArticulosComponent = ({
   }, [isOpen]);
 
   const handleArticuloSeleccionado = (
-    articulo: Articulo,
+    articulo: ArticuloBusqueda,
     event?: React.MouseEvent
   ) => {
     // Prevenir el comportamiento predeterminado si hay un evento
@@ -247,13 +247,13 @@ export const ArticulosComponent = ({
                 Stock Lote
               </th>
               <th className="px-4 py-3 border-r-2 border-blue-700">
-                P. {listaPrecios[0].lp_descripcion ?? "Contado"}
+                P. {listaPrecios[0].lpDescripcion ?? "Contado"}
               </th>
               <th className="px-4 py-3 border-r-2 border-blue-700">
-                P. {listaPrecios[1].lp_descripcion ?? "Crédito"}
+                P. {listaPrecios[1].lpDescripcion ?? "Crédito"}
               </th>
               <th className="px-4 py-3 border-r-2 border-blue-700">
-                P. {listaPrecios[2].lp_descripcion ?? "Mostrador"}
+                P. {listaPrecios[2].lpDescripcion ?? "Mostrador"}
               </th>
               <th className="px-4 py-3 border-r-2 border-blue-700">Serie</th>
               <th className="px-4 py-3 border-r-2 border-blue-700">Lote</th>
@@ -269,11 +269,11 @@ export const ArticulosComponent = ({
           <tbody className="bg-white divide-y-2 divide-gray-300">
             {resultadosBusqueda.map((resultado, index) => (
               <tr
-                key={resultado.id_lote}
+                key={resultado.idLote}
                 ref={index === indiceSeleccionado ? selectedRowRef : null}
                 onClick={(e) => handleArticuloSeleccionado(resultado, e)}
                 className={`hover:bg-blue-100 cursor-pointer transition-colors ${
-                  articuloSeleccionado?.id_lote === resultado.id_lote
+                  articuloSeleccionado?.idLote === resultado.idLote
                     ? "bg-blue-200"
                     : indiceSeleccionado === index
                     ? "bg-blue-100"
@@ -281,36 +281,36 @@ export const ArticulosComponent = ({
                 }`}
               >
                 <td className="px-4 py-2 font-medium border-r-2 border-gray-200">
-                  {resultado.id_articulo}
+                  {resultado.idArticulo}
                 </td>
                 <td className="px-4 py-2 font-medium border-r-2 border-gray-200">
-                  {resultado.codigo_barra}
+                  {resultado.codigoBarra}
                 </td>
                 <td className="px-4 py-2 font-medium border-r-2 border-gray-200">
                   {resultado.descripcion}
                 </td>
                 <td className="px-4 py-2 font-medium border-r-2 border-gray-200">
-                  {resultado.cantidad_lote}
+                  {resultado.cantidadLote}
                 </td>
                 <td className="px-4 py-2 font-medium border-r-2 border-gray-200">
-                  {formatCurrency(resultado.precio_venta_guaranies)}
+                  {formatCurrency(resultado.precioVentaGuaranies)}
                 </td>
                 <td className="px-4 py-2 font-medium border-r-2 border-gray-200">
-                  {formatCurrency(resultado.precio_credito)}
+                  {formatCurrency(resultado.precioCredito)}
                 </td>
                 <td className="px-4 py-2 font-medium border-r-2 border-gray-200">
-                  {formatCurrency(resultado.precio_mostrador)}
+                  {formatCurrency(resultado.precioMostrador)}
                 </td>
                 <td className="px-4 py-2 font-medium border-r-2 border-gray-200">
                   {resultado.lote}
                 </td>
                 <td
                   className={`px-4 py-2 font-medium border-r-2 border-gray-200 ${
-                    resultado.estado_vencimiento === "VENCIDO"
+                    resultado.estadoVencimiento === "VENCIDO"
                       ? "bg-red-300"
-                      : resultado.estado_vencimiento === "PROXIMO"
+                      : resultado.estadoVencimiento === "PROXIMO"
                       ? "bg-yellow-300"
-                      : resultado.precompra === 1
+                      : resultado.preCompra === 1
                       ? "bg-cyan-300"
                       : "bg-white"
                   }`}
@@ -318,12 +318,12 @@ export const ArticulosComponent = ({
                   {resultado.lote}
                 </td>
                 <td className="px-4 py-2 font-medium border-r-2 border-gray-200">
-                  {resultado.vencimiento_lote}
+                  {resultado.vencimientoLote}
                 </td>
                 <td className="px-4 py-2 font-medium border-r-2 border-gray-200">
-                  {resultado.id_articulo}
+                  {resultado.idArticulo}
                 </td>
-                <td className="px-4 py-2 font-medium">{resultado.id_lote}</td>
+                <td className="px-4 py-2 font-medium">{resultado.idLote}</td>
               </tr>
             ))}
           </tbody>
@@ -462,7 +462,7 @@ export const ArticulosComponent = ({
           <tbody className="bg-white divide-y-2 divide-gray-300">
             {pedidos.map((articulo) => (
               <tr
-                key={articulo.id_detalle_pedido}
+                key={articulo.idDetallePedido}
                 className="hover:bg-purple-50 transition-colors"
               >
                 <td className="px-4 py-2 font-medium border-r-2 border-gray-200">
@@ -483,8 +483,8 @@ export const ArticulosComponent = ({
   const handleSeleccionarArticulo = () => {
     if (articuloSeleccionado) {
       if (
-        articuloSeleccionado.cantidad_lote < 0 &&
-        articuloSeleccionado.vencimiento_validacion === 0
+        articuloSeleccionado.cantidadLote < 0 &&
+        articuloSeleccionado.vencimientoValidacion === 0
       ) {
         toast({
           title:
@@ -792,7 +792,7 @@ export const ArticulosComponent = ({
                     Sub. Ubicación:
                   </span>
                   <p className="font-bold text-gray-800">
-                    {articuloSeleccionado?.sub_ubicacion ?? ""}
+                    {articuloSeleccionado?.subUbicacion ?? ""}
                   </p>
                 </div>
               </div>
@@ -802,7 +802,7 @@ export const ArticulosComponent = ({
                     Fecha últ. Venta:
                   </span>
                   <p className="font-bold text-gray-800">
-                    {articuloSeleccionado?.fecha_ultima_venta ?? ""}
+                    {articuloSeleccionado?.fechaUltimaVenta ?? ""}
                   </p>
                 </div>
                 <div className="flex flex-row gap-1">
@@ -810,7 +810,7 @@ export const ArticulosComponent = ({
                     Fecha últ. Compra:
                   </span>
                   <p className="font-bold text-gray-800">
-                    {articuloSeleccionado?.fecha_ultima_compra ?? ""}
+                    {articuloSeleccionado?.fechaUltimaCompra ?? ""}
                   </p>
                 </div>
               </div>

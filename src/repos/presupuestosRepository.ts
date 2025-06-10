@@ -1,5 +1,5 @@
 import axios from "axios";
-import { api_url } from "@/utils";
+import { API_URL as api_url } from "@/utils";
 import { PresupuestoEntity } from "@/models/viewmodels/Presupuestos/PresupuestoEntity";
 import { DetallePresupuestoEntity } from "@/models/viewmodels/Presupuestos/PresupuestoEntity";
 import { PresupuestoObservacion } from "@/models/viewmodels/Presupuestos/PresupuestoEntity";

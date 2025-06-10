@@ -5,7 +5,7 @@ import { GetItemsParams } from "@/models/dtos/ControlIngreso/GetItemsParams";
 import { VerificarCompraDTO } from "@/models/dtos/ControlIngreso/verificarCompraDTO";
 import { ControlIngresoEntity } from "@/models/viewmodels/ControlIngreso/ControlIngresoEntity";
 import { ControlIngresoItemEntity } from "@/models/viewmodels/ControlIngreso/ControlIngresoItemsEntity";
-import { api_url } from "@/utils";
+import { API_URL as api_url } from "@/utils";
 import { VerificacionItemDTO } from "@/views/compras/control_ingreso/types/shared.type";
 import axios from "axios";
 

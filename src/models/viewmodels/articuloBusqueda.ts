@@ -31,5 +31,11 @@ export interface ArticuloBusqueda {
   estadoVencimiento: string;
   proveedor: string;
   fechaUltimaVenta: string;
+  fechaUltimaCompra: string;
   preCompra: number;
+  principio_activo?: string;
+  cantidad_caja?: number;
+  precio_sugerido?: number;
+  presentacion?: string;
+  precompra?: number;
 }

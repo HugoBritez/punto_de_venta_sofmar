@@ -1,6 +1,6 @@
 import { ConfiguracionViewModel } from "@/models/viewmodels/ConfiguracionesViewModel";
 import axios from "axios";
-import { api_url } from "@/utils";
+import { API_URL as api_url } from "@/utils";
 
 export const ConfiguracionesRepository = {
     async getConfiguracionById(id: number): Promise<ConfiguracionViewModel> {
@@ -9,6 +9,7 @@ export const ConfiguracionesRepository = {
                 id: id
             }
         });
-        return response.data.data;
+        console.log("Configuracion con id" + id +  ":"  + response)
+        return response.data.body;
     }
 }

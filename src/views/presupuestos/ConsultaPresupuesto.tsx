@@ -32,6 +32,7 @@ import PresupuestoModalEstilizado from './imprimirPresupuestoEstilizado'
 import MenuContextual from '../../shared/modules/MenuContextual'
 import { useSwitch } from '@/shared/services/SwitchContext'
 import { PresupuestoViewModel } from '@/models/viewmodels/Presupuestos/PResupuestoVIewModel'
+import { ClienteViewModel } from '@/models/viewmodels/ClienteViewModel'
 
 
 
@@ -52,13 +53,6 @@ interface DetallePresupuesto {
   ar_editar_desc: number
 }
 
-interface Cliente {
-  cli_codigo: number;
-  cli_interno: number;
-  cli_razon: string;
-  cli_ruc: string;
-  cli_limitecredito: number;
-}
 
 const periodos = [
   { label: 'Hoy', value: 'hoy' },
@@ -72,7 +66,7 @@ interface ConsultaPresupuestosProps {
   onSelectPresupuesto?: (presupuesto: PresupuestoViewModel, detalles: DetallePresupuesto[]) => void
   onClose?: () => void
   isModal?: boolean
-  clienteSeleccionado?: Cliente | null
+  clienteSeleccionado?: ClienteViewModel | null
 }
 
 export default function ConsultaPresupuestos({ onSelectPresupuesto, onClose, isModal= false, clienteSeleccionado }: ConsultaPresupuestosProps) {

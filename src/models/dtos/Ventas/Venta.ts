@@ -22,7 +22,7 @@ export interface Venta {
     metodo: number;
     aplicarA: number;
     retencion: number;
-    timbrado: string;
+    timbrado?: string;
     codeudor: number;
     pedido: number;
     hora: string;

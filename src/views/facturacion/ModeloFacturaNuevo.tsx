@@ -16,41 +16,53 @@ interface ModeloTicketProps {
 
 interface VentaTicket {
   codigo: number;
-  tipo_venta: string;
-  fecha_venta: string;
-  fecha_vencimiento: string;
+  tipoVenta: string;
+  fechaVenta: string;
+  fechaVencimiento: string;
   cajero: string;
   vendedor: string;
   cliente: string;
+  clienteCorreo: string;
   direccion: string;
   telefono: string;
   ruc: string;
   subtotal: number;
-  total_descuento: number;
-  total_a_pagar: number;
-  total_exentas: number;
-  total_diez: number;
-  total_cinco: number;
+  totalDescuento: number;
+  totalAPagar: number;
+  totalExentas: number;
+  totalDiez: number;
+  totalCinco: number;
   timbrado: string;
   factura: string;
-  factura_valido_desde: string;
-  factura_valido_hasta: string;
-  ve_qr?: string;
-  ve_cdc: string;
-  usa_fe: number;
+  facturaValidoDesde: string;
+  facturaValidoHasta: string;
+  veQr?: string;
+  veCdc: string;
+  usaFe: number;
+  moneda: string;
+  cotizacion: number;
   detalles: {
     codigo: number;
     descripcion: string;
     cantidad: number;
     precio: number;
     total: number;
+    exentas: number;
+    diez: number;
+    cinco: number;
+    fechaVencimiento: string;
+    lote: string;
+    controlVencimiento: number;
   }[];
-  sucursal_data: {
-    sucursal_direccion: string;
-    sucursal_telefono: string;
-    sucursal_empresa: string;
-    sucursal_ruc: string;
-    sucursal_matriz: string;
+  sucursalData: {
+    sucursalNombre: string;
+    sucursalDireccion: string;
+    sucursalTelefono: string;
+    sucursalEmpresa: string;
+    sucursalRuc: string;
+    sucursalMatriz: string;
+    sucursalCorreo: string;
+    sucursalCiudad: string;
   }[];
 }
 
@@ -109,25 +121,25 @@ const ModeloFacturaNuevo = ({
       // Crear el contenido base del PDF
       const contenidoPDF = [
         {
-          text: venta?.sucursal_data[0].sucursal_empresa,
+          text: venta?.sucursalData[0].sucursalEmpresa,
           style: "header",
           alignment: "center",
           fontSize: 18,
         },
         {
-          text: `RUC: ${venta?.sucursal_data[0].sucursal_ruc}`,
+          text: `RUC: ${venta?.sucursalData[0].sucursalRuc}`,
           style: "text",
           alignment: "center",
           fontSize: 16,
         },
         {
-          text: `${venta?.sucursal_data[0].sucursal_matriz} :${venta?.sucursal_data[0].sucursal_direccion}`,
+          text: `${venta?.sucursalData[0].sucursalMatriz} :${venta?.sucursalData[0].sucursalDireccion}`,
           style: "text",
           alignment: "center",
           fontSize: 16,
         },
         {
-          text: `Telefono: ${venta?.sucursal_data[0].sucursal_telefono}`,
+          text: `Telefono: ${venta?.sucursalData[0].sucursalTelefono}`,
           style: "text",
           alignment: "center",
           fontSize: 16,
@@ -145,19 +157,19 @@ const ModeloFacturaNuevo = ({
           fontSize: 16,
         },
         {
-          text: `Valido desde: ${venta?.factura_valido_desde}`,
+          text: `Valido desde: ${venta?.facturaValidoDesde}`,
           style: "text",
           alignment: "center",
           fontSize: 16,
         },
         {
-          text: `Valido hasta: ${venta?.factura_valido_hasta}`,
+          text: `Valido hasta: ${venta?.facturaValidoHasta}`,
           style: "text",
           alignment: "center",
           fontSize: 16,
         },
         {
-          text: `FACTURA ${venta?.tipo_venta}`,
+          text: `FACTURA ${venta?.tipoVenta}`,
           style: "tHeaderValue",
           alignment: "center",
           fontSize: 16,
@@ -275,7 +287,7 @@ const ModeloFacturaNuevo = ({
                     { text: "DESCUENTO:", style: "tTotals", fontSize: 16 },
                     {
                       text: `${(
-                        Number(venta?.total_descuento) || 0
+                        Number(venta?.totalDescuento) || 0
                       ).toLocaleString("es-PY")} Gs.`,
                       style: "tTotals",
                       fontSize: 16,
@@ -289,7 +301,7 @@ const ModeloFacturaNuevo = ({
                     },
                     {
                       text: `${(
-                        Number(venta?.total_a_pagar) || 0
+                        Number(venta?.totalAPagar) || 0
                       ).toLocaleString("es-PY")} Gs.`,
                       style: "tTotals",
                       fontSize: 16,
@@ -368,7 +380,7 @@ const ModeloFacturaNuevo = ({
                 },
                 {
                   text: `Gs. ${formatNumber(
-                    Number(venta?.total_exentas) || 0
+                    Number(venta?.totalExentas) || 0
                   )}`,
                   fontSize: 16,
                   alignment: "right",
@@ -382,7 +394,7 @@ const ModeloFacturaNuevo = ({
                 },
                 {
                   text: `Gs. ${formatNumber(
-                    Number(venta?.total_diez) || 0
+                    Number(venta?.totalDiez) || 0
                   )}`,
                   fontSize: 16,
                   alignment: "right",
@@ -396,7 +408,7 @@ const ModeloFacturaNuevo = ({
                 },
                 {
                   text: `Gs. ${formatNumber(
-                    Number(venta?.total_cinco) || 0
+                    Number(venta?.totalCinco) || 0
                   )}`,
                   fontSize: 16,
                   alignment: "right",
@@ -410,8 +422,8 @@ const ModeloFacturaNuevo = ({
                 },
                 {
                   text: `Gs. ${
-                    venta?.total_cinco
-                      ? formatNumber(Number(venta.total_cinco) / 22)
+                    venta?.totalCinco
+                      ? formatNumber(Number(venta.totalCinco) / 22)
                       : 0
                   }`,
                   fontSize: 16,
@@ -426,8 +438,8 @@ const ModeloFacturaNuevo = ({
                 },
                 {
                   text: `Gs. ${
-                    venta?.total_diez
-                      ? formatNumber(Number(venta.total_diez) / 11)
+                    venta?.totalDiez
+                      ? formatNumber(Number(venta.totalDiez) / 11)
                       : 0
                   }`,
                   fontSize: 16,
@@ -442,11 +454,11 @@ const ModeloFacturaNuevo = ({
                 },
                 {
                   text: `Gs. ${formatNumber(
-                    (venta?.total_cinco
-                      ? Number(venta.total_cinco) / 22
+                    (venta?.totalCinco
+                      ? Number(venta.totalCinco) / 22
                       : 0) +
-                      (venta?.total_diez
-                        ? Number(venta.total_diez) / 11
+                      (venta?.totalDiez
+                        ? Number(venta.totalDiez) / 11
                         : 0)
                   )}`,
                   fontSize: 16,
@@ -488,12 +500,12 @@ const ModeloFacturaNuevo = ({
       ];
 
       // Agregar contenido condicional para factura electrónica
-      if (venta?.usa_fe === 1) {
+      if (venta?.usaFe === 1) {
         contenidoPDF.push(
           { text: "\n" },
-          venta?.ve_qr && venta.ve_qr !== "" ? 
+          venta?.veQr && venta.veQr !== "" ? 
           {
-            qr: venta.ve_qr,
+            qr: venta.veQr,
             fit: 300,
             alignment: "center",
           } as any : 
@@ -513,7 +525,7 @@ const ModeloFacturaNuevo = ({
           },
           { text: "\n" },
           {
-            text: `https://ekuatia.set.gov.py/consultas/${venta.ve_cdc}`,
+            text: `https://ekuatia.set.gov.py/consultas/${venta.veCdc}`,
             style: "text",
             fontSize: 16,
             alignment: "center",
@@ -654,9 +666,9 @@ const ModeloFacturaNuevo = ({
 
   const getVenta = async () => {
     try {
-      const response = await axios.get(`${api_url}venta/venta-imprimir`, {
+      const response = await axios.get(`${api_url}venta/imprimir`, {
         params: {
-          ventaId: id_venta,
+          venta: id_venta,
         },
       });
       console.log(response.data.body);

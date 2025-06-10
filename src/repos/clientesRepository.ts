@@ -1,6 +1,6 @@
 import { ClienteViewModel } from "@/models/viewmodels/ClienteViewModel";
 import axios from "axios";
-import { api_url } from "@/utils";
+import { API_URL as api_url } from "@/utils";
 
 
 
@@ -12,7 +12,7 @@ export const ClientesRepository = {
                 estado: estado
             }
         });
-        return response.data.data;
+        return response.data.body;
     },
 
     async getClientePorId(id: number): Promise<ClienteViewModel> {
@@ -24,6 +24,6 @@ export const ClientesRepository = {
             }
         );
 
-        return response.data.data[0];
+        return response.data.body[0];
     }
 }

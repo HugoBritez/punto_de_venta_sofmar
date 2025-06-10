@@ -56,59 +56,8 @@ import { createRoot } from "react-dom/client";
 import { useFacturaSend } from "@/shared/hooks/useFacturaSend";
 import { useTipoImpresionFacturaStore } from "@/stores/tipoImpresionFacturaStore";
 import ModeloFacturaReport from "../facturacion/ModeloFacturaReport";
-
-interface Venta {
-  codigo: number;
-  codcliente: number;
-  cliente: string;
-  moneda_id: number;
-  moneda: string;
-  fecha: string;
-  codsucursal: number;
-  sucursal: string;
-  vendedor: string;
-  operador: string;
-  total: number;
-  descuento: number;
-  saldo: number;
-  condicion: string;
-  vencimiento: string;
-  factura: string;
-  obs: string;
-  estado: number;
-  estado_desc: string;
-  obs_anulacion: string;
-  terminal: string;
-  exentas_total: number;
-  descuento_total: number;
-  iva5_total: number;
-  iva10_total: number;
-  sub_total: number;
-  total_articulos: number;
-  total_neto: number;
-  ve_cdc: string;
-  tipo_documento: number;
-  cliente_descripcion: string;
-  cliente_direccion: string;
-  cliente_ciudad: string;
-  ciudad_id: number;
-  ciudad_descripcion: string;
-  distrito_id: number;
-  distrito_descripcion: string;
-  departamento_id: number;
-  departameto_descripcion: string;
-  cliente_telefono: string;
-  cliente_email: string;
-  cliente_codigo_interno: number;
-  operador_nombre: string;
-  operador_documento: string;
-  establecimiento: string;
-  punto_emision: string;
-  numero_factura: string;
-  cliente_ruc: string;
-  cant_cuotas: number;
-  entrega_inicial: number;
-}
+import { ClienteViewModel } from "@/models/viewmodels/ClienteViewModel";
+import { VentaViewModel } from "@/models/viewmodels/Ventas/VentaViewModel";
 
 interface DetalleVenta {
   det_codigo: number;
@@ -137,8 +86,8 @@ interface DetalleVenta {
 }
 
 interface ConsultaDeVentasProps {
-  clienteSeleccionado?: Cliente | null;
-  onSelectVenta?: (venta: Venta, detalleVenta: DetalleVenta[]) => void;
+  clienteSeleccionado?: ClienteViewModel | null;
+  onSelectVenta?: (venta: VentaViewModel, detalleVenta: DetalleVenta[]) => void;
   onCloseVenta?: () => void;
   isModal?: boolean;
 }
@@ -149,7 +98,7 @@ export default function ResumenVentas({
   onCloseVenta,
   isModal = false,
 }: ConsultaDeVentasProps) {
-  const [ventas, setVentas] = useState<Venta[]>([]);
+  const [ventas, setVentas] = useState<VentaViewModel[]>([]);
   const [fechaDesde, setFechaDesde] = useState(
     format(new Date(), "yyyy-MM-dd")
   );
@@ -201,7 +150,7 @@ export default function ResumenVentas({
   const [busquedaVendedor, setBusquedaVendedor] = useState("");
 
   const [ventaSeleccionadaInterna, setVentaSeleccionadaInterna] =
-    useState<Venta | null>(null);
+    useState<VentaViewModel | null>(null);
 
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
 
@@ -467,7 +416,7 @@ export default function ResumenVentas({
     }
   };
 
-  const handleSelectVenta = (venta: Venta) => {
+  const handleSelectVenta = (venta: VentaViewModel) => {
     setVentaSeleccionadaInterna(venta);
     fetchDetalleVenta(venta.codigo);
     if (onSelectVenta) {
@@ -653,7 +602,7 @@ export default function ResumenVentas({
         numeroCasa: "001",
         departamento: ventaSeleccionadaInterna?.departamento_id || 1,
         departamentoDescripcion:
-          ventaSeleccionadaInterna?.departameto_descripcion || "",
+          ventaSeleccionadaInterna?.departamento_descripcion || "",
         distrito: ventaSeleccionadaInterna?.distrito_id || 1,
         distritoDescripcion:
           ventaSeleccionadaInterna?.distrito_descripcion || "",
@@ -1278,7 +1227,7 @@ export default function ResumenVentas({
                         <td className="text-right">{venta.saldo}</td>
                         <td className="text-right">{venta.descuento}</td>
                         <td className="text-center">{venta.vencimiento}</td>
-                        <td className="text-left">{venta.operador}</td>
+                        <td className="text-left">{venta.operador_nombre}</td>
                         <td className="text-left">{venta.vendedor}</td>
                         <td>{venta.condicion}</td>
                         <td>{venta.terminal}</td>

@@ -10,6 +10,6 @@ export const useSucursales = (params? : getSucursalDTO) =>{
         queryFn: () => getSucursales(params),
         enabled: true,
         refetchOnWindowFocus: false,
-        select: (data) => Array.isArray(data.data) ? data.data as SucursalViewModel[] : [data.data as SucursalViewModel]
+        select: (data) => Array.isArray(data) ? data as SucursalViewModel[] : [data as SucursalViewModel]
     })
 }

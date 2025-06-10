@@ -16,45 +16,55 @@ interface ModeloNotaComunProps {
 
 interface VentaTicket {
   codigo: number;
-  tipo_venta: string;
-  fecha_venta: string;
-  fecha_vencimiento: string;
+  tipoVenta: string;
+  fechaVenta: string;
+  fechaVencimiento: string;
   cajero: string;
   vendedor: string;
   cliente: string;
+  clienteCorreo: string;
   direccion: string;
   telefono: string;
   ruc: string;
   subtotal: number;
-  total_descuento: number;
-  total_a_pagar: number;
-  total_exentas: number;
-  total_diez: number;
-  total_cinco: number;
+  totalDescuento: number;
+  totalAPagar: number;
+  totalExentas: number;
+  totalDiez: number;
+  totalCinco: number;
   timbrado: string;
   factura: string;
-  factura_valido_desde: string;
-  factura_valido_hasta: string;
+  facturaValidoDesde: string;
+  facturaValidoHasta: string;
+  veQr?: string;
+  veCdc: string;
+  usaFe: number;
   moneda: string;
+  cotizacion: number;
   deposito: string;
   observacion: string;
-  cotizacion: number;
   detalles: {
     codigo: number;
     descripcion: string;
     cantidad: number;
     precio: number;
-    descuento: number;
     total: number;
+    exentas: number;
+    diez: number;
+    cinco: number;
+    fechaVencimiento: string;
+    lote: string;
+    controlVencimiento: number;
   }[];
-  sucursal_data: {
-    sucursal_nombre: string;
-    sucursal_direccion: string;
-    sucursal_telefono: string;
-    sucursal_empresa: string;
-    sucursal_ruc: string;
-    sucursal_matriz: string;
-    sucursal_ciudad: string;
+  sucursalData: {
+    sucursalNombre: string;
+    sucursalDireccion: string;
+    sucursalTelefono: string;
+    sucursalEmpresa: string;
+    sucursalRuc: string;
+    sucursalMatriz: string;
+    sucursalCorreo: string;
+    sucursalCiudad: string;
   }[];
 }
 
@@ -94,7 +104,6 @@ const ModeloNotaComun = ({
         detalle.descripcion,
         detalle.cantidad.toString(),
         `${(Number(detalle.precio) || 0).toLocaleString("es-PY")}`,
-        `${(Number(detalle.descuento) || 0).toLocaleString("es-PY")}`,
         detalle.total
           ? `${Number(detalle.total).toLocaleString("es-PY")}`
           : "0",
@@ -151,7 +160,7 @@ const ModeloNotaComun = ({
                       fontSize: 10,
                     },
                     {
-                      text: `Filial: ${venta?.sucursal_data[0].sucursal_empresa}`,
+                      text: `Filial: ${venta?.sucursalData[0].sucursalEmpresa}`,
                       fontSize: 10,
                     },
                   ],
@@ -163,7 +172,7 @@ const ModeloNotaComun = ({
                       fontSize: 10,
                     },
                     {
-                      text: `Ciudad: ${venta?.sucursal_data[0].sucursal_ciudad}`,
+                      text: `Ciudad: ${venta?.sucursalData[0].sucursalCiudad}`,
                       fontSize: 10,
                     },
                   ],
@@ -171,11 +180,11 @@ const ModeloNotaComun = ({
                 {
                   stack: [
                     {
-                      text: `Venta: ${venta?.tipo_venta}`,
+                      text: `Venta: ${venta?.tipoVenta}`,
                       fontSize: 10,
                     },
                     {
-                      text: `Telefono: ${venta?.sucursal_data[0].sucursal_telefono}`,
+                      text: `Telefono: ${venta?.sucursalData[0].sucursalTelefono}`,
                       fontSize: 10,
                     },
                   ],
@@ -202,7 +211,7 @@ const ModeloNotaComun = ({
                 {
                   stack: [
                     {
-                      text: `Fecha: ${venta?.fecha_venta}`,
+                      text: `Fecha: ${venta?.fechaVenta}`,
                       fontSize: 10,
                     },
                     {
@@ -230,7 +239,7 @@ const ModeloNotaComun = ({
                       fontSize: 10,
                     },
                     {
-                      text: `Ciudad: ${venta?.sucursal_data[0].sucursal_ciudad}`,
+                      text: `Ciudad: ${venta?.sucursalData[0].sucursalCiudad}`,
                       fontSize: 10,
                     },
                     {
@@ -246,11 +255,11 @@ const ModeloNotaComun = ({
                       fontSize: 10,
                     },
                     {
-                      text: `Sucursal: ${venta?.sucursal_data[0].sucursal_nombre}`,
+                      text: `Sucursal: ${venta?.sucursalData[0].sucursalNombre}`,
                       fontSize: 10,
                     },
                     {
-                      text: `Telefono: ${venta?.sucursal_data[0].sucursal_telefono}`,
+                      text: `Telefono: ${venta?.sucursalData[0].sucursalTelefono}`,
                       fontSize: 10,
                     },
                     {
@@ -326,7 +335,7 @@ const ModeloNotaComun = ({
                       fontSize: 10,
                     },
                     {
-                      text: `Total US$: ${Number((venta?.total_a_pagar || 0) / (venta?.cotizacion || 0)).toFixed(3)}`,
+                      text: `Total US$: ${Number((venta?.totalAPagar || 0) / (venta?.cotizacion || 0)).toFixed(3)}`,
                       fontSize: 10,
                     },
                     {
@@ -334,7 +343,7 @@ const ModeloNotaComun = ({
                       fontSize: 10,
                     },
                     {
-                      text: `SubTotal/con. Desc: ${(Number(venta?.total_a_pagar || 0).toLocaleString("es-PY"))}`,
+                      text: `SubTotal/con. Desc: ${(Number(venta?.totalAPagar || 0).toLocaleString("es-PY"))}`,
                       fontSize: 10,
                       alignment: "right",
                     },
@@ -348,7 +357,7 @@ const ModeloNotaComun = ({
                       width: "*"
                     },
                     {
-                      text: `(-) Descuento: ${Number(venta?.total_descuento).toLocaleString("es-PY")}`,
+                      text: `(-) Descuento: ${Number(venta?.totalDescuento).toLocaleString("es-PY")}`,
                       fontSize: 10,
                       alignment: "right",
                       width: "*"
@@ -363,7 +372,7 @@ const ModeloNotaComun = ({
                       width: "*"
                     },
                     {
-                      text: `Vlr. Liquido: ${Number(venta?.total_a_pagar).toLocaleString("es-PY")}`,
+                      text: `Vlr. Liquido: ${Number(venta?.totalAPagar).toLocaleString("es-PY")}`,
                       fontSize: 10,
                       alignment: "right",
                       width: "*"
@@ -504,9 +513,9 @@ const ModeloNotaComun = ({
         throw new Error("ID de venta no proporcionado");
       }
 
-      const response = await axios.get(`${api_url}venta/venta-imprimir`, {
+      const response = await axios.get(`${api_url}venta/imprimir`, {
         params: {
-          ventaId: id_venta,
+          venta: id_venta,
         },
       });
 
@@ -536,7 +545,6 @@ const ModeloNotaComun = ({
     }
   };
 
-  
 
   return <div id="ticket"></div>;
 };

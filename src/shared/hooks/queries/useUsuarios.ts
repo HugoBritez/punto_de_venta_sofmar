@@ -2,12 +2,12 @@ import { useQuery } from "@tanstack/react-query";
 import { UsuarioRepository } from "@/repos/usuarioRepository";
 import { UsuarioViewModel } from "@/models/viewmodels/usuarioViewModel";
 
-export const useUsuarios = () => {
+export const useUsuarios = (busqueda?: string) => {
     return useQuery<UsuarioViewModel[]>({
-        queryKey: ['usuarios'],
+        queryKey: ['usuarios', busqueda],
         queryFn: async () => {
-            const response = await UsuarioRepository.GetUsuarios();
-            return response.data;
+            const response = await UsuarioRepository.GetUsuarios(busqueda);
+            return response.body;
         },
         enabled: true,
         refetchOnWindowFocus: false

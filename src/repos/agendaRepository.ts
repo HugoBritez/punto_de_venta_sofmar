@@ -1,4 +1,4 @@
-import { api_url } from "@/utils";
+import { API_URL as api_url } from "@/utils";
 import { AgendaViewModel } from "@/models/viewmodels/Agendas/AgendaViewModel";
 import { RegistrarLlegadaDTO } from "@/models/dtos/Agendas/registrarLlegada.DTO";
 import axios from "axios";

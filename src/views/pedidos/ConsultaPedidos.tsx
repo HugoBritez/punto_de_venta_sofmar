@@ -31,6 +31,7 @@ import PedidoModalEstilizado from "./imprimirPedidoEstilizado";
 import { Moneda, Sucursal, Vendedor } from "@/shared/types/shared_interfaces";
 import FloatingCard from "@/shared/modules/FloatingCard";
 import ConfirmationModal from "@/shared/modules/ConfirmModal";
+import { ClienteViewModel } from "@/models/viewmodels/ClienteViewModel";
 
 
 interface PedidosNuevo {
@@ -95,7 +96,7 @@ interface ConsultaPedidosProps {
   onSelectPedido?: (pedido: PedidosNuevo) => void; // Cambiamos a PedidosNuevo
   onClose?: () => void;
   isModal?: boolean;
-  clienteSeleccionado?: Cliente | null;
+  clienteSeleccionado?: ClienteViewModel | null;
 }
 
 

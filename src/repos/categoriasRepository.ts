@@ -1,4 +1,4 @@
-import { api_url } from "@/utils";
+import { API_URL as api_url } from "@/utils";
 import { CategoriaViewModel } from "@/models/viewmodels/categoriaViewModel";
 import axios from "axios";
 import { ResponseViewModel } from "@/models/base/responseViewModel";

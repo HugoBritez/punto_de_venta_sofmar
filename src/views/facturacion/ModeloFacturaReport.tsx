@@ -1,4 +1,3 @@
-import { Configuraciones } from "@/shared/types/shared_interfaces";
 import axios from "axios";
 import { api_url } from "@/utils";
 import { useState, useEffect } from "react";
@@ -13,32 +12,31 @@ interface ModeloTicketProps {
   onImprimir?: boolean;
   accion?: "print" | "download" | "b64";
 }
-
 interface VentaTicket {
   codigo: number;
-  tipo_venta: string;
-  fecha_venta: string;
-  fecha_vencimiento: string;
+  tipoVenta: string;
+  fechaVenta: string;
+  fechaVencimiento: string;
   cajero: string;
   vendedor: string;
   cliente: string;
-  cliente_correo: string;
+  clienteCorreo: string;
   direccion: string;
   telefono: string;
   ruc: string;
   subtotal: number;
-  total_descuento: number;
-  total_a_pagar: number;
-  total_exentas: number;
-  total_diez: number;
-  total_cinco: number;
+  totalDescuento: number;
+  totalAPagar: number;
+  totalExentas: number;
+  totalDiez: number;
+  totalCinco: number;
   timbrado: string;
   factura: string;
-  factura_valido_desde: string;
-  factura_valido_hasta: string;
-  ve_qr?: string;
-  ve_cdc: string;
-  usa_fe: number;
+  facturaValidoDesde: string;
+  facturaValidoHasta: string;
+  veQr?: string;
+  veCdc: string;
+  usaFe: number;
   moneda: string;
   cotizacion: number;
   detalles: {
@@ -50,28 +48,28 @@ interface VentaTicket {
     exentas: number;
     diez: number;
     cinco: number;
-    fecha_vencimiento: string;
+    fechaVencimiento: string;
     lote: string;
-    control_vencimiento: number;
+    controlVencimiento: number;
   }[];
-  sucursal_data: {
-    sucursal_nombre: string;
-    sucursal_direccion: string;
-    sucursal_telefono: string;
-    sucursal_empresa: string;
-    sucursal_ruc: string;
-    sucursal_matriz: string;
-    sucursal_correo: string;
+  sucursalData: {
+    sucursalNombre: string;
+    sucursalDireccion: string;
+    sucursalTelefono: string;
+    sucursalEmpresa: string;
+    sucursalRuc: string;
+    sucursalMatriz: string;
+    sucursalCorreo: string;
   }[];
-  configuracion_factura_electronica: {
+  configuracionFacturaElectronica: {
     nombre: string;
     fantasia: string;
     direccion: string;
     telefono: string;
     ruc: string;
     correo: string;
-    descripcion_establecimiento: string;
-    dato_establecimiento: string;
+    descripcionEstablecimiento: string;
+    datoEstablecimiento: string;
   }[];
 }
 
@@ -81,9 +79,9 @@ const ModeloFacturaReport = ({
   accion = "print",
 }: ModeloTicketProps) => {
   const [venta, setVenta] = useState<VentaTicket | null>(null);
-  const [configuraciones, setConfiguraciones] = useState<
-    Configuraciones[] | null
-  >(null);
+  // const [configuraciones, setConfiguraciones] = useState<
+  //   Configuraciones[] | null
+  // >(null);
   const [prevOnImprimir, setPrevOnImprimir] = useState(false);
   const toast = useToast();
 
@@ -123,7 +121,7 @@ const ModeloFacturaReport = ({
     // Para montos en dólares, formatea con "XX/100"
     if (venta?.moneda === "DOLAR") {
       // Extraer los decimales
-      const partes = venta?.total_a_pagar.toString().split('.');
+      const partes = venta?.totalAPagar.toString().split('.');
       let centavos = "00";
       if (partes && partes.length > 1) {
         centavos = partes[1].padEnd(2, '0').substring(0, 2);
@@ -460,8 +458,8 @@ const ModeloFacturaReport = ({
             text: descripcionArticulo(
               detalle.descripcion,
               detalle.lote,
-              detalle.fecha_vencimiento,
-              detalle.control_vencimiento
+              detalle.fechaVencimiento,
+              detalle.controlVencimiento
             ),
             fontSize: 7,
           },
@@ -540,27 +538,27 @@ const ModeloFacturaReport = ({
       // Añadir el resto del contenido
       logoStack.push(
         {
-          text: venta?.configuracion_factura_electronica[0].nombre,
+          text: venta?.configuracionFacturaElectronica[0].nombre,
           fontSize: 12,
           bold: true,
           margin: [0, 0, 0, 5],
           alignment: "center",
         },
         {
-          text: venta?.configuracion_factura_electronica[0].direccion || "",
+          text: venta?.configuracionFacturaElectronica[0].direccion || "",
           fontSize: 9,
           alignment: "center",
         },
         {
           text: `Teléfono: ${
-            venta?.configuracion_factura_electronica[0].telefono || ""
+            venta?.configuracionFacturaElectronica[0].telefono || ""
           }`,
           fontSize: 9,
           alignment: "center",
         },
         {
           text:
-            "Correo: " + venta?.configuracion_factura_electronica[0].correo ||
+            "Correo: " + venta?.configuracionFacturaElectronica[0].correo ||
             "",
           fontSize: 9,
           alignment: "center",
@@ -568,7 +566,7 @@ const ModeloFacturaReport = ({
       );
 
       const datos_establecimiento = () => {
-        if (venta?.usa_fe === 1) {
+        if (venta?.usaFe === 1) {
           return [{
             stack: [
               {
@@ -579,13 +577,13 @@ const ModeloFacturaReport = ({
                 margin: [0, 5, 0, 0],
               },
               {
-                text: venta?.configuracion_factura_electronica[0].descripcion_establecimiento,
+                text: venta?.configuracionFacturaElectronica[0].descripcionEstablecimiento,
                 fontSize: 10,
                 alignment: "right",
                 margin: [0, 5, 0, 0],
               },
               {
-                text: venta?.configuracion_factura_electronica[0].dato_establecimiento,
+                text: venta?.configuracionFacturaElectronica[0].datoEstablecimiento,
                 fontSize: 10,
                 alignment: "right",
                 margin: [0, 5, 0, 0],
@@ -619,7 +617,7 @@ const ModeloFacturaReport = ({
                     {
                       text:
                         "RUC:           " +
-                        venta?.configuracion_factura_electronica[0].ruc,
+                        venta?.configuracionFacturaElectronica[0].ruc,
                       fontSize: 9,
                       alignment: "center",
                       width: "*",
@@ -627,7 +625,7 @@ const ModeloFacturaReport = ({
                     {
                       text:
                         "Inicio de Validez:        " +
-                        venta?.factura_valido_desde,
+                        venta?.facturaValidoDesde,
                       fontSize: 9,
                       alignment: "center",
                       width: "30%",
@@ -688,7 +686,7 @@ const ModeloFacturaReport = ({
                     {
                       stack: [
                         {
-                          text: `Fecha de emision: ${venta?.fecha_venta}`,
+                          text: `Fecha de emision: ${venta?.fechaVenta}`,
                           fontSize: 8,
                         },
                         {
@@ -713,7 +711,7 @@ const ModeloFacturaReport = ({
                           fontSize: 8,
                         },
                         {
-                          text: `Correo Electronico: ${venta?.cliente_correo}`,
+                          text: `Correo Electronico: ${venta?.clienteCorreo}`,
                           fontSize: 8,
                         },
                       ],
@@ -722,7 +720,7 @@ const ModeloFacturaReport = ({
                     {
                       stack: [
                         {
-                          text: `Condicion de venta: ${venta?.tipo_venta}`,
+                          text: `Condicion de venta: ${venta?.tipoVenta}`,
                           fontSize: 8,
                         },
                         {
@@ -730,7 +728,7 @@ const ModeloFacturaReport = ({
                           fontSize: 8,
                         },
                         {
-                          text: `Sucursal: ${venta?.sucursal_data[0].sucursal_nombre}`,
+                          text: `Sucursal: ${venta?.sucursalData[0].sucursalNombre}`,
                           fontSize: 8,
                         },
                         {
@@ -831,7 +829,7 @@ const ModeloFacturaReport = ({
       ];
 
       // Agregar contenido condicional para factura electrónica
-      if (venta?.usa_fe === 1) {
+      if (venta?.usaFe === 1) {
         contenidoPDF.push(
           {
             table: {
@@ -840,22 +838,22 @@ const ModeloFacturaReport = ({
                 [
                   { text: "Sub-Totales:", fontSize: 8, bold: true },
                   {
-                    text: venta?.total_exentas
-                      ? formatNumber(Number(venta.total_exentas))
+                    text: venta?.totalExentas
+                      ? formatNumber(Number(venta.totalExentas))
                       : 0,
                     fontSize: 8,
                     alignment: "right",
                   },
                   {
-                    text: venta?.total_cinco
-                      ? formatNumber(Number(venta.total_cinco))
+                    text: venta?.totalCinco
+                      ? formatNumber(Number(venta.totalCinco))
                       : 0,
                     fontSize: 8,
                     alignment: "right",
                   },
                   {
-                    text: venta?.total_diez
-                      ? formatNumber(Number(venta.total_diez))
+                    text: venta?.totalDiez
+                      ? formatNumber(Number(venta.totalDiez))
                       : 0,
                     fontSize: 8,
                     alignment: "right",
@@ -866,7 +864,7 @@ const ModeloFacturaReport = ({
                   { text: "", fontSize: 8, alignment: "right" },
                   { text: "", fontSize: 8, alignment: "right" },
                   {
-                    text: `${Number(venta?.total_a_pagar || 0).toLocaleString(
+                    text: `${Number(venta?.totalAPagar || 0).toLocaleString(
                       "es-PY"
                     )}`,
                     fontSize: 8,
@@ -877,7 +875,7 @@ const ModeloFacturaReport = ({
                 [
                   {
                     text: `Total: ${numeroALetras(
-                      Number(venta?.total_a_pagar || 0)
+                      Number(venta?.totalAPagar || 0)
                     )}`,
                     fontSize: 8,
                     bold: true,
@@ -926,9 +924,9 @@ const ModeloFacturaReport = ({
                     fontSize: 8,
                   },
                   {
-                    text: venta?.total_cinco
+                    text: venta?.totalCinco
                       ? `${monedaSimbolo()} ${formatNumber(
-                          Number(venta.total_cinco) / 22
+                          Number(venta.totalCinco) / 22
                         )}`
                       : `${monedaSimbolo()} 0`,
                     fontSize: 8,
@@ -939,9 +937,9 @@ const ModeloFacturaReport = ({
                     fontSize: 8,
                   },
                   {
-                    text: venta?.total_diez
+                    text: venta?.totalDiez
                       ? `${monedaSimbolo()} ${formatNumber(
-                          Number(venta.total_diez) / 11
+                          Number(venta.totalDiez) / 11
                         )}`
                       : `${monedaSimbolo()} 0`,
                     fontSize: 8,
@@ -954,10 +952,10 @@ const ModeloFacturaReport = ({
                   },
                   {
                     text: `${monedaSimbolo()} ${formatNumber(
-                      (venta?.total_cinco
-                        ? Number(venta.total_cinco) / 22
+                      (venta?.totalCinco
+                        ? Number(venta.totalCinco) / 22
                         : 0) +
-                        (venta?.total_diez ? Number(venta.total_diez) / 11 : 0)
+                        (venta?.totalDiez ? Number(venta.totalDiez) / 11 : 0)
                     )}`,
                     fontSize: 8,
                     alignment: "right",
@@ -997,9 +995,9 @@ const ModeloFacturaReport = ({
                     columns: [
                       {
                         stack: [
-                          venta?.ve_qr && venta.ve_qr !== ""
+                          venta?.veQr && venta.veQr !== ""
                             ? {
-                                qr: venta.ve_qr,
+                                qr: venta.veQr,
                                 fit: 110,
                                 alignment: "center",
                                 eccLevel: "H",
@@ -1024,7 +1022,7 @@ const ModeloFacturaReport = ({
                             alignment: "center",
                           },
                           {
-                            text: `https://ekuatia.set.gov.py/consultas/${venta.ve_cdc}`,
+                            text: `https://ekuatia.set.gov.py/consultas/${venta.veCdc}`,
                             fontSize: 8,
                             alignment: "center",
                             margin: [0, 3, 0, 3],
@@ -1164,7 +1162,7 @@ const ModeloFacturaReport = ({
           console.log("Iniciando carga de datos para venta:", id_venta);
 
           // Primero obtener configuraciones y venta
-          await Promise.all([getConfiguraciones(), getVenta()]);
+          await Promise.all([getVenta()]);
 
           // Luego obtener y procesar la imagen
           const imagenBase64 = await getEncabezadoFactura();
@@ -1205,7 +1203,6 @@ const ModeloFacturaReport = ({
         onImprimir,
         prevOnImprimir,
         tieneVenta: !!venta,
-        tieneConfiguraciones: !!configuraciones,
         tieneImagen: !!headerImage,
         headerImageLength: headerImage ? headerImage.length : 0,
       });
@@ -1214,7 +1211,7 @@ const ModeloFacturaReport = ({
       // 1. onImprimir es true
       // 2. No se ha impreso antes (prevOnImprimir es false)
       // 3. Tenemos todos los datos necesarios
-      if (onImprimir && !prevOnImprimir && venta && configuraciones) {
+      if (onImprimir && !prevOnImprimir && venta ) {
         try {
           console.log("Esperando a que la imagen termine de cargarse...");
 
@@ -1242,27 +1239,20 @@ const ModeloFacturaReport = ({
     };
 
     imprimirSiDatosListos();
-  }, [onImprimir, venta, configuraciones, headerImage, accion]);
+  }, [onImprimir, venta, headerImage, accion]);
 
   // Effect para resetear el estado cuando cambia id_venta
   useEffect(() => {
     setPrevOnImprimir(false);
   }, [id_venta]);
 
-  const getConfiguraciones = async () => {
-    try {
-      const response = await axios.get(`${api_url}configuraciones/todos`);
-      setConfiguraciones(response.data.body);
-    } catch (error) {
-      console.error("Error al obtener las configuraciones:", error);
-    }
-  };
+
 
   const getVenta = async () => {
     try {
-      const response = await axios.get(`${api_url}venta/venta-imprimir`, {
+      const response = await axios.get(`${api_url}venta/imprimir`, {
         params: {
-          ventaId: id_venta,
+          venta: id_venta,
         },
       });
       console.log(response.data.body);

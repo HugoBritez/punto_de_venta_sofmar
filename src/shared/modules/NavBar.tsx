@@ -40,6 +40,7 @@ import {
   Settings,
   Podcast,
   Boxes,
+  UsersRound,
 } from "lucide-react";
 import { useAuth } from "@/shared/services/AuthContext";
 import { db, fechaRelease, version } from "@/utils";
@@ -144,6 +145,23 @@ const Sidebar = () => {
       icon: ChartSpline,
       path: "/dashboard",
       enabled: true,
+    },
+    {
+      name: "Módulo RRHH",
+      icon: UsersRound ,
+      path: "/rrhh",
+      enabled: true,
+      subItems: [
+        {
+          grupo: 5,
+          orden: 2,
+          id: 142,
+          name: "Crear Persona",
+          icon: UsersRound ,
+          path: "/crear-persona",
+          enabled: true,
+        },
+      ],
     },
     {
       name: "Módulo Financiero",

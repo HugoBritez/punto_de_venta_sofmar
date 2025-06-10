@@ -1,16 +1,6 @@
 import {
-  Cliente,
-  Deposito,
-  Sucursal,
-  Vendedor,
-  Moneda,
-  MetodosPago,
-  ArticuloBusqueda,
-  ListaPrecios,
   PedidosNuevo,
-  Presupuesto,
   Remisiones,
-  Venta,
 } from "@/shared/types/shared_interfaces";
 import { api_url } from "@/utils";
 import axios from "axios";
@@ -54,15 +44,29 @@ import ResumenVentas from "../ventas/ResumenVentas";
 import { createRoot } from "react-dom/client";
 import ModeloNotaComun from "../facturacion/ModeloNotaComun";
 import ItemsFaltantesDoc from "./pdf/impresion_articulos_faltantes";
-import Auditar from "@/shared/services/AuditoriaHook";
 import ArticuloInfoCard from "@/shared/modules/ArticuloInfoCard";
 import { FacturaSendResponse } from "@/shared/types/factura_electronica/types";
 import { useFacturacionElectronicaStore } from "@/stores/facturacionElectronicaStore";
 import { useFacturaSend } from "@/shared/hooks/useFacturaSend";
-import { useTipoImpresionFacturaStore } from "@/stores/tipoImpresionFacturaStore";
 import ModeloFacturaReport from "../facturacion/ModeloFacturaReport";
 import { ArticulosComponent } from "@/shared/ui/articulos/ArticulosComponent";
 import BuscadorClientes from "@/shared/ui/clientes/BuscadorClientes";
+import { PresupuestoViewModel } from "@/models/viewmodels/Presupuestos/PResupuestoVIewModel";
+import { ArticuloBusqueda } from "@/models/viewmodels/articuloBusqueda";
+import { getSucursales } from "@/repos/sucursalApi";
+import { SucursalViewModel } from "@/models/viewmodels/sucursalViewModel";
+import { getDepositos } from "@/repos/depositosApi";
+import { MetodoPago } from "@/models/viewmodels/MetodoDePago";
+import { DepositoViewModel } from "@/models/viewmodels/depositoViewModel";
+import { ClienteViewModel } from "@/models/viewmodels/ClienteViewModel";
+import { UsuarioViewModel } from "@/models/viewmodels/usuarioViewModel";
+import { Moneda } from "@/models/viewmodels/MonedaViewModel";
+import { ListaPrecio } from "@/models/viewmodels/ListaPrecioViewModel";
+import { useCobrarEnBalcon, useConfiguracionOperacionCaja, useConfiguracionPorId, usePrecioPorDefecto, useTipoImpresion } from "@/shared/hooks/queries/useConfiguraciones";
+import { metodosPagoRepository } from "@/repos/metodosPagoRepository";
+import { VentaViewModel } from "@/models/viewmodels/Ventas/VentaViewModel";
+import { DetalleVenta } from "@/models/dtos/Ventas/DetalleVenta";
+import { useCrearVenta } from "@/shared/hooks/mutations/ventas/crearVenta";
 
 interface ItemParaVenta {
   precio_guaranies: number;
@@ -219,34 +223,33 @@ const VentaBalconNuevo = () => {
 
   const [fecha, setFecha] = useState(new Date().toISOString().split("T")[0]);
 
-  const [sucursales, setSucursales] = useState<Sucursal[]>([]);
+  const [sucursales, setSucursales] = useState<SucursalViewModel[]>([]);
   const [sucursalSeleccionada, setSucursalSeleccionada] =
-    useState<Sucursal | null>(null);
+    useState<SucursalViewModel | null>(null);
 
-  const [depositos, setDepositos] = useState<Deposito[]>([]);
+  const [depositos, setDepositos] = useState<DepositoViewModel[]>([]);
   const [depositoSeleccionado, setDepositoSeleccionado] =
-    useState<Deposito | null>(null);
+    useState<DepositoViewModel | null>(null);
 
   const [clienteSeleccionado, setClienteSeleccionado] =
-    useState<Cliente | null>(null);
+    useState<ClienteViewModel | null>(null);
 
   const [vendedorSeleccionado, setVendedorSeleccionado] =
-    useState<Vendedor | null>(null);
+    useState<UsuarioViewModel | null>(null);
 
   const [monedas, setMonedas] = useState<Moneda[]>([]);
   const [monedaSeleccionada, setMonedaSeleccionada] = useState<Moneda | null>(
     null
   );
-
-  const [metodosPago, setMetodosPago] = useState<MetodosPago[]>([]);
+  const [metodosPago, setMetodosPago] = useState<MetodoPago[]>([]);
   const [metodoPagoSeleccionado, setMetodoPagoSeleccionado] =
-    useState<MetodosPago | null>(null);
+    useState<MetodoPago | null>(null);
 
   const [articulos, setArticulos] = useState<ArticuloBusqueda[]>([]);
 
-  const [listaPrecios, setListaPrecios] = useState<ListaPrecios[]>([]);
+  const [listaPrecios, setListaPrecios] = useState<ListaPrecio[]>([]);
   const [precioSeleccionado, setPrecioSeleccionado] =
-    useState<ListaPrecios | null>(null);
+    useState<ListaPrecio | null>(null);
 
   const [cantidad, setCantidad] = useState(1);
 
@@ -370,28 +373,32 @@ const VentaBalconNuevo = () => {
 
   const [ventaIdEdicion, setVentaIdEdicion] = useState<number | null>(null);
 
-  const configuraciones = JSON.parse(
-    sessionStorage.getItem("configuraciones") || "[]"
-  );
-
+  const crearVentaMutation = useCrearVenta();
   const permisos_descuento = JSON.parse(
     sessionStorage.getItem("permisos_descuento") || "[]"
   );
 
-  const tipoImpresionDoc = configuraciones[5].valor || 0;
+  const { data: tipoImpresionDoc } = useTipoImpresion();
 
-  const { tipoImpresion, fetchTipoImpresion } = useTipoImpresionFacturaStore();
+  const { data: tipoImpresion } = useConfiguracionPorId(7);
+
+  const { data: configuracionCaja } = useConfiguracionOperacionCaja();
+
+  const { data: precioPorDefecto } = usePrecioPorDefecto();
+
+  const { data: cobrarEnBalcon } = useCobrarEnBalcon();
+
   const [tipoImpresionFactura, setTipoImpresionFactura] = useState<
     number | null
   >(null);
 
   function determinarTipoDeImpresionFactura() {
     if (
-      tipoImpresion === "thisform.imprimirventa1.imprimir_factura_elect_report"
+      tipoImpresion?.valor === "thisform.imprimirventa1.imprimir_factura_elect_report"
     ) {
       setTipoImpresionFactura(1); //impresion hoja grande
     } else if (
-      tipoImpresion ===
+      tipoImpresion?.valor ===
       "thisform.imprimirventa1.imprimir_factura_ticket_electronica"
     ) {
       setTipoImpresionFactura(2); // impresion tipo ticket
@@ -406,7 +413,7 @@ const VentaBalconNuevo = () => {
   const [opcionesFinalizacion, setOpcionesFinalizacion] =
     useState<OpcionesFinalizacionVenta>({
       tipo_venta: "CONTADO",
-      tipo_documento: tipoImpresionDoc === "1" ? "FACTURA" : "TICKET",
+      tipo_documento: tipoImpresionDoc?.valor === "1" ? "FACTURA" : "TICKET",
       cantidad_cuotas: 1,
       entrega_inicial: 0,
       fecha_vencimiento: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0],
@@ -427,43 +434,44 @@ const VentaBalconNuevo = () => {
 
   async function getDatos() {
     try {
-      const responseUltimaVentaId = await axios.get(
-        `${api_url}venta/idUltimaVenta`
-      );
-      setUltimaVentaId(responseUltimaVentaId.data.body[0].id);
 
-      const responseSucursales = await axios.get(`${api_url}sucursales/listar`);
-      setSucursales(responseSucursales.data.body);
-      setSucursalSeleccionada(responseSucursales.data.body[0]);
+      console.log("EMPEZANDO A TRAER LOS DATOS")
+      // const responseUltimaVentaId = await axios.get(
+      //   `${api_url}venta/idUltimaVenta`
+      // );
+      // setUltimaVentaId(responseUltimaVentaId.data.body[0].id);
 
-      const responseDepositos = await axios.get(`${api_url}depositos`);
-      setDepositos(responseDepositos.data.body);
-      setDepositoSeleccionado(responseDepositos.data.body[0]);
+      const responseSucursales = await getSucursales()
+      setSucursales(responseSucursales);
+      setSucursalSeleccionada(responseSucursales[0]);
 
-      const responseMetodosPago = await axios.get(
-        `${api_url}venta/metodosPago`
-      );
-      setMetodosPago(responseMetodosPago.data.body);
-      setMetodoPagoSeleccionado(responseMetodosPago.data.body[0]);
+      const responseDepositos = await getDepositos();
+      setDepositos(responseDepositos.body);
+      setDepositoSeleccionado(responseDepositos.body[0]);
+
+      const responseMetodosPago = await metodosPagoRepository.getMetodos()
+      setMetodosPago(responseMetodosPago);
+      setMetodoPagoSeleccionado(responseMetodosPago[0]);
 
       const responseMonedas = await axios.get(`${api_url}monedas`);
       setMonedas(responseMonedas.data.body);
       setMonedaSeleccionada(responseMonedas.data.body[0]);
 
-      const responseListaPrecios = await axios.get(`${api_url}listasprecios`);
+      const responseListaPrecios = await axios.get(`${api_url}lista-precios`);
       setListaPrecios(responseListaPrecios.data.body);
-      if (configuraciones[49].valor === "1") {
-        console.log(configuraciones[49].valor);
+      if (precioPorDefecto?.valor === "1") {
+        console.log(precioPorDefecto.valor);
         setPrecioSeleccionado(responseListaPrecios.data.body[0]);
       } else {
-        console.log(configuraciones[49].valor);
+        console.log(precioPorDefecto?.valor);
         setPrecioSeleccionado(responseListaPrecios.data.body[1]);
       }
 
       const responseCotizaciones = await axios.get(`${api_url}cotizaciones/`);
-      setCotizacionDolar(responseCotizaciones.data.body[0].usd_venta);
-      setCotizacionPeso(responseCotizaciones.data.body[0].ars_venta);
-      setCotizacionReal(responseCotizaciones.data.body[0].brl_venta);
+      console.log(responseCotizaciones)
+      setCotizacionDolar(responseCotizaciones.data.body[2].monto);
+      setCotizacionPeso(responseCotizaciones.data.body[0].monto);
+      setCotizacionReal(responseCotizaciones.data.body[1].monto);
     } catch (error) {
       toast({
         title: "Error al obtener los datos",
@@ -475,21 +483,25 @@ const VentaBalconNuevo = () => {
 
   const obtenerDatosFacturacion = async () => {
     try {
-      const response = await axios.get(`${api_url}definicion-ventas/timbrado`, {
+      const response = await axios.get(`${api_url}facturacion`, {
         params: {
           usuario: operador,
+          sucursal: sucursalSeleccionada?.id
         },
       });
+
+      console.log("obtener datos de facturacion", response)
 
       console.log(response.data.body);
       setOpcionesFinalizacion({
         ...opcionesFinalizacion,
-        nro_establecimiento: response.data.body[0].d_establecimiento,
-        nro_emision: response.data.body[0].d_p_emision,
-        nro_factura: response.data.body[0].d_nro_secuencia + 1,
-        timbrado: response.data.body[0].d_nrotimbrado,
+        nro_establecimiento: response.data.body[0].d_Establecimiento,
+        nro_emision: response.data.body[0].d_P_Emision,
+        nro_factura: response.data.body[0].d_Nro_Secuencia + 1,
+        timbrado: response.data.body[0].d_Nrotimbrado,
       });
-      setD_codigo(response.data.body[0].d_codigo);
+      console.log("los datos fueron asociados correctamente")
+      setD_codigo(response.data.body[0].d_Codigo);
     } catch (err) {
       console.log(err);
     }
@@ -518,14 +530,14 @@ const VentaBalconNuevo = () => {
     codigo_barra?: string | null
   ) => {
     setArticulos([]);
-    const response = await axios.get(`${api_url}articulos/buscar-articulos`, {
+    const response = await axios.get(`${api_url}articulo/buscar`, {
       params: {
-        articulo_id: id_articulo,
-        codigo_barra: codigo_barra,
+        articuloId: id_articulo,
+        codigoBarra: codigo_barra,
         busqueda: busqueda,
         deposito: depositoSeleccionado?.dep_codigo,
         stock: buscarItemsConStock,
-        moneda: monedaSeleccionada?.mo_codigo,
+        moneda: monedaSeleccionada?.moCodigo,
       },
     });
     console.log(response.data.body);
@@ -538,10 +550,10 @@ const VentaBalconNuevo = () => {
   ) => {
     console.log("Buscando cliente", id);
     try {
-      const response = await axios.get(`${api_url}clientes/get-clientes`, {
+      const response = await axios.get(`${api_url}clientes/`, {
         params: {
-          id_cliente: id_cliente,
-          id: id,
+          id: id_cliente,
+          interno: id,
         },
       });
       console.log("Respuesta de cliente", response.data.body);
@@ -569,22 +581,20 @@ const VentaBalconNuevo = () => {
 
   const getVendedores = async (busqueda: number) => {
     console.log("Buscando vendedores", busqueda);
-    const response = await axios.get(`${api_url}usuarios/vendedores`, {
+    const response = await axios.get(`${api_url}usuarios/`, {
       params: {
-        id_vendedor: busqueda,
+        id: busqueda,
       },
     });
     console.log("Respuesta de vendedores", response.data.body);
     setVendedorSeleccionado(response.data.body[0]);
   };
 
-
-
   const handleBuscarArticuloPorId = async (codigo: string) => {
     try {
-      const response = await axios.get(`${api_url}articulos/buscar-articulos`, {
+      const response = await axios.get(`${api_url}articulo/buscar`, {
         params: {
-          codigo_barra: codigo,
+          codigoBarra: codigo,
           deposito: depositoSeleccionado?.dep_codigo,
           stock: buscarItemsConStock,
         },
@@ -680,7 +690,7 @@ const VentaBalconNuevo = () => {
   ): ItemParaVenta | null => {
     // 1. Validaciones de stock
 
-    if (articulo.stock_negativo === 0 && cantidad > articulo.cantidad_lote) {
+    if (articulo.stockNegativo === 0 && cantidad > articulo.cantidadLote) {
       toast({
         title: "Error",
         description: "No hay stock disponible para este artículo",
@@ -691,21 +701,21 @@ const VentaBalconNuevo = () => {
 
     let precioUnitarioMonedaActual = 0;
 
-    switch (monedaSeleccionada?.mo_codigo) {
+    switch (monedaSeleccionada?.moCodigo) {
       case 1:
-        precioUnitarioMonedaActual = articulo.precio_venta_guaranies;
+        precioUnitarioMonedaActual = articulo.precioVentaGuaranies;
         break;
       case 2:
-        precioUnitarioMonedaActual = articulo.precio_venta_dolar;
+        precioUnitarioMonedaActual = articulo.precioVentaDolar;
         break;
       case 3:
-        precioUnitarioMonedaActual = articulo.precio_venta_real;
+        precioUnitarioMonedaActual = articulo.precioVentaReal;
         break;
       case 4:
-        precioUnitarioMonedaActual = articulo.precio_venta_pesos;
+        precioUnitarioMonedaActual = articulo.precioVentaPesos;
         break;
       default:
-        precioUnitarioMonedaActual = articulo.precio_venta_guaranies;
+        precioUnitarioMonedaActual = articulo.precioVentaGuaranies;
     }
 
     // 8. Cálculo de impuestos
@@ -727,12 +737,12 @@ const VentaBalconNuevo = () => {
 
     // 9. Crear el item con todas las validaciones aplicadas
     const nuevoItem = {
-      precio_guaranies: articulo.precio_venta_guaranies,
-      precio_dolares: articulo.precio_venta_dolar,
-      precio_reales: articulo.precio_venta_real,
-      precio_pesos: articulo.precio_venta_pesos,
-      cod_barra: articulo.codigo_barra,
-      deve_articulo: articulo.id_articulo,
+      precio_guaranies: articulo.precioVentaGuaranies,
+      precio_dolares: articulo.precioVentaDolar,
+      precio_reales: articulo.precioVentaReal,
+      precio_pesos: articulo.precioVentaPesos,
+      cod_barra: articulo.codigoBarra,
+      deve_articulo: articulo.idArticulo,
       articulo: articulo.descripcion,
       deve_cantidad: cantidad,
       deve_precio: precioUnitarioMonedaActual,
@@ -746,14 +756,14 @@ const VentaBalconNuevo = () => {
       deve_bonificacion: null,
       deve_talle: null,
       deve_codioot: null,
-      deve_costo: null,
-      deve_costo_art: null,
+      deve_costo: articulo.precioCosto,
+      deve_costo_art: articulo.precioCosto,
       deve_cinco_x: deve_cinco > 0 ? Number(deve_cinco * 0.05) : 0,
       deve_diez_x: deve_diez > 0 ? Number(deve_diez * 0.1) : 0,
-      editar_nombre: articulo.editar_nombre,
+      editar_nombre: articulo.editarNombre,
       deve_lote: articulo.lote,
-      loteid: articulo.id_lote,
-      deve_vencimiento: articulo.vencimiento_lote,
+      loteid: articulo.idLote,
+      deve_vencimiento: articulo.vencimientoLote,
     };
 
     return nuevoItem;
@@ -810,7 +820,7 @@ const VentaBalconNuevo = () => {
       e.preventDefault();
       const currentIndex = hoveredArticulo
         ? articulos.findIndex(
-          (a) => a.id_articulo === hoveredArticulo.id_articulo
+          (a) => a.idArticulo === hoveredArticulo.idArticulo
         )
         : -1;
 
@@ -859,10 +869,12 @@ const VentaBalconNuevo = () => {
 
   useEffect(() => {
     getDatos();
-    obtenerDatosFacturacion();
-    fetchTipoImpresion();
     clienteCodigoRef.current?.focus();
   }, []);
+
+  useEffect(()=>{
+    obtenerDatosFacturacion()
+  }, [sucursalSeleccionada])
 
   useEffect(() => {
     determinarTipoDeImpresionFactura();
@@ -933,7 +945,7 @@ const VentaBalconNuevo = () => {
     const numValue = typeof num === "string" ? Number(num) : num;
 
     // Definir la cantidad de decimales según la moneda
-    const decimals = monedaSeleccionada?.mo_codigo === 1 ? 0 : 2;
+    const decimals = monedaSeleccionada?.moCodigo === 1 ? 0 : 2;
 
     // Formatear según la configuración regional y la cantidad de decimales
     return numValue.toLocaleString("es-PY", {
@@ -971,7 +983,7 @@ const VentaBalconNuevo = () => {
     onClose,
     isModal,
   }: {
-    cliente: Cliente;
+    cliente: ClienteViewModel;
     onClose: () => void;
     isModal: boolean;
   }) => {
@@ -984,9 +996,11 @@ const VentaBalconNuevo = () => {
 
     const fetchVentasCliente = async () => {
       try {
-        const response = await axios.post(`${api_url}venta/consultas`, {
-          cliente: cliente.cli_codigo,
-          estadoVenta: 3,
+        const response = await axios.get(`${api_url}ventas/`, {
+          params: {
+            cliente: cliente.cli_codigo,
+            estadoVenta: 3,
+          }
         });
         setVentas(response.data.body);
       } catch (error) {
@@ -1191,6 +1205,39 @@ const VentaBalconNuevo = () => {
   const finalizarVenta = async () => {
     try {
       if (
+        !monedaSeleccionada
+      ) {
+        toast({
+          title: "Error",
+          description: "Debe seleccionar una sucursal",
+          status: "error",
+          duration: 3000,
+        });
+        return;
+      }
+      if (
+        !sucursalSeleccionada
+      ) {
+        toast({
+          title: "Error",
+          description: "Debe seleccionar una sucursal",
+          status: "error",
+          duration: 3000,
+        });
+        return;
+      }
+      if (
+        !depositoSeleccionado
+      ) {
+        toast({
+          title: "Error",
+          description: "Debe seleccionar un deposito",
+          status: "error",
+          duration: 3000,
+        });
+        return;
+      }
+      if (
         !clienteSeleccionado
       ) {
         toast({
@@ -1252,16 +1299,16 @@ const VentaBalconNuevo = () => {
         tipoTransaccion: 1,
         tipoImpuesto: 1,
         moneda:
-          monedaSeleccionada?.mo_codigo === 1
+          monedaSeleccionada?.moCodigo === 1
             ? "PYG"
-            : monedaSeleccionada?.mo_codigo === 2
+            : monedaSeleccionada?.moCodigo === 2
               ? "USD"
-              : monedaSeleccionada?.mo_codigo === 3
+              : monedaSeleccionada?.moCodigo === 3
                 ? "BRL"
-                : monedaSeleccionada?.mo_codigo === 4
+                : monedaSeleccionada?.moCodigo === 4
                   ? "ARS"
                   : "PYG",
-        cambio: monedaSeleccionada?.mo_codigo != 1 ? cotizacionDolar : 0,
+        cambio: monedaSeleccionada?.moCodigo != 1 ? cotizacionDolar : 0,
         cliente: {
           contribuyente:
             clienteSeleccionado.cli_tipo_doc === 1 ||
@@ -1286,7 +1333,7 @@ const VentaBalconNuevo = () => {
           distrito: clienteSeleccionado.cli_distrito || 1,
           distritoDescripcion:
             clienteSeleccionado.cli_distrito_descripcion || "",
-          direccion: clienteSeleccionado.cli_direccion || "",
+          direccion: clienteSeleccionado.cli_dir || "",
           ciudad: clienteSeleccionado.cli_ciudad || 1,
           ciudadDescripcion: clienteSeleccionado.cli_ciudad_descripcion || "",
           pais: "PRY",
@@ -1318,19 +1365,19 @@ const VentaBalconNuevo = () => {
                   tipo: 1, // Efectivo
                   monto: totalPagarFinal.toString(),
                   moneda:
-                    monedaSeleccionada?.mo_codigo === 1
+                    monedaSeleccionada?.moCodigo === 1
                       ? "PYG"
-                      : monedaSeleccionada?.mo_codigo === 2
+                      : monedaSeleccionada?.moCodigo === 2
                         ? "USD"
-                        : monedaSeleccionada?.mo_codigo === 3
+                        : monedaSeleccionada?.moCodigo === 3
                           ? "BRL"
-                          : monedaSeleccionada?.mo_codigo === 4
+                          : monedaSeleccionada?.moCodigo === 4
                             ? "ARS"
                             : "PYG",
                   monedaDescripcion:
-                    monedaSeleccionada?.mo_descripcion || "Guaraníes",
+                    monedaSeleccionada?.moDescripcion || "Guaraníes",
                   cambio:
-                    monedaSeleccionada?.mo_codigo != 1 ? cotizacionDolar : 0,
+                    monedaSeleccionada?.moCodigo != 1 ? cotizacionDolar : 0,
                 },
               ]
               : [],
@@ -1348,13 +1395,13 @@ const VentaBalconNuevo = () => {
                   (_) => {
                     return {
                       moneda:
-                        monedaSeleccionada?.mo_codigo === 1
+                        monedaSeleccionada?.moCodigo === 1
                           ? "PYG"
-                          : monedaSeleccionada?.mo_codigo === 2
+                          : monedaSeleccionada?.moCodigo === 2
                             ? "USD"
-                            : monedaSeleccionada?.mo_codigo === 3
+                            : monedaSeleccionada?.moCodigo === 3
                               ? "BRL"
-                              : monedaSeleccionada?.mo_codigo === 4
+                              : monedaSeleccionada?.moCodigo === 4
                                 ? "ARS"
                                 : "PYG",
                       monto: 0,
@@ -1421,7 +1468,7 @@ const VentaBalconNuevo = () => {
             unidadMedida: item.ar_unidad_medida || 77, // Unidad
             cantidad: item.deve_cantidad,
             precioUnitario: item.deve_precio,
-            cambio: monedaSeleccionada?.mo_codigo != 1 ? cotizacionDolar : 0,
+            cambio: monedaSeleccionada?.moCodigo != 1 ? cotizacionDolar : 0,
             ivaTipo: ivaTipo,
             ivaBase: ivaBase,
             iva: ivaPorcentaje,
@@ -1466,7 +1513,7 @@ const VentaBalconNuevo = () => {
       }
 
       const totalAEnviar = () => {
-        switch (monedaSeleccionada?.mo_codigo) {
+        switch (monedaSeleccionada?.moCodigo) {
           case 1:
             return totalesVenta.guaranies;
           case 2:
@@ -1480,14 +1527,12 @@ const VentaBalconNuevo = () => {
         }
       };
 
-      // Preparar objeto de venta
-      const venta = {
-        ventaId: ventaIdEdicion || null,
-        cliente: clienteSeleccionado.cli_codigo,
-        operador: Number(operador),
+      const ventaDTO = {
+        codigo: 0,
+        fecha: new Date(),
+        operador: vendedorSeleccionado.op_codigo,
         deposito: depositoSeleccionado?.dep_codigo,
-        moneda: monedaSeleccionada?.mo_codigo,
-        fecha: fecha,
+        moneda: monedaSeleccionada?.moCodigo,
         factura:
           opcionesFinalizacion.tipo_documento === "FACTURA"
             ? opcionesFinalizacion.nro_emision +
@@ -1495,70 +1540,117 @@ const VentaBalconNuevo = () => {
             opcionesFinalizacion.nro_establecimiento +
             "-000" +
             opcionesFinalizacion.nro_factura
-            : null,
+            : "",
         credito: opcionesFinalizacion.tipo_venta === "CREDITO" ? 1 : 0,
         saldo:
           opcionesFinalizacion.tipo_venta === "CREDITO"
             ? totalAEnviar() - (opcionesFinalizacion.entrega_inicial || 0)
             : totalAEnviar(),
-        vencimiento: opcionesFinalizacion.fecha_vencimiento || null,
-        descuento: totalDescuento,
         total: totalAEnviar(),
+        devolucion: 0,
+        procesado: 0,
+        descuento: totalDescuento,
         cuotas: opcionesFinalizacion.tipo_venta === "CREDITO" ? 1 : 0,
         cantCuotas: opcionesFinalizacion.cantidad_cuotas || 0,
         obs: opcionesFinalizacion.observacion || "",
         vendedor: vendedorSeleccionado.op_codigo,
+        cliente: clienteSeleccionado.cli_codigo,
         sucursal: sucursalSeleccionada?.id,
+        metodo: metodoPagoSeleccionado?.id ?? 1,
+        aplicarA: 0,
+        retencion: 0,
         timbrado:
           opcionesFinalizacion.tipo_documento === "FACTURA"
             ? opcionesFinalizacion.timbrado
-            : null,
-        pedido: numeroPedido,
+            : "",
+        codeudor: 1,
+        pedido: numeroPedido ?? 0,
         hora: new Date().toLocaleTimeString(),
-        userpc: sessionStorage.getItem("user_name") || "Sistema web",
+        userPc: sessionStorage.getItem("user_name") || "Sistema web",
         situacion: 1,
-        chofer: null,
-        metodo: metodoPagoSeleccionado?.me_codigo || 1,
-        ve_cdc: usaFacturaElectronica
+        chofer: 0,
+        cdc: usaFacturaElectronica
           ? responseFacturaSend?.result?.deList[0]?.cdc || ""
           : "",
-        ve_qr: usaFacturaElectronica
+        qr: usaFacturaElectronica
           ? responseFacturaSend?.result?.deList[0]?.qr || ""
           : "",
-      };
+        kmActual: 0,
+        vehiculo: 0,
+        descTrabajo: "",
+        kilometraje: 0,
+        mecanico: 0,
+        servicio: 0,
+        siniestro: '',
+        vencimiento: undefined,
+        estado: 1,
+        cajaDefinicion: undefined,
+        confOperacion: Number(configuracionCaja?.valor || "0")
+      }
 
-      // Preparar detalles de venta
-      const detalleVentas = itemsParaVenta.map((item) => ({
-        deve_articulo: item.deve_articulo,
-        deve_cantidad: item.deve_cantidad,
-        deve_precio: item.deve_precio,
-        deve_descuento: item.deve_descuento,
-        deve_exentas: item.deve_exentas,
-        deve_cinco: item.deve_cinco,
-        deve_diez: item.deve_diez,
-        deve_color: item.deve_color,
-        deve_bonificacion: item.deve_bonificacion,
-        deve_vendedor: item.deve_vendedor,
-        deve_codioot: item.deve_codioot,
-        deve_costo: item.deve_costo,
-        deve_costo_art: item.deve_costo_art,
-        deve_cinco_x: item.deve_cinco_x,
-        deve_diez_x: item.deve_diez_x,
-        lote: item.deve_lote,
-        loteid: item.loteid,
-        articulo_editado: item.editar_nombre === 1,
-        deve_codigo: item.deve_articulo,
-        deve_descripcion_editada:
-          item.editar_nombre === 1 ? item.articulo : null,
+
+      // // Preparar detalles de venta
+      // const detalleVentas = itemsParaVenta.map((item) => ({
+      //   deve_articulo: item.deve_articulo,
+      //   deve_cantidad: item.deve_cantidad,
+      //   deve_precio: item.deve_precio,
+      //   deve_descuento: item.deve_descuento,
+      //   deve_exentas: item.deve_exentas,
+      //   deve_cinco: item.deve_cinco,
+      //   deve_diez: item.deve_diez,
+      //   deve_color: item.deve_color,
+      //   deve_bonificacion: item.deve_bonificacion,
+      //   deve_vendedor: item.deve_vendedor,
+      //   deve_codioot: item.deve_codioot,
+      //   deve_costo: item.deve_costo,
+      //   deve_costo_art: item.deve_costo_art,
+      //   deve_cinco_x: item.deve_cinco_x,
+      //   deve_diez_x: item.deve_diez_x,
+      //   lote: item.deve_lote,
+      //   loteid: item.loteid,
+      //   articulo_editado: item.editar_nombre === 1,
+      //   deve_codigo: item.deve_articulo,
+      //   deve_descripcion_editada:
+      //     item.editar_nombre === 1 ? item.articulo : null,
+      // }));
+
+      const detalleVentas: DetalleVenta[] = itemsParaVenta.map((item) => ({
+        deveVenta: 0,
+        deveArticulo: item.deve_articulo,
+        deveCantidad: item.deve_cantidad,
+        devePrecio: item.deve_precio,
+        deveDescuento: item.deve_descuento,
+        deveExentas: item.deve_exentas,
+        deveCinco: item.deve_cinco,
+        deveDiez: item.deve_diez,
+        deveDevolucion: item.deve_devolucion,
+        deveVendedor: item.deve_vendedor,
+        deveColor: item.deve_color?.toString() ?? "", // Convertimos null a string vacío
+        deveBonificacion: item.deve_bonificacion ?? 0,
+        deveTalle: item.deve_talle ?? "",
+        deveCodioot: item.deve_codioot ?? 0,
+        deveCosto: item.deve_costo ?? 0,
+        deveCostoArt: item.deve_costo_art ?? 0,
+        deveCincoX: item.deve_cinco_x ?? 0,
+        deveDiezX: item.deve_diez_x ?? 0,
+        editarNombre: item.editar_nombre ?? 0,
+        lote: item.deve_lote ?? "",
+        loteId: item.loteid ?? 0,
+        articuloEditado: item.editar_nombre === 1,
+        deveDescripcionEditada: item.editar_nombre === 1 ? item.articulo : "",
+        codigoBarra: item.cod_barra ?? "",
+        descripcion: item.articulo,
+        precioUnitario: item.precio_original ?? item.deve_precio,
+        subtotal: (item.deve_cantidad ?? 0) * (item.deve_precio ?? 0),
       }));
+
+
       // Enviar datos al backend
-      console.log("datos enviados a la venta: ", venta, detalleVentas);
-      const response = await axios.post(`${api_url}venta/agregar-venta-nuevo`, {
-        venta,
-        detalle_ventas: detalleVentas,
-      });
-      console.log("Respuesta de la venta: ", response.data.body);
-      if (response.data.body.status === "success") {
+      console.log("datos enviados a la venta: ", ventaDTO, detalleVentas);
+      await crearVentaMutation.mutateAsync({ venta: ventaDTO, detalle: detalleVentas });
+
+      console.log("Respuesta de la venta: ", crearVentaMutation);
+      if (crearVentaMutation.isSuccess) {
         toast({
           title: "Éxito",
           description: "Venta realizada correctamente",
@@ -1570,29 +1662,22 @@ const VentaBalconNuevo = () => {
           Number(opcionesFinalizacion.nro_factura)
         );
         onCloseKCOpen();
-        Auditar(
-          5,
-          8,
-          response.data.body.ventaId,
-          operador ? parseInt(operador) : 0,
-          `Venta ID ${response.data.body.ventaId} realizada por ${operador}`
-        );
         handleCancelarVenta();
         setClienteBusqueda("");
         setClienteSeleccionado(null);
-        setUltimaVentaId(response.data.body.ventaId);
+        setUltimaVentaId(crearVentaMutation.data.codigo);
         if (imprimirFactura) {
           if (tipoImpresionFactura === 1) {
-            isMobile ? (await imprimirFacturaComponenteReport(response.data.body.ventaId, "download")) : (await imprimirFacturaComponenteReport(response.data.body.ventaId, "print"))
+            isMobile ? (await imprimirFacturaComponenteReport(crearVentaMutation.data.codigo, "download")) : (await imprimirFacturaComponenteReport(crearVentaMutation.data.codigo, "print"))
           } else if (tipoImpresionFactura === 2) {
-            isMobile ? (await imprimirFacturaComponente(response.data.body.ventaId, "download")) : (await imprimirFacturaComponente(response.data.body.ventaId, "print"))
+            isMobile ? (await imprimirFacturaComponente(crearVentaMutation.data.codigo, "download")) : (await imprimirFacturaComponente(crearVentaMutation.data.codigo, "print"))
           }
         }
         if (imprimirTicket) {
-          isMobile ? (await imprimirTicketCompontente(response.data.body.ventaId, "download")) : (await imprimirTicketCompontente(response.data.body.ventaId, "print"))
+          isMobile ? (await imprimirTicketCompontente(crearVentaMutation.data.codigo, "download")) : (await imprimirTicketCompontente(crearVentaMutation.data.codigo, "print"))
         }
         if (imprimirNotaInterna) {
-          isMobile ? (await imprimirNotaComunComponente(response.data.body.ventaId, "download")) : (await imprimirNotaComunComponente(response.data.body.ventaId, "print"))
+          isMobile ? (await imprimirNotaComunComponente(crearVentaMutation.data.codigo, "download")) : (await imprimirNotaComunComponente(crearVentaMutation.data.codigo, "print"))
         }
       }
       clienteCodigoRef.current?.focus();
@@ -1623,12 +1708,12 @@ const VentaBalconNuevo = () => {
         try {
           console.log("Getting un item", item);
           const response = await axios.get(
-            `${api_url}articulos/buscar-articulos`,
+            `${api_url}articulo/buscar`,
             {
               params: {
-                articulo_id: item.articulo,
-                moneda: monedaSeleccionada?.mo_codigo,
-                lista_precio: precioSeleccionado?.lp_codigo,
+                articuloId: item.articulo,
+                moneda: monedaSeleccionada?.moCodigo,
+                // lista_precio: precioSeleccionado?.lpCodigo,
               },
             }
           );
@@ -1919,7 +2004,7 @@ const VentaBalconNuevo = () => {
     isOpen,
     onClose,
   }) => {
-    const handleSelectVenta = (venta: Venta) => {
+    const handleSelectVenta = (venta: VentaViewModel) => {
       obtenerYEditarVenta(venta.codigo);
       onClose();
     };
@@ -1970,7 +2055,7 @@ const VentaBalconNuevo = () => {
     isOpen,
     onClose,
   }) => {
-    const handleSelectPresupuesto = (presupuesto: Presupuesto) => {
+    const handleSelectPresupuesto = (presupuesto: PresupuestoViewModel) => {
       obtenerYConvertirPresupuesto(presupuesto.codigo);
       onClose();
     };
@@ -2387,11 +2472,11 @@ const VentaBalconNuevo = () => {
 
     // Si la moneda seleccionada es guaraníes, ese es el precio base
     const precioBaseGuaranies =
-      monedaSeleccionada?.mo_codigo === 1
+      monedaSeleccionada?.moCodigo === 1
         ? nuevoPrecio
-        : monedaSeleccionada?.mo_codigo === 2
+        : monedaSeleccionada?.moCodigo === 2
           ? nuevoPrecio * cotizacionDolar
-          : monedaSeleccionada?.mo_codigo === 3
+          : monedaSeleccionada?.moCodigo === 3
             ? nuevoPrecio * cotizacionReal // Real a Guaraní multiplica
             : nuevoPrecio * cotizacionPeso;
 
@@ -2498,7 +2583,7 @@ const VentaBalconNuevo = () => {
 
     // Siempre actualizamos el valor del input
     setArticuloBusquedaId(valor);
-    
+
     // Si se está borrando el código, limpiamos el artículo seleccionado
     if (valor === '') {
       setArticuloSeleccionado(null);
@@ -2609,7 +2694,7 @@ const VentaBalconNuevo = () => {
                 <p className="text-sm font-bold">Lista de precios</p>
                 <select
                   className="border rounded-md p-2"
-                  value={precioSeleccionado?.lp_codigo}
+                  value={precioSeleccionado?.lpCodigo}
                   disabled
                   name=""
                   id=""
@@ -2617,14 +2702,14 @@ const VentaBalconNuevo = () => {
                     setPrecioSeleccionado(
                       listaPrecios.find(
                         (precio) =>
-                          precio.lp_codigo === parseInt(e.target.value)
+                          precio.lpCodigo === parseInt(e.target.value)
                       ) || null
                     );
                   }}
                 >
                   {listaPrecios.map((precio) => (
-                    <option value={precio.lp_codigo}>
-                      {precio.lp_descripcion}
+                    <option value={precio.lpCodigo}>
+                      {precio.lpDescripcion}
                     </option>
                   ))}
                 </select>
@@ -2639,16 +2724,16 @@ const VentaBalconNuevo = () => {
                     setMonedaSeleccionada(
                       monedas.find(
                         (moneda) =>
-                          moneda.mo_codigo === parseInt(e.target.value)
+                          moneda.moCodigo === parseInt(e.target.value)
                       ) || null
                     );
                   }}
-                  value={monedaSeleccionada?.mo_codigo}
+                  value={monedaSeleccionada?.moCodigo}
                   disabled={itemsParaVenta.length > 0}
                 >
                   {monedas.map((moneda) => (
-                    <option value={moneda.mo_codigo}>
-                      {moneda.mo_descripcion}
+                    <option value={moneda.moCodigo}>
+                      {moneda.moDescripcion}
                     </option>
                   ))}
                 </select>
@@ -2896,20 +2981,20 @@ const VentaBalconNuevo = () => {
               />
               <select
                 className="border rounded-md p-2"
-                value={precioSeleccionado?.lp_codigo}
+                value={precioSeleccionado?.lpCodigo}
                 name=""
                 id=""
                 onChange={(e) => {
                   setPrecioSeleccionado(
                     listaPrecios.find(
-                      (precio) => precio.lp_codigo === parseInt(e.target.value)
+                      (precio) => precio.lpCodigo === parseInt(e.target.value)
                     ) || null
                   );
                 }}
               >
                 {listaPrecios.map((precio) => (
-                  <option value={precio.lp_codigo}>
-                    {precio.lp_descripcion}
+                  <option value={precio.lpCodigo}>
+                    {precio.lpDescripcion}
                   </option>
                 ))}
               </select>
@@ -2948,41 +3033,41 @@ const VentaBalconNuevo = () => {
                     onMouseEnter={() => setHoveredArticulo(item)}
                     onMouseLeave={() => setHoveredArticulo(null)}
                   >
-                    <p>{item.codigo_barra}</p>
+                    <p>{item.codigoBarra}</p>
                     <Tally1 />
                     <p>{item.descripcion}</p>
                     <Tally1 />
-                    {monedaSeleccionada?.mo_codigo === 1 ? (
+                    {monedaSeleccionada?.moCodigo === 1 ? (
                       <>
                         <p>P. Contado</p>
-                        <p>{formatNumber(item.precio_venta_guaranies)}</p>
+                        <p>{formatNumber(item.precioVentaGuaranies)}</p>
                         <p>P. Mostrador</p>
-                        <p>{formatNumber(item.precio_mostrador)}</p>
+                        <p>{formatNumber(item.precioMostrador)}</p>
                         <p>P. Credito</p>
-                        <p>{formatNumber(item.precio_credito)}</p>
+                        <p>{formatNumber(item.precioCredito)}</p>
                       </>
                     ) : (
                       <>
                         <p>
                           P. Contado{" "}
-                          {monedaSeleccionada?.mo_descripcion.toLowerCase()}:
+                          {monedaSeleccionada?.moDescripcion.toLowerCase()}:
                         </p>
-                        <p>{formatNumber(item.precio_venta_dolar)}</p>
+                        <p>{formatNumber(item.precioVentaDolar)}</p>
                       </>
                     )}
                     <Tally1 />
-                    {item.vencimiento_validacion === 1 ? (
+                    {item.vencimientoValidacion === 1 ? (
                       <>
                         <p
                           className={
-                            item.estado_vencimiento === "VIGENTE"
+                            item.estadoVencimiento === "VIGENTE"
                               ? "text-green-500"
-                              : item.estado_vencimiento === "PROXIMO"
+                              : item.estadoVencimiento === "PROXIMO"
                                 ? "text-yellow-500"
                                 : "text-red-500"
                           }
                         >
-                          {item.vencimiento_lote}
+                          {item.vencimientoLote}
                         </p>
                         <Tally1 />
                         <p>Lote: {item.lote}</p>
@@ -2990,7 +3075,7 @@ const VentaBalconNuevo = () => {
                     ) : null}
                     <Tally1 />
                     <p>Stock</p>
-                    <p>{item.cantidad_lote}</p>
+                    <p>{item.cantidadLote}</p>
                   </div>
                 )}
               />
@@ -3716,26 +3801,26 @@ const VentaBalconNuevo = () => {
 
               {/* Campos de Crédito */}
 
-              {configuraciones[54].valor === "1" && (
+              {cobrarEnBalcon?.valor === "1" && (
                 <div className="flex flex-col gap-2">
                   <div className="flex gap-4">
                     <p className="font-bold">Metodo de pago</p>
                     <select
                       name=""
                       id=""
-                      value={metodoPagoSeleccionado?.me_codigo}
+                      value={metodoPagoSeleccionado?.id}
                       onChange={(e) =>
                         setMetodoPagoSeleccionado(
                           metodosPago.find(
                             (metodo) =>
-                              metodo.me_codigo === Number(e.target.value)
+                              metodo.id === Number(e.target.value)
                           ) || null
                         )
                       }
                     >
                       {metodosPago.map((metodo) => (
-                        <option value={metodo.me_codigo}>
-                          {metodo.me_descripcion}
+                        <option value={metodo.id}>
+                          {metodo.descripcion}
                         </option>
                       ))}
                     </select>

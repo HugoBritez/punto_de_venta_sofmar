@@ -1,4 +1,4 @@
-import { api_url } from "@/utils";
+import { API_URL as api_url } from "@/utils";
 import axios from "axios";
 
 import { MetodoPago } from "@/models/viewmodels/MetodoDePago";
@@ -12,6 +12,6 @@ export const metodosPagoRepository = {
                 busqueda: busqueda
             }
         });
-        return response.data;
+        return response.data.body;
     },
 }

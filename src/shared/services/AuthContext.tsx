@@ -41,6 +41,8 @@ interface LoginData {
       or_rol: number;
       permisos_menu: {
         acceso: number;
+        crear: number;
+        editar: number;
         menu_id: number;
         menu_descripcion: string;
         menu_grupo: number;

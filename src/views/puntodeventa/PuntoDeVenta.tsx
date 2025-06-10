@@ -315,7 +315,6 @@ const PuntoDeVentaNuevo = () => {
     sessionStorage.getItem("permisos_descuento") || "[]"
   );
 
-
   const { data: tipoImpresionDoc } = useTipoImpresion();
 
   const [tipoImpresionFactura, setTipoImpresionFactura] = useState<

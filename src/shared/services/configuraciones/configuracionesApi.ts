@@ -12,6 +12,6 @@ export const getConfiguracionesPorId = async (id: number): Promise<Configuracion
         }
     );
 
-    console.log("Configuraciones response:", response.data.data);
-    return response.data.data;
+    console.log("Configuraciones response:", response.data.body);
+    return response.data.body;
 }

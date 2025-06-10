@@ -400,9 +400,9 @@ const generarPDF = async (tipoSalida: "print" | "download" | "b64" = "print") =>
 
   const getVenta = async () => {
     try {
-      const response = await axios.get(`${api_url}venta/venta-imprimir`, {
+      const response = await axios.get(`${api_url}venta/imprimir`, {
         params: {
-          ventaId: id_venta,
+          venta: id_venta,
         },
       });
       console.log(response.data.body);

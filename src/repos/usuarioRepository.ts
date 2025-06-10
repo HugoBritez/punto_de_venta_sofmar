@@ -10,11 +10,12 @@ export const UsuarioRepository = {
     },
 
     async GetUsuarioById(id: number): Promise<UsuarioViewModel> {
+        console.log("corriendo funcion")
         const response = await axios.get(`${api_url}usuarios`, { params: { id } });
-        if (response.data.data.length === 0) {
+        if (response.data.body.length === 0) {
             throw new Error("Usuario no encontrado");
         }
         console.log( "Vendedor seleccionado por id desde el repo",response.data);
-        return response.data.data[0];
+        return response.data.body[0];
     },
 }
