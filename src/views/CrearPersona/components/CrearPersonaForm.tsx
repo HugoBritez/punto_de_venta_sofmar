@@ -210,6 +210,9 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
 
     const formRef = useRef<HTMLDivElement>(null);
 
+    // Primero, agregamos un nuevo estado para controlar el enfoque
+    const [focusTarget, setFocusTarget] = useState<{tabId: string, position: 'first' | 'last'} | null>(null);
+
     const cargarOperadores = async (person: CrearPersonaDTO) => {
         try {
 
@@ -624,11 +627,12 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
             
             // Si estamos en el campo de observaciones
             if ((e.target as HTMLInputElement).id === 'observacion') {
-                // Determinar qué tab activar basado en los tipos seleccionados
                 if (isClienteSelected) {
                     setActiveTab('datos-cliente');
+                    setFocusTarget({ tabId: 'datos-cliente', position: 'first' });
                 } else if (isProveedorSelected) {
                     setActiveTab('datos-proveedor');
+                    setFocusTarget({ tabId: 'datos-proveedor', position: 'first' });
                 }
                 return;
             }
@@ -636,7 +640,6 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
             // Si estamos en un campo que abre modal (agente, vendedor, cobrador)
             const modalFields = ['agente', 'vendedor', 'cobrador'];
             if (modalFields.includes((e.target as HTMLInputElement).id)) {
-                // Abrir el modal correspondiente
                 switch ((e.target as HTMLInputElement).id) {
                     case 'agente':
                         setIsBuscadorAgentesOpen(true);
@@ -659,13 +662,8 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
                 '[data-autocomplete] input:not([disabled])'
             );
             
-            // Convertir NodeList a Array para poder usar indexOf
             const focusableArray = Array.from(focusableElements);
-            
-            // Encontrar el índice del elemento actual
             const currentIndex = focusableArray.indexOf(e.target as HTMLElement);
-            
-            // Determinar la dirección de navegación
             const direction = e.shiftKey ? -1 : 1;
             const nextIndex = currentIndex + direction;
             
@@ -683,20 +681,7 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
                 
                 if (nextTab) {
                     setActiveTab(nextTab.id);
-                    // Enfocar el primer elemento del nuevo tab
-                    setTimeout(() => {
-                        const firstFocusable = document.querySelector(
-                            `#${nextTab.id} input:not([disabled]):not([type="hidden"]), ` +
-                            `#${nextTab.id} select:not([disabled]), ` +
-                            `#${nextTab.id} textarea:not([disabled])`
-                        ) as HTMLElement;
-                        if (firstFocusable) {
-                            firstFocusable.focus();
-                            if (firstFocusable instanceof HTMLSelectElement) {
-                                firstFocusable.click();
-                            }
-                        }
-                    }, 0);
+                    setFocusTarget({ tabId: nextTab.id, position: 'first' });
                 }
                 return;
             }
@@ -715,21 +700,7 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
                 
                 if (previousTab) {
                     setActiveTab(previousTab.id);
-                    // Enfocar el último elemento del tab anterior
-                    setTimeout(() => {
-                        const focusableElements = document.querySelectorAll(
-                            `#${previousTab.id} input:not([disabled]):not([type="hidden"]), ` +
-                            `#${previousTab.id} select:not([disabled]), ` +
-                            `#${previousTab.id} textarea:not([disabled])`
-                        );
-                        const lastFocusable = focusableElements[focusableElements.length - 1] as HTMLElement;
-                        if (lastFocusable) {
-                            lastFocusable.focus();
-                            if (lastFocusable instanceof HTMLSelectElement) {
-                                lastFocusable.click();
-                            }
-                        }
-                    }, 0);
+                    setFocusTarget({ tabId: previousTab.id, position: 'last' });
                 }
                 return;
             }
@@ -744,6 +715,34 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
             }
         }
     };
+
+    // Agregamos un useEffect para manejar el enfoque después del cambio de tab
+    useEffect(() => {
+        if (focusTarget) {
+            const { tabId, position } = focusTarget;
+            const focusableElements = document.querySelectorAll(
+                `#${tabId} input:not([disabled]):not([type="hidden"]), ` +
+                `#${tabId} select:not([disabled]), ` +
+                `#${tabId} textarea:not([disabled])`
+            );
+            
+            if (focusableElements.length > 0) {
+                const targetElement = position === 'first' 
+                    ? focusableElements[0] 
+                    : focusableElements[focusableElements.length - 1];
+                
+                if (targetElement instanceof HTMLElement) {
+                    targetElement.focus();
+                    if (targetElement instanceof HTMLSelectElement) {
+                        targetElement.click();
+                    }
+                }
+            }
+            
+            // Limpiar el target después de enfocar
+            setFocusTarget(null);
+        }
+    }, [focusTarget, activeTab]);
 
     const handleVaciarCampos = () => {
         setPersonaDTO(

@@ -371,7 +371,7 @@ const VentaBalconNuevo = () => {
 
   const [, setNumeroPresupuesto] = useState<number | null>(null);
 
-  const [ventaIdEdicion, setVentaIdEdicion] = useState<number | null>(null);
+  const [, setVentaIdEdicion] = useState<number | null>(null);
 
   const crearVentaMutation = useCrearVenta();
   const permisos_descuento = JSON.parse(

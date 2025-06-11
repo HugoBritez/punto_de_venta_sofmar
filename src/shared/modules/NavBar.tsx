@@ -278,9 +278,9 @@ const Sidebar = () => {
       ],
     },
     {
-      name: "Modulo Informes",
+      name: "Modulo Reportes",
       icon: NotebookPen,
-      path: "/ventas-y-egresos",
+      path: "",
       enabled: true,
       subItems: [
         {
@@ -290,6 +290,15 @@ const Sidebar = () => {
           name: "Informe de Ventas",
           icon: FileChartColumnIncreasing,
           path: "/informe-de-ventas",
+          enabled: true,
+        },
+        {
+          grupo: 2,
+          orden: 36,
+          id: 74,
+          name: "Pedidos Facturados",
+          icon: FileChartColumnIncreasing,
+          path: "/informe-pedidos-facturados",
           enabled: true,
         },
       ],

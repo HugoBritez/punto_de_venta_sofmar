@@ -98,12 +98,14 @@ const configs = {
     version: "1.2.4",
     title: "Zimmer",
   },
+
   mersan: {
     api_url: "https://node.sofmar.com.py:4005/api/",
     db: "mersan",
     version: "1.2.4",
     title: "Mersan",
   },
+  
   agrosertaneja: {
     api_url: "https://node.sofmar.com.py:4006/api/",
     db: "agrosertaneja",

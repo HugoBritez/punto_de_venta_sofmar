@@ -10,15 +10,16 @@ import {
 } from "@chakra-ui/react";
 import { Archive } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Deposito } from "@/repos/depositosApi";
-import { Moneda } from "@/repos/monedasApi";
-import { Sucursal } from "@/repos/sucursalApi";
+
 import not_found from "@/assets/not-found/not-found.png";
 import { motion, AnimatePresence } from "framer-motion"; 
 import { useSucursalesStore } from "@/stores/sucursalesStore";
 import { useDepositosStore } from "@/stores/depositosStore";
 import { useMonedasStore } from "@/stores/monedasStore";
 import { getArticulos } from "@/repos/articulosApi";
+import { SucursalViewModel } from "@/models/viewmodels/sucursalViewModel";
+import { DepositoViewModel } from "@/models/viewmodels/depositoViewModel";
+import { Moneda } from "@/models/viewmodels/MonedaViewModel";
 
 
 
@@ -61,10 +62,10 @@ const ConsultaArticulos = () => {
   const [articulos, setArticulos] = useState<Articulos[]>([]);
   const {sucursales, fetchSucursalesPorOperador} = useSucursalesStore()
   const [sucursalSeleccionada, setSucursalSeleccionada] =
-    useState<Sucursal | null>(null);
+    useState<SucursalViewModel | null>(null);
   const {depositos, fetchDepositos} = useDepositosStore()
   const [depositoSeleccionado, setDepositoSeleccionado] =
-    useState<Deposito | null>(null);
+    useState<DepositoViewModel | null>(null);
   const {monedas, fetchMonedas} = useMonedasStore()
   const [monedaSeleccionada, setMonedaSeleccionada] = useState<Moneda | null>(
     null
@@ -111,7 +112,7 @@ const ConsultaArticulos = () => {
       //   }
       // );
       // console.log('LLAMANDO A FETCHARTICULOS', busqueda)
-      setArticulos(response);
+      setArticulos(response.body || []);
     } catch (error) {
       console.log(error);
       toast({

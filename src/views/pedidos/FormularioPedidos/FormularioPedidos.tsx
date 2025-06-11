@@ -2,7 +2,6 @@ import { useDepositosStore } from "@/stores/depositosStore";
 import { useSucursalesStore } from "@/stores/sucursalesStore";
 import { useOperadoresStore } from "@/stores/operadoresStore";
 
-import { Articulo } from "@/shared/ui/articulos/types/articulo.type";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getArticulosPorCodBarra } from "@/shared/ui/articulos/services/articuloPorCodBarraService";
 import { useMonedasStore } from "@/stores/monedasStore";
@@ -11,7 +10,6 @@ import { useListaPreciosStore } from "@/stores/listaPreciosStore";
 import {
   Cliente,
   Deposito,
-  ListaPrecios,
   Sucursal,
 } from "@/shared/types/shared_interfaces";
 import { useToast } from "@chakra-ui/react";
@@ -23,7 +21,9 @@ import BuscadorClientes from "@/shared/ui/clientes/BuscadorClientes";
 import { ArticulosComponent } from "@/shared/ui/articulos/ArticulosComponent";
 import { formatCurrency } from "./utils/formatCurrency";
 import { usePedidos } from "./hooks/usePedidos";
-import { Moneda } from "@/repos/monedasApi";
+import { Moneda } from "@/models/viewmodels/MonedaViewModel";
+import { ArticuloBusqueda } from "@/models/viewmodels/articuloBusqueda";
+import { ListaPrecio } from "@/models/viewmodels/ListaPrecioViewModel";
 
 const FormularioPedidos = () => {
   const { sucursales, fetchSucursales } = useSucursalesStore();
@@ -35,7 +35,7 @@ const FormularioPedidos = () => {
   const { clienteSeleccionado, cargarClientesPorId } = useClientesStore();
   const [clienteSeleccionadoInterno, setClienteSeleccionadoInterno] =
     useState<Cliente>();
-  const [precioSeleccionado, setPrecioSeleccionado] = useState<ListaPrecios>();
+  const [precioSeleccionado, setPrecioSeleccionado] = useState<ListaPrecio>();
   const [depositoSeleccionado, setDepositoSeleccionado] = useState<Deposito>();
   const [sucursalSeleccionada, setSucursalSeleccionada] = useState<Sucursal>();
   const [monedaSeleccionada, setMonedaSeleccionada] = useState<Moneda>();
@@ -90,7 +90,7 @@ const FormularioPedidos = () => {
   });
   const [detallePedido, setDetallePedido] = useState<DetallePedidoTabla[]>([]);
 
-  const [articulo, setArticulo] = useState<Articulo>();
+  const [articulo, setArticulo] = useState<ArticuloBusqueda>();
 
   const vendedorRef = useRef<HTMLInputElement>(null);
   const clienteRef = useRef<HTMLInputElement>(null);
@@ -154,7 +154,7 @@ const FormularioPedidos = () => {
   }, []);
 
   const handleAgregarItem = (
-    articulo: Articulo,
+    articulo: ArticuloBusqueda,
     cantidad: number,
     precioUnitario?: number,
     descuento?: number,
@@ -198,7 +198,7 @@ const FormularioPedidos = () => {
       setPrecioSeleccionado(listaPrecios[0]);
       setPedidoDTO(prev => ({
         ...prev,
-        p_lista_precio: listaPrecios[0].lp_codigo
+        p_lista_precio: listaPrecios[0]?.lpCodigo || 0
       }));
     }
     if (depositos.length > 0 && !depositoSeleccionado) {
@@ -266,7 +266,7 @@ const FormularioPedidos = () => {
     if (precioSeleccionado) {
       setPedidoDTO((prev) => ({
         ...prev,
-        p_lista_precio: precioSeleccionado.lp_codigo,
+        p_lista_precio: precioSeleccionado.lpCodigo,
       }));
     }
   }, [
@@ -542,22 +542,22 @@ const FormularioPedidos = () => {
               name="listaPrecio"
               id="listaPrecio"
               className="rounded-md p-1 border-2 border-gray-300"
-              value={precioSeleccionado?.lp_codigo}
+              value={precioSeleccionado?.lpCodigo}
               onChange={(e) =>
                 setPrecioSeleccionado(
                   listaPrecios.find(
                     (listaPrecio) =>
-                      listaPrecio.lp_codigo === Number(e.target.value)
+                      listaPrecio.lpCodigo === Number(e.target.value)
                   )
                 )
               }
             >
               {listaPrecios.map((listaPrecio) => (
                 <option
-                  key={listaPrecio.lp_codigo}
-                  value={listaPrecio.lp_codigo}
+                  key={listaPrecio.lpCodigo}
+                  value={listaPrecio.lpCodigo}
                 >
-                  {listaPrecio.lp_descripcion}
+                  {listaPrecio.lpDescripcion}
                 </option>
               ))}
             </select>
@@ -845,7 +845,7 @@ const FormularioPedidos = () => {
             id="precio"
             className="rounded-md p-1 border-2 border-gray-300 w-full"
             placeholder="Precio:"
-            value={articulo ? formatCurrency(articulo.precio_venta_guaranies): 0}
+            value={articulo ? formatCurrency(articulo.precioVentaGuaranies): 0}
             onChange={(e) => setPrecioArticulo(Number(e.target.value))}
             ref={precioRef}
             onKeyDown={handlePrecioKeyDown}
@@ -875,7 +875,7 @@ const FormularioPedidos = () => {
             value={
               articulo
                 ? articulo.iva === 0
-                  ? formatCurrency(articulo.precio_venta_guaranies)
+                  ? formatCurrency(articulo.precioVentaGuaranies)
                   : 0
                 : "Exenta"
             }
@@ -893,7 +893,7 @@ const FormularioPedidos = () => {
             value={
               articulo
                 ? articulo.iva === 2
-                  ? formatCurrency(articulo.precio_venta_guaranies)
+                  ? formatCurrency(articulo.precioVentaGuaranies)
                   : 0
                 : "5%"
             }
@@ -911,7 +911,7 @@ const FormularioPedidos = () => {
             value={
               articulo
                 ? articulo.iva === 1
-                  ? formatCurrency(articulo.precio_venta_guaranies)
+                  ? formatCurrency(articulo.precioVentaGuaranies)
                   : 0
                 : "10%"
             }

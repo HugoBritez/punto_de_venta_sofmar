@@ -1,5 +1,5 @@
-export const api_url = 'http://localhost:5069/api/'
-export const API_URL = 'http://localhost:5069/api/'
+export const api_url = 'https://localhost:4024/api/'
+export const API_URL = 'https://localhost:4024/api/'
 
 //export const api_url = 'https://localhost:4000/api/'
 //export const  api_url = 'https://db.sofmar.com.py:4009/api/' //acricolor
@@ -10,7 +10,7 @@ export const API_URL = 'http://localhost:5069/api/'
 //export  const api_url = 'https://node.sofmar.com.py:4007/api/' //concrecar
 //export  const api_url = 'https://node.sofmar.com.py:4021/api/' //bodega
 //export  const api_url = 'https://node.sofmar.com.py:4022/api/' //truckdiesel
-//export  const api_url = 'https://node.sofmar.com.py:4023/api/' //campomax
+//export  const api_url = 'https://node.sofmar.com.py:4023/api/' //campomaxapi
 //export  const api_url = 'https://node.sofmar.com.py:4024/api/' //gaesa
 
 

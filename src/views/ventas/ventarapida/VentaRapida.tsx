@@ -297,21 +297,21 @@ const VentaRapida = () => {
             }
 
             if (tipoVenta.tipo === "factura") {
-                console.log('imprimiendo factura', response.body);
+                console.log('imprimiendo factura', response.codigo);
                 await actualizarUltimaFactura(datosFacturacion?.d_codigo || 0, datosFacturacion?.d_nro_secuencia || 0);
                 ImprimirFacturaTicketComponent({
                     accion: "download",
-                    ventaId: response.body.codigo,
+                    ventaId: response.codigo,
                     montoEntregado: 0,
                     montoRecibido: 0,
                     vuelto: 0,
                     onImprimir: true
                 });
             } else if (tipoVenta.tipo === "comun") {
-                console.log('imprimiendo ticket', response.body);
+                console.log('imprimiendo ticket', response.codigo);
                 ImprimirTicketComponent({
                     accion: "download",
-                    ventaId: response.body.codigo,
+                    ventaId: response.codigo,
                     montoEntregado: 0,
                     montoRecibido: 0,
                     vuelto: 0,

@@ -29,23 +29,18 @@ import {
 import { ShoppingCart } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import FloatingCard from "@/shared/modules/FloatingCard";
-import ModeloTicket from "../facturacion/ModeloTicket";
-import ConsultaPedidos from "../pedidos/ConsultaPedidos";
-import ConsultaPresupuestos from "../presupuestos/ConsultaPresupuesto";
-import ConsultaRemisiones from "../remisiones/ConsultaRemisiones";
-import ResumenVentas from "../ventas/ResumenVentas";
-import { createRoot } from "react-dom/client";
-import ModeloFacturaNuevo from "../facturacion/ModeloFacturaNuevo";
-import ModeloNotaComun from "../facturacion/ModeloNotaComun";
-import Auditar from "@/shared/services/AuditoriaHook";
-import { FacturaSendResponse } from "@/shared/types/factura_electronica/types";
-import { useFacturacionElectronicaStore } from "@/stores/facturacionElectronicaStore";
-import { useFacturaSend } from "@/shared/hooks/useFacturaSend";
-import { useTipoImpresionFacturaStore } from "@/stores/tipoImpresionFacturaStore";
-import ModeloFacturaReport from "../facturacion/ModeloFacturaReport";
+// import ModeloTicket from "../facturacion/ModeloTicket";
+// import ConsultaPedidos from "../pedidos/ConsultaPedidos";
+// import ConsultaPresupuestos from "../presupuestos/ConsultaPresupuesto";
+// import ConsultaRemisiones from "../remisiones/ConsultaRemisiones";
+// import ResumenVentas from "../ventas/ResumenVentas";
+// import { createRoot } from "react-dom/client";
+// import ModeloFacturaNuevo from "../facturacion/ModeloFacturaNuevo";
+// import ModeloNotaComun from "../facturacion/ModeloNotaComun";
+
+// import ModeloFacturaReport from "../facturacion/ModeloFacturaReport";
 import ArticuloInfoCard from "@/shared/modules/ArticuloInfoCard";
 import BuscadorClientes from "@/shared/ui/clientes/BuscadorClientes";
-import { useConfiguraciones } from "@/shared/services/configuraciones/configuracionesHook";
 import { SucursalViewModel } from "@/models/viewmodels/sucursalViewModel";
 import { DepositoViewModel } from "@/models/viewmodels/depositoViewModel";
 import { ClienteViewModel } from "@/models/viewmodels/ClienteViewModel";
@@ -54,9 +49,9 @@ import { Moneda } from "@/models/viewmodels/MonedaViewModel";
 import { MetodoPago } from "@/models/viewmodels/MetodoDePago";
 import { ArticuloBusqueda } from "@/models/viewmodels/articuloBusqueda";
 import { ListaPrecio } from "@/models/viewmodels/ListaPrecioViewModel";
-import { DetalleVentaDTO } from "../ventas/types/sharedDTO.type";
+// import { DetalleVentaDTO } from "../ventas/types/sharedDTO.type";
 import { DetalleVenta } from "@/models/dtos/Ventas/DetalleVenta";
-import { useUsuarioPorId, useUsuarios } from "@/shared/hooks/queries/useUsuarios";
+import { useUsuarioPorId } from "@/shared/hooks/queries/useUsuarios";
 import { useClientePorDefecto, usePrecioPorDefecto, useTipoImpresion } from "@/shared/hooks/queries/useConfiguraciones";
 import { useSucursales } from "@/shared/hooks/queries/useSucursales";
 import { useDepositos } from "@/shared/hooks/queries/useDepositos";
@@ -66,7 +61,7 @@ import { useArticulosBusqueda } from "@/shared/hooks/queries/articulos/useArticu
 import { buscarArticulos } from "@/repos/articulosApi";
 import { agregarItemVenta } from "../ventas/core/services/ventasService";
 import { calcularTotales } from "../ventas/core/utils/calcularTotales";
-import { VentaViewModel } from "@/models/viewmodels/Ventas/VentaViewModel";
+// import { VentaViewModel } from "@/models/viewmodels/Ventas/VentaViewModel";
 import { formatCurrency } from "../ventas/core/utils/formatCurrency";
 import { useMetodosPago } from "@/shared/hooks/queries/useMetodosPago";
 import { useMonedas } from "@/shared/hooks/queries/useMonedas";
@@ -221,7 +216,7 @@ const PuntoDeVentaNuevo = () => {
   const [itemsParaVenta, setItemsParaVenta] = useState<DetalleVenta[]>([]);
   const [precioUnitario, setPrecioUnitario] = useState<number>(0);
 
-  const [ultimaVentaId, setUltimaVentaId] = useState<number | null>(null);
+  const [ultimaVentaId, ] = useState<number | null>(null);
 
   const busquedaInputRef = useRef<HTMLInputElement>(null);
   const descuentoInputRef = useRef<HTMLInputElement>(null);
@@ -302,11 +297,11 @@ const PuntoDeVentaNuevo = () => {
   const [busquedaPorScanner, setBusquedaPorScanner] = useState<boolean>(true);
   const [, setCodigoBarrasBuffer] = useState<string>("");
 
-  const [numeroPedido, setNumeroPedido] = useState<number | null>(null);
+  // const [numeroPedido, setNumeroPedido] = useState<number | null>(null);
 
-  const [, setNumeroPresupuesto] = useState<number | null>(null);
+  // const [, setNumeroPresupuesto] = useState<number | null>(null);
 
-  const [ventaIdEdicion, setVentaIdEdicion] = useState<number | null>(null);
+  // const [ventaIdEdicion, setVentaIdEdicion] = useState<number | null>(null);
   const [clienteBusquedaId, setClienteBusquedaId] = useState<number | null>(
     null
   );
@@ -317,9 +312,9 @@ const PuntoDeVentaNuevo = () => {
 
   const { data: tipoImpresionDoc } = useTipoImpresion();
 
-  const [tipoImpresionFactura, setTipoImpresionFactura] = useState<
-    number | null
-  >(null);
+  // const [tipoImpresionFactura, setTipoImpresionFactura] = useState<
+  //   number | null
+  // >(null);
 
   const cajero_id = sessionStorage.getItem("user_id");
 
@@ -348,7 +343,7 @@ const PuntoDeVentaNuevo = () => {
   const { data: clientePorDefecto } = useClientePorDefecto();
   const { data: clientePorId } = useClientePorId(clienteBusquedaId ?? 1)
   const { data: precioPorDefecto } = usePrecioPorDefecto();
-  const { data: articulos, isLoading: loadingArticulos, isError: errorArticulos } = useArticulosBusqueda(
+  const { data: articulos} = useArticulosBusqueda(
     {
       deposito: depositoSeleccionado?.dep_codigo,
       stock: buscarItemsConStock,
@@ -360,7 +355,7 @@ const PuntoDeVentaNuevo = () => {
   const { data: metodosPago } = useMetodosPago();
   const { data: monedas } = useMonedas()
 
-  const { total, totalDescuentos, totalAPagar, totalDolares, totalReales, totalPesos } = calcularTotales(itemsParaVenta);
+  const { total, totalAPagar, totalDolares, totalReales, totalPesos } = calcularTotales(itemsParaVenta);
 
 
   const cotizacionDolar = 7300;
@@ -1803,9 +1798,9 @@ const PuntoDeVentaNuevo = () => {
     isOpen,
     onClose,
   }) => {
-    const handleSelectVenta = (venta: VentaViewModel) => {
-      onClose();
-    };
+    // const handleSelectVenta = (venta: VentaViewModel) => {
+    //   onClose();
+    // };
     return (
       <Modal isOpen={isOpen} onClose={onClose} size="full">
         <ModalOverlay />
@@ -2065,89 +2060,89 @@ const PuntoDeVentaNuevo = () => {
     }
   };
 
-  const calcularVueltoGuaranies = () => {
-    const vueltoBruto = (totalAPagar || 0) - (montoEntregado || 0);
-    const vuelto = Math.abs(vueltoBruto);
-    return vuelto;
-  };
+  // const calcularVueltoGuaranies = () => {
+  //   const vueltoBruto = (totalAPagar || 0) - (montoEntregado || 0);
+  //   const vuelto = Math.abs(vueltoBruto);
+  //   return vuelto;
+  // };
 
-  const imprimirFacturaComponenteReport = async (
-    ventaId: number,
-    accion: "print" | "download" | "b64" = "print"
-  ) => {
-    const facturaDiv = document.createElement("div");
-    facturaDiv.style.display = "none";
-    document.body.appendChild(facturaDiv);
+  // const imprimirFacturaComponenteReport = async (
+  //   ventaId: number,
+  //   accion: "print" | "download" | "b64" = "print"
+  // ) => {
+  //   const facturaDiv = document.createElement("div");
+  //   facturaDiv.style.display = "none";
+  //   document.body.appendChild(facturaDiv);
 
-    const root = createRoot(facturaDiv);
-    root.render(
-      <ModeloFacturaReport
-        id_venta={ventaId}
-        monto_entregado={montoEntregado || 0}
-        monto_recibido={montoEntregado || 0}
-        vuelto={calcularVueltoGuaranies()}
-        onImprimir={true}
-        accion={accion}
-      />
-    );
+  //   const root = createRoot(facturaDiv);
+  //   root.render(
+  //     <ModeloFacturaReport
+  //       id_venta={ventaId}
+  //       monto_entregado={montoEntregado || 0}
+  //       monto_recibido={montoEntregado || 0}
+  //       vuelto={calcularVueltoGuaranies()}
+  //       onImprimir={true}
+  //       accion={accion}
+  //     />
+  //   );
 
-    setTimeout(() => {
-      root.unmount();
-      document.body.removeChild(facturaDiv);
-    }, 2000);
-  };
+  //   setTimeout(() => {
+  //     root.unmount();
+  //     document.body.removeChild(facturaDiv);
+  //   }, 2000);
+  // };
 
-  const imprimirFacturaComponente = async (
-    ventaId: number,
-    accion: "print" | "download" | "b64" = "print"
-  ) => {
-    const facturaDiv = document.createElement("div");
-    facturaDiv.style.display = "none";
-    document.body.appendChild(facturaDiv);
+  // const imprimirFacturaComponente = async (
+  //   ventaId: number,
+  //   accion: "print" | "download" | "b64" = "print"
+  // ) => {
+  //   const facturaDiv = document.createElement("div");
+  //   facturaDiv.style.display = "none";
+  //   document.body.appendChild(facturaDiv);
 
-    const root = createRoot(facturaDiv);
-    root.render(
-      <ModeloFacturaNuevo
-        id_venta={ventaId}
-        monto_entregado={montoEntregado || 0}
-        monto_recibido={montoEntregado || 0}
-        vuelto={calcularVueltoGuaranies()}
-        onImprimir={true}
-        accion={accion}
-      />
-    );
+  //   const root = createRoot(facturaDiv);
+  //   root.render(
+  //     <ModeloFacturaNuevo
+  //       id_venta={ventaId}
+  //       monto_entregado={montoEntregado || 0}
+  //       monto_recibido={montoEntregado || 0}
+  //       vuelto={calcularVueltoGuaranies()}
+  //       onImprimir={true}
+  //       accion={accion}
+  //     />
+  //   );
 
-    setTimeout(() => {
-      root.unmount();
-      document.body.removeChild(facturaDiv);
-    }, 2000);
-  };
+  //   setTimeout(() => {
+  //     root.unmount();
+  //     document.body.removeChild(facturaDiv);
+  //   }, 2000);
+  // };
 
-  const imprimirNotaComponente = async (
-    ventaId: number,
-    accion: "print" | "download" | "b64" = "print"
-  ) => {
-    const notaDiv = document.createElement("div");
-    notaDiv.style.display = "none";
-    document.body.appendChild(notaDiv);
+  // const imprimirNotaComponente = async (
+  //   ventaId: number,
+  //   accion: "print" | "download" | "b64" = "print"
+  // ) => {
+  //   const notaDiv = document.createElement("div");
+  //   notaDiv.style.display = "none";
+  //   document.body.appendChild(notaDiv);
 
-    const root = createRoot(notaDiv);
-    root.render(
-      <ModeloNotaComun
-        id_venta={ventaId}
-        monto_entregado={montoEntregado || 0}
-        monto_recibido={montoEntregado || 0}
-        vuelto={calcularVueltoGuaranies()}
-        onImprimir={true}
-        accion={accion}
-      />
-    );
+  //   const root = createRoot(notaDiv);
+  //   root.render(
+  //     <ModeloNotaComun
+  //       id_venta={ventaId}
+  //       monto_entregado={montoEntregado || 0}
+  //       monto_recibido={montoEntregado || 0}
+  //       vuelto={calcularVueltoGuaranies()}
+  //       onImprimir={true}
+  //       accion={accion}
+  //     />
+  //   );
 
-    setTimeout(() => {
-      root.unmount();
-      document.body.removeChild(notaDiv);
-    }, 2000);
-  };
+  //   setTimeout(() => {
+  //     root.unmount();
+  //     document.body.removeChild(notaDiv);
+  //   }, 2000);
+  // };
 
   // const imprimirTicketComponente = async (
   //   ventaId: number,
@@ -2811,7 +2806,7 @@ const PuntoDeVentaNuevo = () => {
                           min="1"
                           className="border rounded-md p-1 w-16 text-center"
                           value={item.deveCantidad}
-                          onChange={(e) => {
+                          onChange={() => {
                           }}
                         />
                       </td>
@@ -2827,7 +2822,7 @@ const PuntoDeVentaNuevo = () => {
                             : ""
                             }`}
                           value={item.devePrecio}
-                          onChange={(e) => {
+                          onChange={() => {
                           }}
                         />
                       </td>
@@ -2840,7 +2835,7 @@ const PuntoDeVentaNuevo = () => {
                             }`}
                           value={item.deveDescuento}
                           disabled={permisos_descuento === 0}
-                          onChange={(e) => {
+                          onChange={() => {
                           }}
                         />
                       </td>
@@ -3452,7 +3447,7 @@ const PuntoDeVentaNuevo = () => {
                           type="number"
                           disabled={
                             !clienteSeleccionado?.cli_limitecredito ||
-                            clienteSeleccionado.cli_limitecredito == "0"
+                            clienteSeleccionado.cli_limitecredito === null
                           }
                           className="border rounded-md p-2"
                           value={opcionesFinalizacion.cantidad_cuotas || ""}
@@ -3472,7 +3467,7 @@ const PuntoDeVentaNuevo = () => {
                           value={opcionesFinalizacion.entrega_inicial || ""}
                           disabled={
                             !clienteSeleccionado?.cli_limitecredito ||
-                            clienteSeleccionado.cli_limitecredito == "0"
+                            clienteSeleccionado.cli_limitecredito === null
                           }
                           onChange={(e) =>
                             setOpcionesFinalizacion({
@@ -3489,7 +3484,7 @@ const PuntoDeVentaNuevo = () => {
                           className="border rounded-md p-2"
                           disabled={
                             !clienteSeleccionado?.cli_limitecredito ||
-                            clienteSeleccionado.cli_limitecredito == "0"
+                            clienteSeleccionado.cli_limitecredito === null
                           }
                           value={
                             opcionesFinalizacion.fecha_vencimiento_timbrado ||

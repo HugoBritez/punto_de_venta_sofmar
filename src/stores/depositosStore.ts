@@ -19,7 +19,7 @@ export const useDepositosStore = create<DepositoStore>((set)=>({
                 usuario: usuario,
                 descripcion: descripcion
             })
-            set({depositos: response.data})
+            set({depositos: response.body || []})
         }catch(error){
             console.error('Error al obtener los depositos:', error)
         }

@@ -1,19 +1,19 @@
 // src/services/pedidoService.ts
 
-import { Articulo } from "@/shared/ui/articulos/types/articulo.type";
+import { ArticuloBusqueda } from "@/models/viewmodels/articuloBusqueda";
 import { DetallePedidoTabla } from "@/views/pedidos/FormularioPedidos/types/shared.type";
 import {
-  ListaPrecios,
   Deposito,
   Sucursal,
 } from "@/shared/types/shared_interfaces";
 import { Operador } from "@/stores/operadoresStore";
-import { Moneda } from "@/repos/monedasApi";
+import { Moneda } from "@/models/viewmodels/MonedaViewModel";
+import { ListaPrecio } from "@/models/viewmodels/ListaPrecioViewModel";
 
 interface ParamsAgregarItem {
-  articulo: Articulo;
+  articulo: ArticuloBusqueda;
   cantidad: number;
-  precioSeleccionado: ListaPrecios;
+  precioSeleccionado: ListaPrecio;
   monedaSeleccionada: Moneda;
   depositoSeleccionado: Deposito;
   sucursalSeleccionada: Sucursal;
@@ -47,7 +47,7 @@ export function agregarItemPedido(
   if (!vendedorSeleccionado?.op_codigo) {
     return { ok: false, error: "Debe seleccionar un vendedor" };
   }
-  if (!precioSeleccionado?.lp_codigo) {
+  if (!precioSeleccionado?.lpCodigo) {
     return { ok: false, error: "Debe seleccionar un precio" };
   }
   if (!monedaSeleccionada?.moCodigo) {
@@ -65,34 +65,34 @@ export function agregarItemPedido(
   } else {
     if (monedaSeleccionada?.moCodigo === 1) {
       // Guaraníes: puedes elegir entre varios precios
-      switch (precioSeleccionado?.lp_codigo) {
+      switch (precioSeleccionado?.lpCodigo) {
         case 1:
-          precioAUsar = articulo.precio_venta_guaranies;
+          precioAUsar = articulo.precioVentaGuaranies;
           break;
         case 2:
-          precioAUsar = articulo.precio_credito;
+          precioAUsar = articulo.precioCredito;
           break;
         case 3:
-          precioAUsar = articulo.precio_mostrador;
+          precioAUsar = articulo.precioMostrador;
           break;
         default:
-          precioAUsar = articulo.precio_venta_guaranies;
+          precioAUsar = articulo.precioVentaGuaranies;
           break;
       }
     } else {
       // Otras monedas: solo puedes usar el precio correspondiente a la moneda
       switch (monedaSeleccionada?.moCodigo) {
         case 2:
-          precioAUsar = articulo.precio_venta_dolar;
+          precioAUsar = articulo.precioVentaDolar;
           break;
         case 3:
-          precioAUsar = articulo.precio_venta_real;
+          precioAUsar = articulo.precioVentaReal;
           break;
         case 4:
-          precioAUsar = articulo.precio_venta_pesos;
+          precioAUsar = articulo.precioVentaPesos;
           break;
         default:
-          precioAUsar = articulo.precio_venta_guaranies;
+          precioAUsar = articulo.precioVentaGuaranies;
           break;
       }
     }
@@ -121,7 +121,7 @@ export function agregarItemPedido(
 
   const nuevoItem: DetallePedidoTabla = {
     dp_pedido: 0,
-    dp_articulo: articulo.id_articulo,
+    dp_articulo: articulo.idArticulo,
     dp_cantidad: cantidad,
     dp_precio: precioAUsar,
     dp_descuento: descuento || 0,
@@ -129,9 +129,9 @@ export function agregarItemPedido(
     dp_cinco: cinco || 0,
     dp_diez: diez || 0,
     dp_lote: articulo.lote,
-    dp_vence: articulo.vencimiento_lote,
+    dp_vence: articulo.vencimientoLote,
     dp_vendedor: vendedorSeleccionado?.op_codigo,
-    dp_codigolote: articulo.id_lote,
+    dp_codigolote: articulo.idLote,
     dp_facturado: 0,
     dp_porcomision: 0,
     dp_actorizado: 0,
@@ -140,7 +140,7 @@ export function agregarItemPedido(
     dp_descripcion_art: "",
     dp_obs: "",
     cantidad_cargada: 0,
-    codigo: articulo.codigo_barra,
+    codigo: articulo.codigoBarra,
     descripcion: articulo.descripcion,
     precioUnitario: precioAUsar,
     subtotal: precioAUsar * cantidad - (descuento || 0),

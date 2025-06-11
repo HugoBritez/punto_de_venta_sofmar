@@ -15,7 +15,7 @@ export const useSucursalesStore = create<SucursalesStore>((set)=>({
     fetchSucursales: async ()=>{
         try{
             const response = await getSucursales()
-            set({sucursales: Array.isArray(response.data) ? response.data : [response.data]})
+            set({sucursales: Array.isArray(response) ? response : [response]})
         }catch(error){
             console.error('Error al obtener las sucursales:', error)
         }
@@ -23,7 +23,7 @@ export const useSucursalesStore = create<SucursalesStore>((set)=>({
     fetchSucursalesPorOperador: async (operador: number)=>{
         try{
             const response = await getSucursales({ operador })
-            set({sucursales: Array.isArray(response.data) ? response.data : [response.data]})
+            set({sucursales: Array.isArray(response ) ? response : [response]})
         }catch(error){
             console.error('Error al obtener las sucursales:', error)
         }

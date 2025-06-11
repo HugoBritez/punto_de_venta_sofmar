@@ -44,7 +44,8 @@ import VentaBalconNuevo from "./views/puntodeventa/VentaBalcon";
 import ModeloTicket from "./views/facturacion/ModeloTicket";
 import ModeloFactura from "./views/facturacion/ModeloFactura";
 import PuntoDeVentaNuevo from "./views/puntodeventa/PuntoDeVenta";
-import FormularioPresupuestos from "./views/presupuestos/FormularioPresupuestos";
+// import FormularioPresupuestos from "./views/presupuestos/FormularioPresupuestos";
+import ReportePedidosFacturados from "./views/modulo-reportes/pages/ReportePedidosFacturados";
 import Configuraciones from "./views/configuraciones/Configuraciones";
 import FacturaSend from "./views/playground/FacturaSendTesting";
 import FormularioArticulo from "./views/articulos/components/FormularioArticulo";
@@ -170,7 +171,7 @@ function App() {
                 />
                 <Route path="/dashboard" element={<VentasDashboard />} />
                 <Route path="/presupuestos" element={<Presupuestos />} />
-                <Route path="/presupuestos-nuevo" element={<FormularioPresupuestos />} />
+                {/* <Route path="/presupuestos-nuevo" element={<FormularioPresupuestos />} /> */}
                 <Route
                   path="/consulta-de-presupuestos"
                   element={<ConsultaPresupuestos />}
@@ -197,6 +198,7 @@ function App() {
                 <Route path="/consulta-pedidos-faltantes" element={<ConsultaPedidosFaltantes />} />
                 <Route path="/gestion-direcciones" element={<GestionDirecciones />} />
                 <Route path="/crear-persona" element={<PersonasList />} />
+                <Route path="/informe-pedidos-facturados" element={<ReportePedidosFacturados />} />
               </Route>
               <Route path="/" element={<Navigate to="/home" replace />} />
               <Route path="/404" element={<NoExiste />} />

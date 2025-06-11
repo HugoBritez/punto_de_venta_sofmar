@@ -6,7 +6,7 @@ import { useVirtualizer } from "@tanstack/react-virtual"
 import { useEffect, useRef, useState, useMemo, useCallback } from "react"
 import CrearPersonaForm from "./components/CrearPersonaForm"
 import { puedeCrear, puedeEditar } from "@/shared/utils/verificarPermiso"
-import { useMediaQuery, useToast } from "@chakra-ui/react"
+import {  useToast } from "@chakra-ui/react"
 
 // Componente de loading con animación - SOLO para la tabla
 const TableLoadingSpinner = () => (
@@ -537,15 +537,12 @@ const PersonasList = () => {
             </div>
         );
     }
-
-    const [isMobile] = useMediaQuery('(max-width: 768px)')
-
     return (
         <div className="flex flex-col w-full  p-2 h-screen ">
             <div className="bg-blue-200 rounded-xl shadow-lg border border-gray-200 overflow-hidden h-full">
                 {/* Header con título y botón crear - Este se mantiene estático */}
                 <div className="px-6 py-4 border-b border-gray-200 bg-blue-200 ">
-                    <div className={isMobile ? "flex flex-col gap-4" : "flex items-center justify-between mb-4"}>
+                    <div className="flex flex-col sm:flex-row sm:justify-between gap-4">
                         <div>
                             <h1 className="text-2xl font-bold text-gray-900">Listado de Personas</h1>
                             <p className="text-sm text-gray-600 mt-1">
@@ -554,7 +551,7 @@ const PersonasList = () => {
                         </div>
                         <button
                             onClick={handleCreate}
-                            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 shadow-sm"
+                            className="inline-flex  items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 shadow-sm"
                         >
                             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -564,9 +561,9 @@ const PersonasList = () => {
                     </div>
 
                     {/* Filtros - Estos también se mantienen estáticos */}
-                    <div className={isMobile ? "flex flex-col-reverse mt-4 gap-4" :"flex flex-col sm:flex-row gap-4"}>
+                    <div className="flex flex-col sm:flex-row sm:mt-4 gap-4">
                         {/* Filtro de tipo */}
-                        <div className="flex-shrink-0">
+                        <div className="flex-shrink-0 mt-4 sm:mt-0">
                             <select
                                 value={tipo}
                                 onChange={(e) => setTipo(Number(e.target.value))}
