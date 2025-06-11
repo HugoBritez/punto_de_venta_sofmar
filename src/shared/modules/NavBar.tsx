@@ -240,6 +240,15 @@ const Sidebar = () => {
           path: "/presupuestos-nuevo",
           enabled: true,
         },
+        {
+          grupo: 2,
+          orden: 36,
+          id: 74,
+          name: "Pedidos Facturados",
+          icon: FileChartColumnIncreasing,
+          path: "/informe-pedidos-facturados",
+          enabled: true,
+        },
       ],
     },
     {
@@ -292,15 +301,7 @@ const Sidebar = () => {
           path: "/informe-de-ventas",
           enabled: true,
         },
-        {
-          grupo: 2,
-          orden: 36,
-          id: 74,
-          name: "Pedidos Facturados",
-          icon: FileChartColumnIncreasing,
-          path: "/informe-pedidos-facturados",
-          enabled: true,
-        },
+        
       ],
     },
     {

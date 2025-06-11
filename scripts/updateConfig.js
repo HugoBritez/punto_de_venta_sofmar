@@ -75,10 +75,10 @@ const configs = {
     title: "Lamberty",
   },
   local: {
-    api_url: "https://localhost:5069/api/",
+    api_url: "https://localhost:4024/api/",
     db: "local",
     version: "1.2.4",
-    title: "Sofmar",
+    title: "Local",
   },
   rustimemo: {
     api_url: "https://node.sofmar.com.py:4026/api/",
