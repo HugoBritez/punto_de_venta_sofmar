@@ -25,7 +25,6 @@ export interface PedidosFacturadosViewModel {
     totalVenta: number;
     diferenciaTotal: number;
     fechaPedido: string;
-    
 }
 
 export const getPedidosFacturados = async (props: PedidosFacturadosProps): Promise<PedidosFacturadosViewModel[]> => {

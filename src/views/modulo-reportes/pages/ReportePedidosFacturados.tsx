@@ -8,17 +8,17 @@ import { generarExcelReportePedidosFacturados } from "../utils/importarAExcel"
 
 // Componente de loading con animación
 const TableLoadingSpinner = () => (
-    <div className="flex items-center justify-center p-8">
+    <div className="flex items-center justify-center p-8 h-full">
         <div className="flex items-center space-x-3">
-            <div className="w-6 h-6 border-2 border-blue-200 rounded-full animate-spin border-t-blue-600"></div>
-            <span className="text-sm text-gray-600">Cargando...</span>
+            <div className="w-10 h-10 border-2 border-blue-200 rounded-full animate-spin border-t-blue-600"></div>
+            <span className="text-2xl text-gray-600 font-medium">Cargando reporte...</span>
         </div>
     </div>
 );
 
 // Componente de error
 const ErrorState = ({ onRetry }: { onRetry?: () => void }) => (
-    <div className="flex items-center justify-center p-12">
+    <div className="flex items-center justify-center p-12 h-full">
         <div className="text-center max-w-md">
             <div className="mb-4">
                 <div className="w-16 h-16 mx-auto bg-red-100 rounded-full flex items-center justify-center">
@@ -27,8 +27,8 @@ const ErrorState = ({ onRetry }: { onRetry?: () => void }) => (
                     </svg>
                 </div>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Error al cargar el reporte</h3>
-            <p className="text-gray-600 mb-6">No pudimos obtener la información. Por favor, verifica tu conexión e intenta nuevamente.</p>
+            <h3 className="text-2xl font-bold text-gray-800 mb-2">Error al cargar el reporte</h3>
+            <p className="text-gray-500 text-lg mb-6">No pudimos obtener la información. Por favor, verifica tu conexión e intenta nuevamente.</p>
             {onRetry && (
                 <button
                     onClick={onRetry}
@@ -46,7 +46,7 @@ const ErrorState = ({ onRetry }: { onRetry?: () => void }) => (
 
 // Componente para estado vacío
 const EmptyState = () => (
-    <div className="flex items-center justify-center p-12">
+    <div className="flex items-center justify-center p-12 h-full">
         <div className="text-center max-w-md">
             <div className="mb-4">
                 <div className="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center">
@@ -55,8 +55,8 @@ const EmptyState = () => (
                     </svg>
                 </div>
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No hay datos disponibles</h3>
-            <p className="text-gray-500">No se encontraron pedidos facturados para los criterios seleccionados.</p>
+            <h3 className="text-2xl font-bold text-gray-800 mb-2">No hay datos disponibles</h3>
+            <p className="text-gray-500 text-lg">No se encontraron pedidos facturados para los criterios seleccionados.</p>
         </div>
     </div>
 );
@@ -125,6 +125,7 @@ const ReportePedidosFacturados = () => {
     {
       accessorKey: "marca",
       header: "Marca",
+      enableColumnFilter: true,
       enableSorting: true,
       size: 150,
     },
@@ -254,7 +255,7 @@ const ReportePedidosFacturados = () => {
             </div>
 
             {/* Filtros de columna */}
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-5 gap-4">
               {table.getColumn('nombreCliente') && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Filtrar por Cliente</label>
@@ -291,6 +292,18 @@ const ReportePedidosFacturados = () => {
                   />
                 </div>
               )}
+              {table.getColumn('marca') && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Filtrar por Marca</label>
+                  <input
+                    type="text"
+                    value={(table.getColumn('marca')?.getFilterValue() as string) ?? ''}
+                    onChange={(e) => table.getColumn('marca')?.setFilterValue(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    placeholder="Buscar marca..."
+                  />
+                </div>
+              )}
               <div className="flex justify-end">
                 <button 
                   onClick={handleExportExcel}
@@ -320,10 +333,10 @@ const ReportePedidosFacturados = () => {
           ) : !reporte || reporte.length === 0 ? (
             <EmptyState />
           ) : (
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 overflow-hidden h-full">
               <div
                 ref={tableContainerRef}
-                className="overflow-auto h-[600px] bg-white"
+                className="overflow-auto h-full min-h-[1000px] bg-white"
                 style={{
                   position: 'relative',
                   scrollbarWidth: 'thin'

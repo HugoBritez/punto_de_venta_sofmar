@@ -18,18 +18,9 @@ export const generarExcelReportePedidosFacturados = (pedidos: PedidosFacturadosV
     "Cant. Facturada": pedido.cantidadFacturada,
     "Cant. Faltante": pedido.cantidadFaltante,
     "Vendedor": pedido.vendedor,
-    "Total Pedido": new Intl.NumberFormat('es-PY', {
-      style: 'currency',
-      currency: 'PYG'
-    }).format(pedido.totalPedido),
-    "Total Venta": new Intl.NumberFormat('es-PY', {
-      style: 'currency',
-      currency: 'PYG'
-    }).format(pedido.totalVenta),
-    "Diferencia": new Intl.NumberFormat('es-PY', {
-      style: 'currency',
-      currency: 'PYG'
-    }).format(pedido.diferenciaTotal),
+    "Total Pedido": pedido.totalPedido,
+    "Total Venta": pedido.totalVenta,
+    "Diferencia": pedido.diferenciaTotal,
   }));
 
   // Crear la hoja de pedidos

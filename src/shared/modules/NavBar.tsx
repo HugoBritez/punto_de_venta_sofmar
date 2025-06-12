@@ -242,12 +242,23 @@ const Sidebar = () => {
         },
         {
           grupo: 2,
-          orden: 36,
+          orden: 68,
           id: 74,
-          name: "Pedidos Facturados",
+          name: "Reportes",
           icon: FileChartColumnIncreasing,
-          path: "/informe-pedidos-facturados",
+          path: "/reportes",
           enabled: true,
+          subItems: [
+            {
+              grupo: 2,
+              orden: 36,
+              id: 74,
+              name: "Pedidos Facturados",
+              icon: FileChartColumnIncreasing,
+              path: "/informe-pedidos-facturados",
+              enabled: true,
+            },
+          ],
         },
       ],
     },
@@ -579,7 +590,7 @@ useEffect(() => {
     };
   }, []);
 
-  const renderNavItem = (item: NavItem) => (
+  const renderNavItem = (item: NavItem, level: number = 0) => (
     <GridItem key={item.name} borderTopLeftRadius="15px">
       {item.subItems ? (
         <Box>
@@ -626,51 +637,56 @@ useEffect(() => {
           </Tooltip>
           {expandedItem === item.name && isExpanded && (
             <Box
-              ml={4}
+              ml={4 * (level + 1)}
               transition="all 0.3s"
             >
               {item.subItems.map((subItem) => (
-                <Link
-                  key={subItem.name}
-                  to={subItem.path}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onClose();
-                  }}
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    pointerEvents: subItem.enabled ? "auto" : "none",
-                  }}
-                >
-                  <Flex
-                    align="center"
-                    px={2}
-                    py={2}
-                    mx={2}
-                    my={1}
-                    borderRadius={"8px"}
-                    transition="all 0.3s"
-                    className={subItem.enabled ? "hover:bg-blue-100" : ""}
-                    opacity={subItem.enabled ? 1 : 0.5}
-                  >
-                    <Icon
-                      as={subItem.icon}
-                      boxSize={4}
-                      color={
-                        location.pathname === subItem.path && subItem.enabled
-                          ? "blue.500"
-                          : "black"
-                      }
-                      mr={2}
-                    />
-                    {isExpanded && (
-                      <Text fontSize="md" color="black">
-                        {subItem.name}
-                      </Text>
-                    )}
-                  </Flex>
-                </Link>
+                <Box key={subItem.name}>
+                  {subItem.subItems ? (
+                    renderNavItem(subItem, level + 1)
+                  ) : (
+                    <Link
+                      to={subItem.path}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onClose();
+                      }}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        pointerEvents: subItem.enabled ? "auto" : "none",
+                      }}
+                    >
+                      <Flex
+                        align="center"
+                        px={2}
+                        py={2}
+                        mx={2}
+                        my={1}
+                        borderRadius={"8px"}
+                        transition="all 0.3s"
+                        className={subItem.enabled ? "hover:bg-blue-100" : ""}
+                        opacity={subItem.enabled ? 1 : 0.5}
+                      >
+                        <Icon
+                          as={subItem.icon}
+                          boxSize={4}
+                          color={
+                            location.pathname === subItem.path && subItem.enabled
+                              ? "blue.500"
+                              : "black"
+                          }
+                          mr={2}
+                        />
+                        {isExpanded && (
+                          <Text fontSize="md" color="black">
+                            {subItem.name}
+                          </Text>
+                        )}
+                      </Flex>
+                    </Link>
+                  )}
+                </Box>
               ))}
             </Box>
           )}
