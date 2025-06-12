@@ -869,6 +869,7 @@ const PlanificacionRuteamientos = () => {
         }}
         idField="op_codigo"
         displayField="op_nombre"
+        secondaryDisplayField="op_codigo"
         searchPlaceholder={`${operadorNombre}`}
         selectedItems={vendedoresSeleccionadosParaFiltro?.map((codigo) => {
           const vendedor = vendedores.find(

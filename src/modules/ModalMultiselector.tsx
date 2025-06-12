@@ -24,6 +24,7 @@ interface ModalMultiselectorProps<T> {
   searchPlaceholder?: string;
   idField: keyof T;
   displayField: keyof T;
+  secondaryDisplayField?: keyof T;
   selectedItems: T[];
   onConfirm?: () => void;
 }
@@ -38,6 +39,7 @@ export const ModalMultiselector = <T extends Record<string, any>>({
   searchPlaceholder = "Buscar...",
   idField,
   displayField,
+  secondaryDisplayField,
   selectedItems = [],
   onConfirm,
 }: ModalMultiselectorProps<T>) => {
@@ -73,6 +75,7 @@ export const ModalMultiselector = <T extends Record<string, any>>({
               return (
                 <Box
                   key={item[idField]}
+                  display={"flex"}
                   p={2}
                   rounded={"md"}
                   bg={isSelected ? "blue.100" : "gray.100"}
@@ -82,7 +85,12 @@ export const ModalMultiselector = <T extends Record<string, any>>({
                     onSelect(item);
                   }}
                 >
-                  <Text>{item[displayField]}</Text>
+                  {
+                    secondaryDisplayField && (
+                      <Text fontSize={"md"} fontWeight={"semibold"} color={"gray.500"} mr={2}>{item[secondaryDisplayField]} -</Text>
+                    )
+                  }
+                  <Text fontSize={"md"} fontWeight={"bold"}>{item[displayField]}</Text>
                 </Box>
               );
             })}
