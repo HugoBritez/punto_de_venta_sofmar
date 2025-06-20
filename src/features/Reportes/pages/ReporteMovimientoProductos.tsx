@@ -1,0 +1,924 @@
+import { useRef, useState, useEffect } from "react";
+import type { DetalleMovimientosArticulos, GetReporteMovimientoArticulosParams, TotalesMovimientoArticulos } from "../../../shared/types/reportes";
+import { useGetReporteMovimientoArticulos } from "../../../shared/hooks/querys/useReportes";
+import { getCoreRowModel, getSortedRowModel, getFilteredRowModel, useReactTable, type ColumnDef, type ColumnFiltersState, flexRender, type Table } from "@tanstack/react-table";
+import { useSucursales } from "../../../shared/hooks/querys/useSucursales";
+import { useDepositos } from "../../../shared/hooks/querys/useDepositos";
+import { useGetCategorias } from "../../../shared/hooks/querys/useCategorias";
+import { useGetMarcas } from "../../../shared/hooks/querys/useMarcas";
+import { useMonedas } from "../../../shared/hooks/querys/useMonedas";
+import { useUsuarios } from "../../../shared/hooks/querys/useUsuarios";
+import { useGetCiudades } from "../../../shared/hooks/querys/useCiudades";
+import { useGetProveedores } from "../../../shared/hooks/querys/useProveedores";
+import { Autocomplete } from "../../../shared/components/Autocomplete/AutocompleteComponent";
+import { useVirtualizer } from "@tanstack/react-virtual";
+import type { CategoriaViewModel } from "../../../shared/types/categoria";
+import type { MarcaViewModel } from "../../../shared/types/marcas";
+import type { ProveedoresViewModel } from "../../../shared/types/proveedores";
+import type { SucursalViewModel } from "../../../shared/types/sucursal";
+import type { DepositoViewModel } from "../../../shared/types/depositos";
+import type { Ciudad } from "../../../shared/types/ciudad";
+import type { UsuarioViewModel } from "../../../shared/types/operador";
+import type { Moneda } from "../../../shared/types/moneda";
+import { useListaDePrecios } from "../../../shared/hooks/querys/useListaDePrecios";
+import { useActualizarMetaAcordada } from "../../../shared/hooks/mutations/ventas/actualizarMeta";
+import { useToast } from "../../../shared/context/ToastContext";
+import { exportarDatosAExcel } from "../../../shared/utils/exportarAExcel";
+import { esAdmin, esSupervisor } from "../../../shared/utils/permisosRoles";
+import { permisoVerCosto } from "../../../shared/utils/permisoVerCosto";
+import { useAuthStore } from "../../../shared/stores/authStore";
+import { ProveedorRepository } from "../../../shared/api/proveedoresRepository";
+import { FormButtons } from "../../../shared/components/FormButtons/FormButtons";
+import { ReporteMovimientoProductosPDF } from "../docs/ReporteMovimientoProductosPDF";
+
+const ReporteMovimientoProductos = () => {
+    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+    const tableContainerRef = useRef<HTMLDivElement>(null)
+    const usuario = useAuthStore.getState().usuario;
+    const user_id = useAuthStore.getState().usuario?.op_codigo;
+
+    const [formParams, setFormParams] = useState<GetReporteMovimientoArticulosParams>({
+        AnioInicio: new Date().getFullYear(),
+        cantidadAnios: 3,
+        VendedorId: esAdmin() || esSupervisor() ? undefined : user_id,
+        CategoriaId: undefined,
+        ClienteId: undefined,
+        MarcaId: undefined,
+        ArticuloId: undefined,
+        CiudadId: undefined,
+        SucursalId: undefined,
+        DepositoId: undefined,
+        MonedaId: 1,
+        ProveedorId: undefined,
+        VerUtilidadYCosto: false,
+        MovimientoPorFecha: false,
+    })
+
+    const { data: reporteMovimientoArticulos, isLoading, isError } = useGetReporteMovimientoArticulos(formParams);
+    const { data: Sucursales, isLoading: isLoadingSucursales, isError: isErrorSucursales } = useSucursales();
+    const { data: Depositos, isLoading: isLoadingDepositos, isError: isErrorDepositos } = useDepositos();
+    const { data: Categorias, isLoading: isLoadingCategorias, isError: isErrorCategorias } = useGetCategorias();
+    const { data: Marcas, isLoading: isLoadingMarcas, isError: isErrorMarcas } = useGetMarcas();
+    const { data: Monedas, isLoading: isLoadingMonedas, isError: isErrorMonedas } = useMonedas();
+    const { data: Vendedores, isLoading: isLoadingVendedores, isError: isErrorVendedores } = useUsuarios(undefined, 5);
+    const { data: Ciudades, isLoading: isLoadingCiudades, isError: isErrorCiudades } = useGetCiudades();
+    const { data: Proveedores, isLoading: isLoadingProveedores, isError: isErrorProveedores } = useGetProveedores();
+    const { data: ListaPrecios } = useListaDePrecios();
+
+    const [selectedSucursal, setSelectedSucursal] = useState<SucursalViewModel | null>(null);
+    const [selectedDeposito, setSelectedDeposito] = useState<DepositoViewModel | null>(null);
+    const [selectedProveedor, setSelectedProveedor] = useState<ProveedoresViewModel | null>(null);
+    const [selectedMarca, setSelectedMarca] = useState<MarcaViewModel | null>(null);
+    const [selectedCategoria, setSelectedCategoria] = useState<CategoriaViewModel | null>(null);
+    const [selectedVendedor, setSelectedVendedor] = useState<UsuarioViewModel | null>(esAdmin() || esSupervisor() ? null : Vendedores?.find(vendedor => vendedor.op_codigo === user_id) ?? null);
+    const [selectedMoneda, setSelectedMoneda] = useState<Moneda | null>(null);
+    const [selectedCiudad, setSelectedCiudad] = useState<Ciudad | null>(null);
+
+    // Agregar estado para el filtro global
+    const [globalFilter, setGlobalFilter] = useState('');
+
+    // Agregar estados de carga para los botones
+    const [isLoadingExcel, setIsLoadingExcel] = useState(false);
+    const [isLoadingPDF, setIsLoadingPDF] = useState(false);
+    const [isLoadingLimpiar, setIsLoadingLimpiar] = useState(false);
+
+    const handleLimpiarFiltros = async () => {
+        setIsLoadingLimpiar(true);
+        try {
+            // Simular un pequeño delay para mostrar el estado de carga
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            setFormParams({
+                AnioInicio: new Date().getFullYear(),
+                cantidadAnios: 3,
+                VendedorId: esAdmin() || esSupervisor() ? undefined : user_id,
+                CategoriaId: undefined,
+                ClienteId: undefined,
+                MarcaId: undefined,
+                ArticuloId: undefined,
+                CiudadId: undefined,
+                SucursalId: undefined,
+                DepositoId: undefined,
+                MonedaId: 1,
+                ProveedorId: undefined,
+                VerUtilidadYCosto: false,
+                MovimientoPorFecha: false,
+            });
+            
+            // Limpiar también los selects
+            setSelectedSucursal(null);
+            setSelectedDeposito(null);
+            setSelectedProveedor(null);
+            setSelectedMarca(null);
+            setSelectedCategoria(null);
+            setSelectedVendedor(esAdmin() || esSupervisor() ? null : Vendedores?.find(vendedor => vendedor.op_codigo === user_id) ?? null);
+            setSelectedMoneda(null);
+            setSelectedCiudad(null);
+            setGlobalFilter('');
+            
+            showToast('success', 'Filtros limpiados correctamente', '', 'bottom-center');
+        } catch (error) {
+            console.error('Error al limpiar filtros:', error);
+            showToast('error', 'Error al limpiar los filtros', '', 'bottom-center');
+        } finally {
+            setIsLoadingLimpiar(false);
+        }
+    };
+
+    const { showToast } = useToast();
+
+    useEffect(() => {
+        console.log(reporteMovimientoArticulos?.detalles)
+    }, [reporteMovimientoArticulos?.detalles])
+
+    const handleFiltrosChange = (nombre: string, valor: string) => {
+        setFormParams({
+            ...formParams,
+            [nombre]: valor
+        })
+    }
+
+    const handleGenerarExcel = async () => {
+        if (!reporteMovimientoArticulos?.detalles || reporteMovimientoArticulos.detalles.length === 0) {
+            showToast('error', 'No hay datos disponibles para exportar a Excel', '', 'bottom-center');
+            return;
+        }
+
+        setIsLoadingExcel(true);
+        try {
+            // Usar setTimeout para permitir que React actualice el estado antes de ejecutar la función
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            exportarDatosAExcel(
+                reporteMovimientoArticulos.detalles,
+                'reporte-movimiento-articulos',
+                'Reporte Articulos'
+            );
+            
+            showToast('success', 'Excel generado correctamente', '', 'bottom-center');
+        } catch (error) {
+            console.error('Error al generar Excel:', error);
+            showToast('error', 'Error al generar el Excel', '', 'bottom-center');
+        } finally {
+            setIsLoadingExcel(false);
+        }
+    };
+
+    const handleGenerarPDF = async () => {
+        if (!reporteMovimientoArticulos || !usuario) {
+            showToast('error', 'No hay datos disponibles para generar el PDF', '', 'bottom-center');
+            return;
+        }
+
+        setIsLoadingPDF(true);
+        try {
+            // Usar setTimeout para permitir que React actualice el estado antes de ejecutar la función
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            const filtros = {
+                anioInicio: formParams.AnioInicio,
+                cantidadAnios: formParams.cantidadAnios,
+                sucursal: selectedSucursal?.descripcion || 'Todas',
+                deposito: selectedDeposito?.dep_descripcion || 'Todos',
+                proveedor: selectedProveedor?.proRazon || 'Todos',
+                marca: selectedMarca?.maDescripcion || 'Todas',
+                categoria: selectedCategoria?.caDescripcion || 'Todas',
+                vendedor: selectedVendedor?.op_nombre || 'Todos',
+                moneda: selectedMoneda?.moDescripcion || 'Todas',
+                ciudad: selectedCiudad?.descripcion || 'Todas'
+            };
+
+            const pdf = ReporteMovimientoProductosPDF({
+                reporte: reporteMovimientoArticulos,
+                sucursalData: selectedSucursal || Sucursales?.[0] || {
+                    id: 0,
+                    descripcion: 'Todas las sucursales',
+                    ruc_emp: 'N/A',
+                    nombre_emp: 'Empresa',
+                    direccion: '',
+                    matriz: 0
+                },
+                usuarioData: usuario,
+                filtros
+            });
+
+            pdf.download(`Reporte-Movimiento-Productos-${new Date().toISOString().split('T')[0]}.pdf`);
+            
+            showToast('success', 'PDF generado correctamente', '', 'bottom-center');
+        } catch (error) {
+            console.error('Error al generar PDF:', error);
+            showToast('error', 'Error al generar el PDF', '', 'bottom-center');
+        } finally {
+            setIsLoadingPDF(false);
+        }
+    };
+
+    const { mutate: actualizarMetaAcordada } = useActualizarMetaAcordada();
+
+    // Genera dinámicamente las columnas de años según cantidadAnios
+    const getYearColumns = () => {
+        const cols = [];
+        for (let i = formParams.cantidadAnios - 1; i >= 0; i--) {
+            const year = formParams.AnioInicio - i;
+            cols.push(
+                {
+                    accessorKey: `cantidadAnio${i + 1}`,
+                    header: `Unidades ${year}`,
+                    size: 120,
+                    cell: ({ row }: any) => (
+                        <div className="text-center">
+                            {row.original[`cantidadAnio${i + 1}`]}
+                        </div>
+                    ),
+                },
+                {
+                    accessorKey: `importeAnio${i + 1}`,
+                    header: `Importe ${year}`,
+                    size: 120,
+                    cell: ({ row }: any) => (
+                        <div className="text-right">
+                            {row.original[`importeAnio${i + 1}`]?.toLocaleString('es-PY')}
+                        </div>
+                    ),
+                }
+            );
+        }
+        return cols;
+    };
+
+    // Definición de columnas principal
+    const columns: ColumnDef<DetalleMovimientosArticulos>[] = [
+        {
+            accessorKey: 'codigoArticulo',
+            header: "Código",
+            enableSorting: true,
+            size: 100,
+        },
+        {
+            accessorKey: 'descripcion',
+            header: "Descripción",
+            enableSorting: true,
+            size: 400,
+            enableColumnFilter: true,
+        },
+        {
+            accessorKey: 'stock',
+            header: "Stock",
+            size: 120,
+            cell: ({ row }) => {
+                return <div className="text-center">
+                    {row.original.stock}
+                </div>
+            }
+        },
+        {
+            accessorKey: 'costo',
+            header: "Costo",
+            size: 120,
+            enableHiding: true,
+            enableSorting: true,
+            cell: ({ row }) => {
+                if (!permisoVerCosto()) {
+                    return null;
+                }
+                return (
+                    <div className="text-right">
+                        {row.original.costo.toLocaleString('es-PY')}
+                    </div>
+                );
+            }
+        },
+        {
+            accessorKey: 'precioVenta1',
+            header: `Precio ${ListaPrecios?.[0]?.lpDescripcion ?? "Venta 1"}`,
+            size: 120,
+            cell: ({ row }) => {
+                return (
+                    <div className="text-right">
+                        {row.original.precioVenta1.toLocaleString('es-PY')}
+                    </div>
+                );
+            }
+        },
+        {
+            accessorKey: 'precioVenta2',
+            header: `Precio ${ListaPrecios?.[1]?.lpDescripcion ?? "Venta 2"}`,
+            size: 120,
+            cell: ({ row }) => {
+                return (
+                    <div className="text-right">
+                        {row.original.precioVenta2.toLocaleString('es-PY')}
+                    </div>
+                );
+            }
+        },
+        {
+            accessorKey: 'precioVenta3',
+            header: `Precio ${ListaPrecios?.[2]?.lpDescripcion ?? "Venta 3"}`,
+            size: 120,
+            cell: ({ row }) => {
+                return (
+                    <div className="text-right">
+                        {row.original.precioVenta3.toLocaleString('es-PY')}
+                    </div>
+                );
+            }
+        },
+        // Inserta aquí las columnas de años dinámicas
+        ...getYearColumns(),
+        {
+            accessorKey: 'demandaPromedio',
+            header: `Demanda Promedio`,
+            size: 120,
+            cell: ({ row }) => {
+                return <div className="text-right">
+                    {row.original.demandaPromedio.toLocaleString('es-PY', { maximumFractionDigits: 2 })}
+                </div>
+            }
+        },
+        {
+            accessorKey: 'metaAcordada',
+            header: `Meta ${formParams.AnioInicio}`,
+            size: 150,
+            cell: ({ row }) => {
+                const [valor, setValor] = useState(
+                    row.original.metaAcordada !== undefined && row.original.metaAcordada !== null
+                        ? String(row.original.metaAcordada)
+                        : ""
+                );
+
+                useEffect(() => {
+                    setValor(
+                        row.original.metaAcordada !== undefined && row.original.metaAcordada !== null
+                            ? String(row.original.metaAcordada)
+                            : ""
+                    );
+                }, [row.original.metaAcordada]);
+
+                function guardarMeta() {
+                    if (valor === "" || Number(valor) < 0) {
+                        showToast('error', 'Ingrese un valor válido (mayor o igual a 0)', '', 'bottom-center');
+                        setValor(
+                            row.original.metaAcordada !== undefined && row.original.metaAcordada !== null
+                                ? String(row.original.metaAcordada)
+                                : ""
+                        );
+                        return;
+                    }
+
+                    if (!selectedVendedor) {
+                        showToast('error', 'No se puede actualizar la meta sin seleccionar un vendedor', '', 'bottom-center');
+                        return;
+                    }
+
+                    actualizarMetaAcordada({
+                        id: 0,
+                        articuloId: row.original.codigoArticulo,
+                        operadorId: selectedVendedor?.op_codigo,
+                        metaAcordada: Number(valor),
+                        periodo: formParams.AnioInicio,
+                        estado: true
+                    });
+                    showToast('success', 'Meta actualizada correctamente', '', 'bottom-center');
+                }
+
+                if (!esAdmin() && !esSupervisor()) {
+                    return <div className="text-center">
+                        {row.original.metaAcordada?.toLocaleString('es-PY', { maximumFractionDigits: 2 }) ?? ""}
+                    </div>;
+                }
+
+                return (
+                    <input
+                        type="number"
+                        min={0}
+                        className="text-center border rounded border-blue-500 focus:border-blue-700 focus:ring-blue-700 px-2 py-1 w-full"
+                        value={valor}
+                        onChange={e => setValor(e.target.value)}
+                        onBlur={guardarMeta}
+                        onKeyDown={e => {
+                            if (e.key === "Enter") {
+                                guardarMeta();
+                                e.currentTarget.blur();
+                            }
+                        }}
+                    />
+                );
+            }
+        },
+        {
+            accessorKey: 'ventaTotal',
+            header: `Venta Total`,
+            size: 120,
+            cell: ({ row }) => {
+                return <div className="text-right">
+                    {row.original.ventaTotal.toLocaleString('es-PY')}
+                </div>
+            }
+        },
+        {
+            accessorKey: 'unidadesVendidas',
+            header: `Unidades Vendidas`,
+            size: 120,
+            cell: ({ row }) => {
+                return <div className="text-right">
+                    {row.original.unidadesVendidas.toLocaleString('es-PY', { maximumFractionDigits: 2 })}
+                </div>
+            }
+        },
+        {
+            accessorKey: 'importeTotal',
+            header: `Importe Total`,
+            size: 120,
+            cell: ({ row }) => {
+                return <div className="text-right">
+                    {row.original.importeTotal.toLocaleString('es-PY')}
+                </div>
+            }
+        }
+    ]
+
+    const table = useReactTable({
+        data: reporteMovimientoArticulos?.detalles || [],
+        columns,
+        getCoreRowModel: getCoreRowModel(),
+        getSortedRowModel: getSortedRowModel(),
+        getFilteredRowModel: getFilteredRowModel(),
+        state: {
+            columnFilters,
+            globalFilter,
+        },
+        onColumnFiltersChange: setColumnFilters,
+        onGlobalFilterChange: setGlobalFilter,
+    });
+
+    useEffect(() => {
+        if (!esAdmin() && !esSupervisor() && Vendedores && user_id) {
+            const vendedor = Vendedores.find(v => v.op_codigo === user_id);
+            setSelectedVendedor(vendedor ?? null);
+        }
+    }, [Vendedores, user_id]);
+
+    const TableLoadingSpinner = () => (
+        <div className="flex items-center justify-center p-8">
+            <div className="flex items-center space-x-3">
+                <div className="w-6 h-6 border-2 border-blue-200 rounded-full animate-spin border-t-blue-600"></div>
+                <span className="text-sm text-gray-600">Cargando tabla...</span>
+            </div>
+        </div>
+    );
+
+    const ErrorState = ({ onRetry }: { onRetry?: () => void }) => (
+        <div className="flex items-center justify-center p-12">
+            <div className="text-center max-w-md">
+                <div className="mb-4">
+                    <div className="w-16 h-16 mx-auto bg-red-100 rounded-full flex items-center justify-center">
+                        <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                        </svg>
+                    </div>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Error al cargar reporte</h3>
+                <p className="text-gray-600 mb-6">No pudimos obtener la información. Por favor, verifica tu conexión e intenta nuevamente.</p>
+                {onRetry && (
+                    <button
+                        onClick={onRetry}
+                        className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    >
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Reintentar
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+
+    const EmptyState = () => (
+        <div className="flex items-center justify-center p-12">
+            <div className="text-center max-w-md">
+                <div className="mb-4">
+                    <div className="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center">
+                        <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                    </div>
+                </div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No hay reporte disponible</h3>
+                <p className="text-gray-500">No se encontraron reportes registrados en el sistema con los filtros seleccionados.</p>
+            </div>
+        </div>
+    );
+
+    interface TableBodyProps {
+        table: Table<DetalleMovimientosArticulos>;
+        tableContainerRef: React.RefObject<HTMLDivElement | null>;
+    }
+
+    function TableBody({ table, tableContainerRef }: TableBodyProps) {
+        const { rows } = table.getRowModel();
+
+        const rowVirtualizer = useVirtualizer({
+            count: rows.length,
+            estimateSize: () => 48,
+            getScrollElement: () => tableContainerRef.current,
+            overscan: 10,
+            measureElement: () => 48,
+        });
+
+        useEffect(() => {
+            rowVirtualizer.measure();
+        }, [rows.length]);
+
+        return (
+            <tbody
+                style={{
+                    height: `${rowVirtualizer.getTotalSize()}px`,
+                    width: '100%',
+                    position: 'relative',
+                }}
+            >
+                {rowVirtualizer.getVirtualItems().map(virtualRow => {
+                    const row = rows[virtualRow.index];
+                    return (
+                        <tr
+                            key={row?.id}
+                            style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                width: '100%',
+                                height: '48px',
+                                transform: `translateY(${virtualRow.start}px)`,
+                            }}
+                            className="flex border-b border-l border-r border-gray-100 hover:bg-gray-50"
+                        >
+                            {row?.getVisibleCells().map((cell) => (
+                                <td
+                                    key={cell.id}
+                                    style={{
+                                        width: cell.column.getSize(),
+                                        padding: '0.75rem 1rem',
+                                    }}
+                                    className=" border-l border-r border-gray-100 text-sm text-gray-900"
+                                >
+                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                </td>
+                            ))}
+                        </tr>
+                    );
+                })}
+            </tbody>
+        );
+    }
+
+    const TableLayout = () => {
+        if (isLoading) return <TableLoadingSpinner />;
+        if (isError) return <ErrorState />;
+        if (!reporteMovimientoArticulos?.detalles?.length) return <EmptyState />;
+
+        return (
+            <div className="h-full w-full overflow-hidden">
+                <div
+                    ref={tableContainerRef}
+                    className="h-[650px] w-full overflow-auto"
+                    style={{
+                        position: 'relative',
+                    }}
+                >
+                    <table className="w-full border-collapse">
+                        <thead className="sticky top-0 z-10 bg-blue-500">
+                            {table.getHeaderGroups().map(headerGroup => (
+                                <tr key={headerGroup.id} className="flex">
+                                    {headerGroup.headers.map(header => (
+                                        <th
+                                            key={header.id}
+                                            style={{
+                                                width: header.getSize(),
+                                            }}
+                                            className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider"
+                                        >
+                                            {flexRender(header.column.columnDef.header, header.getContext())}
+                                        </th>
+                                    ))}
+                                </tr>
+                            ))}
+                        </thead>
+                        <TableBody
+                            table={table}
+                            tableContainerRef={tableContainerRef}
+                        />
+                    </table>
+                </div>
+            </div>
+        );
+    };
+
+    // Componente para mostrar el estado de carga de los totales
+    const TotalesLoadingState = () => (
+        <div className="flex flex-row-reverse gap-4 p-4">
+            {[1, 2, 3].map((index) => (
+                <div key={index} className="flex flex-col gap-2">
+                    {[1, 2, 3].map((item) => (
+                        <div key={item} className="flex flex-row gap-2 items-center justify-end">
+                            <div className="h-8 w-48 bg-gray-200 animate-pulse rounded-md">
+                            </div>
+                            <div className="h-8 w-56 bg-amber-200 animate-pulse rounded-md flex flex-row gap-2 items-center justify-end">
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ))}
+        </div>
+    );
+
+    // Componente para mostrar los totales
+    const TotalesContent = ({
+        totales,
+        anioInicio,
+        cantidadAnios
+    }: {
+        totales: TotalesMovimientoArticulos,
+        anioInicio: number,
+        cantidadAnios: number
+    }) => (
+        <div className="flex flex-row-reverse gap-4 p-4">
+            {Array.from({ length: cantidadAnios }, (_, i) => {
+                const index = i + 1;
+                const year = anioInicio - i;
+                return (
+                    <div key={index} className="flex flex-col gap-2 bg-white rounded-md p-2">
+                        <div className="flex flex-row gap-2 items-center justify-end">
+                            <span className="font-bold text-slate-700 text-md">Total Importe {year}:</span>
+                            <span className="text-slate-800  rounded-md p-2  font-medium text-md">
+                                {totales[`totalImporteAnio${index}` as keyof TotalesMovimientoArticulos]?.toLocaleString('es-PY') ?? ""}
+                            </span>
+                        </div>
+                        <div className="flex flex-row gap-2 items-center justify-end">
+                            <span className="font-bold text-slate-700 text-md">Total unid. vendidas {year}:</span>
+                            <span className="text-slate-800  rounded-md p-2  font-medium text-md">
+                                {totales[`totalCantidadAnio${index}` as keyof TotalesMovimientoArticulos]?.toLocaleString('es-PY', { maximumFractionDigits: 0 }) ?? ""}
+                            </span>
+                        </div>
+                        <div className="flex flex-row gap-2 items-center justify-end">
+                            <span className="font-bold text-slate-700 text-md">Total Nota de credito {year}:</span>
+                            <span className="text-slate-800  rounded-md p-2  font-medium text-md">
+                                {totales[`totalNotasCreditoAnio${index}` as keyof TotalesMovimientoArticulos]?.toLocaleString('es-PY') ?? ""}
+                            </span>
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
+    );
+
+    return (
+        <div className="flex flex-col gap-4 h-[calc(100vh-32px)] p-1">
+            <div className="p-2 bg-blue-200 rounded-md h-[20%] flex flex-row gap-4">
+                <div className="grid grid-cols-4 gap-2 w-[85%] relative" style={{ zIndex: 1000 }}>
+                    <Autocomplete<SucursalViewModel>
+                        data={Sucursales || []}
+                        value={selectedSucursal || null}
+                        onChange={(sucursal) => {
+                            setSelectedSucursal(sucursal);
+                            handleFiltrosChange('SucursalId', sucursal?.id.toString() || '');
+                        }}
+                        displayField="descripcion"
+                        searchFields={["descripcion", "id"]}
+                        additionalFields={[
+                            { field: "id", label: "ID" },
+                            { field: "direccion", label: "Dirección" }
+                        ]}
+                        label="Sucursal"
+                        isLoading={isLoadingSucursales}
+                        isError={isErrorSucursales}
+                        errorMessage="Error al cargar las sucursales"
+                        disabled={isLoadingSucursales}
+                        defaultId={1}
+                    />
+                    <Autocomplete<DepositoViewModel >
+                        data={Depositos || []}
+                        value={selectedDeposito || null}
+                        onChange={(deposito) => {
+                            setSelectedDeposito(deposito);
+                            handleFiltrosChange('DepositoId', deposito?.dep_codigo.toString() || '');
+                        }}
+                        displayField="dep_descripcion"
+                        searchFields={["dep_descripcion", "dep_codigo"]}
+                        additionalFields={[
+                            { field: "dep_codigo", label: "Codigo" },
+                            { field: "dep_descripcion", label: "Deposito" }
+                        ]}
+                        label="Deposito"
+                        isLoading={isLoadingDepositos}
+                        isError={isErrorDepositos}
+                        errorMessage="Error al cargar los depositos"
+                        disabled={isLoadingDepositos}
+                    />
+                    <Autocomplete<ProveedoresViewModel>
+                        data={Proveedores || []}
+                        value={selectedProveedor || null}
+                        onChange={(proveedor) => {
+                            setSelectedProveedor(proveedor);
+                            handleFiltrosChange('ProveedorId', proveedor?.proCodigo.toString() || '');
+                        }}
+                        displayField="proRazon"
+                        searchFields={["proRazon", "proCodigo"]}
+                        additionalFields={[
+                            { field: "proCodigo", label: "Codigo" },
+                            { field: "proRazon", label: "Proveedor" }
+                        ]}
+                        label="Proveedor"
+                        isLoading={isLoadingProveedores}
+                        isError={isErrorProveedores}
+                        errorMessage="Error al cargar los proveedores"
+                        disabled={isLoadingSucursales}
+                        onSearch={ProveedorRepository.GetProveedores}
+                    />
+                    <Autocomplete<MarcaViewModel>
+                        data={Marcas || []}
+                        value={selectedMarca || null}
+                        onChange={(marca) => {
+                            setSelectedMarca(marca);
+                            handleFiltrosChange('MarcaId', marca?.maCodigo.toString() || '');
+                        }}
+                        displayField="maDescripcion"
+                        searchFields={["maDescripcion", "maCodigo"]}
+                        additionalFields={[
+                            { field: "maCodigo", label: "Codigo" },
+                            { field: "maDescripcion", label: "Marca" }
+                        ]}
+                        label="Marca"
+                        isLoading={isLoadingMarcas}
+                        isError={isErrorMarcas}
+                        errorMessage="Error al cargar las marcas"
+                        disabled={isLoadingSucursales}
+                    />
+                    <Autocomplete<CategoriaViewModel>
+                        data={Categorias || []}
+                        value={selectedCategoria || null}
+                        onChange={(categoria) => {
+                            setSelectedCategoria(categoria);
+                            handleFiltrosChange('CategoriaId', categoria?.caCodigo.toString() || '');
+                        }}
+                        displayField="caDescripcion"
+                        searchFields={["caDescripcion", "caCodigo"]}
+                        additionalFields={[
+                            { field: "caCodigo", label: "Codigo" },
+                            { field: "caDescripcion", label: "Categoria" }
+                        ]}
+                        label="Categoria"
+                        isLoading={isLoadingCategorias}
+                        isError={isErrorCategorias}
+                        errorMessage="Error al cargar las categorias"
+                        disabled={isLoadingCategorias}
+                    />
+                    <Autocomplete<UsuarioViewModel>
+                        data={Vendedores || []}
+                        value={selectedVendedor || null}
+                        onChange={(vendedor) => {
+                            setSelectedVendedor(vendedor);
+                            handleFiltrosChange('VendedorId', vendedor?.op_codigo.toString() || '');
+                        }}
+                        displayField="op_nombre"
+                        searchFields={["op_nombre", "op_codigo"]}
+                        additionalFields={[
+                            { field: "op_codigo", label: "Codigo" },
+                            { field: "op_nombre", label: "Vendedor" }
+                        ]}
+                        label="Vendedor"
+                        isLoading={isLoadingVendedores}
+                        isError={isErrorVendedores}
+                        errorMessage="Error al cargar los vendedores"
+                        disabled={isLoadingVendedores || (!esAdmin() && !esSupervisor())}
+                        id="vendedor"
+                        defaultId={
+                            !esAdmin() && !esSupervisor()
+                                ? user_id?.toString()
+                                : undefined
+                        }
+                        idField="op_codigo"
+                    />
+                    <Autocomplete<Moneda>
+                        data={Monedas || []}
+                        value={selectedMoneda || null}
+                        onChange={(moneda) => {
+                            setSelectedMoneda(moneda);
+                            handleFiltrosChange('MonedaId', moneda?.moCodigo.toString() || '');
+                        }}
+                        displayField="moDescripcion"
+                        searchFields={["moDescripcion", "moCodigo"]}
+                        additionalFields={[
+                            { field: "moCodigo", label: "Codigo" },
+                            { field: "moDescripcion", label: "Moneda" }
+                        ]}
+                        label="Moneda"
+                        isLoading={isLoadingMonedas}
+                        isError={isErrorMonedas}
+                        errorMessage="Error al cargar las monedas"
+                        disabled={isLoadingMonedas}
+                        id="moneda"
+                        defaultId={1}
+                        idField="moCodigo"
+                    />
+                    <Autocomplete<Ciudad        >
+                        data={Ciudades || []}
+                        value={selectedCiudad || null}
+                        onChange={(ciudad) => {
+                            setSelectedCiudad(ciudad);
+                            handleFiltrosChange('CiudadId', ciudad?.id.toString() || '');
+                        }}
+                        displayField="descripcion"
+                        searchFields={["descripcion", "id"]}
+                        additionalFields={[
+                            { field: "id", label: "Codigo" },
+                            { field: "descripcion", label: "Ciudad" }
+                        ]}
+                        label="Ciudad"
+                        isLoading={isLoadingCiudades}
+                        isError={isErrorCiudades}
+                        errorMessage="Error al cargar las ciudades"
+                        disabled={isLoadingCiudades}
+                    />
+                </div>
+                <div className="flex flex-col  w-[15%] justify-center h-full">
+                    <div className="flex flex-row gap-2">
+                        <select className="bg-white rounded-md p-2 border border-blue-700"
+                            value={formParams.cantidadAnios}
+                            onChange={(e) => handleFiltrosChange('cantidadAnios', e.target.value)}>
+                            <option value="Cantidad de años">Años</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                        </select>
+                        <select
+                            className="bg-white rounded-md p-2 border border-blue-700"
+                            value={formParams.AnioInicio}
+                            onChange={(e) => handleFiltrosChange('AnioInicio', e.target.value)}
+                        >
+                            <option value="">Select año</option>
+                            {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map((anio) => (
+                                <option key={anio} value={anio}>
+                                    {anio}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                    <FormButtons
+                        onClickExcel={handleGenerarExcel}
+                        onClickPDF={handleGenerarPDF}
+                        onClickLimpiar={handleLimpiarFiltros}
+                        isLoading={{
+                            excel: isLoadingExcel,
+                            pdf: isLoadingPDF,
+                            limpiar: isLoadingLimpiar
+                        }}
+                    />
+                    <div className="relative">
+                        <input
+                            type="text"
+                            placeholder="Buscar por  descripción o cód de barras..."
+                            value={globalFilter ?? ''}
+                            onChange={e => setGlobalFilter(e.target.value)}
+                            className="bg-white w-full p-2 pl-10 rounded-md border border-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div className="bg-white h-[65%] rounded-md flex flex-col gap-4 p-4">
+                <div className="flex-1 overflow-hidden">
+                    <div className="h-full">
+                        <TableLayout />
+                    </div>
+                </div>
+            </div>
+            <div className="bg-blue-200 max-h-[20%] rounded-md">
+                {isLoading ? (
+                    <TotalesLoadingState />
+                ) : isError ? (
+                    <div className="flex items-center justify-center p-4">
+                        <span className="text-red-600">Error al cargar los totales</span>
+                    </div>
+                ) : reporteMovimientoArticulos?.totales ? (
+                    <TotalesContent
+                        totales={reporteMovimientoArticulos.totales}
+                        anioInicio={formParams.AnioInicio}
+                        cantidadAnios={formParams.cantidadAnios}
+                    />
+                ) : null}
+            </div>
+        </div>
+    )
+}
+
+export default ReporteMovimientoProductos;
+
