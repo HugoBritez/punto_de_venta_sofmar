@@ -242,23 +242,12 @@ const Sidebar = () => {
         },
         {
           grupo: 2,
-          orden: 68,
+          orden: 36,
           id: 74,
-          name: "Reportes",
+          name: "Pedidos Facturados",
           icon: FileChartColumnIncreasing,
-          path: "/reportes",
+          path: "/informe-pedidos-facturados",
           enabled: true,
-          subItems: [
-            {
-              grupo: 2,
-              orden: 36,
-              id: 74,
-              name: "Pedidos Facturados",
-              icon: FileChartColumnIncreasing,
-              path: "/informe-pedidos-facturados",
-              enabled: true,
-            },
-          ],
         },
       ],
     },
@@ -312,7 +301,6 @@ const Sidebar = () => {
           path: "/informe-de-ventas",
           enabled: true,
         },
-        
       ],
     },
     {
