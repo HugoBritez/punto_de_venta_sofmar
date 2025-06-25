@@ -15,6 +15,8 @@ export const VentasRepository = {
     },
 
     async CrearVenta(venta: Venta, detalleVenta: DetalleVenta[]): Promise<VentaViewModel> {
+        console.log('venta', venta);
+        console.log('detalleVenta', detalleVenta);
         const response = await api.post(`ventas`, {
             venta,
             detalleVenta

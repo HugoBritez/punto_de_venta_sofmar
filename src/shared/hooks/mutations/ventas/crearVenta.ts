@@ -8,7 +8,11 @@ export const useCrearVenta = () => {
             return await VentasRepository.CrearVenta(params.venta, params.detalle);
         },
         onSuccess: (data) => {
+            console.log('data', data);
             return data;
+        },
+        onError: (error) => {
+            console.log('error', error);
         }
     });
 }

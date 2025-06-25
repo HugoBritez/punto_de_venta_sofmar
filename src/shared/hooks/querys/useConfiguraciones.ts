@@ -69,5 +69,17 @@ export const useConfiguracionOperacionCaja = () => {
     })
 }
 
+export const useConfiguracionImperionPorDefectoVentaRapida = () => {
+    return useQuery({
+        queryKey: ['configuracionImperionPorDefectoVentaRapida'],
+        queryFn: () => ConfiguracionesRepository.getConfiguracionById(11),
+        enabled: true,
+        refetchOnWindowFocus: false,
+        refetchOnMount: false, // No re-fetch al re-montar si ya hay datos en cache
+        refetchOnReconnect: false, // No re-fetch al reconectar internet
+        staleTime: Infinity, // Los datos nunca se consideran "obsoletos"
+    })
+}
+
 
 

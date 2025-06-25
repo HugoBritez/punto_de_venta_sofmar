@@ -12,6 +12,7 @@ export const useVerificarCompra = () => {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["ingresos"] });
+            queryClient.invalidateQueries({ queryKey: ["detalleIngreso"] });
         }
     });
 }
@@ -21,14 +22,20 @@ export const useVerificarItem = () => {
 
     return useMutation({
         mutationFn: (verificacionItemDTO: VerificacionItemDTO) => {
+            console.log('Hook useVerificarItem: Datos a enviar', verificacionItemDTO);
             return controlIngresosRepository.VerificarItem(verificacionItemDTO);
         },
         onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["ingresos"] });
             queryClient.invalidateQueries({ queryKey: ["detalleIngreso"] });
+        },
+        onError: (error: any) => {
+            console.error('Error en useVerificarItem hook:', error);
+            console.error('Datos del error:', error.response?.data);
+            console.error('Status del error:', error.response?.status);
         }
     });
 }
-
 
 export const useConfirmarIngreso = () => {
     const queryClient = useQueryClient()
@@ -39,6 +46,7 @@ export const useConfirmarIngreso = () => {
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["ingresos"] });
+            queryClient.invalidateQueries({ queryKey: ["detalleIngreso"] });
         }
     });
 }

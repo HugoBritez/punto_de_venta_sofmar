@@ -24,7 +24,7 @@ export interface IngresoDetalle {
   cantidad: number;
   cantidad_verificada: number;
   lote: string;
-  vencimiento: string;
+  vencimiento: string | Date;
   responsable: string;
 }
 

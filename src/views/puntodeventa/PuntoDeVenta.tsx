@@ -51,7 +51,6 @@ import ResumenVentas from "../ventas/ResumenVentas";
 import { createRoot } from "react-dom/client";
 import ModeloFacturaNuevo from "../facturacion/ModeloFacturaNuevo";
 import ModeloNotaComun from "../facturacion/ModeloNotaComun";
-import Auditar from "@/services/AuditoriaHook";
 import { FacturaSendResponse } from "@/types/factura_electronica/types";
 import { useFacturacionElectronicaStore } from "@/stores/facturacionElectronicaStore";
 import { useFacturaSend } from "@/hooks/useFacturaSend";
@@ -59,8 +58,12 @@ import { useTipoImpresionFacturaStore } from "@/stores/tipoImpresionFacturaStore
 import ModeloFacturaReport from "../facturacion/ModeloFacturaReport";
 import ArticuloInfoCard from "@/modules/ArticuloInfoCard";
 import BuscadorClientes from "@/ui/clientes/BuscadorClientes";
-import { useConfiguraciones } from "@/services/configuraciones/configuracionesHook";
 import { SelectorTimbrado } from "@/shared/components/Facturacion/SelectorTimbrado";
+import { usePuntoVentaStore } from "./stores/puntoDeVentaStore";
+import { useClientePorDefecto, useConfiguracionImperionPorDefectoVentaRapida } from "@/shared/hooks/querys/useConfiguraciones";
+import { mapPuntoDeVentaToVenta } from "../ventas/core/utils/mappers";
+import { DetalleVenta } from "@/shared/types/venta";
+import { useCrearVenta } from "@/shared/hooks/mutations/ventas/crearVenta";
 
 interface ItemParaVenta {
   precio_guaranies: number;
@@ -196,6 +199,7 @@ const useTotalesVenta = (items: ItemParaVenta[]) => {
   return totales;
 };
 
+
 const PuntoDeVentaNuevo = () => {
   const [isMobile] = useMediaQuery("(max-width: 768px)");
 
@@ -284,9 +288,7 @@ const PuntoDeVentaNuevo = () => {
   const [hoveredArticulo, setHoveredArticulo] =
     useState<ArticuloBusqueda | null>(null);
 
-  const [d_codigo, setD_codigo] = useState<number>(0);
-
-  const { clientePorDefecto } = useConfiguraciones();
+const { data: clientePorDefecto } = useClientePorDefecto();
 
   const [cuotasList, setCuotasList] = useState<
     Array<{
@@ -301,6 +303,10 @@ const PuntoDeVentaNuevo = () => {
   const [isBuscadorClientesOpen, setIsBuscadorClientesOpen] =
     useState<boolean>(false);
   const searchTimeOutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const { mutate: crearVenta, isPending } = useCrearVenta();
+
+  const { data: tipoDocumentoVentaRapida } = useConfiguracionImperionPorDefectoVentaRapida();
 
   const {
     isOpen: isConsultaVentasOpen,
@@ -338,9 +344,14 @@ const PuntoDeVentaNuevo = () => {
     onClose: onEditarVentaClose,
   } = useDisclosure();
 
-  const [buscarItemsConStock, setBuscarItemsConStock] = useState<boolean>(false);
-  const [busquedaPorScanner, setBusquedaPorScanner] = useState<boolean>(true);
   const [, setCodigoBarrasBuffer] = useState<string>("");
+  // Reemplazar los estados locales con el store
+  const { 
+    buscarItemsConStock, 
+    busquedaPorScanner, 
+    setBuscarItemsConStock, 
+    setBusquedaPorScanner 
+  } = usePuntoVentaStore();
 
   const [numeroPedido, setNumeroPedido] = useState<number | null>(null);
 
@@ -404,18 +415,27 @@ const PuntoDeVentaNuevo = () => {
   const toast = useToast();
   const { enviarFacturas } = useFacturaSend();
 
+  useEffect(()=> {
+    if (tipoDocumentoVentaRapida?.valor === "1" && opcionesFinalizacion.tipo_documento === "TICKET")
+    {
+      setImprimirTicket(true);
+      setImprimirNotaInterna(false);
+    } else if (tipoDocumentoVentaRapida?.valor === "2" && opcionesFinalizacion.tipo_documento === "TICKET")
+    {
+      setImprimirNotaInterna(true);
+      setImprimirTicket(false);
+    }
+  }, [tipoDocumentoVentaRapida, opcionesFinalizacion.tipo_documento]);
 
   const getClientePorDefecto = async () => {
     const responseClientePorDefecto = await axios.get(
       `${api_url}clientes/get-clientes`,
       {
         params: {
-          id_cliente: clientePorDefecto?.body[0].valor,
+          id_cliente: clientePorDefecto?.valor,
         },
       }
     );
-    console.log("Cliente por defecto en config", clientePorDefecto);
-    console.log("Cliente por defecto", responseClientePorDefecto.data.body);
     setClienteSeleccionado(responseClientePorDefecto.data.body[0]);
   };
 
@@ -467,46 +487,7 @@ const PuntoDeVentaNuevo = () => {
       });
     }
   }
-
-  const obtenerDatosFacturacion = async () => {
-    try {
-      const response = await axios.get(`${api_url}definicion-ventas/timbrado`, {
-        params: {
-          usuario: operador,
-        },
-      });
-
-      console.log(response.data.body);
-      setOpcionesFinalizacion({
-        ...opcionesFinalizacion,
-        nro_establecimiento: response.data.body[0].d_establecimiento,
-        nro_emision: response.data.body[0].d_p_emision,
-        nro_factura: response.data.body[0].d_nro_secuencia + 1,
-        timbrado: response.data.body[0].d_nrotimbrado,
-      });
-      setD_codigo(response.data.body[0].d_codigo);
-    } catch (err) {
-      console.log(err);
-    }
-  };
-
-  async function actualizarUltimaFactura(codigo: number, numero: number) {
-    try {
-      await axios.post(
-        `${api_url}definicion-ventas/sec?secuencia=${codigo}&codigo=${numero}`
-      );
-    } catch (err) {
-      toast({
-        title: "Error",
-        description:
-          "Hubo un problema al actualizar la secuencia de la factura.",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
-    }
-  }
-
+  
   const getArticulos = async (
     busqueda: string,
     id_articulo?: string | null,
@@ -888,7 +869,6 @@ const PuntoDeVentaNuevo = () => {
 
   useEffect(() => {
     getDatos();
-    obtenerDatosFacturacion();
     fetchTipoImpresion();
   }, []);
 
@@ -1509,26 +1489,27 @@ const PuntoDeVentaNuevo = () => {
       };
       // Preparar objeto de venta
       const venta = {
-        ventaId: ventaIdEdicion || null,
+        ventaId: ventaIdEdicion || 0, // Cambiar null por 0
         cliente: clienteSeleccionado.cli_codigo,
         operador: Number(operador),
-        deposito: depositoSeleccionado?.dep_codigo,
-        moneda: monedaSeleccionada?.mo_codigo,
+        deposito: depositoSeleccionado?.dep_codigo || 0,
+        moneda: monedaSeleccionada?.mo_codigo || 1,
         fecha: fecha,
         factura:
           opcionesFinalizacion.tipo_documento === "FACTURA"
-            ? opcionesFinalizacion.nro_emision +
+            ? String(opcionesFinalizacion.nro_emision || 0).padStart(3, '0') +
             "-" +
-            opcionesFinalizacion.nro_establecimiento +
-            "-000" +
-            opcionesFinalizacion.nro_factura
-            : null,
+            String(opcionesFinalizacion.nro_establecimiento || 0).padStart(3, '0') +
+            "-" +
+            String(opcionesFinalizacion.nro_factura || 0).padStart(7, '0')
+            : "",
         credito: opcionesFinalizacion.tipo_venta === "CREDITO" ? 1 : 0,
         saldo:
           opcionesFinalizacion.tipo_venta === "CREDITO"
             ? totalAEnviar() - (opcionesFinalizacion.entrega_inicial || 0)
-            : totalAEnviar(),
-        vencimiento: opcionesFinalizacion.fecha_vencimiento_timbrado || null,
+            : 0,
+        vencimiento: opcionesFinalizacion.fecha_vencimiento_timbrado || new Date().toISOString().split("T")[0],
+        procesado: 0,
         descuento: totalDescuento,
         total: totalAEnviar(),
         cuotas: opcionesFinalizacion.tipo_venta === "CREDITO" ? 1 : 0,
@@ -1539,12 +1520,12 @@ const PuntoDeVentaNuevo = () => {
         timbrado:
           opcionesFinalizacion.tipo_documento === "FACTURA"
             ? opcionesFinalizacion.timbrado
-            : null,
-        pedido: numeroPedido,
+            : "",
+        pedido: numeroPedido || 0, // Cambiar null por 0
         hora: new Date().toLocaleTimeString(),
         userpc: sessionStorage.getItem("user_name") || "Sistema web",
         situacion: 1,
-        chofer: null,
+        chofer: 0, // Cambiar null por 0
         metodo: metodoPagoSeleccionado?.me_codigo || 1,
         ve_cdc: usaFacturaElectronica
           ? responseFacturaSend?.result?.deList[0]?.cdc || ""
@@ -1552,111 +1533,122 @@ const PuntoDeVentaNuevo = () => {
         ve_qr: usaFacturaElectronica
           ? responseFacturaSend?.result?.deList[0]?.qr || ""
           : "",
+        kmActual: 0,
+        vehiculo: 0, // Cambiar null por 0
+        descTrabajo: "", // Cambiar null por string vacío
+        kilometraje: 0,
+        servicio: 0, // Cambiar null por 0
+        siniestro: "", // Cambiar null por string vacío
+        mecanico: 0, // Cambiar null por 0
+        cajaDefinicion: undefined, // Mantener undefined para campos opcionales
+        confOperacion: undefined, // Mantener undefined para campos opcionales
+        codeudor: 1,
+        estado: 1,
+        devolucion: 0,
+        retencion: 0
       };
 
+      const ventaDTO = mapPuntoDeVentaToVenta(venta);
+
       // Preparar detalles de venta
-      const detalleVentas = itemsParaVenta.map((item) => ({
-        deve_articulo: item.deve_articulo,
-        deve_cantidad: item.deve_cantidad,
-        deve_precio: item.deve_precio,
-        deve_descuento: item.deve_descuento,
-        deve_exentas: item.deve_exentas,
-        deve_cinco: item.deve_cinco,
-        deve_diez: item.deve_diez,
-        deve_color: item.deve_color,
-        deve_bonificacion: item.deve_bonificacion,
-        deve_vendedor: item.deve_vendedor,
-        deve_codioot: item.deve_codioot,
-        deve_costo: item.deve_costo,
-        deve_costo_art: item.deve_costo_art,
-        deve_cinco_x: item.deve_cinco_x,
-        deve_diez_x: item.deve_diez_x,
-        lote: item.deve_lote,
-        loteid: item.loteid,
-        articulo_editado: item.editar_nombre === 1,
-        deve_codigo: item.deve_articulo,
-        deve_descripcion_editada:
-          item.editar_nombre === 1 ? item.articulo : null,
+      const detalleVentas: DetalleVenta[] = itemsParaVenta.map((item) => ({
+        deveArticulo: item.deve_articulo,
+        deveCantidad: item.deve_cantidad,
+        devePrecio: item.deve_precio,
+        deveDescuento: item.deve_descuento,
+        deveExentas: item.deve_exentas,
+        deveCinco: item.deve_cinco,
+        deveDiez: item.deve_diez,
+        deveColor: item.deve_color?.toString() || "", // Convertir number | null a string
+        deveBonificacion: item.deve_bonificacion || 0, // Convertir number | null a number
+        deveVendedor: item.deve_vendedor,
+        deveCodioot: item.deve_codioot || 0, // Convertir number | null a number
+        deveCosto: item.deve_costo || 0, // Convertir number | null a number
+        deveCostoArt: item.deve_costo_art || 0, // Convertir number | null a number
+        deveCincoX: item.deve_cinco_x || 0, // Convertir number | null a number
+        deveDiezX: item.deve_diez_x || 0, // Convertir number | null a number
+        lote: item.deve_lote || "", // Convertir string | null a string
+        loteId: item.loteid || 0, // Convertir number | null a number
+        articuloEditado: item.editar_nombre === 1,
+        deveCodigo: item.deve_articulo,
+        deveDescripcionEditada:
+          item.editar_nombre === 1 ? item.articulo : "",
+        deveTalle: item.deve_talle || "", // Convertir string | null a string
+        deveDevolucion: item.deve_devolucion,
+        deveVencimiento: item.deve_vencimiento || "", // Convertir string | null a string
+        deveVenta: ventaIdEdicion || 0,
+        deveDescripcion: item.articulo,
       }));
 
-      // Enviar datos al backend
-      const response = await axios.post(`${api_url}venta/agregar-venta-nuevo`, {
-        venta,
-        detalle_ventas: detalleVentas,
-      });
+      
 
-      console.log(response.data.body);
+      // Enviar datos al backend usando el patrón correcto del hook
+      crearVenta(
+        {
+          venta: ventaDTO,
+          detalle: detalleVentas,
+        },
+        {
+          onSuccess: (data) => {
+            console.log('Venta creada exitosamente:', data);
+            
+            toast({
+              title: "Éxito",
+              description: "Venta realizada correctamente",
+              status: "success",
+              duration: 3000,
+            });
 
-      if (response.data.body.status === "success") {
-        toast({
-          title: "Éxito",
-          description: "Venta realizada correctamente",
-          status: "success",
-          duration: 3000,
-        });
+            
+            onCloseKCOpen();
 
-        actualizarUltimaFactura(
-          d_codigo,
-          Number(opcionesFinalizacion.nro_factura)
-        );
-        onCloseKCOpen();
+            handleCancelarVenta();
 
-        handleCancelarVenta();
-        Auditar(
-          5,
-          8,
-          response.data.body.ventaId,
-          operador ? parseInt(operador) : 0,
-          `Venta ID ${response.data.body.ventaId} realizada por ${operador}`
-        );
+            // Usar el ID de la venta desde la respuesta
+            const ventaId = data.codigo;
+            setUltimaVentaId(ventaId);
 
-        setUltimaVentaId(response.data.body.ventaId);
+            // Imprimir documentos si es necesario
+            const imprimirDocumentos = async () => {
+              if (imprimirFactura) {
+                if (tipoImpresionFactura === 1) {
+                  isMobile
+                    ? await imprimirFacturaComponenteReport(ventaId, "download")
+                    : await imprimirFacturaComponenteReport(ventaId, "print");
+                } else if (tipoImpresionFactura === 2) {
+                  isMobile
+                    ? await imprimirFacturaComponente(ventaId, "download")
+                    : await imprimirFacturaComponente(ventaId, "print");
+                }
+              }
+              
+              if (imprimirTicket) {
+                isMobile
+                  ? await imprimirTicketComponente(ventaId, "download")
+                  : await imprimirTicketComponente(ventaId, "print");
+              }
+              
+              if (imprimirNotaInterna) {
+                isMobile
+                  ? await imprimirNotaComponente(ventaId, "download")
+                  : await imprimirNotaComponente(ventaId, "print");
+              }
+            };
 
-        if (imprimirFactura) {
-          if (tipoImpresionFactura === 1) {
-            isMobile
-              ? await imprimirFacturaComponenteReport(
-                response.data.body.ventaId,
-                "download"
-              )
-              : await imprimirFacturaComponenteReport(
-                response.data.body.ventaId,
-                "print"
-              );
-          } else if (tipoImpresionFactura === 2) {
-            isMobile
-              ? await imprimirFacturaComponente(
-                response.data.body.ventaId,
-                "download"
-              )
-              : await imprimirFacturaComponente(
-                response.data.body.ventaId,
-                "print"
-              );
+            imprimirDocumentos();
+            getClientePorDefecto();
+          },
+          onError: (error) => {
+            console.error("Error al finalizar la venta:", error);
+            toast({
+              title: "Error",
+              description: "No se pudo completar la venta",
+              status: "error",
+              duration: 3000,
+            });
           }
         }
-        if (imprimirTicket) {
-          isMobile
-            ? await imprimirTicketComponente(
-              response.data.body.ventaId,
-              "download"
-            )
-            : await imprimirTicketComponente(
-              response.data.body.ventaId,
-              "print"
-            );
-        }
-        if (imprimirNotaInterna) {
-          isMobile
-            ? await imprimirNotaComponente(
-              response.data.body.ventaId,
-              "download"
-            )
-            : await imprimirNotaComponente(response.data.body.ventaId, "print");
-        }
-      }
-
-      getClientePorDefecto();
+      );
     } catch (error) {
       console.error("Error al finalizar la venta:", error);
       toast({
@@ -2666,14 +2658,6 @@ const PuntoDeVentaNuevo = () => {
                     className="border rounded-md p-2 flex-1"
                     placeholder="Buscar cliente"
                   />
-                  <FloatingCard
-                    isVisible={isClienteCardVisible}
-                    items={clientes}
-                    onClose={() => setIsClienteCardVisible(false)}
-                    onSelect={handleSelectCliente}
-                    className="absolute top-16 left-0 right-0 z-999"
-                    renderItem={(item) => <p>{item.cli_razon}</p>}
-                  />
                 </div>
               </div>
               <div className="flex flex-row gap-2 justify-between bg-blue-200 p-2 rounded-md">
@@ -2793,6 +2777,13 @@ const PuntoDeVentaNuevo = () => {
                     setIsArticuloCardVisible(true);
                   }}
                   onFocus={() => {
+                    // Si hay un artículo seleccionado, deseleccionarlo y limpiar el input
+                    if (articuloSeleccionado) {
+                      setArticuloSeleccionado(null);
+                      setArticuloBusqueda("");
+                      setArticulos([]);
+                      setHoveredArticulo(null);
+                    }
                     setIsArticuloCardVisible(true);
                   }}
                   onChange={(e) => {
@@ -2876,7 +2867,7 @@ const PuntoDeVentaNuevo = () => {
                         {items.map((articulo, index) => (
                           <tr
                             key={articulo.id_lote}
-                            className={`cursor-pointer transition-colors duration-150 [&>td]:p-2 [&>td]:text-center [&>td]:border [&>td]:border-gray-200 ${index === selectedIndex
+                            className={`cursor-pointer transition-colors duration-150 [&>td]:text-xl [&>td]:font-bold [&>td]:p-2 [&>td]:text-center [&>td]:border [&>td]:border-gray-200 ${index === selectedIndex
                               ? "bg-blue-100"
                               : "hover:bg-gray-100"
                               }`}
@@ -3197,7 +3188,7 @@ const PuntoDeVentaNuevo = () => {
               }}
               className="flex flex-row gap-2 items-center justify-center w-full bg-blue-600 p-2 rounded-md hover:bg-blue-700"
             >
-              <p className="text-white font-bold">Guardar </p>
+              <p className="text-white font-bold">{isPending ? "Guardando..." : "Guardar"}</p>
               <CassetteTape size={24} className="text-white" />
             </button>
           </div>
@@ -3271,7 +3262,7 @@ const PuntoDeVentaNuevo = () => {
                   items={clientes}
                   onClose={() => setIsClienteCardVisible(false)}
                   onSelect={handleSelectCliente}
-                  className="absolute top-16 left-0 right-0 z-999"
+                  className="absolute top-28 left-0 right-0 z-999"
                   renderItem={(item) => <p>{item.cli_razon}</p>}
                 />
               </div>

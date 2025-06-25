@@ -34,7 +34,7 @@ const CustomDrawer: React.FC<CustomDrawerProps> = ({
 }) => {
   const drawerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
-  const [expandedItem, setExpandedItem] = useState<string | null>(null);
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
@@ -55,44 +55,63 @@ const CustomDrawer: React.FC<CustomDrawerProps> = ({
     };
   }, [isOpen, onClose]);
 
-  const renderNavItem = (item: NavItem) => (
+  const toggleItemExpansion = (itemName: string) => {
+    setExpandedItems(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(itemName)) {
+        newSet.delete(itemName);
+      } else {
+        newSet.add(itemName);
+      }
+      return newSet;
+    });
+  };
+
+  const isItemExpanded = (itemName: string) => {
+    return expandedItems.has(itemName);
+  };
+
+  const renderNavItem = (item: NavItem, level: number = 0) => (
     <div key={item.name} className="mb-2">
       {item.subItems ? (
         <div>
           <div
             className="flex items-center justify-between px-4 py-2 text-black hover:bg-blue-100 rounded-lg cursor-pointer"
-            onClick={() =>
-              setExpandedItem(expandedItem === item.name ? null : item.name)
-            }
+            onClick={() => toggleItemExpansion(item.name)}
           >
             <div className="flex items-center">
               <item.icon className="w-5 h-5 mr-2" />
               <span>{item.name}</span>
             </div>
-            {expandedItem === item.name ? (
+            {isItemExpanded(item.name) ? (
               <ChevronUp className="w-4 h-4" />
             ) : (
               <ChevronDown className="w-4 h-4" />
             )}
           </div>
-          {expandedItem === item.name && (
-            <div className="ml-4">
+          {isItemExpanded(item.name) && (
+            <div className={`ml-${Math.min(level + 1, 4)}`}>
               {item.subItems.map((subItem) => (
-                <Link
-                  key={subItem.name}
-                  to={subItem.path}
-                  onClick={onClose}
-                  className={`flex items-center px-4 py-2 text-sm ${
-                    location.pathname === subItem.path
-                      ? "text-blue-500"
-                      : "text-black"
-                  } hover:bg-blue-100 rounded-lg ${
-                    subItem.enabled ? "" : "opacity-50 pointer-events-none"
-                  }`}
-                >
-                  <subItem.icon className="w-4 h-4 mr-2" />
-                  <span>{subItem.name}</span>
-                </Link>
+                <div key={subItem.name}>
+                  {subItem.subItems ? (
+                    renderNavItem(subItem, level + 1)
+                  ) : (
+                    <Link
+                      to={subItem.path}
+                      onClick={onClose}
+                      className={`flex items-center px-4 py-2 text-sm ${
+                        location.pathname === subItem.path
+                          ? "text-blue-500"
+                          : "text-black"
+                      } hover:bg-blue-100 rounded-lg ${
+                        subItem.enabled ? "" : "opacity-50 pointer-events-none"
+                      }`}
+                    >
+                      <subItem.icon className="w-4 h-4 mr-2" />
+                      <span>{subItem.name}</span>
+                    </Link>
+                  )}
+                </div>
               ))}
             </div>
           )}
@@ -143,7 +162,7 @@ const CustomDrawer: React.FC<CustomDrawerProps> = ({
           </div>
 
           <nav className="flex-1 overflow-y-auto p-4 scrollbar scrollbar-thumb-gray-400 scrollbar-track-transparent">
-            {navItems.map(renderNavItem)}
+            {navItems.map((item) => renderNavItem(item))}
           </nav>
 
           <div className="mt-auto p-4 border-t">

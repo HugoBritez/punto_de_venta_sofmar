@@ -1,15 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Button, Text, useToast } from '@chakra-ui/react';
+import { Box, Button, Text } from '@chakra-ui/react';
 
 const PWAUpdatePrompt: React.FC = () => {
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
-  const toast = useToast();
+  const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.ready.then((reg) => {
         setRegistration(reg);
+        
+        // Escuchar mensajes del service worker
+        navigator.serviceWorker.addEventListener('message', (event) => {
+          if (event.data && event.data.type === 'SW_UPDATED') {
+            window.location.reload();
+          }
+        });
         
         reg.addEventListener('updatefound', () => {
           const newWorker = reg.installing;
@@ -23,12 +30,22 @@ const PWAUpdatePrompt: React.FC = () => {
         });
       });
     }
-  }, [toast]);
+  }, []);
 
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
     if (registration && registration.waiting) {
-      registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-      window.location.reload();
+      setIsUpdating(true);
+      
+      try {
+        // Enviar mensaje al service worker para que se active
+        registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+        
+        
+        // El reload se hará automáticamente cuando el service worker responda
+      } catch (error) {
+        console.error('Error al actualizar:', error);
+        setIsUpdating(false);
+      }
     }
   };
 
@@ -58,6 +75,9 @@ const PWAUpdatePrompt: React.FC = () => {
         colorScheme="whiteAlpha"
         onClick={handleUpdate}
         mr="2"
+        isLoading={isUpdating}
+        loadingText="Actualizando..."
+        disabled={isUpdating}
       >
         Actualizar
       </Button>
@@ -65,6 +85,7 @@ const PWAUpdatePrompt: React.FC = () => {
         size="sm"
         variant="ghost"
         onClick={() => setUpdateAvailable(false)}
+        disabled={isUpdating}
       >
         Más tarde
       </Button>

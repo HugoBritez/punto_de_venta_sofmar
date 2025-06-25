@@ -6,21 +6,41 @@ import { agregarItemVentaRapida, eliminarItemVenta, actualizarCantidadItemVenta,
 import { ListaPrecios, Sucursal } from "@/types/shared_interfaces";
 import { useOperadoresStore } from "@/stores/operadoresStore";
 import { useToast } from "@chakra-ui/react";
-import { ShoppingBag, ArchiveX, ArrowUp, Trash2 } from "lucide-react";
+import { ShoppingBag, ArchiveX, ArrowUp, Trash2, Loader2 } from "lucide-react";
 import { SideMenu } from "@/ui/mobile/sidemenu/SideMenu";
 import { BuscadorArticulos } from "@/ui/mobile/buscardor_articulos/BuscadorArticulos";
-import { useConfiguraciones } from "@/services/configuraciones/configuracionesHook";
 import { useSucursalesStore } from "@/stores/sucursalesStore";
 import { useDepositosStore } from "@/stores/depositosStore";
 import { useListaPreciosStore } from "@/stores/listaPreciosStore";
+import { useVentaRapidaConfigStore } from "../stores/ventaRapidaConfigStore";
 import { formatCurrency } from "../core/utils/formatCurrency";
 import { BottomSheet } from "@/ui/mobile/BottomSheet/BottomSheet";
+import { useCrearVenta } from "@/shared/hooks/mutations/ventas/crearVenta";
+import { mapDetalleVentaDTOToDetalleVenta, mapVentaDTOToVenta } from "../core/utils/mappers";
+import { calcularTotales } from "../core/utils/calcularTotales";
+import { useClientePorDefecto } from "@/shared/hooks/querys/useConfiguraciones";
 
 interface TipoRenderizacion {
     tipo: "tabla" | "lista"
 }
 
 const VentaRapida = () => {
+    const { 
+        sucursalSeleccionada: sucursalGuardada, 
+        depositoSeleccionado: depositoGuardado,
+        listaPrecioSeleccionada: listaPrecioGuardada,
+        tipoRenderizacion: tipoRenderizacionGuardado,
+        tipoVenta: tipoVentaGuardado,
+        setSucursalSeleccionada: setSucursalGuardada,
+        setDepositoSeleccionado: setDepositoGuardado,
+        setListaPrecioSeleccionada: setListaPrecioGuardada,
+        setTipoRenderizacion: setTipoRenderizacionGuardado,
+        setTipoVenta: setTipoVentaGuardado
+    } = useVentaRapidaConfigStore();
+
+
+    const { data: clientePorDefecto } = useClientePorDefecto();
+
     const [ventaDTO, setVentaDTO] = useState<VentaDTO>(
         {
             ve_codigo: 0,
@@ -43,7 +63,7 @@ const VentaRapida = () => {
             ve_aplicar_a: 0,
             ve_retencion: 0,
             ve_timbrado: "",
-            ve_codeudor: 0,
+            ve_codeudor: 1,
             ve_pedido: 0,
             ve_hora: new Date().toLocaleTimeString(),
             ve_userpc: "",
@@ -58,10 +78,17 @@ const VentaRapida = () => {
             ve_mecanico: 0,
             ve_servicio: 0,
             ve_siniestro: 0,
+            ve_cliente: 0,
+            ve_total: 0,
+            ve_vencimiento: new Date(0).toISOString(),
+            ve_estado: 1,
+            ve_caja_definicion: undefined,
+            ve_conf_operacion: undefined,
         }
     );
+
     const [detalleVenta, setDetalleVenta] = useState<DetalleVentaTabla[]>([]);
-    const [, setImprimirFactura] = useState<boolean>(false);
+    const [, setImprimirFactura] = useState<boolean>(tipoVentaGuardado === 1);
     const [precioSeleccionado, setPrecioSeleccionado] = useState<ListaPrecios | null>();
     const [depositoSeleccionado, setDepositoSeleccionado] = useState<Deposito | null>();
     const [, setCantidad] = useState<number>();
@@ -70,12 +97,8 @@ const VentaRapida = () => {
     const [precioUnitario, setPrecioUnitario] = useState<number>();
     const [sucursalSeleccionada, setSucursalSeleccionada] = useState<Sucursal>();
     const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
-    const [tipoRenderizacion, setTipoRenderizacion] = useState<TipoRenderizacion>(() => {
-        const tipo = localStorage.getItem("tipoRenderizacion");
-        if (tipo === "tabla" || tipo === "lista") {
-            return { tipo: tipo as "tabla" | "lista" };
-        }
-        return { tipo: "tabla" }; // valor por defecto
+    const [tipoRenderizacion, setTipoRenderizacionLocal] = useState<TipoRenderizacion>({ 
+        tipo: tipoRenderizacionGuardado 
     });
     const [editingItem, setEditingItem] = useState<number | null>(null);
 
@@ -85,11 +108,12 @@ const VentaRapida = () => {
 
     const vendedorPorDefecto = sessionStorage.getItem("user_id");
     const vendedorNombrePorDefecto = sessionStorage.getItem("user_name");
-    const { clientePorDefecto } = useConfiguraciones();
 
     const { getOperadorPorCodInterno, vendedorSeleccionado } = useOperadoresStore();
     const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
     const toast = useToast();
+
+    const { mutate: crearVenta, isPending } = useCrearVenta();
 
     const handleAgregarItem = (articulo: Articulo) => {
         const resultado = agregarItemVentaRapida(detalleVenta, {
@@ -129,9 +153,9 @@ const VentaRapida = () => {
     }, []);
 
     useEffect(() => {
-        if (clientePorDefecto && clientePorDefecto.body && clientePorDefecto.body.length > 0) {
+        if (clientePorDefecto && clientePorDefecto.valor) {
             console.log('Cliente por defecto completo:', clientePorDefecto);
-            const valorCliente = clientePorDefecto.body[0].valor;
+            const valorCliente = clientePorDefecto.valor;
             console.log('Valor del cliente por defecto:', valorCliente);
             console.log('Tipo de valor:', typeof valorCliente);
             const clienteId = parseInt(valorCliente);
@@ -150,7 +174,8 @@ const VentaRapida = () => {
         if (vendedorSeleccionado) {
             setVentaDTO(prevState => ({
                 ...prevState,
-                ve_vendedor: vendedorSeleccionado.op_codigo
+                ve_vendedor: vendedorSeleccionado.op_codigo,
+                ve_operador: vendedorSeleccionado.op_codigo
             }));
         }
         if (sucursalSeleccionada) {
@@ -175,55 +200,58 @@ const VentaRapida = () => {
     }, [clientePorDefecto, vendedorSeleccionado, sucursalSeleccionada, depositoSeleccionado]);
 
     useEffect(() => {
-        if (sucursales) {
-            setSucursalSeleccionada(sucursales[0]);
+        if (sucursales.length > 0) {
+            if (sucursalGuardada) {
+                const sucursal = sucursales.find(s => s.id === sucursalGuardada);
+                setSucursalSeleccionada(sucursal || sucursales[0]);
+            } else {
+                setSucursalSeleccionada(sucursales[0]);
+            }
         }
-    }, [sucursales]);
+    }, [sucursales, sucursalGuardada]);
 
     useEffect(() => {
-        if (depositos) {
-            setDepositoSeleccionado(depositos[0]);
+        if (depositos.length > 0) {
+            if (depositoGuardado) {
+                const deposito = depositos.find(d => d.dep_codigo === depositoGuardado);
+                setDepositoSeleccionado(deposito || depositos[0]);
+            } else {
+                setDepositoSeleccionado(depositos[0]);
+            }
         }
-    }, [depositos]);
+    }, [depositos, depositoGuardado]);
 
     useEffect(() => {
-        if (listaPrecios) {
-            setPrecioSeleccionado(listaPrecios[0]);
+        if (listaPrecios.length > 0) {
+            if (listaPrecioGuardada) {
+                const listaPrecio = listaPrecios.find(lp => lp.lp_codigo === listaPrecioGuardada);
+                setPrecioSeleccionado(listaPrecio || listaPrecios[0]);
+            } else {
+                setPrecioSeleccionado(listaPrecios[0]);
+            }
         }
-    }, [listaPrecios]);
-    //Effect para setear datos por defecto
+    }, [listaPrecios, listaPrecioGuardada]);
+
+    useEffect(()=>{
+        setVentaDTO(prevState => ({
+            ...prevState,
+            ve_total: calcularTotales(detalleVenta).total
+        }));
+    }, [calcularTotales(detalleVenta).total]);
+
     useEffect(() => {
         getOperadorPorCodInterno(parseInt(vendedorPorDefecto ?? "0"));
     }, [vendedorPorDefecto]);
 
     useEffect(() => {
-        if (tipoRenderizacion.tipo === "tabla") {
-            console.log('guardando en localstorage tabla')
-            localStorage.setItem("tipoRenderizacion", "tabla");
-        } else {
-            console.log('guardando en localstorage lista')
-            localStorage.setItem("tipoRenderizacion", "lista");
-        }
-    }, [tipoRenderizacion]);
+        setTipoRenderizacionLocal({ tipo: tipoRenderizacionGuardado });
+    }, [tipoRenderizacionGuardado]);
 
     useEffect(() => {
-        const tipoRenderizacion = localStorage.getItem("tipoRenderizacion");
-        console.log('recuperando de localstorage', tipoRenderizacion)
-        if (tipoRenderizacion === "tabla") {
-            setTipoRenderizacion({ tipo: "tabla" });
-        } else {
-            setTipoRenderizacion({ tipo: "lista" });
-        }
-    }, []);
+        setImprimirFactura(tipoVentaGuardado === 1);
+    }, [tipoVentaGuardado]);
 
-    useEffect(() => {
-        console.log('ventaDTO', ventaDTO)
-        console.log('detalleVenta', detalleVenta)
-    }, [detalleVenta, ventaDTO])
 
-    useEffect(() => {
-        console.log('Estado del BottomSheet:', isBottomSheetOpen);
-    }, [isBottomSheetOpen]);
 
     const renderArticulos = () => {
         if (detalleVenta.length === 0) {
@@ -393,6 +421,100 @@ const VentaRapida = () => {
         );
     };
 
+    const handleSucursalChange = (sucursalId: number) => {
+        const sucursal = sucursales.find(s => s.id === sucursalId);
+        if (sucursal) {
+            setSucursalSeleccionada(sucursal);
+            setSucursalGuardada(sucursalId);
+        }
+    };
+
+    const handleDepositoChange = (depositoId: number) => {
+        const deposito = depositos.find(d => d.dep_codigo === depositoId);
+        if (deposito) {
+            setDepositoSeleccionado(deposito);
+            setDepositoGuardado(depositoId);
+        }
+    };
+
+    const handleListaPrecioChange = (listaPrecioId: number) => {
+        const listaPrecio = listaPrecios.find(lp => lp.lp_codigo === listaPrecioId);
+        if (listaPrecio) {
+            setPrecioSeleccionado(listaPrecio);
+            setListaPrecioGuardada(listaPrecioId);
+        }
+    };
+
+    const handleTipoRenderizacionChange = (tipo: "tabla" | "lista") => {
+        setTipoRenderizacionLocal({ tipo });
+        setTipoRenderizacionGuardado(tipo);
+    };
+
+    const handleTipoVentaChange = (tipo: number) => {
+        setImprimirFactura(tipo === 1);
+        setTipoVentaGuardado(tipo);
+    };
+
+    const handleLimpiarTodo = () => {
+        setDetalleVenta([]);
+        setIsBottomSheetOpen(false);
+        setIsMenuOpen(false);
+        setEditingItem(null);
+    }
+    
+    const handleProcesarVenta = async () => {
+        console.log('Procesando venta...');
+
+        const ahora = new Date();
+        const ventaActualizada = {
+            ...ventaDTO,
+            ve_fecha: ahora.toISOString(),
+            ve_hora: ahora.toLocaleTimeString('es-ES', { 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit',
+                hour12: false 
+            })
+        };
+
+        const venta = mapVentaDTOToVenta(ventaActualizada);
+        const detalle = detalleVenta.map(mapDetalleVentaDTOToDetalleVenta);
+        console.log('venta', venta);
+        console.log('detalle', detalle);
+        
+        crearVenta(
+            { venta, detalle },
+            {
+                onSuccess: (data) => {
+                    console.log('Venta creada exitosamente:', data);
+                    toast({
+                        title: 'Venta creada correctamente',
+                        status: 'success',
+                        duration: 3000,
+                        isClosable: true,
+                    });
+                    handleLimpiarTodo();
+                    setIsBottomSheetOpen(false);
+                },
+                onError: (error) => {
+                    console.error('Error al crear venta:', error);
+                    toast({
+                        title: 'Error al crear la venta',
+                        description: 'Ocurrió un error al procesar la venta',
+                        status: 'error',
+                        duration: 3000,
+                        isClosable: true,
+                    });
+                }
+            }
+        );
+    }
+
+    const handleCancelarVenta = () => {
+        handleLimpiarTodo();
+        setIsBottomSheetOpen(false);
+    }
+
     return (
         <div className="flex flex-col bg-slate-200 w-full h-screen p-1 gap-2">
             <div className="flex flex-row bg-blue-500 rounded-md p-2 items-center justify-between">
@@ -446,56 +568,78 @@ const VentaRapida = () => {
                     <div className="flex flex-col gap-2">
                         <div className="flex flex-col gap-2">
                             <label htmlFor="sucursal" className="text-gray-500 font-bold">Sucursal</label>
-                            <select className="bg-gray-100 rounded-md p-2 border border-gray-300" name="sucursal" id="sucursal" onChange={(e) => {
-                                const sucursal = sucursales.find((sucursal) => sucursal.id === parseInt(e.target.value));
-                                setSucursalSeleccionada(sucursal);
-                            }}>
-                                {
-                                    sucursales.map((sucursal) => (
-                                        <option key={sucursal.id} value={sucursal.id}>{sucursal.descripcion}</option>
-                                    ))
-                                }
+                            <select 
+                                className="bg-gray-100 rounded-md p-2 border border-gray-300" 
+                                name="sucursal" 
+                                id="sucursal" 
+                                value={sucursalSeleccionada?.id || ""}
+                                onChange={(e) => handleSucursalChange(parseInt(e.target.value))}
+                            >
+                                {sucursales.map((sucursal) => (
+                                    <option key={sucursal.id} value={sucursal.id}>
+                                        {sucursal.descripcion}
+                                    </option>
+                                ))}
                             </select>
                         </div>
+                        
                         <div className="flex flex-col gap-2">
-                            <label htmlFor="deposito" className="text-gray-500 font-bold">Deposito</label>
-                            <select className="bg-gray-100 rounded-md p-2 border border-gray-300" name="deposito" id="deposito" onChange={(e) => {
-                                const deposito = depositos.find((deposito) => deposito.dep_codigo === parseInt(e.target.value));
-                                setDepositoSeleccionado(deposito);
-                            }}>
-                                {
-                                    depositos.map((deposito) => (
-                                        <option key={deposito.dep_codigo} value={deposito.dep_codigo}>{deposito.dep_descripcion}</option>
-                                    ))
-                                }
+                            <label htmlFor="deposito" className="text-gray-500 font-bold">Depósito</label>
+                            <select 
+                                className="bg-gray-100 rounded-md p-2 border border-gray-300" 
+                                name="deposito" 
+                                id="deposito" 
+                                value={depositoSeleccionado?.dep_codigo || ""}
+                                onChange={(e) => handleDepositoChange(parseInt(e.target.value))}
+                            >
+                                {depositos.map((deposito) => (
+                                    <option key={deposito.dep_codigo} value={deposito.dep_codigo}>
+                                        {deposito.dep_descripcion}
+                                    </option>
+                                ))}
                             </select>
                         </div>
+                        
                         <div className="flex flex-col gap-2">
                             <label htmlFor="listaPrecio" className="text-gray-500 font-bold">Lista de Precios</label>
-                            <select className="bg-gray-100 rounded-md p-2 border border-gray-300" name="listaPrecio" id="listaPrecio" onChange={(e) => {
-                                const listaPrecio = listaPrecios.find((listaPrecio) => listaPrecio.lp_codigo === parseInt(e.target.value));
-                                setPrecioSeleccionado(listaPrecio);
-                            }}>
-                                {
-                                    listaPrecios.map((listaPrecio) => (
-                                        <option key={listaPrecio.lp_codigo} value={listaPrecio.lp_codigo}>{listaPrecio.lp_descripcion}</option>
-                                    ))
-                                }
+                            <select 
+                                className="bg-gray-100 rounded-md p-2 border border-gray-300" 
+                                name="listaPrecio" 
+                                id="listaPrecio" 
+                                value={precioSeleccionado?.lp_codigo || ""}
+                                onChange={(e) => handleListaPrecioChange(parseInt(e.target.value))}
+                            >
+                                {listaPrecios.map((listaPrecio) => (
+                                    <option key={listaPrecio.lp_codigo} value={listaPrecio.lp_codigo}>
+                                        {listaPrecio.lp_descripcion}
+                                    </option>
+                                ))}
                             </select>
                         </div>
+                        
                         <div className="flex flex-col gap-2">
                             <label htmlFor="vendedor" className="text-gray-500 font-bold">Vendedor</label>
-                            <input className="bg-gray-100 rounded-md p-2 border border-gray-300" type="text" readOnly value={vendedorSeleccionado?.op_nombre} />
+                            <input 
+                                className="bg-gray-100 rounded-md p-2 border border-gray-300" 
+                                type="text" 
+                                readOnly 
+                                value={vendedorSeleccionado?.op_nombre} 
+                            />
                         </div>
+                        
                         <div className="flex flex-col gap-2">
                             <label htmlFor="tipoVenta" className="text-gray-500 font-bold">Tipo de venta</label>
-                            <select className="bg-gray-100 rounded-md p-2 border border-gray-300" name="tipoVenta" id="tipoVenta" onChange={(e) => {
-                                setImprimirFactura(parseInt(e.target.value) === 1);
-                            }}>
-                                <option value="1">Factura</option>
-                                <option value="2">Ticket</option>
+                            <select 
+                                className="bg-gray-100 rounded-md p-2 border border-gray-300" 
+                                name="tipoVenta" 
+                                id="tipoVenta" 
+                                value={tipoVentaGuardado}
+                                onChange={(e) => handleTipoVentaChange(parseInt(e.target.value))}
+                            >
+                                <option value={1}>Ticket</option>
                             </select>
                         </div>
+                        
                         <div className="flex flex-col gap-2">
                             <label htmlFor="tipoRenderizacion" className="text-gray-500 font-bold">Tipo de renderización</label>
                             <select
@@ -503,9 +647,7 @@ const VentaRapida = () => {
                                 name="tipoRenderizacion"
                                 id="tipoRenderizacion"
                                 value={tipoRenderizacion.tipo}
-                                onChange={(e) => {
-                                    setTipoRenderizacion({ tipo: e.target.value as "tabla" | "lista" });
-                                }}
+                                onChange={(e) => handleTipoRenderizacionChange(e.target.value as "tabla" | "lista")}
                             >
                                 <option value="tabla">Tabla</option>
                                 <option value="lista">Lista</option>
@@ -515,7 +657,6 @@ const VentaRapida = () => {
                 </div>
             </SideMenu>
             <BottomSheet isVisible={isBottomSheetOpen} onClose={() => {
-                console.log('Cerrando BottomSheet desde onClose...');
                 setIsBottomSheetOpen(false);
             }}>
                 <div className="flex flex-col gap-4 p-4">
@@ -525,21 +666,21 @@ const VentaRapida = () => {
                         <div className="flex justify-between items-center">
                             <span className="text-gray-600">Subtotal:</span>
                             <span className="font-medium">
-                                {formatCurrency(detalleVenta.reduce((sum, item) => sum + (item.subtotal || 0), 0))}
+                                {formatCurrency(calcularTotales(detalleVenta).total)}
                             </span>
                         </div>
 
                         <div className="flex justify-between items-center">
                             <span className="text-gray-600">Descuentos:</span>
                             <span className="font-medium text-red-600">
-                                -{formatCurrency(detalleVenta.reduce((sum, item) => sum + (item.deve_descuento || 0), 0))}
+                                -{formatCurrency(calcularTotales(detalleVenta).totalDescuentos)}
                             </span>
                         </div>
 
                         <div className="flex justify-between items-center">
                             <span className="text-gray-600">Bonificaciones:</span>
                             <span className="font-medium text-green-600">
-                                -{formatCurrency(detalleVenta.reduce((sum, item) => sum + (item.deve_bonificacion || 0), 0))}
+                                -{formatCurrency(calcularTotales(detalleVenta).totalDescuentos)}
                             </span>
                         </div>
 
@@ -548,12 +689,7 @@ const VentaRapida = () => {
                                 <span className="text-lg font-bold text-gray-800">Total:</span>
                                 <span className="text-lg font-bold text-blue-600">
                                     {formatCurrency(
-                                        detalleVenta.reduce((sum, item) => {
-                                            const subtotal = item.subtotal || 0;
-                                            const descuento = item.deve_descuento || 0;
-                                            const bonificacion = item.deve_bonificacion || 0;
-                                            return sum + subtotal - descuento - bonificacion;
-                                        }, 0)
+                                        calcularTotales(detalleVenta).totalAPagar
                                     )}
                                 </span>
                             </div>
@@ -568,23 +704,16 @@ const VentaRapida = () => {
                     <div className="flex flex-col gap-2 mt-4">
                         <button
                             className="w-full bg-blue-500 text-white py-3 rounded-md hover:bg-blue-600 transition-colors font-medium"
-                            onClick={() => {
-                                // Aquí iría la lógica para procesar la venta
-                                console.log('Procesando venta...');
-                            }}
+                            onClick={handleProcesarVenta}
                         >
-                            Procesar Venta
+                            {isPending ? <div className="flex items-center justify-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Procesando...</div> : 'Procesar Venta'}
                         </button>
 
                         <button
                             className="w-full bg-gray-500 text-white py-2 rounded-md hover:bg-gray-600 transition-colors"
-                            onClick={() => {
-                                console.log('Botón cerrar clickeado, estado actual:', isBottomSheetOpen);
-                                setIsBottomSheetOpen(false);
-                                console.log('Estado después de setear false');
-                            }}
+                            onClick={handleCancelarVenta}
                         >
-                            Cerrar
+                            Cancelar
                         </button>
                     </div>
                 </div>

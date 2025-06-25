@@ -234,7 +234,7 @@ const InventarioScanner = () => {
       return;
     }
     
-    if (Object.keys(formData).length === 0) {
+    if (!formData.detalle || formData.detalle === 0) {
       toast({
         title: "Error",
         description: "Debe seleccionar un articulo",
@@ -243,19 +243,10 @@ const InventarioScanner = () => {
       return;
     }
 
-    if (formData.detalle === 0) {
+    if (formData.cantidad === null || formData.cantidad === undefined || formData.cantidad < 0) {
       toast({
         title: "Error",
-        description: "Debe seleccionar un articulo",
-        status: "error",
-      });
-      return;
-    }
-
-    if (formData.cantidad === null || formData.cantidad === undefined) {
-      toast({
-        title: "Error",
-        description: "Debe seleccionar una cantidad",
+        description: "Debe ingresar una cantidad válida",
         status: "error",
       });
       return;
@@ -269,6 +260,7 @@ const InventarioScanner = () => {
           status: "success",
         });
         
+        // Limpiar formulario
         setArticuloFields({
           detalle: 0,
           cantidad: 0,
@@ -278,6 +270,7 @@ const InventarioScanner = () => {
         setArticuloSeleccionado(null);
         setModalVisible(false);
         
+        // Auditoría
         Auditar(
           1,
           1,

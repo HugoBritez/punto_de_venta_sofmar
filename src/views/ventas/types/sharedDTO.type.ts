@@ -1,6 +1,7 @@
 export interface VentaDTO {
     ve_codigo: number;
     ve_fecha: string;
+    ve_cliente: number;
     ve_operador: number;
     ve_deposito: number;
     ve_moneda: number;
@@ -34,6 +35,11 @@ export interface VentaDTO {
     ve_mecanico: number;
     ve_servicio: number;
     ve_siniestro: number;
+    ve_total: number;
+    ve_vencimiento: string;
+    ve_estado: number;
+    ve_caja_definicion?: number;
+    ve_conf_operacion?: number;
 }
 
 export interface DetalleVentaDTO {
@@ -55,6 +61,9 @@ export interface DetalleVentaDTO {
     deve_costo_art: number;
     deve_cinco_x: number;
     deve_diez_x: number;
+    deve_editar_nombre: number;
+    deve_lote: string;
+    deve_lote_id: number;
 }
 
 export interface DetalleVentaTabla extends DetalleVentaDTO {
@@ -62,4 +71,5 @@ export interface DetalleVentaTabla extends DetalleVentaDTO {
     descripcion: string;
     precioUnitario: number;
     subtotal: number;
+    deve_articulo_editado: boolean;
 }

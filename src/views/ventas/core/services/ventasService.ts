@@ -72,9 +72,7 @@ export function agregarItemVentaRapida(
         }
     }
 
-
     let exentas, cinco, diez, cinco_x, diez_x;
-
     switch (articulo.iva) {
         case 1:
             exentas = precioAUsar;
@@ -116,14 +114,18 @@ export function agregarItemVentaRapida(
         deve_bonificacion: bonificacion || 0,
         deve_talle: "",
         deve_codioot: 0,
-        deve_costo: 0,
-        deve_costo_art: 0,
+        deve_costo: articulo.precio_costo,
+        deve_costo_art: articulo.precio_costo,
         deve_cinco_x: cinco_x || 0,
         deve_diez_x: diez_x || 0,
         cod_barras: articulo.codigo_barra,
         descripcion: articulo.descripcion,
         precioUnitario: precioAUsar,
         subtotal: precioAUsar * cantidad - (descuento || 0),
+        deve_articulo_editado: false,
+        deve_editar_nombre: 0,
+        deve_lote: articulo.lote,
+        deve_lote_id: articulo.id_lote,
     }
 
     return { ok: true, detalleVenta: [...detalleVenta, nuevoItem] };

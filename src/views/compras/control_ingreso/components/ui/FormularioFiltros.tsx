@@ -10,9 +10,9 @@ import { Deposito } from "@/types/shared_interfaces";
 import { createRoot } from "react-dom/client";
 import ReporteIngresosComponent from "../ReporteIngresos";
 
-import pdfIcon from "@/assets/custom_icons/pdf-icon.svg";
-import excelIcon from "@/assets/custom_icons/excel-icon.svg";
 import { InformeIngresosExcel } from "../ReporteIngresosExcel";
+import { useVerificadorConfigStore } from "../../store/verificadorConfigStore";
+import { FormButtons } from "@/shared/components/FormButtons/FormButtons";
 
 interface Props {
   filtros: FiltrosDTO;
@@ -21,6 +21,8 @@ interface Props {
 }
 
 const FormularioFiltros = ({ filtros, setFiltros, setDepositos }: Props) => {
+  const { depositoSeleccionado } = useVerificadorConfigStore();
+  
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFiltros({ ...filtros, [name]: value });
@@ -43,19 +45,22 @@ const FormularioFiltros = ({ filtros, setFiltros, setDepositos }: Props) => {
     setDepositos(depositos);
   }, [depositos]);
 
-  //establecer por defecto el deposito y la sucursal
+  //establecer por defecto el deposito y la sucursal, respetando el guardado
   useEffect(() => {
     if (depositos.length > 0 && sucursales.length > 0) {
+      // Usar el depósito guardado si existe, sino el primero de la lista
+      const depositoInicial = depositoSeleccionado || depositos[0].dep_codigo;
+      
       setFiltros({
         ...filtros,
-        deposito: depositos[0].dep_codigo,
+        deposito: depositoInicial,
         sucursal: sucursales[0].id,
-        fecha_desde: new Date().toISOString().split("T")[0],
+        fecha_desde: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
         fecha_hasta: new Date().toISOString().split("T")[0],
         tipo_ingreso: 1,
       });
     }
-  }, [depositos, sucursales]);
+  }, [depositos, sucursales, depositoSeleccionado]);
 
   const ReporteComponente = (
     filtros: FiltrosDTO,
@@ -106,7 +111,7 @@ const FormularioFiltros = ({ filtros, setFiltros, setDepositos }: Props) => {
     setTimeout(() => {
       root.unmount();
       document.body.removeChild(reporteDiv);
-    }, 2000);
+    }, 5000);
   };
   return (
     <div className="flex flex-col gap-2 w-full p-2 ">
@@ -255,45 +260,11 @@ const FormularioFiltros = ({ filtros, setFiltros, setDepositos }: Props) => {
           />
         </div>
         <div className="flex flex-col gap-2 p-1 items-center justify-end">
-          <button
-            className="bg-red-500 text-white rounded-md p-2"
-            onClick={() => {
-              ReporteComponente(
-                filtros,
-                () => {
-                  console.log("Reporte generado correctamente");
-                },
-                (error) => {
-                  console.log("Error al generar el reporte", error);
-                },
-                "download"
-              );
-            }}
-          >
-            <p className="text-white font-bold text-md flex flex-row gap-2 items-center">
-              Generar Reporte en PDF{" "}
-              <img src={pdfIcon} alt="PDF" className="w-8 h-8" />
-            </p>
-          </button>
-          <button
-            className="bg-[#38ae4e] text-white rounded-md p-2 flex flex-row gap-2 items-center"
-            onClick={() => {
-              ReporteComponenteExcel(
-                filtros,
-                () => {
-                  console.log("Reporte generado correctamente");
-                },
-                (error) => {
-                  console.log("Error al generar el reporte", error);
-                },
-              );
-            }}
-          >
-            <p className="text-white font-bold text-md flex flex-row gap-2 items-center">
-              Generar Reporte en Excel{" "}
-              <img src={excelIcon} alt="Excel" className="w-8 h-8" />
-            </p>
-          </button>
+          <FormButtons
+            onClickExcel={() => ReporteComponenteExcel(filtros, () => {}, (error) => {console.log(error)})}
+            onClickPDF={() => ReporteComponente(filtros, () => {}, (error) => {console.log(error)}, "print")}
+            onClickLimpiar={() => setFiltros({...filtros, deposito: 0, sucursal: 0, fecha_desde: "", fecha_hasta: "", tipo_ingreso: 1, nro_proveedor: 0, verificado: -1, nro_factura: ""})}
+          />
         </div>
       </div>
     </div>

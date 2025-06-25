@@ -6,7 +6,7 @@ interface CaratulaItemsProps {
   codigo_interno: string;
   codigo_barras: string;
   descripcion: string;
-  vencimiento: string;
+  vencimiento: Date;
   lote: string;
   cantidad: number;
   responsable: string;

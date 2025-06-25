@@ -54,12 +54,12 @@ export const ingresosApi = {
     }
   },
 
-
   generarReporteIngresos : async (filtros: FiltrosDTO): Promise<ReporteIngresosResponse> => {
     try{
       const response = await axios.get(`${api_url}control-ingreso/reporte-ingresos`, {
         params: filtros
       })
+      console.log("response.data", response.data);
       return response.data;
     }catch(error){
       console.error("Error al generar el reporte de ingresos:", error);
