@@ -2,8 +2,8 @@ import pdfMake from "pdfmake/build/pdfmake";
 import pdfFonts from "pdfmake/build/vfs_fonts";
 import type { ReporteMovimientoArticulos } from "../../../shared/types/reportes";
 import type { SucursalViewModel } from "../../../shared/types/sucursal";
-import type { Usuario } from "../../../shared/types/auth";
 import type { TotalesMovimientoArticulos } from "../../../shared/types/reportes";
+import { UsuarioViewModel } from "@/shared/types/operador";
 
 interface Filtros {
     anioInicio: number
@@ -21,7 +21,7 @@ interface Filtros {
 interface ReporteMovimientoProductosPdfProps {
     reporte: ReporteMovimientoArticulos
     sucursalData: SucursalViewModel
-    usuarioData: Usuario
+    usuarioData: UsuarioViewModel
     filtros: Filtros
 }
 
@@ -35,11 +35,7 @@ export const ReporteMovimientoProductosPDF = ({ reporte, sucursalData, usuarioDa
 
         const { detalles, totales } = reporte
 
-        const fechaActual = new Date().toLocaleDateString('es-PY', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        })
+        const fechaActual = new Date().toLocaleDateString('es-PY') + ' ' + new Date().toLocaleTimeString('es-PY', { hour: '2-digit', minute: '2-digit' })
 
         const anios = Array.from({length: filtros.cantidadAnios}, (_, i) => filtros.anioInicio - i)
         
@@ -59,7 +55,8 @@ export const ReporteMovimientoProductosPDF = ({ reporte, sucursalData, usuarioDa
 
         const docDefinition = {
             pageSize: 'A4',
-            pageMargins: [10, 90, 10, 10],
+            pageOrientation: 'landscape',
+            pageMargins: [20, 110, 20, 30],
             header: {
                 stack: [
                     {
@@ -98,7 +95,10 @@ export const ReporteMovimientoProductosPDF = ({ reporte, sucursalData, usuarioDa
                                 alignment: 'right'
                             }
                         ],
-                        margin: [5, 5, 5, 5]
+                        margin: [10, 20, 10, 5]
+                    },
+                    {
+                        canvas: [{ type: 'line', x1: 0, y1: 0, x2: 842, y2: 0, lineWidth: 0.3 }]
                     },
                     {
                         text: 'REPORTE DE MOVIMIENTO DE PRODUCTOS Y METAS - AGRUPADO POR AÑOS',
@@ -189,8 +189,18 @@ export const ReporteMovimientoProductosPDF = ({ reporte, sucursalData, usuarioDa
                         ],
                         margin: [10, 0, 10, 0],
                     },
-
+                    {
+                        canvas: [{ type: 'line', x1: 0, y1: 0, x2: 842, y2: 0, lineWidth: 0.3 }]
+                    },
                 ],
+            },
+            footer: function(currentPage: number, pageCount: number) {
+                return {
+                    text: `Página ${currentPage} de ${pageCount}`,
+                    alignment: 'center',
+                    fontSize: 8,
+                    margin: [0, 5, 0, 0]
+                }
             },
             content: [
                 // Tabla principal
@@ -315,7 +325,7 @@ export const ReporteMovimientoProductosPDF = ({ reporte, sucursalData, usuarioDa
                     fillColor: '#f0f0f0'
                 },
                 tableCell: {
-                    fontSize: 5,
+                    fontSize: 6,
                     color: 'black'
                 }
             }

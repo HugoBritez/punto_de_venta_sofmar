@@ -22,13 +22,11 @@ import {
   ChevronDown,
   ChevronUp,
   Truck,
-  NotebookPen,
   Handshake,
   ShoppingBasket,
   ArchiveRestore,
   Package,
   Ellipsis,
-  Receipt,
   SmartphoneNfc,
   FileChartColumnIncreasing,
   Bus,
@@ -40,6 +38,8 @@ import {
   Settings,
   Podcast,
   Boxes,
+  Menu,
+  User,
 } from "lucide-react";
 import { useAuth } from "@/services/AuthContext";
 import { db, fechaRelease, version } from "@/utils";
@@ -54,18 +54,21 @@ interface NavItem {
   path: string;
   enabled: boolean;
   subItems?: NavItem[];
+  level?: number;
 }
 
 const Sidebar = () => {
   const [isLargerThan768] = useMediaQuery("(min-width: 768px)");
   const [isExpanded, setIsExpanded] = useState(false);
   const [, setIsMobileExpanded] = useState(false);
-  const [expandedItem, setExpandedItem] = useState<string | null>(null);
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const location = useLocation();
   const mobileBarRef = useRef<HTMLDivElement>(null);
   const { logout } = useAuth();
   const navigate = useNavigate();
   const { isOpen, onOpen, onClose } = useDisclosure();
+
+
   const permisos_menu_local = (() => {
     try {
       const stored = sessionStorage.getItem("permisos_menu");
@@ -145,28 +148,45 @@ const Sidebar = () => {
       path: "/dashboard",
       enabled: true,
     },
+    // {
+    //   name: "Módulo Financiero",
+    //   icon: Receipt,
+    //   path: "/cobros",
+    //   enabled: true,
+    //   subItems: [
+    //     {
+    //       grupo: 5,
+    //       orden: 2,
+    //       id: 142,
+    //       name: "Op. Caja Diaria",
+    //       icon: SmartphoneNfc,
+    //       path: "/cobros",
+    //       enabled: true,
+    //     },
+    //     {
+    //       grupo: 5,
+    //       orden: 6,
+    //       id: 146,
+    //       name: "Op. Caja Financiero",
+    //       icon: HandCoins,
+    //       path: "/consulta-de-cobros",
+    //       enabled: true,
+    //     },
+    //   ],
+    // },
     {
-      name: "Módulo Financiero",
-      icon: Receipt,
-      path: "/cobros",
+      name: "Módulo Tablas",
+      icon: User,
+      path: "/personas",
       enabled: true,
       subItems: [
         {
           grupo: 5,
           orden: 2,
-          id: 142,
-          name: "Op. Caja Diaria",
-          icon: SmartphoneNfc,
-          path: "/cobros",
-          enabled: true,
-        },
-        {
-          grupo: 5,
-          orden: 6,
-          id: 146,
-          name: "Op. Caja Financiero",
-          icon: HandCoins,
-          path: "/consulta-de-cobros",
+          id: 115,
+          name: "Personas",
+          icon: User,
+          path: "/personas",
           enabled: true,
         },
       ],
@@ -187,7 +207,7 @@ const Sidebar = () => {
           enabled: true,
         },
         {
-          grupo:  2, //2
+          grupo: 2, //2
           orden: 102, //102
           id: 421,
           name: "Punto de Venta",
@@ -222,6 +242,44 @@ const Sidebar = () => {
           path: "/presupuestos-nuevo",
           enabled: true,
         },
+        {
+          grupo: 999,
+          orden: 999,
+          id: 53,
+          name: "Informes",
+          icon: SquareChartGantt,
+          path: "",
+          enabled: true,
+          subItems: [
+            {
+              grupo: 2,
+              orden: 53,
+              id: 51,
+              name: "Informe Movimiento Productos y Metas Agrup. x Año",
+              icon: FileChartColumnIncreasing,
+              path: "/ventas/reporte-movimiento-productos",
+              enabled: true,
+            },
+            {
+              grupo: 2,
+              orden: 53,
+              id: 51,
+              name: "Reporte Pedidos Facturados",
+              icon: FileChartColumnIncreasing,
+              path: "/reporte-pedidos-facturados",
+              enabled: true,
+            },
+            {
+              grupo: 2,
+              orden: 36,
+              id: 74,
+              name: "Informe de Ventas",
+              icon: FileChartColumnIncreasing,
+              path: "/informe-de-ventas",
+              enabled: true,
+            },
+          ]
+        },
       ],
     },
     {
@@ -255,23 +313,6 @@ const Sidebar = () => {
           name: "Consulta de Presupuestos",
           icon: FilePen,
           path: "/consulta-de-presupuestos",
-          enabled: true,
-        },
-      ],
-    },
-    {
-      name: "Modulo Informes",
-      icon: NotebookPen,
-      path: "/ventas-y-egresos",
-      enabled: true,
-      subItems: [
-        {
-          grupo: 2,
-          orden: 36,
-          id: 74,
-          name: "Informe de Ventas",
-          icon: FileChartColumnIncreasing,
-          path: "/informe-de-ventas",
           enabled: true,
         },
       ],
@@ -481,42 +522,41 @@ const Sidebar = () => {
     },
   ];
 
-const [menuItems, setMenuItems] = useState(NAV_ITEMS);
+  const [menuItems, setMenuItems] = useState(NAV_ITEMS);
 
-useEffect(() => {
-  const tienePermiso = (
-    grupo: number | undefined,
-    orden: number | undefined
-  ) => {
-    if (nombreUsuario && nombreUsuario === "Sofmar") return true;
-    if (!grupo || !orden) return false;
+  useEffect(() => {
+    const tienePermiso = (
+      grupo: number | undefined,
+      orden: number | undefined
+    ) => {
+      if (nombreUsuario && nombreUsuario === "Sofmar") return true;
+      if (!grupo || !orden) return false;
 
-    return permisos_menu_local?.some?.(
-      (permiso: any) =>
-        permiso.menu_grupo === grupo &&
-        permiso.menu_orden === orden &&
-        permiso.acceso === 1
-    );
-  };
+      return permisos_menu_local?.some?.(
+        (permiso: any) =>
+          permiso.menu_grupo === grupo &&
+          permiso.menu_orden === orden &&
+          permiso.acceso === 1
+      );
+    };
 
-  const menuConPermisos = NAV_ITEMS.map((item) => ({
-    ...item,
-    enabled: !item.subItems ? tienePermiso(item.grupo, item.orden) : true,
-    subItems: item.subItems?.map((subItem) => ({
-      ...subItem,
-      enabled: tienePermiso(subItem.grupo, subItem.orden),
-    })),
-  }));
+    const menuConPermisos = NAV_ITEMS.map((item) => ({
+      ...item,
+      enabled: !item.subItems ? tienePermiso(item.grupo, item.orden) : true,
+      subItems: item.subItems?.map((subItem) => ({
+        ...subItem,
+        enabled: tienePermiso(subItem.grupo, subItem.orden),
+      })),
+    }));
 
-  setMenuItems(menuConPermisos);
-}, []);
+    setMenuItems(menuConPermisos);
+  }, []);
 
-  const handleClick = () => {
-    if (isLargerThan768) {
-      setIsExpanded(!isExpanded);
-      if (!isExpanded) {
-        setExpandedItem(null); // Cierra los subitems cuando se contrae el menú
-      }
+  const handleToggleSidebar = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Evita que se propague al contenedor
+    setIsExpanded(!isExpanded);
+    if (!isExpanded) {
+      setExpandedItems(new Set()); // Cierra los subitems cuando se contrae el menú
     }
   };
 
@@ -531,7 +571,19 @@ useEffect(() => {
   };
 
   const toggleItemExpansion = (itemName: string) => {
-    setExpandedItem(expandedItem === itemName ? null : itemName);
+    setExpandedItems(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(itemName)) {
+        newSet.delete(itemName);
+      } else {
+        newSet.add(itemName);
+      }
+      return newSet;
+    });
+  };
+
+  const isItemExpanded = (itemName: string) => {
+    return expandedItems.has(itemName);
   };
 
   useEffect(() => {
@@ -541,7 +593,7 @@ useEffect(() => {
         !mobileBarRef.current.contains(event.target as Node)
       ) {
         setIsMobileExpanded(false);
-        setExpandedItem(null);
+        setExpandedItems(new Set());
       }
     };
 
@@ -551,7 +603,7 @@ useEffect(() => {
     };
   }, []);
 
-  const renderNavItem = (item: NavItem) => (
+  const renderNavItem = (item: NavItem, level: number = 0) => (
     <GridItem key={item.name} borderTopLeftRadius="15px">
       {item.subItems ? (
         <Box>
@@ -576,14 +628,17 @@ useEffect(() => {
               opacity={item.enabled ? 1 : 0.5}
               onClick={(e) => handleItemClick(e, item.name)}
               cursor="pointer"
+              border="2px solid"
+              borderColor={isItemExpanded(item.name) ? "blue.500" : "transparent"}
+              bg={isItemExpanded(item.name) ? "blue.50" : "transparent"}
             >
               <Icon as={item.icon} boxSize={6} color="black" />
-              <Text fontSize="xs" mt={1} textAlign="center" color="black">
+              <Text fontSize="sm" fontWeight={"bold"} mt={1} textAlign="center" color="black">
                 {isExpanded ? item.name : ""}
               </Text>
               {isExpanded && (
                 <Icon
-                  as={expandedItem === item.name ? ChevronUp : ChevronDown}
+                  as={isItemExpanded(item.name) ? ChevronUp : ChevronDown}
                   boxSize={4}
                   color="black"
                   mt={1}
@@ -591,53 +646,204 @@ useEffect(() => {
               )}
             </Flex>
           </Tooltip>
-          {expandedItem === item.name && isExpanded && (
+          {isItemExpanded(item.name) && isExpanded && (
             <Box
-              ml={4}
+              ml={4 * (level + 1)}
               transition="all 0.3s"
+              borderLeft="2px solid"
+              borderColor="blue.200"
+              pl={2}
+              mt={2}
             >
+              <Box
+                w="100%"
+                h="1px"
+                bg="blue.200"
+                mb={3}
+                mx={2}
+              />
               {item.subItems.map((subItem) => (
-                <Link
-                  key={subItem.name}
-                  to={subItem.path}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onClose();
-                  }}
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    pointerEvents: subItem.enabled ? "auto" : "none",
-                  }}
-                >
-                  <Flex
-                    align="center"
-                    px={2}
-                    py={2}
-                    mx={2}
-                    my={1}
-                    borderRadius={"8px"}
-                    transition="all 0.3s"
-                    className={subItem.enabled ? "hover:bg-blue-100" : ""}
-                    opacity={subItem.enabled ? 1 : 0.5}
-                  >
-                    <Icon
-                      as={subItem.icon}
-                      boxSize={4}
-                      color={
-                        location.pathname === subItem.path && subItem.enabled
-                          ? "blue.500"
-                          : "black"
-                      }
-                      mr={2}
-                    />
-                    {isExpanded && (
-                      <Text fontSize="md" color="black">
-                        {subItem.name}
-                      </Text>
-                    )}
-                  </Flex>
-                </Link>
+                <Box key={subItem.name} mb={2}>
+                  {subItem.subItems ? (
+                    <Box>
+                      <Flex
+                        align="center"
+                        px={3}
+                        py={2}
+                        mx={2}
+                        borderRadius={"8px"}
+                        transition="all 0.3s"
+                        className={subItem.enabled ? "hover:bg-blue-100" : ""}
+                        opacity={subItem.enabled ? 1 : 0.5}
+                        onClick={(e) => handleItemClick(e, subItem.name)}
+                        cursor="pointer"
+                        border="1px solid"
+                        borderColor={isItemExpanded(subItem.name) ? "blue.400" : "gray.200"}
+                        bg={isItemExpanded(subItem.name) ? "blue.50" : "transparent"}
+                        position="relative"
+                      >
+                        <Box
+                          position="absolute"
+                          left="-8px"
+                          top="50%"
+                          transform="translateY(-50%)"
+                          w="4px"
+                          h="4px"
+                          borderRadius="full"
+                          bg="blue.400"
+                        />
+                        <Icon
+                          as={subItem.icon}
+                          boxSize={4}
+                          color="black"
+                          mr={2}
+                        />
+                        <Text fontSize="sm" color="black" flex={1} fontWeight="medium">
+                          {subItem.name}
+                        </Text>
+                        <Icon
+                          as={isItemExpanded(subItem.name) ? ChevronUp : ChevronDown}
+                          boxSize={3}
+                          color="black"
+                        />
+                      </Flex>
+                      {isItemExpanded(subItem.name) && (
+                        <Box
+                          ml={4}
+                          mt={2}
+                          pl={3}
+                          borderLeft="1px solid"
+                          borderColor="gray.200"
+                        >
+                          <Box
+                            w="100%"
+                            h="1px"
+                            bg="gray.200"
+                            mb={2}
+                          />
+                          <Flex
+                            direction="row"
+                            flexWrap="wrap"
+                            gap={2}
+                          >
+                            {subItem.subItems.map((nestedItem) => (
+                              <Link
+                                key={nestedItem.name}
+                                to={nestedItem.path}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onClose();
+                                }}
+                                style={{
+                                  pointerEvents: nestedItem.enabled ? "auto" : "none",
+                                }}
+                              >
+                                <Flex
+                                  direction="row"
+                                  align="center"
+                                  px={3}
+                                  py={2}
+                                  borderRadius={"8px"}
+                                  transition="all 0.3s"
+                                  className={nestedItem.enabled ? "hover:bg-blue-100" : ""}
+                                  opacity={nestedItem.enabled ? 1 : 0.5}
+                                  minW="120px"
+                                  maxW="200px"
+                                  border="1px solid"
+                                  borderColor="gray.200"
+                                  bg="white"
+                                  _hover={{
+                                    borderColor: "blue.300",
+                                    transform: "translateY(-1px)",
+                                    boxShadow: "sm"
+                                  }}
+                                >
+                                  <Icon
+                                    as={nestedItem.icon}
+                                    boxSize={4}
+                                    color={
+                                      location.pathname === nestedItem.path && nestedItem.enabled
+                                        ? "blue.500"
+                                        : "black"
+                                    }
+                                    mr={2}
+                                  />
+                                  <Text 
+                                    fontSize="xs" 
+                                    color="black" 
+                                    textAlign="left"
+                                    noOfLines={2}
+                                    fontWeight="medium"
+                                    flex={1}
+                                  >
+                                    {nestedItem.name}
+                                  </Text>
+                                </Flex>
+                              </Link>
+                            ))}
+                          </Flex>
+                        </Box>
+                      )}
+                    </Box>
+                  ) : (
+                    <Link
+                      to={subItem.path}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onClose();
+                      }}
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        pointerEvents: subItem.enabled ? "auto" : "none",
+                      }}
+                    >
+                      <Flex
+                        align="center"
+                        px={3}
+                        py={2}
+                        mx={2}
+                        borderRadius={"8px"}
+                        transition="all 0.3s"
+                        className={subItem.enabled ? "hover:bg-blue-100" : ""}
+                        opacity={subItem.enabled ? 1 : 0.5}
+                        border="1px solid"
+                        borderColor="transparent"
+                        _hover={{
+                          borderColor: "blue.300",
+                          bg: "blue.50"
+                        }}
+                        position="relative"
+                      >
+                        <Box
+                          position="absolute"
+                          left="-8px"
+                          top="50%"
+                          transform="translateY(-50%)"
+                          w="3px"
+                          h="3px"
+                          borderRadius="full"
+                          bg="gray.400"
+                        />
+                        <Icon
+                          as={subItem.icon}
+                          boxSize={4}
+                          color={
+                            location.pathname === subItem.path && subItem.enabled
+                              ? "blue.500"
+                              : "black"
+                          }
+                          mr={2}
+                        />
+                        {isExpanded && (
+                          <Text fontSize="sm" color="black" fontWeight="medium">
+                            {subItem.name}
+                          </Text>
+                        )}
+                      </Flex>
+                    </Link>
+                  )}
+                </Box>
               ))}
             </Box>
           )}
@@ -650,7 +856,7 @@ useEffect(() => {
           hasArrow
         >
           <Box
-            onClick={handleClick}
+            onClick={handleToggleSidebar}
             cursor="pointer"
             w="100%"
             h="100%"
@@ -676,6 +882,9 @@ useEffect(() => {
                 transition="all 0.3s"
                 className={item.enabled ? "hover:bg-blue-100" : ""}
                 opacity={item.enabled ? 1 : 0.5}
+                border="2px solid"
+                borderColor={location.pathname === item.path && item.enabled ? "blue.500" : "transparent"}
+                bg={location.pathname === item.path && item.enabled ? "blue.50" : "transparent"}
               >
                 <Icon
                   as={item.icon}
@@ -686,7 +895,7 @@ useEffect(() => {
                       : "black"
                   }
                 />
-                <Text fontSize="xs" mt={1} textAlign="center" color="black">
+                <Text fontSize="sm" fontWeight={"bold"} mt={1} textAlign="center" color="black">
                   {isExpanded ? item.name : ""}
                 </Text>
               </Flex>
@@ -704,7 +913,7 @@ useEffect(() => {
         pos="fixed"
         right={8}
         bottom={16}
-        zIndex={1000}
+        zIndex={999999}
         ref={mobileBarRef}
         transform={isOpen ? "translateX(100%)" : "translateX(0)"}
         transition="all 0.3s ease-in-out"
@@ -750,7 +959,7 @@ useEffect(() => {
         visibility={isExpanded ? "visible" : "hidden"}
         onClick={() => {
           setIsExpanded(false);
-          setExpandedItem(null);
+          setExpandedItems(new Set());
         }}
         zIndex={999}
         pointerEvents={isExpanded ? "auto" : "none"}
@@ -761,15 +970,15 @@ useEffect(() => {
         left={2}
         top={2}
         h="calc(100vh - 16px)"
-        w={isExpanded ? "200px" : "60px"}
+        w={isExpanded ? "350px" : "80px"}
         bg="white"
         color="blue.500"
         transition="all 0.3s"
-        zIndex={1000}
-        onClick={handleClick}
+        zIndex={999999}
+        onClick={handleToggleSidebar}
         overflowY="auto"
         borderRadius="md"
-        boxShadow="lg"
+        boxShadow="xs"
         sx={{
           "&::-webkit-scrollbar": {
             width: "12px",
@@ -784,11 +993,32 @@ useEffect(() => {
         }}
       >
         <Flex direction="column" h="100%" align="stretch">
+          {/* Botón de toggle */}
+          <Flex
+            justify="center"
+            align="center"
+            p={2}
+            mt={2}
+            cursor="pointer"
+            onClick={handleToggleSidebar}
+            borderRadius="full"
+            mx={2}
+            bg="blue.600"
+          >
+            <Icon
+              as={Menu}
+              boxSize={5}
+              color="white"
+              transform={isExpanded ? "rotate(180deg)" : "rotate(0deg)"}
+              transition="transform 0.3s"
+            />
+          </Flex>
+
           {isExpanded && (
             <Flex
               align="center"
               p={2}
-              mt={4}
+              mt={2}
               direction={"column"}
               _hover={{ color: "red.500", cursor: "pointer" }}
             >

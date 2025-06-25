@@ -39,29 +39,6 @@ export interface FiltrosDTO {
   verificado: number;
 }
 
-export interface VerificacionCompraDTO {
-  id_compra: number;
-}
-
-export interface VerificacionItemDTO {
-  id_detalle: number;
-  cantidad: number;
-}
-
-export interface ConfirmarVerificacionDTO {
-  id_compra: number;
-  deposito_transitorio: number;
-  deposito_destino: number;
-  factura_compra: string;
-  user_id: number;
-  operador_id: number;
-  items: {
-    lote: string;
-    cantidad_ingreso: number;
-    cantidad_factura: number;
-    id_articulo: number;
-  }[];
-}
 
 export interface ReporteIngresos {
   id_compra: number;

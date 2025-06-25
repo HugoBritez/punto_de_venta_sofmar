@@ -5,7 +5,7 @@ import { type ColumnDef, useReactTable, getSortedRowModel, getCoreRowModel, flex
 import {  useVirtualizer } from "@tanstack/react-virtual"
 import { debounce } from "lodash" 
 import { generarExcelReportePedidosFacturados } from "../utils/importarAExcel"
-import { useToast } from "../../../shared/context/ToastContext"
+import { useToast } from "@chakra-ui/react"
 // Componente de loading con animación
 const TableLoadingSpinner = () => (
     <div className="flex items-center justify-center p-8 h-full">
@@ -76,7 +76,7 @@ const ReportePedidosFacturados = () => {
   const { data: reporte, isLoading, isError, refetch } = usePedidosFacturados(params)
   const tableContainerRef = useRef<HTMLDivElement>(null)
   const [focusedRowIndex, setFocusedRowIndex] = useState(0)
-  const { showToast } = useToast()
+  const toast = useToast()
   const debouncedHandleChange = useMemo(
     () =>
       debounce((input: string, value: string) => {
@@ -221,7 +221,13 @@ const ReportePedidosFacturados = () => {
     }
 
     else {
-      showToast('error', 'Advertencia', 'No hay datos para exportar', 'bottom-right')
+      toast({
+        title: 'No hay datos para exportar',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+        position: 'bottom'
+      });
     }
   };
 

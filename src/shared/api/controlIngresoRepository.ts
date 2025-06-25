@@ -46,6 +46,4 @@ export const controlIngresosRepository = {
         const response = await api.post(`control-ingreso/confirmar`, dto);
         return response.data;
     }
-
-
 }

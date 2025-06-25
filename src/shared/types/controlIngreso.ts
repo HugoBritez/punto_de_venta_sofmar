@@ -65,6 +65,8 @@ export interface ControlIngresoItemEntity {
 }
 
 export interface VerificacionItemDTO {
-    id_detalle: number;
+    detalle: number;
     cantidad: number;
+    lote: string;
+    vencimiento: string;
   }

@@ -15,18 +15,22 @@ interface ArticulosComponentProps {
   isOpen: boolean;
   setIsOpen: (isOpen: boolean) => void;
   onSelect?: (articulo: any) => void;
+  depositoInicial?: number;
+  sucursalInicial?: number;
 }
 
 export const ArticulosComponent = ({
   isOpen,
   setIsOpen,
   onSelect,
+  depositoInicial,
+  sucursalInicial,
 }: ArticulosComponentProps) => {
   const [busquedaDTO, setBusquedaDTO] = useState<BusquedaDTO>({
     busqueda: "",
     id_articulo: undefined,
     codigo_barra: undefined,
-    deposito: undefined,
+    deposito: depositoInicial ?? undefined,
     stock: false,
     moneda: undefined,
     marca: undefined,
@@ -181,12 +185,14 @@ export const ArticulosComponent = ({
     // Simular un click en el primer depósito y sucursal
     const seleccionarPrimerosValores = async () => {
       try {
-        const primerDeposito = 1;
-        const primeraSucursal = 1;
+        const primerDeposito = depositoInicial ?? 1;
+        const primeraSucursal = sucursalInicial ?? 1;
 
         handleDepositoChange(primerDeposito);
         handleSucursalChange(primeraSucursal);
-        setTermino("abs");
+        handleMostrarTodosChange(sessionStorage.getItem("stockArticulos") === "true");
+        handleNegativoChange(sessionStorage.getItem("negativoArticulos") === "true");
+        setTermino("");
       } catch (error) {
         console.error("Error al seleccionar valores iniciales:", error);
       }
@@ -203,9 +209,47 @@ export const ArticulosComponent = ({
   ) => {
     // Prevenir el comportamiento predeterminado si hay un evento
     event?.preventDefault();
-    console.log("Artículo seleccionado:", articulo);
-    setArticuloSeleccionado(articulo);
+    
+    // Si ya hay un artículo seleccionado y es el mismo que se está haciendo clic
+    if (articuloSeleccionado && articuloSeleccionado.id_lote === articulo.id_lote) {
+      // Segundo clic: confirmar la selección y cerrar modal
+      handleSeleccionarArticulo();
+    } else {
+      // Primer clic: seleccionar el artículo
+      console.log("Artículo seleccionado:", articulo);
+      setArticuloSeleccionado(articulo);
+      
+      // Resetear el índice de navegación por teclado cuando se selecciona por clic
+      setIndiceSeleccionado(-1);
+      
+      // Mostrar feedback visual con toast
+      toast({
+        title: "Artículo seleccionado",
+        description: `${articulo.descripcion} - ${articulo.codigo_barra}`,
+        status: "success",
+        duration: 2000,
+        isClosable: true,
+      });
+    }
   };
+
+  const handleMostrarTodosChange = (stock: boolean) => {
+    setBusquedaDTO((prev) => ({
+      ...prev,
+      stock: stock,
+    }));
+    sessionStorage.setItem("stockArticulos", stock.toString());
+  };
+
+
+  const handleNegativoChange = (negativo: boolean) => {
+    setBusquedaDTO((prev) => ({
+      ...prev,
+      negativo: negativo,
+    }));
+    sessionStorage.setItem("negativoArticulos", negativo.toString());
+  };
+
 
   const limpiarFiltros = () => {
     setFiltroSeleccionado("articulo");
@@ -221,7 +265,6 @@ export const ArticulosComponent = ({
       id_articulo: undefined,
       codigo_barra: undefined,
       deposito: undefined,
-      stock: false,
       moneda: undefined,
       articulo: 1,
     }));
@@ -272,13 +315,18 @@ export const ArticulosComponent = ({
                 key={resultado.id_lote}
                 ref={index === indiceSeleccionado ? selectedRowRef : null}
                 onClick={(e) => handleArticuloSeleccionado(resultado, e)}
-                className={`hover:bg-blue-100 cursor-pointer transition-colors ${
+                className={`hover:bg-blue-100 cursor-pointer transition-all duration-200 ${
                   articuloSeleccionado?.id_lote === resultado.id_lote
-                    ? "bg-blue-200"
+                    ? "bg-blue-200 ring-2 ring-blue-500 shadow-md"
                     : indiceSeleccionado === index
-                    ? "bg-blue-100"
+                    ? "bg-blue-100 ring-1 ring-blue-300"
                     : ""
                 }`}
+                title={
+                  articuloSeleccionado?.id_lote === resultado.id_lote
+                    ? "Haz clic nuevamente para confirmar la selección"
+                    : "Haz clic para seleccionar este artículo"
+                }
               >
                 <td className="px-4 py-2 font-medium border-r-2 border-gray-200">
                   {resultado.id_articulo}
@@ -508,11 +556,6 @@ export const ArticulosComponent = ({
     }
   };
 
-  useEffect(() => {
-    if (articuloSeleccionado) {
-      console.log("Artículo seleccionado actualizado:", articuloSeleccionado);
-    }
-  }, [articuloSeleccionado]);
 
   // Agregar este useEffect para resetear el índice seleccionado cuando cambian los resultados
   useEffect(() => {
@@ -546,7 +589,7 @@ export const ArticulosComponent = ({
       isOpen={isOpen}
       onClose={() => setIsOpen(false)}
       size="h-[calc(100vh-10rem)]"
-      maxWidth="max-w-[calc(100vw-10rem)]"
+      maxWidth="max-w-[calc(100vw-20rem)]"
       backgroundColor="bg-gray-100"
     >
       <div className="h-screen w-full flex flex-col gap-4 p-4">
@@ -672,11 +715,7 @@ export const ArticulosComponent = ({
                     type="checkbox"
                     checked={!busquedaDTO.stock}
                     onChange={() =>
-                      setBusquedaDTO((prev) => ({
-                        ...prev,
-                        stock: !prev.stock,
-                        negativo: false,
-                      }))
+                      handleMostrarTodosChange(!busquedaDTO.stock)
                     }
                     className="w-5 h-5 text-blue-600 rounded border-2 border-gray-400 focus:ring-blue-500"
                   />
@@ -689,11 +728,7 @@ export const ArticulosComponent = ({
                     type="checkbox"
                     checked={busquedaDTO.negativo}
                     onChange={() =>
-                      setBusquedaDTO((prev) => ({
-                        ...prev,
-                        negativo: !prev.negativo,
-                        stock: true,
-                      }))
+                      handleNegativoChange(!busquedaDTO.negativo)
                     }
                     className="w-5 h-5 text-blue-600 rounded border-2 border-gray-400 focus:ring-blue-500"
                   />

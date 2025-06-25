@@ -63,6 +63,7 @@ import { useTipoImpresionFacturaStore } from "@/stores/tipoImpresionFacturaStore
 import ModeloFacturaReport from "../facturacion/ModeloFacturaReport";
 import { ArticulosComponent } from "@/ui/articulos/ArticulosComponent";
 import BuscadorClientes from "@/ui/clientes/BuscadorClientes";
+import { SelectorTimbrado } from "@/shared/components/Facturacion/SelectorTimbrado";
 
 interface ItemParaVenta {
   precio_guaranies: number;
@@ -2498,7 +2499,7 @@ const VentaBalconNuevo = () => {
 
     // Siempre actualizamos el valor del input
     setArticuloBusquedaId(valor);
-    
+
     // Si se está borrando el código, limpiamos el artículo seleccionado
     if (valor === '') {
       setArticuloSeleccionado(null);
@@ -3417,8 +3418,10 @@ const VentaBalconNuevo = () => {
                         ...opcionesFinalizacion,
                         tipo_documento: "TICKET",
                       });
+                      // Cuando se selecciona TICKET, desmarcar factura y dejar que el usuario elija entre ticket y nota interna
                       setImprimirFactura(false);
-                      setImprimirTicket(true);
+                      setImprimirTicket(false);
+                      setImprimirNotaInterna(false);
                     }}
                   >
                     Nota Comun
@@ -3434,8 +3437,10 @@ const VentaBalconNuevo = () => {
                         ...opcionesFinalizacion,
                         tipo_documento: "FACTURA",
                       });
+                      // Cuando se selecciona FACTURA, solo se puede imprimir factura
                       setImprimirFactura(true);
                       setImprimirTicket(false);
+                      setImprimirNotaInterna(false);
                     }}
                   >
                     Factura
@@ -3443,34 +3448,46 @@ const VentaBalconNuevo = () => {
 
                   <div className="flex flex-row gap-2 items-center">
                     <input
-                      type="checkbox"
+                      type="radio"
                       className="w-4 h-4"
+                      name="impresion"
                       checked={imprimirFactura}
-                      onChange={(e) => setImprimirFactura(e.target.checked)}
-                      disabled={
-                        opcionesFinalizacion.tipo_documento === "TICKET"
-                      }
+                      onChange={() => {
+                        setImprimirFactura(true);
+                        setImprimirTicket(false);
+                        setImprimirNotaInterna(false);
+                      }}
+                      disabled={opcionesFinalizacion.tipo_documento === "TICKET"}
                     />
                     <p className="text-md font-bold">Impr. factura</p>
                   </div>
                   <div className="flex flex-row gap-2 items-center">
                     <input
-                      type="checkbox"
+                      type="radio"
                       className="w-4 h-4"
+                      name="impresion"
                       checked={imprimirTicket}
-                      onChange={(e) => setImprimirTicket(e.target.checked)}
-                      disabled={
-                        opcionesFinalizacion.tipo_documento === "FACTURA"
-                      }
+                      onChange={() => {
+                        setImprimirFactura(false);
+                        setImprimirTicket(true);
+                        setImprimirNotaInterna(false);
+                      }}
+                      disabled={opcionesFinalizacion.tipo_documento === "FACTURA"}
                     />
                     <p className="text-md font-bold">Impr. ticket</p>
                   </div>
                   <div className="flex flex-row gap-2 items-center">
                     <input
-                      type="checkbox"
+                      type="radio"
                       className="w-4 h-4"
+                      name="impresion"
                       checked={imprimirNotaInterna}
-                      onChange={(e) => setImprimirNotaInterna(e.target.checked)}
+                      onChange={() => {
+                        setImprimirFactura(false);
+                        setImprimirTicket(false);
+                        setImprimirNotaInterna(true);
+                      }}
+                      disabled={opcionesFinalizacion.tipo_documento === "FACTURA"}
                     />
                     <p className="text-md font-bold">Impr. nota interna</p>
                   </div>
@@ -3479,85 +3496,28 @@ const VentaBalconNuevo = () => {
 
               {/* Campos de Factura */}
               {opcionesFinalizacion.tipo_documento === "FACTURA" && (
-                <div className="flex flex-row gap-4 p-4 bg-blue-100 rounded-md">
-                  <div className="flex flex-col gap-2 w-1/2">
-                    <p className="font-bold">Timbrado</p>
-                    <input
-                      type="text"
-                      className="border rounded-md p-2"
-                      value={opcionesFinalizacion.timbrado || ""}
-                      onChange={(e) =>
-                        setOpcionesFinalizacion({
-                          ...opcionesFinalizacion,
-                          timbrado: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2 w-1/2">
-                    <p className="font-bold">Número de Factura</p>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        className="border rounded-md p-2 w-16 text-center"
-                        maxLength={3}
-                        value={
-                          opcionesFinalizacion.nro_establecimiento
-                            ?.toString()
-                            .padStart(3, "0") || ""
-                        }
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/\D/g, "");
-                          setOpcionesFinalizacion({
-                            ...opcionesFinalizacion,
-                            nro_establecimiento: value
-                              ? parseInt(value)
-                              : undefined,
-                          });
-                        }}
-                        placeholder="000"
-                      />
-                      <span className="flex items-center">-</span>
-                      <input
-                        type="text"
-                        className="border rounded-md p-2 w-16 text-center"
-                        maxLength={3}
-                        value={
-                          opcionesFinalizacion.nro_emision
-                            ?.toString()
-                            .padStart(3, "0") || ""
-                        }
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/\D/g, "");
-                          setOpcionesFinalizacion({
-                            ...opcionesFinalizacion,
-                            nro_emision: value ? parseInt(value) : undefined,
-                          });
-                        }}
-                        placeholder="000"
-                      />
-                      <span className="flex items-center">-</span>
-                      <input
-                        type="text"
-                        className="border rounded-md p-2 w-28 text-center"
-                        maxLength={7}
-                        value={
-                          opcionesFinalizacion.nro_factura
-                            ?.toString()
-                            .padStart(7, "0") || ""
-                        }
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/\D/g, "");
-                          setOpcionesFinalizacion({
-                            ...opcionesFinalizacion,
-                            nro_factura: value,
-                          });
-                        }}
-                        placeholder="0000000"
-                      />
-                    </div>
-                  </div>
-                </div>
+                <SelectorTimbrado
+                  userId={Number(operador)}
+                  sucursalId={sucursalSeleccionada?.id || 0}
+                  onDatosCargados={(datos) => {
+                    setOpcionesFinalizacion(prev => ({
+                      ...prev,
+                      nro_establecimiento: Number(datos.d_Establecimiento),
+                      nro_emision: Number(datos.d_P_Emision),
+                      nro_factura: String(datos.d_Nro_Secuencia + 1),
+                      timbrado: datos.d_Nrotimbrado,
+                    }));
+                  }}
+                  onDatosChange={(datos) => {
+                    setOpcionesFinalizacion(prev => ({
+                      ...prev,
+                      nro_establecimiento: Number(datos.d_Establecimiento),
+                      nro_emision: Number(datos.d_P_Emision),
+                      nro_factura: String(datos.d_Nro_Secuencia + 1),
+                      timbrado: datos.d_Nrotimbrado,
+                    }));
+                  }}
+                />
               )}
 
               {/* Tipo de Venta */}
@@ -4040,6 +4000,7 @@ const VentaBalconNuevo = () => {
           setArticuloSeleccionado(articulo);
           cantidadInputRef.current?.focus();
         }}
+        depositoInicial={depositoSeleccionado?.dep_codigo}
       />
       <BuscadorClientes
         isOpen={isBuscadorClientesOpen}

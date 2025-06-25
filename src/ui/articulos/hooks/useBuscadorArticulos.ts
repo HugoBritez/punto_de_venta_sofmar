@@ -1,5 +1,5 @@
-import { useState, useCallback, useEffect, useRef } from "react";
-import { Articulo } from "../types/articulo.type";
+import { useState, useCallback, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { buscarArticulos } from "../services/articulosService";
 
 interface UseBuscadorArticulosProps {
@@ -30,127 +30,82 @@ export const useBuscadorArticulos = ({
   negativo
 }: UseBuscadorArticulosProps = {}) => {
   const [termino, setTermino] = useState("");
-  const [resultados, setResultados] = useState<Articulo[]>([]);
-  const [cargando, setCargando] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  
-  const ultimaBusquedaRef = useRef<string>("");
-  const isMountedRef = useRef(true);
-  const debounceTimerRef = useRef<NodeJS.Timeout>();
-  const esBusquedaInicialRef = useRef(true);
 
-  const buscar = useCallback(
-    async (valor: string) => {
-      const terminoLimpio = valor.trim();
-      
-      if (terminoLimpio === ultimaBusquedaRef.current) {
-        return;
-      }
+  // Memoizamos los parámetros de búsqueda para evitar re-renders innecesarios
+  const searchParams = useMemo(() => ({
+    busqueda: termino.trim(),
+    deposito,
+    stock,
+    moneda,
+    sucursal,
+    categoria,
+    marca,
+    ubicacion,
+    proveedor,
+    cod_interno,
+    lote,
+    negativo
+  }), [
+    termino,
+    deposito,
+    stock,
+    moneda,
+    sucursal,
+    categoria,
+    marca,
+    ubicacion,
+    proveedor,
+    cod_interno,
+    lote,
+    negativo
+  ]);
 
-      ultimaBusquedaRef.current = terminoLimpio;
-
-      if (!esBusquedaInicialRef.current && terminoLimpio.length < 2) {
-        setResultados([]);
-        return;
-      }
-
-      setCargando(true);
-      setError(null);
-
-      try {
-        console.log("buscando articulos en el hook", {
-          terminoLimpio,
-          deposito,
-          stock,
-          moneda,
-          sucursal,
-          categoria,
-          marca,
-          ubicacion,
-          proveedor,
-          cod_interno,
-          lote,
-          negativo
-        });
-        
-        const articulos = await buscarArticulos({
-          busqueda: terminoLimpio,
-          deposito,
-          stock,
-          moneda,
-          sucursal,
-          categoria,
-          marca,
-          ubicacion,
-          proveedor,
-          cod_interno,
-          lote,
-          negativo
-        });
-        
-        setResultados(articulos);
-      } catch (err) {
-        setError("Error al buscar artículos");
-        console.error(err);
-        setResultados([]);
-      } finally {
-        setCargando(false);
-      }
-
-      esBusquedaInicialRef.current = false;
-    },
-    [
-      deposito,
-      stock,
-      moneda,
-      sucursal,
-      categoria,
-      marca,
-      ubicacion,
-      proveedor,
-      cod_interno,
-      lote,
-      negativo
-    ]
+  const queryKey = useMemo(() => 
+    ['articulosBusqueda', 'busqueda', searchParams], 
+    [searchParams]
   );
 
-  // Efecto para la búsqueda inicial
-  useEffect(() => {
-    // Realizamos la búsqueda inicial con string vacío
-    buscar("");
-    
-    return () => {
-      isMountedRef.current = false;
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-    };
-  }, [buscar, deposito, sucursal]); // Agregamos deposito y sucursal como dependencias
+  // Hook de TanStack Query
+  const {
+    data: resultados = [],
+    isLoading: cargando,
+    error,
+    refetch
+  } = useQuery({
+    queryKey,
+    queryFn: async () => {
+      console.log("Buscando artículos con TanStack Query:", searchParams);
+      return await buscarArticulos(searchParams);
+    },
+    enabled: true, // Siempre habilitado para búsquedas iniciales
+    staleTime: 0, // sin cache 
+    gcTime: 10 * 60 * 1000, // 10 minutos en garbage collector
+    refetchOnWindowFocus: false,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
 
-  // Efecto para las búsquedas con debounce
-  useEffect(() => {
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
-    }
+  // Función para búsqueda manual (opcional)
+  const buscar = useCallback(async (valor: string) => {
+    setTermino(valor);
+  }, []);
 
-    debounceTimerRef.current = setTimeout(() => {
-      if (termino !== ultimaBusquedaRef.current) {
-        buscar(termino);
-      }
-    }, 300);
-
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-    };
-  }, [termino, buscar]);
+  // Función para limpiar búsqueda
+  const limpiarBusqueda = useCallback(() => {
+    setTermino("");
+  }, []);
 
   return {
     termino,
     setTermino,
     resultados,
     cargando,
-    error,
+    error: error ? "Error al buscar artículos" : null,
+    buscar,
+    limpiarBusqueda,
+    refetch,
+    // Información adicional útil
+    isError: !!error,
+    isSuccess: !cargando && !error,
   };
 };

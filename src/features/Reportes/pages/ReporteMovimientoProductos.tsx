@@ -1,13 +1,13 @@
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import type { DetalleMovimientosArticulos, GetReporteMovimientoArticulosParams, TotalesMovimientoArticulos } from "../../../shared/types/reportes";
 import { useGetReporteMovimientoArticulos } from "../../../shared/hooks/querys/useReportes";
-import { getCoreRowModel, getSortedRowModel, getFilteredRowModel, useReactTable, type ColumnDef, type ColumnFiltersState, flexRender, type Table } from "@tanstack/react-table";
+import { getCoreRowModel, getSortedRowModel, getFilteredRowModel, useReactTable, type ColumnDef, type ColumnFiltersState, flexRender } from "@tanstack/react-table";
 import { useSucursales } from "../../../shared/hooks/querys/useSucursales";
 import { useDepositos } from "../../../shared/hooks/querys/useDepositos";
 import { useGetCategorias } from "../../../shared/hooks/querys/useCategorias";
 import { useGetMarcas } from "../../../shared/hooks/querys/useMarcas";
 import { useMonedas } from "../../../shared/hooks/querys/useMonedas";
-import { useUsuarios } from "../../../shared/hooks/querys/useUsuarios";
+import {  useUsuarios } from "../../../shared/hooks/querys/useUsuarios";
 import { useGetCiudades } from "../../../shared/hooks/querys/useCiudades";
 import { useGetProveedores } from "../../../shared/hooks/querys/useProveedores";
 import { Autocomplete } from "../../../shared/components/Autocomplete/AutocompleteComponent";
@@ -22,25 +22,138 @@ import type { UsuarioViewModel } from "../../../shared/types/operador";
 import type { Moneda } from "../../../shared/types/moneda";
 import { useListaDePrecios } from "../../../shared/hooks/querys/useListaDePrecios";
 import { useActualizarMetaAcordada } from "../../../shared/hooks/mutations/ventas/actualizarMeta";
-import { useToast } from "../../../shared/context/ToastContext";
 import { exportarDatosAExcel } from "../../../shared/utils/exportarAExcel";
 import { esAdmin, esSupervisor } from "../../../shared/utils/permisosRoles";
 import { permisoVerCosto } from "../../../shared/utils/permisoVerCosto";
-import { useAuthStore } from "../../../shared/stores/authStore";
 import { ProveedorRepository } from "../../../shared/api/proveedoresRepository";
 import { FormButtons } from "../../../shared/components/FormButtons/FormButtons";
 import { ReporteMovimientoProductosPDF } from "../docs/ReporteMovimientoProductosPDF";
 
+// Función helper para obtener datos del sessionStorage
+const getAuthData = () => {
+    const userId = sessionStorage.getItem("user_id");
+    const userName = sessionStorage.getItem("user_name");
+    const userSuc = sessionStorage.getItem("user_suc");
+    const rol = Number(sessionStorage.getItem("rol"));
+    const permisoVerUtilidad = Number(sessionStorage.getItem("permiso_ver_utilidad"));
+    
+    return {
+        userId,
+        userName,
+        userSuc,
+        rol,
+        permisoVerUtilidad
+    };
+};
+
+const MetaAcordadaInput = ({ 
+    row, 
+    selectedVendedor, 
+    formParams, 
+    actualizarMetaAcordada
+}: {
+    row: any;
+    selectedVendedor: UsuarioViewModel | null;
+    formParams: GetReporteMovimientoArticulosParams;
+    actualizarMetaAcordada: any;
+}) => {
+    const [valor, setValor] = useState(
+        row.original.metaAcordada !== undefined && row.original.metaAcordada !== null
+            ? String(row.original.metaAcordada)
+            : ""
+    );
+
+    const { rol } = getAuthData();
+
+    useEffect(() => {
+        setValor(
+            row.original.metaAcordada !== undefined && row.original.metaAcordada !== null
+                ? String(row.original.metaAcordada)
+                : ""
+        );
+    }, [row.original.metaAcordada]);
+
+    const guardarMeta = useCallback(() => {
+        if (valor === "" || Number(valor) < 0) {
+            setValor(
+                row.original.metaAcordada !== undefined && row.original.metaAcordada !== null
+                    ? String(row.original.metaAcordada)
+                    : ""
+            );
+            return;
+        }
+
+        if (!selectedVendedor) {
+            return;
+        }
+
+        actualizarMetaAcordada({
+            id: 0,
+            articuloId: row.original.codigoArticulo,
+            operadorId: selectedVendedor?.op_codigo,
+            metaAcordada: Number(valor),
+            periodo: formParams.AnioInicio,
+            estado: true
+        });
+    }, [valor, selectedVendedor, actualizarMetaAcordada, formParams.AnioInicio, row.original.codigoArticulo, row.original.metaAcordada]);
+
+    // SIMPLIFICAR drásticamente los event handlers
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setValor(e.target.value);
+    };
+
+    const handleBlur = () => {
+        guardarMeta();
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === "Enter") {
+            guardarMeta();
+            (e.currentTarget as HTMLInputElement).blur();
+        }
+    };
+
+    if (!esAdmin(rol) && !esSupervisor(rol)) {
+        return (
+            <div className="text-center">
+                {row.original.metaAcordada?.toLocaleString('es-PY', { maximumFractionDigits: 2 }) ?? ""}
+            </div>
+        );
+    }
+
+    return (
+        <input
+            type="number"
+            min={0}
+            className="text-center border rounded border-blue-500 focus:border-blue-700 focus:ring-1 focus:ring-blue-700 px-2 py-1 w-full bg-white"
+            value={valor}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            onKeyDown={handleKeyDown}
+            autoComplete="off"
+            spellCheck="false"
+        />
+    );
+};
+
 const ReporteMovimientoProductos = () => {
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
     const tableContainerRef = useRef<HTMLDivElement>(null)
-    const usuario = useAuthStore.getState().usuario;
-    const user_id = useAuthStore.getState().usuario?.op_codigo;
+    
+    // Usar sessionStorage directamente
+    const authData = getAuthData();
+    const usuario = {
+        op_codigo: authData.userId,
+        op_nombre: authData.userName,
+        op_sucursal: authData.userSuc,
+        or_rol: authData.rol
+    };
+    const user_id = authData.userId;
 
     const [formParams, setFormParams] = useState<GetReporteMovimientoArticulosParams>({
         AnioInicio: new Date().getFullYear(),
         cantidadAnios: 3,
-        VendedorId: esAdmin() || esSupervisor() ? undefined : user_id,
+        VendedorId: esAdmin(authData.rol) || esSupervisor(authData.rol) ? undefined : Number(user_id),
         CategoriaId: undefined,
         ClienteId: undefined,
         MarcaId: undefined,
@@ -54,7 +167,14 @@ const ReporteMovimientoProductos = () => {
         MovimientoPorFecha: false,
     })
 
-    const { data: reporteMovimientoArticulos, isLoading, isError } = useGetReporteMovimientoArticulos(formParams);
+    // Agregar estado para controlar si se debe ejecutar la consulta
+    const [shouldFetchData, setShouldFetchData] = useState(false);
+
+    // Modificar el hook para que solo se ejecute cuando shouldFetchData sea true
+    const { data: reporteMovimientoArticulos, isLoading, isError } = useGetReporteMovimientoArticulos(
+        shouldFetchData ? formParams : null
+    );
+
     const { data: Sucursales, isLoading: isLoadingSucursales, isError: isErrorSucursales } = useSucursales();
     const { data: Depositos, isLoading: isLoadingDepositos, isError: isErrorDepositos } = useDepositos();
     const { data: Categorias, isLoading: isLoadingCategorias, isError: isErrorCategorias } = useGetCategorias();
@@ -70,7 +190,9 @@ const ReporteMovimientoProductos = () => {
     const [selectedProveedor, setSelectedProveedor] = useState<ProveedoresViewModel | null>(null);
     const [selectedMarca, setSelectedMarca] = useState<MarcaViewModel | null>(null);
     const [selectedCategoria, setSelectedCategoria] = useState<CategoriaViewModel | null>(null);
-    const [selectedVendedor, setSelectedVendedor] = useState<UsuarioViewModel | null>(esAdmin() || esSupervisor() ? null : Vendedores?.find(vendedor => vendedor.op_codigo === user_id) ?? null);
+    const [selectedVendedor, setSelectedVendedor] = useState<UsuarioViewModel | null>(
+        esAdmin(authData.rol) || esSupervisor(authData.rol) ? null : Vendedores?.find(vendedor => vendedor.op_codigo === Number(user_id)) ?? null
+    );
     const [selectedMoneda, setSelectedMoneda] = useState<Moneda | null>(null);
     const [selectedCiudad, setSelectedCiudad] = useState<Ciudad | null>(null);
 
@@ -82,16 +204,25 @@ const ReporteMovimientoProductos = () => {
     const [isLoadingPDF, setIsLoadingPDF] = useState(false);
     const [isLoadingLimpiar, setIsLoadingLimpiar] = useState(false);
 
+    // Función simple de búsqueda en servidor con debounce
+    const handleProveedorSearch = useCallback(async (searchTerm: string) => {
+        // Solo buscar si hay al menos 2 caracteres para evitar llamadas innecesarias
+        if (searchTerm.length < 2) {
+            return [];
+        }
+        return await ProveedorRepository.GetProveedores(searchTerm);
+    }, []);
+
     const handleLimpiarFiltros = async () => {
         setIsLoadingLimpiar(true);
         try {
             // Simular un pequeño delay para mostrar el estado de carga
             await new Promise(resolve => setTimeout(resolve, 300));
-            
+
             setFormParams({
                 AnioInicio: new Date().getFullYear(),
                 cantidadAnios: 3,
-                VendedorId: esAdmin() || esSupervisor() ? undefined : user_id,
+                VendedorId: esAdmin(authData.rol) || esSupervisor(authData.rol) ? undefined : Number(user_id),
                 CategoriaId: undefined,
                 ClienteId: undefined,
                 MarcaId: undefined,
@@ -104,32 +235,34 @@ const ReporteMovimientoProductos = () => {
                 VerUtilidadYCosto: false,
                 MovimientoPorFecha: false,
             });
-            
+
             // Limpiar también los selects
             setSelectedSucursal(null);
             setSelectedDeposito(null);
             setSelectedProveedor(null);
             setSelectedMarca(null);
             setSelectedCategoria(null);
-            setSelectedVendedor(esAdmin() || esSupervisor() ? null : Vendedores?.find(vendedor => vendedor.op_codigo === user_id) ?? null);
+            setSelectedVendedor(esAdmin(authData.rol) || esSupervisor(authData.rol) ? null : Vendedores?.find(vendedor => vendedor.op_codigo === Number(user_id)) ?? null);
             setSelectedMoneda(null);
             setSelectedCiudad(null);
             setGlobalFilter('');
-            
-            showToast('success', 'Filtros limpiados correctamente', '', 'bottom-center');
         } catch (error) {
             console.error('Error al limpiar filtros:', error);
-            showToast('error', 'Error al limpiar los filtros', '', 'bottom-center');
         } finally {
             setIsLoadingLimpiar(false);
         }
     };
 
-    const { showToast } = useToast();
-
     useEffect(() => {
         console.log(reporteMovimientoArticulos?.detalles)
     }, [reporteMovimientoArticulos?.detalles])
+
+    // Efecto para controlar cuándo ejecutar la consulta
+    useEffect(() => {
+        // Solo ejecutar si hay un vendedor seleccionado
+        const hasVendedor = selectedVendedor !== null;
+        setShouldFetchData(hasVendedor);
+    }, [selectedVendedor]);
 
     const handleFiltrosChange = (nombre: string, valor: string) => {
         setFormParams({
@@ -140,13 +273,11 @@ const ReporteMovimientoProductos = () => {
 
     const handleGenerarExcel = async () => {
         if (!reporteMovimientoArticulos?.detalles || reporteMovimientoArticulos.detalles.length === 0) {
-            showToast('error', 'No hay datos disponibles para exportar a Excel', '', 'bottom-center');
             return;
         }
 
         setIsLoadingExcel(true);
         try {
-            // Usar setTimeout para permitir que React actualice el estado antes de ejecutar la función
             await new Promise(resolve => setTimeout(resolve, 100));
             
             exportarDatosAExcel(
@@ -154,11 +285,8 @@ const ReporteMovimientoProductos = () => {
                 'reporte-movimiento-articulos',
                 'Reporte Articulos'
             );
-            
-            showToast('success', 'Excel generado correctamente', '', 'bottom-center');
         } catch (error) {
             console.error('Error al generar Excel:', error);
-            showToast('error', 'Error al generar el Excel', '', 'bottom-center');
         } finally {
             setIsLoadingExcel(false);
         }
@@ -166,13 +294,11 @@ const ReporteMovimientoProductos = () => {
 
     const handleGenerarPDF = async () => {
         if (!reporteMovimientoArticulos || !usuario) {
-            showToast('error', 'No hay datos disponibles para generar el PDF', '', 'bottom-center');
             return;
         }
 
         setIsLoadingPDF(true);
         try {
-            // Usar setTimeout para permitir que React actualice el estado antes de ejecutar la función
             await new Promise(resolve => setTimeout(resolve, 100));
             
             const filtros = {
@@ -198,16 +324,13 @@ const ReporteMovimientoProductos = () => {
                     direccion: '',
                     matriz: 0
                 },
-                usuarioData: usuario,
+                usuarioData: usuario as unknown as UsuarioViewModel,
                 filtros
             });
 
             pdf.download(`Reporte-Movimiento-Productos-${new Date().toISOString().split('T')[0]}.pdf`);
-            
-            showToast('success', 'PDF generado correctamente', '', 'bottom-center');
         } catch (error) {
             console.error('Error al generar PDF:', error);
-            showToast('error', 'Error al generar el PDF', '', 'bottom-center');
         } finally {
             setIsLoadingPDF(false);
         }
@@ -340,71 +463,15 @@ const ReporteMovimientoProductos = () => {
             accessorKey: 'metaAcordada',
             header: `Meta ${formParams.AnioInicio}`,
             size: 150,
-            cell: ({ row }) => {
-                const [valor, setValor] = useState(
-                    row.original.metaAcordada !== undefined && row.original.metaAcordada !== null
-                        ? String(row.original.metaAcordada)
-                        : ""
-                );
-
-                useEffect(() => {
-                    setValor(
-                        row.original.metaAcordada !== undefined && row.original.metaAcordada !== null
-                            ? String(row.original.metaAcordada)
-                            : ""
-                    );
-                }, [row.original.metaAcordada]);
-
-                function guardarMeta() {
-                    if (valor === "" || Number(valor) < 0) {
-                        showToast('error', 'Ingrese un valor válido (mayor o igual a 0)', '', 'bottom-center');
-                        setValor(
-                            row.original.metaAcordada !== undefined && row.original.metaAcordada !== null
-                                ? String(row.original.metaAcordada)
-                                : ""
-                        );
-                        return;
-                    }
-
-                    if (!selectedVendedor) {
-                        showToast('error', 'No se puede actualizar la meta sin seleccionar un vendedor', '', 'bottom-center');
-                        return;
-                    }
-
-                    actualizarMetaAcordada({
-                        id: 0,
-                        articuloId: row.original.codigoArticulo,
-                        operadorId: selectedVendedor?.op_codigo,
-                        metaAcordada: Number(valor),
-                        periodo: formParams.AnioInicio,
-                        estado: true
-                    });
-                    showToast('success', 'Meta actualizada correctamente', '', 'bottom-center');
-                }
-
-                if (!esAdmin() && !esSupervisor()) {
-                    return <div className="text-center">
-                        {row.original.metaAcordada?.toLocaleString('es-PY', { maximumFractionDigits: 2 }) ?? ""}
-                    </div>;
-                }
-
-                return (
-                    <input
-                        type="number"
-                        min={0}
-                        className="text-center border rounded border-blue-500 focus:border-blue-700 focus:ring-blue-700 px-2 py-1 w-full"
-                        value={valor}
-                        onChange={e => setValor(e.target.value)}
-                        onBlur={guardarMeta}
-                        onKeyDown={e => {
-                            if (e.key === "Enter") {
-                                guardarMeta();
-                                e.currentTarget.blur();
-                            }
-                        }}
-                    />
-                );
-            }
+            enableSorting: false,
+            cell: ({ row }) => (
+                <MetaAcordadaInput
+                    row={row}
+                    selectedVendedor={selectedVendedor}
+                    formParams={formParams}
+                    actualizarMetaAcordada={actualizarMetaAcordada}
+                />
+            )
         },
         {
             accessorKey: 'ventaTotal',
@@ -453,11 +520,11 @@ const ReporteMovimientoProductos = () => {
     });
 
     useEffect(() => {
-        if (!esAdmin() && !esSupervisor() && Vendedores && user_id) {
-            const vendedor = Vendedores.find(v => v.op_codigo === user_id);
+        if (!esAdmin(authData.rol) && !esSupervisor(authData.rol) && Vendedores && user_id) {
+            const vendedor = Vendedores.find(v => v.op_codigo === Number(user_id));
             setSelectedVendedor(vendedor ?? null);
         }
-    }, [Vendedores, user_id]);
+    }, [Vendedores, user_id, authData.rol]);
 
     const TableLoadingSpinner = () => (
         <div className="flex items-center justify-center p-8">
@@ -495,122 +562,173 @@ const ReporteMovimientoProductos = () => {
         </div>
     );
 
-    const EmptyState = () => (
-        <div className="flex items-center justify-center p-12">
-            <div className="text-center max-w-md">
-                <div className="mb-4">
-                    <div className="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center">
-                        <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
+    const EmptyState = () => {
+        if (!selectedVendedor) {
+            return (
+                <div className="flex items-center justify-center p-12">
+                    <div className="text-center max-w-md">
+                        <div className="mb-4">
+                            <div className="w-16 h-16 mx-auto bg-blue-100 rounded-full flex items-center justify-center">
+                                <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                            </div>
+                        </div>
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">Selecciona un vendedor</h3>
+                        <p className="text-gray-500">Para ver el reporte de movimiento de productos, primero debes seleccionar un vendedor.</p>
                     </div>
                 </div>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No hay reporte disponible</h3>
-                <p className="text-gray-500">No se encontraron reportes registrados en el sistema con los filtros seleccionados.</p>
-            </div>
-        </div>
-    );
-
-    interface TableBodyProps {
-        table: Table<DetalleMovimientosArticulos>;
-        tableContainerRef: React.RefObject<HTMLDivElement | null>;
-    }
-
-    function TableBody({ table, tableContainerRef }: TableBodyProps) {
-        const { rows } = table.getRowModel();
-
-        const rowVirtualizer = useVirtualizer({
-            count: rows.length,
-            estimateSize: () => 48,
-            getScrollElement: () => tableContainerRef.current,
-            overscan: 10,
-            measureElement: () => 48,
-        });
-
-        useEffect(() => {
-            rowVirtualizer.measure();
-        }, [rows.length]);
+            );
+        }
 
         return (
-            <tbody
-                style={{
-                    height: `${rowVirtualizer.getTotalSize()}px`,
-                    width: '100%',
-                    position: 'relative',
-                }}
-            >
-                {rowVirtualizer.getVirtualItems().map(virtualRow => {
-                    const row = rows[virtualRow.index];
-                    return (
-                        <tr
-                            key={row?.id}
-                            style={{
-                                position: 'absolute',
-                                top: 0,
-                                left: 0,
-                                width: '100%',
-                                height: '48px',
-                                transform: `translateY(${virtualRow.start}px)`,
-                            }}
-                            className="flex border-b border-l border-r border-gray-100 hover:bg-gray-50"
-                        >
-                            {row?.getVisibleCells().map((cell) => (
-                                <td
-                                    key={cell.id}
-                                    style={{
-                                        width: cell.column.getSize(),
-                                        padding: '0.75rem 1rem',
-                                    }}
-                                    className=" border-l border-r border-gray-100 text-sm text-gray-900"
-                                >
-                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                </td>
-                            ))}
-                        </tr>
-                    );
-                })}
-            </tbody>
+            <div className="flex items-center justify-center p-12">
+                <div className="text-center max-w-md">
+                    <div className="mb-4">
+                        <div className="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center">
+                            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No hay reporte disponible</h3>
+                    <p className="text-gray-500">No se encontraron reportes registrados en el sistema con los filtros seleccionados.</p>
+                </div>
+            </div>
         );
-    }
+    };
 
     const TableLayout = () => {
         if (isLoading) return <TableLoadingSpinner />;
         if (isError) return <ErrorState />;
         if (!reporteMovimientoArticulos?.detalles?.length) return <EmptyState />;
 
+        const { rows } = table.getRowModel();
+        const rowVirtualizer = useVirtualizer({
+            count: rows.length,
+            estimateSize: () => 48,
+            getScrollElement: () => tableContainerRef.current,
+            overscan: 8,
+        });
+
         return (
-            <div className="h-full w-full overflow-hidden">
-                <div
-                    ref={tableContainerRef}
-                    className="h-[650px] w-full overflow-auto"
-                    style={{
-                        position: 'relative',
-                    }}
-                >
-                    <table className="w-full border-collapse">
-                        <thead className="sticky top-0 z-10 bg-blue-500">
-                            {table.getHeaderGroups().map(headerGroup => (
-                                <tr key={headerGroup.id} className="flex">
-                                    {headerGroup.headers.map(header => (
-                                        <th
-                                            key={header.id}
+            <div
+                ref={tableContainerRef}
+                className="overflow-auto max-h-[650px] bg-white"
+                style={{
+                    position: 'relative',
+                    scrollbarWidth: 'thin',
+                    willChange: 'scroll-position',
+                }}
+            >
+                <table style={{ display: 'grid' }}>
+                    <thead
+                        style={{
+                            display: 'grid',
+                            position: 'sticky',
+                            top: 0,
+                            zIndex: 20,
+                        }}
+                        className="bg-blue-500 border-b border-gray-200"
+                    >
+                        {table.getHeaderGroups().map(headerGroup => (
+                            <tr
+                                key={headerGroup.id}
+                                style={{ display: 'flex', width: '100%' }}
+                            >
+                                {headerGroup.headers.map(header => (
+                                    <th
+                                        key={header.id}
+                                        style={{
+                                            display: 'flex',
+                                            width: header.getSize(),
+                                        }}
+                                        className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider cursor-pointer select-none hover:bg-gray-100 hover:text-black transition-colors duration-300 ease-in border-r border-blue-400 last:border-r-0"
+                                        onClick={header.column.getToggleSortingHandler()}
+                                    >
+                                        <div className="flex items-center space-x-1">
+                                            <span>{flexRender(header.column.columnDef.header, header.getContext())}</span>
+                                            {header.column.getCanSort() && (
+                                                <span className="text-gray-400">
+                                                    {header.column.getIsSorted() === 'asc' ? (
+                                                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fillRule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clipRule="evenodd" />
+                                                        </svg>
+                                                    ) : header.column.getIsSorted() === 'desc' ? (
+                                                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                                                        </svg>
+                                                    ) : (
+                                                        <svg className="w-4 h-4 opacity-0 group-hover:opacity-50" fill="currentColor" viewBox="0 0 20 20">
+                                                            <path d="M5 12a1 1 0 102 0V6.414l1.293 1.293a1 1 0 001.414-1.414l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L5 6.414V12zM15 8a1 1 0 10-2 0v5.586l-1.293-1.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L15 13.586V8z" />
+                                                        </svg>
+                                                    )}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </th>
+                                ))}
+                            </tr>
+                        ))}
+                    </thead>
+                    <tbody
+                        style={{
+                            display: 'grid',
+                            height: `${rowVirtualizer.getTotalSize()}px`,
+                            position: 'relative',
+                        }}
+                    >
+                        {rowVirtualizer.getVirtualItems().map(virtualRow => {
+                            const row = rows[virtualRow.index];
+                            return (
+                                <tr
+                                    key={row.id}
+                                    style={{
+                                        display: 'flex',
+                                        position: 'absolute',
+                                        transform: `translateY(${virtualRow.start}px)`,
+                                        width: '100%',
+                                        height: '48px'
+                                    }}
+                                    className="transition-all duration-150 border-b border-gray-100 hover:bg-gray-50 hover:shadow-sm group"
+                                >
+                                    {row?.getVisibleCells().map((cell) => (
+                                        <td
+                                            key={cell.id}
                                             style={{
-                                                width: header.getSize(),
+                                                display: 'flex',
+                                                width: cell.column.getSize(),
+                                                alignItems: 'center',
+                                                position: 'relative',
+                                                overflow: 'visible'
                                             }}
-                                            className="px-6 py-3 text-left text-xs font-bold text-white uppercase tracking-wider"
+                                            className="border-r border-gray-100 last:border-r-0 px-6 py-3 text-sm text-gray-900"
                                         >
-                                            {flexRender(header.column.columnDef.header, header.getContext())}
-                                        </th>
+                                            <div 
+                                            className={`w-full ${
+                                                // Si la celda contiene un input, no truncar
+                                                cell.column.columnDef.cell && 
+                                                typeof cell.column.columnDef.cell === 'function' &&
+                                                cell.getValue() !== undefined &&
+                                                (cell.column.id.includes('input') || cell.column.id.includes('edit'))
+                                                ? '' : 'truncate'
+                                            }`}
+                                            title={
+                                                // Solo mostrar tooltip para texto truncado
+                                                cell.column.id.includes('input') || cell.column.id.includes('edit') 
+                                                ? undefined 
+                                                : String(cell.getValue())
+                                            }
+                                        >
+                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                        </div>
+                                        </td>
                                     ))}
                                 </tr>
-                            ))}
-                        </thead>
-                        <TableBody
-                            table={table}
-                            tableContainerRef={tableContainerRef}
-                        />
-                    </table>
-                </div>
+                            );
+                        })}
+                    </tbody>
+                </table>
             </div>
         );
     };
@@ -734,7 +852,7 @@ const ReporteMovimientoProductos = () => {
                         isError={isErrorProveedores}
                         errorMessage="Error al cargar los proveedores"
                         disabled={isLoadingSucursales}
-                        onSearch={ProveedorRepository.GetProveedores}
+                        onSearch={handleProveedorSearch}
                     />
                     <Autocomplete<MarcaViewModel>
                         data={Marcas || []}
@@ -791,10 +909,10 @@ const ReporteMovimientoProductos = () => {
                         isLoading={isLoadingVendedores}
                         isError={isErrorVendedores}
                         errorMessage="Error al cargar los vendedores"
-                        disabled={isLoadingVendedores || (!esAdmin() && !esSupervisor())}
+                        disabled={isLoadingVendedores || (!esAdmin(authData.rol) && !esSupervisor(authData.rol))}
                         id="vendedor"
                         defaultId={
-                            !esAdmin() && !esSupervisor()
+                            !esAdmin(authData.rol) && !esSupervisor(authData.rol)
                                 ? user_id?.toString()
                                 : undefined
                         }
@@ -894,11 +1012,9 @@ const ReporteMovimientoProductos = () => {
                 </div>
 
             </div>
-            <div className="bg-white h-[65%] rounded-md flex flex-col gap-4 p-4">
-                <div className="flex-1 overflow-hidden">
-                    <div className="h-full">
-                        <TableLayout />
-                    </div>
+            <div className="bg-white flex-1 min-h-0 rounded-md flex flex-col gap-4 p-4">
+                <div className="flex-1 min-h-0 overflow-hidden">
+                    <TableLayout />
                 </div>
             </div>
             <div className="bg-blue-200 max-h-[20%] rounded-md">

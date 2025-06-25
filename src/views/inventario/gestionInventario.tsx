@@ -299,7 +299,7 @@ const GestionInventario: React.FC = () => {
           unidadesMedidaRes,
         ] = await Promise.all([
           axios.get(`${api_url}marcas/`),
-          axios.get(`${api_url}subcategorias/`),
+          axios.get(`${api_url}subcategorias/todos`),
           axios.get(`${api_url}categorias/`),
           axios.get(`${api_url}proveedores/`),
           axios.get(`${api_url}ubicaciones/`),

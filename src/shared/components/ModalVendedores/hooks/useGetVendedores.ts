@@ -18,7 +18,7 @@ export const useGetVendedores = (): UseGetVendedores => {
         try{
             setLoadingVendedores(true);
             const vendedores = await getVendedoresApi(busqueda);
-            setVendedores(vendedores);
+            setVendedores(vendedores as UsuarioViewModel[]);
             setLoadingVendedores(false);
         } catch (error) {
             setErrorVendedores("Error al obtener vendedores");

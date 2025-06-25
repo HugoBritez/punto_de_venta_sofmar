@@ -1,9 +1,9 @@
-import { useAuthStore } from "../stores/authStore";
+import { useAuth } from "../../services/AuthContext";
 
 export const permisoVerCosto = () => {
-    const verCosto = useAuthStore.getState().usuario?.op_ver_utilidad
+    const { auth } = useAuth();
 
-    if(verCosto === 1) {
+    if(auth?.permisoVerUtilidad === 1) {
         return true;
     } else {
         return false;

@@ -6,7 +6,7 @@ import { useVirtualizer } from "@tanstack/react-virtual"
 import { useEffect, useRef, useState, useMemo, useCallback } from "react"
 import CrearPersonaForm from "../components/CrearPersonaForm"
 import { puedeCrear, puedeEditar } from "../../../shared/utils/verificarPermiso"
-import { useToast } from "../../../shared/context/ToastContext"
+import { useToast } from "@chakra-ui/react"
 
 // Componente de loading con animación - SOLO para la tabla
 const TableLoadingSpinner = () => (
@@ -399,8 +399,8 @@ const PersonasList = () => {
     const [debouncedTipo, setDebouncedTipo] = useState(tipo);
     const [selectedId, setSelectedId] = useState<number | undefined>(undefined);
     const [selectedTipo, setSelectedTipo] = useState<number | undefined>(undefined);
-    const { showToast } = useToast()
 
+    const toast = useToast();
 
     const permisoCrear = puedeCrear(2, 4)
     const permisoEditar = puedeEditar(2, 4);
@@ -463,7 +463,13 @@ const PersonasList = () => {
     // Handlers para las acciones - Memoizados
     const handleEdit = useCallback((persona: PersonaViewModel) => {
         if (!permisoEditar) {
-            showToast('error', 'Permiso denegado', 'No tienes permisos para editar un cliente/proveedor nuevo')
+            toast({
+                title: 'Permiso denegado',
+                description: 'No tienes permisos para editar un cliente/proveedor nuevo',
+                status: 'error',
+                duration: 3000,
+                isClosable: true,
+            });
             return;
         }
 
@@ -472,7 +478,7 @@ const PersonasList = () => {
         setSelectedId(persona.id);
         setSelectedTipo(tipoPersona);
         setIsOpenEditar(true);
-    }, [permisoEditar, showToast]);
+    }, [permisoEditar]);
 
     // Función auxiliar para determinar el tipo de persona
     const determinarTipoPersona = (persona: PersonaViewModel): number => {
@@ -497,7 +503,13 @@ const PersonasList = () => {
             setIsOpenCrearNuevo(true)
         }
         else {
-            showToast('error', 'Permiso denegado', 'No tienes permisos para crear un cliente/proveedor nuevo')
+            toast({
+                title: 'Permiso denegado',
+                description: 'No tienes permisos para crear un cliente/proveedor nuevo',
+                status: 'error',
+                duration: 3000,
+                isClosable: true,
+            });
         }
     }, []);
 

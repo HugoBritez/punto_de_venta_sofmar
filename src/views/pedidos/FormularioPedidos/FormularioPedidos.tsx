@@ -57,7 +57,7 @@ const FormularioPedidos = () => {
   const user = sessionStorage.getItem("user_name");
   const operador = sessionStorage.getItem("user_id");
 
-  
+
 
   const [pedidoDTO, setPedidoDTO] = useState<PedidoDTO>({
     p_fecha: fechaPedido,
@@ -69,7 +69,7 @@ const FormularioPedidos = () => {
     p_sucursal: 0,
     p_descuento: 0,
     p_obs: "",
-    p_estado: 0,
+    p_estado: 1,
     p_vendedor: 0,
     p_area: 1,
     p_tipo_estado: 1,
@@ -373,7 +373,49 @@ const FormularioPedidos = () => {
   };
 
   const cancelarPedido = () => {
-    window.location.reload();
+    setPedidoDTO({
+      p_fecha: fechaPedido,
+      p_nropedido: "",
+      p_cliente: 0,
+      p_operador: operador ? Number(operador) : 0,
+      p_moneda: 0,
+      p_deposito: 0,
+      p_sucursal: 0,
+      p_descuento: 0,
+      p_obs: "",
+      p_estado: 1,
+      p_vendedor: 0,
+      p_area: 1,
+      p_tipo_estado: 1,
+      p_credito: 0,
+      p_imprimir: 0,
+      p_interno: 0,
+      p_latitud: 0,
+      p_longitud: 0,
+      p_tipo: 0,
+      p_entrega: 0,
+      p_cantcuotas: 0,
+      p_consignacion: 0,
+      p_autorizar_a_contado: 0,
+      p_zona: 0,
+      p_acuerdo: 0,
+      p_imprimir_preparacion: 0,
+      p_cantidad_cajas: 0,
+      p_preparado_por: 0,
+      p_verificado_por: 0,
+    })
+    setDetallePedido([]);
+    setArticulo(undefined);
+    setCantidadArticulo(1);
+    setPrecioArticulo(0);
+    setDescuentoArticulo(0);
+    setBonificacionArticulo(0);
+    setCodigoBarraArticulo("");
+    setModalArticulosOpen(false);
+    setModalClientesOpen(false);
+    setBusquedaCliente("");
+    setBusquedaVendedor("");
+    setClienteSeleccionadoInterno(undefined);
   };
 
   // Agrega este useEffect para hacer focus cuando se selecciona un vendedor
@@ -847,7 +889,7 @@ const FormularioPedidos = () => {
             id="precio"
             className="rounded-md p-1 border-2 border-gray-300 w-full"
             placeholder="Precio:"
-            value={articulo ? formatCurrency(articulo.precio_venta_guaranies): 0}
+            value={articulo ? formatCurrency(articulo.precio_venta_guaranies) : 0}
             onChange={(e) => setPrecioArticulo(Number(e.target.value))}
             ref={precioRef}
             onKeyDown={handlePrecioKeyDown}

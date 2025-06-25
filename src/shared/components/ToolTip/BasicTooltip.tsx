@@ -167,7 +167,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
         {isVisible && (
           <motion.div
             ref={tooltipRef}
-            className={`fixed z-999999 pointer-events-none ${tooltipClassName}`}
+            className={`fixed z-10 pointer-events-none ${tooltipClassName}`}
             style={{
               left: tooltipPosition.x,
               top: tooltipPosition.y,

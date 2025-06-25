@@ -1,11 +1,11 @@
 import { createRoot } from "react-dom/client";
-import { useIngresos } from "../../hooks/useIngresos";
-import { IngresoDetalle, VerificacionItemDTO } from "../../types/shared.type";
+import { IngresoDetalle } from "../../types/shared.type";
+import  {VerificacionItemDTO} from "@/shared/types/controlIngreso"
 import CaratulaItemVerificado from "../CaratulaItemVerificado";
 import { Printer } from "lucide-react";
-import { useVerificarIngresos } from "../../hooks/useVerificarIngresos";
 import { useRef, useState, useEffect } from "react";
 import { useToast } from "@chakra-ui/react";
+import { useVerificarItem } from "../../hooks/useMutations";
 
 interface CabeceraProps {
   loading?: boolean;
@@ -13,20 +13,33 @@ interface CabeceraProps {
   detalleIngreso: IngresoDetalle[];
   onItemVerificado?: () => void;
 }
+
+// Interfaz para los valores temporales de edición
+interface ValoresEdicion {
+  cantidad: string;
+  lote: string;
+  vencimiento: string;
+}
+
 const FormularioDetalle = ({ detalleIngreso, onItemVerificado }: CabeceraProps) => {
-  const { loadingDetalle, errorDetalle } = useIngresos();
-  const { verificarItem } = useVerificarIngresos();
-  const [editandoCantidad, setEditandoCantidad] = useState<number | null>(null);
-  const [cantidadTemp, setCantidadTemp] = useState<string>("");
-  const inputRef = useRef<HTMLInputElement>(null);
+  const { mutate: verificarItem, isPending: isVerificandoItem, isError: isErrorVerificandoItem } = useVerificarItem();
+  const [modoEdicion, setModoEdicion] = useState<number | null>(null);
+  const [valoresTemp, setValoresTemp] = useState<ValoresEdicion>({
+    cantidad: "",
+    lote: "",
+    vencimiento: ""
+  });
+  const cantidadRef = useRef<HTMLInputElement>(null);
+  const loteRef = useRef<HTMLInputElement>(null);
+  const vencimientoRef = useRef<HTMLInputElement>(null);
   const toast  = useToast();
 
-  // Enfocar el input automáticamente cuando se empieza a editar
+  // Enfocar el input de cantidad automáticamente cuando se empieza a editar
   useEffect(() => {
-    if (editandoCantidad !== null && inputRef.current) {
-      inputRef.current.focus();
+    if (modoEdicion !== null && cantidadRef.current) {
+      cantidadRef.current.focus();
     }
-  }, [editandoCantidad]);
+  }, [modoEdicion]);
 
   const ComponenteCaratula = (
     detalle: IngresoDetalle,
@@ -72,43 +85,23 @@ const FormularioDetalle = ({ detalleIngreso, onItemVerificado }: CabeceraProps) 
               <td>{ingreso.articulo_descripcion}</td>
               <td>{ingreso.cantidad}</td>
               <td>
-                {editandoCantidad === ingreso.detalle_compra ? (
+                {modoEdicion === ingreso.detalle_compra ? (
                   <div className="flex items-center gap-2">
                     <input
-                      ref={inputRef}
+                      ref={cantidadRef}
                       type="number"
-                      defaultValue={cantidadTemp}
-                      onBlur={(e) => {
-                        setCantidadTemp(e.target.value);
-                      }}
+                      value={valoresTemp.cantidad}
+                      onChange={(e) => setValoresTemp(prev => ({ ...prev, cantidad: e.target.value }))}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
-                          const valor = e.currentTarget.value;
-                          setCantidadTemp(valor);
                           handleGuardarCantidad(ingreso);
                         } else if (e.key === 'Escape') {
-                          setEditandoCantidad(null);
-                          setCantidadTemp("");
+                          cancelarEdicion();
                         }
                       }}
                       className="w-20 px-2 py-1 border border-gray-300 rounded text-right"
                       placeholder="0"
                     />
-                    <button
-                      onClick={() => handleGuardarCantidad(ingreso)}
-                      className="px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600"
-                    >
-                      ✓
-                    </button>
-                    <button
-                      onClick={() => {
-                        setEditandoCantidad(null);
-                        setCantidadTemp("");
-                      }}
-                      className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-                    >
-                      ✕
-                    </button>
                   </div>
                 ) : (
                   <div
@@ -120,12 +113,80 @@ const FormularioDetalle = ({ detalleIngreso, onItemVerificado }: CabeceraProps) 
                 )}
               </td>
               <td>{ingreso.cantidad - ingreso.cantidad_verificada}</td>
-              <td>{ingreso.lote}</td>
-              <td>{ingreso.vencimiento}</td>
               <td>
-                <button onClick={() => ComponenteCaratula(ingreso, 'print')}>
-                  <Printer />
-                </button>
+                {modoEdicion === ingreso.detalle_compra ? (
+                  <input
+                    ref={loteRef}
+                    type="text"
+                    value={valoresTemp.lote}
+                    onChange={(e) => setValoresTemp(prev => ({ ...prev, lote: e.target.value }))}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleGuardarCantidad(ingreso);
+                      } else if (e.key === 'Escape') {
+                        cancelarEdicion();
+                      }
+                    }}
+                    className="w-24 px-2 py-1 border border-gray-300 rounded"
+                    placeholder="Lote"
+                  />
+                ) : (
+                  <div
+                    className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded"
+                    onClick={() => handleEditarCantidad(ingreso)}
+                  >
+                    {ingreso.lote}
+                  </div>
+                )}
+              </td>
+              <td>
+                {modoEdicion === ingreso.detalle_compra ? (
+                  <input
+                    ref={vencimientoRef}
+                    type="date"
+                    value={valoresTemp.vencimiento}
+                    onChange={(e) => setValoresTemp(prev => ({ ...prev, vencimiento: e.target.value }))}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        handleGuardarCantidad(ingreso);
+                      } else if (e.key === 'Escape') {
+                        cancelarEdicion();
+                      }
+                    }}
+                    className="w-32 px-2 py-1 border border-gray-300 rounded"
+                  />
+                ) : (
+                  <div
+                    className="cursor-pointer hover:bg-gray-100 px-2 py-1 rounded"
+                    onClick={() => handleEditarCantidad(ingreso)}
+                  >
+                    {ingreso.vencimiento}
+                  </div>
+                )}
+              </td>
+              <td>
+                {modoEdicion === ingreso.detalle_compra ? (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleGuardarCantidad(ingreso)}
+                      className="px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600 text-xs"
+                      title="Guardar"
+                    >
+                      ✓
+                    </button>
+                    <button
+                      onClick={cancelarEdicion}
+                      className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-xs"
+                      title="Cancelar"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : (
+                  <button onClick={() => ComponenteCaratula(ingreso, 'print')}>
+                    <Printer />
+                  </button>
+                )}
               </td>
             </tr>
           ))}
@@ -153,12 +214,25 @@ const FormularioDetalle = ({ detalleIngreso, onItemVerificado }: CabeceraProps) 
   };
 
   const handleEditarCantidad = (detalle: IngresoDetalle) => {
-    setEditandoCantidad(detalle.detalle_compra);
-    setCantidadTemp(''); // Iniciamos con un valor vacío en lugar del valor actual
+    setModoEdicion(detalle.detalle_compra);
+    setValoresTemp({
+      cantidad: detalle.cantidad_verificada.toString(),
+      lote: detalle.lote || "",
+      vencimiento: detalle.vencimiento || ""
+    });
+  };
+
+  const cancelarEdicion = () => {
+    setModoEdicion(null);
+    setValoresTemp({
+      cantidad: "",
+      lote: "",
+      vencimiento: ""
+    });
   };
 
   const handleGuardarCantidad = async (detalle: IngresoDetalle) => {
-    const nuevaCantidad = parseInt(cantidadTemp || '0');
+    const nuevaCantidad = parseInt(valoresTemp.cantidad || '0');
 
     if (isNaN(nuevaCantidad) || nuevaCantidad < 0) {
       toast({
@@ -170,33 +244,33 @@ const FormularioDetalle = ({ detalleIngreso, onItemVerificado }: CabeceraProps) 
       });
       return;
     }
-  
 
     try {
       const verificacionItemDTO: VerificacionItemDTO = {
-        id_detalle: detalle.detalle_compra,
+        detalle: detalle.detalle_compra,
         cantidad: nuevaCantidad,
+        lote: valoresTemp.lote,
+        vencimiento: valoresTemp.vencimiento,
       };
       
       await verificarItem(verificacionItemDTO);
       
       toast({
         title: "Éxito",
-        description: "Cantidad actualizada correctamente",
+        description: "Datos actualizados correctamente",
         status: "success",
         duration: 3000,
         isClosable: true,
       });
 
-      setEditandoCantidad(null);
-      setCantidadTemp("");
+      cancelarEdicion();
       
       // Notificar al componente padre que se actualizó un ítem
       onItemVerificado?.();
     } catch (error) {
       toast({
         title: "Error",
-        description: "Error al actualizar la cantidad",
+        description: "Error al actualizar los datos",
         status: "error",
         duration: 3000,
         isClosable: true,
@@ -207,9 +281,9 @@ const FormularioDetalle = ({ detalleIngreso, onItemVerificado }: CabeceraProps) 
   return (
     <div className="flex flex-col gap-2 w-full h-full px-2">
       <div className="flex flex-col gap-2 w-full h-full bg-white p-2 border border-gray-200 rounded-md">
-        {loadingDetalle ? (
+        {isVerificandoItem ? (
           <LoadingComponent />
-        ) : errorDetalle ? (
+        ) : isErrorVerificandoItem ? (
           <ErrorComponent />
         ) : detalleIngreso.length > 0 ? (
           <TablaIngresosCabecera />

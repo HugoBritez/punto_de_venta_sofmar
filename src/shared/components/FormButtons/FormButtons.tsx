@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { Tooltip } from "../ToolTip"
 
 interface FormButtonsProps {
@@ -17,6 +18,7 @@ export const FormButtons = ({
     onClickLimpiar, 
     isLoading = {} 
 }: FormButtonsProps) => {
+    const navigate = useNavigate()
     return (
         <div className="flex gap-2">
             <Tooltip content="Importar a Excel" position="bottom">
@@ -65,7 +67,9 @@ export const FormButtons = ({
                 </button>
             </Tooltip>
             <Tooltip content="Volver a la página principal" position="bottom">
-                <button className="rounded-md p-2 hover:bg-gray-100" onClick={()=> {}}>
+                <button className="rounded-md p-2 hover:bg-gray-100" onClick={()=> {
+                    navigate("/home")
+                }}>
                     <img src="/home-icon.svg" alt="Clean" className="w-10 h-10" />
                 </button>
             </Tooltip>

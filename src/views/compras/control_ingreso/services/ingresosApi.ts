@@ -1,6 +1,6 @@
 import { api_url } from "@/utils";
 import axios from "axios";
-import { Ingreso, IngresoDetalle, FiltrosDTO, VerificacionCompraDTO, VerificacionItemDTO, ConfirmarVerificacionDTO, ReporteIngresos } from "../types/shared.type";
+import { Ingreso, IngresoDetalle, FiltrosDTO, ReporteIngresos } from "../types/shared.type";
 
 interface IngresosResponse {
   body: Ingreso[];
@@ -54,50 +54,6 @@ export const ingresosApi = {
     }
   },
 
-  verificarCompra: async (verificacionCompraDTO: VerificacionCompraDTO) => {
-    const user_id = sessionStorage.getItem("user_id");
-    try {
-      const response = await axios.post(`${api_url}control-ingreso/verificar`, {
-        id_compra: verificacionCompraDTO.id_compra,
-        user_id: user_id,
-      });
-      return response.data;
-    } catch (error) {
-      console.error("Error al verificar la compra:", error);
-      throw error;
-    }
-  },
-
-  verificarItem: async (verificacionItemDTO: VerificacionItemDTO) =>{
-    try{
-      const response = await axios.post(`${api_url}control-ingreso/verificar-item`, {
-        id_detalle: verificacionItemDTO.id_detalle,
-        cantidad: verificacionItemDTO.cantidad,
-      })
-      return response.data;
-    }catch(error){
-      console.error("Error al verificar el item:", error);
-      throw error;
-    }
-  },
-
-  confirmarVerificacion: async (confirmarVerificacionDTO: ConfirmarVerificacionDTO) => {
-    try{
-      const response = await axios.post(`${api_url}control-ingreso/confirmar`, {
-        id_compra: confirmarVerificacionDTO.id_compra,
-        deposito_transitorio: confirmarVerificacionDTO.deposito_transitorio,
-        deposito_destino: confirmarVerificacionDTO.deposito_destino,
-        factura_compra: confirmarVerificacionDTO.factura_compra,
-        user_id: confirmarVerificacionDTO.user_id,
-        operador_id: confirmarVerificacionDTO.operador_id,
-        items: confirmarVerificacionDTO.items,
-      })
-      return response.data;
-    }catch(error){
-      console.error("Error al confirmar la verificacion:", error);
-      throw error;
-    }
-  },
 
   generarReporteIngresos : async (filtros: FiltrosDTO): Promise<ReporteIngresosResponse> => {
     try{

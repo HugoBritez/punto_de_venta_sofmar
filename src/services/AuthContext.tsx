@@ -23,6 +23,10 @@ interface AuthState {
     acceso: number;
     menu_id: number;
     menu_descripcion: string;
+    menu_grupo: number;
+    menu_orden: number;
+    crear: number;
+    editar: number;
   }[];
 }
 
@@ -45,6 +49,8 @@ interface LoginData {
         menu_descripcion: string;
         menu_grupo: number;
         menu_orden: number;
+        crear: number;
+        editar: number;
       }[];
     }
   ];

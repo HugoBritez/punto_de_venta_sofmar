@@ -21,12 +21,10 @@ export const usePedidos = () => {
                 duration: 3000,
                 isClosable: true,
             });
-            
             return response;
         } catch (error) {
             setErrorDTO("Error al insertar el pedido");
             setLoadingDTO(false);
-            
             toast({
                 title: "Error",
                 description: "Hubo un error al guardar el pedido",

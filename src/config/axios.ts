@@ -1,10 +1,9 @@
 import axios from 'axios';
 import { config } from '../config/env';
-import { useAuthStore } from '../shared/stores/authStore';
 
 // singleton para la instancia de axios
 const api = axios.create({
-  baseURL: config.apiUrl,
+  baseURL: config.apiUrl || "https://localhost:4024/api/", // Usar la URL del env o fallback
   headers: {
     'Content-Type': 'application/json',
   },
@@ -12,9 +11,11 @@ const api = axios.create({
 
 // Interceptor para añadir el token
 api.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().token;
+  // Obtener token del sessionStorage en lugar de usar hook
+  const token = sessionStorage.getItem('token');
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+    console.log(token);
+    config.headers.Authorization = token; // El token ya incluye "Bearer " desde AuthContext
   }
   return config;
 });
@@ -24,8 +25,9 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      useAuthStore.getState().logout();
-      window.location.href = '/auth';
+      // Limpiar sessionStorage y redirigir a la ruta correcta
+      sessionStorage.clear();
+      window.location.href = '/login'; // Cambiado de '/auth' a '/login'
     }
     return Promise.reject(error);
   }

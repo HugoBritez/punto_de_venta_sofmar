@@ -172,7 +172,7 @@ async function updateConfig(empresa) {
     let indexContent = fs.readFileSync(indexPath, "utf8");
     indexContent = indexContent.replace(
       /<title>.*?<\/title>/,
-      `<title>${config.title}</title>`
+      `<title>${config.title} - Sofmar Sistema - Tu aliado comercial</title>`
     );
     fs.writeFileSync(indexPath, indexContent, "utf8");
 

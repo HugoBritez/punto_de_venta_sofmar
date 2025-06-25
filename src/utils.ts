@@ -1,4 +1,4 @@
-export const api_url = 'https://backend.caofa.com.py:4000/api/'
+export const api_url = 'https://localhost:4000/api/'
 
 //export const api_url = 'https://localhost:4000/api/'
 //export const  api_url = 'https://db.sofmar.com.py:4009/api/' //acricolor
@@ -20,6 +20,6 @@ export const api_url = 'https://backend.caofa.com.py:4000/api/'
 export const version = '1.2.4'
 
 
-export const fechaRelease = '12/06/2025'
-export const db = 'caofa'
+export const fechaRelease = '25/06/2025'
+export const db = 'local'
 export const userName = sessionStorage.getItem('userName')

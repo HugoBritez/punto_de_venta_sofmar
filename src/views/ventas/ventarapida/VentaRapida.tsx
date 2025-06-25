@@ -137,7 +137,7 @@ const VentaRapida = () => {
             const clienteId = parseInt(valorCliente);
             console.log('Cliente ID convertido:', clienteId);
             console.log('Es NaN?', isNaN(clienteId));
-            
+
             if (!isNaN(clienteId)) {
                 setVentaDTO(prevState => ({
                     ...prevState,
@@ -221,6 +221,9 @@ const VentaRapida = () => {
         console.log('detalleVenta', detalleVenta)
     }, [detalleVenta, ventaDTO])
 
+    useEffect(() => {
+        console.log('Estado del BottomSheet:', isBottomSheetOpen);
+    }, [isBottomSheetOpen]);
 
     const renderArticulos = () => {
         if (detalleVenta.length === 0) {
@@ -508,13 +511,82 @@ const VentaRapida = () => {
                                 <option value="lista">Lista</option>
                             </select>
                         </div>
-
                     </div>
                 </div>
             </SideMenu>
-            <BottomSheet isVisible={isBottomSheetOpen} onClose={() => setIsBottomSheetOpen(false)}>
-                <div className="flex flex-col gap-2">
+            <BottomSheet isVisible={isBottomSheetOpen} onClose={() => {
+                console.log('Cerrando BottomSheet desde onClose...');
+                setIsBottomSheetOpen(false);
+            }}>
+                <div className="flex flex-col gap-4 p-4">
                     <h2 className="text-xl font-bold text-gray-800">Totales</h2>
+
+                    <div className="flex flex-col gap-3">
+                        <div className="flex justify-between items-center">
+                            <span className="text-gray-600">Subtotal:</span>
+                            <span className="font-medium">
+                                {formatCurrency(detalleVenta.reduce((sum, item) => sum + (item.subtotal || 0), 0))}
+                            </span>
+                        </div>
+
+                        <div className="flex justify-between items-center">
+                            <span className="text-gray-600">Descuentos:</span>
+                            <span className="font-medium text-red-600">
+                                -{formatCurrency(detalleVenta.reduce((sum, item) => sum + (item.deve_descuento || 0), 0))}
+                            </span>
+                        </div>
+
+                        <div className="flex justify-between items-center">
+                            <span className="text-gray-600">Bonificaciones:</span>
+                            <span className="font-medium text-green-600">
+                                -{formatCurrency(detalleVenta.reduce((sum, item) => sum + (item.deve_bonificacion || 0), 0))}
+                            </span>
+                        </div>
+
+                        <div className="border-t pt-3">
+                            <div className="flex justify-between items-center">
+                                <span className="text-lg font-bold text-gray-800">Total:</span>
+                                <span className="text-lg font-bold text-blue-600">
+                                    {formatCurrency(
+                                        detalleVenta.reduce((sum, item) => {
+                                            const subtotal = item.subtotal || 0;
+                                            const descuento = item.deve_descuento || 0;
+                                            const bonificacion = item.deve_bonificacion || 0;
+                                            return sum + subtotal - descuento - bonificacion;
+                                        }, 0)
+                                    )}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-between items-center text-sm text-gray-500">
+                            <span>Artículos:</span>
+                            <span>{detalleVenta.length}</span>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2 mt-4">
+                        <button
+                            className="w-full bg-blue-500 text-white py-3 rounded-md hover:bg-blue-600 transition-colors font-medium"
+                            onClick={() => {
+                                // Aquí iría la lógica para procesar la venta
+                                console.log('Procesando venta...');
+                            }}
+                        >
+                            Procesar Venta
+                        </button>
+
+                        <button
+                            className="w-full bg-gray-500 text-white py-2 rounded-md hover:bg-gray-600 transition-colors"
+                            onClick={() => {
+                                console.log('Botón cerrar clickeado, estado actual:', isBottomSheetOpen);
+                                setIsBottomSheetOpen(false);
+                                console.log('Estado después de setear false');
+                            }}
+                        >
+                            Cerrar
+                        </button>
+                    </div>
                 </div>
             </BottomSheet>
 

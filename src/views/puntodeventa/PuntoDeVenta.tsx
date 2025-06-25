@@ -60,6 +60,7 @@ import ModeloFacturaReport from "../facturacion/ModeloFacturaReport";
 import ArticuloInfoCard from "@/modules/ArticuloInfoCard";
 import BuscadorClientes from "@/ui/clientes/BuscadorClientes";
 import { useConfiguraciones } from "@/services/configuraciones/configuracionesHook";
+import { SelectorTimbrado } from "@/shared/components/Facturacion/SelectorTimbrado";
 
 interface ItemParaVenta {
   precio_guaranies: number;
@@ -1334,71 +1335,6 @@ const PuntoDeVentaNuevo = () => {
         factura: {
           presencia: 1,
         },
-        // condicion: {
-        //   tipo: opcionesFinalizacion.tipo_venta === "CREDITO" ? 2 : 1,
-        //   entregas:
-        //     opcionesFinalizacion.tipo_venta === "CONTADO"
-        //       ? [
-        //           {
-        //             tipo: 1, // Efectivo
-        //             monto: totalPagarFinal.toString(),
-        //             moneda:
-        //               monedaSeleccionada?.mo_codigo === 1
-        //                 ? "PYG"
-        //                 : monedaSeleccionada?.mo_codigo === 2
-        //                 ? "USD"
-        //                 : monedaSeleccionada?.mo_codigo === 3
-        //                 ? "BRL"
-        //                 : monedaSeleccionada?.mo_codigo === 4
-        //                 ? "ARS"
-        //                 : "PYG",
-        //             cambio: 0.0,
-        //           },
-        //         ]
-        //       : [],
-        //   credito:
-        //     opcionesFinalizacion.tipo_venta === "CREDITO"
-        //       ? {
-        //           tipo: 1, // Plazo
-        //           plazo: `${
-        //             opcionesFinalizacion.cantidad_cuotas || 1
-        //           } cuotas`,
-        //           cuotas: opcionesFinalizacion.cantidad_cuotas || 1,
-        //           infoCuotas: Array.from(
-        //             { length: opcionesFinalizacion.cantidad_cuotas || 1 },
-        //             (_, i) => {
-        //               const montoTotal =
-        //                 totalPagarFinal -
-        //                 (opcionesFinalizacion.entrega_inicial || 0);
-        //               const montoCuota =
-        //                 montoTotal /
-        //                 (opcionesFinalizacion.cantidad_cuotas || 1);
-        //               const fechaVencimiento = new Date();
-        //               fechaVencimiento.setDate(
-        //                 fechaVencimiento.getDate() + 30 * (i + 1)
-        //               );
-
-        //               return {
-        //                 moneda:
-        //                   monedaSeleccionada?.mo_codigo === 1
-        //                     ? "PYG"
-        //                     : monedaSeleccionada?.mo_codigo === 2
-        //                     ? "USD"
-        //                     : monedaSeleccionada?.mo_codigo === 3
-        //                     ? "BRL"
-        //                     : monedaSeleccionada?.mo_codigo === 4
-        //                     ? "ARS"
-        //                     : "PYG",
-        //                 monto: montoCuota,
-        //                 vencimiento: fechaVencimiento
-        //                   .toISOString()
-        //                   .split("T")[0],
-        //               };
-        //             }
-        //           ),
-        //         }
-        //       : null,
-        // },
         condicion: {
           tipo: opcionesFinalizacion.tipo_venta === "CREDITO" ? 2 : 1,
 
@@ -2223,7 +2159,8 @@ const PuntoDeVentaNuevo = () => {
           tipo_documento: "TICKET",
         });
         setImprimirFactura(false);
-        setImprimirTicket(true);
+        setImprimirTicket(false);
+        setImprimirNotaInterna(false);
       } else if (e.key === "2") {
         setOpcionesFinalizacion({
           ...opcionesFinalizacion,
@@ -2231,6 +2168,7 @@ const PuntoDeVentaNuevo = () => {
         });
         setImprimirFactura(true);
         setImprimirTicket(false);
+        setImprimirNotaInterna(false);
       } else if (e.key === "Tab") {
         e.preventDefault();
         tipoVentaKCInputRef.current?.focus();
@@ -2968,61 +2906,6 @@ const PuntoDeVentaNuevo = () => {
                     </table>
                   </div>
                 )}
-              // renderItem={(item) => (
-              //   <div
-              //     className={
-              //       isMobile
-              //         ? "flex flex-row gap-2 items-center [&>p]:font-semibold [&>p]:text-xs"
-              //         : "flex flex-row gap-2 items-center [&>p]:font-bold"
-              //     }
-              //     onMouseEnter={() => setHoveredArticulo(item)}
-              //     onMouseLeave={() => setHoveredArticulo(null)}
-              //   >
-              //     <p>{item.codigo_barra}</p>
-              //     <Tally1 />
-              //     <p>{item.descripcion}</p>
-              //     <Tally1 />
-              //     {monedaSeleccionada?.mo_codigo === 1 ? (
-              //       <>
-              //         <p>P. Contado</p>
-              //         <p>{formatNumber(item.precio_venta_guaranies)}</p>
-              //         <p>P. Mostrador</p>
-              //         <p>{formatNumber(item.precio_mostrador)}</p>
-              //         <p>P. Credito</p>
-              //         <p>{formatNumber(item.precio_credito)}</p>
-              //       </>
-              //     ) : (
-              //       <>
-              //         <p>
-              //           P. Contado{" "}
-              //           {monedaSeleccionada?.mo_descripcion.toLowerCase()}:
-              //         </p>
-              //         <p>{formatNumber(item.precio_venta_dolar)}</p>
-              //       </>
-              //     )}
-              //     <Tally1 />
-              //     {item.vencimiento_validacion === 1 ? (
-              //       <>
-              //         <p
-              //           className={
-              //             item.estado_vencimiento === "VIGENTE"
-              //               ? "text-green-500"
-              //               : item.estado_vencimiento === "PROXIMO"
-              //               ? "text-yellow-500"
-              //               : "text-red-500"
-              //           }
-              //         >
-              //           {item.vencimiento_lote}
-              //         </p>
-              //         <Tally1 />
-              //         <p>Lote: {item.lote}</p>
-              //       </>
-              //     ) : null}
-              //     <Tally1 />
-              //     <p>Stock</p>
-              //     <p>{item.cantidad_lote}</p>
-              //   </div>
-              // )}
               />
               <ArticuloInfoCard
                 articulo={hoveredArticulo}
@@ -3036,14 +2919,8 @@ const PuntoDeVentaNuevo = () => {
                     <th>Cod. de Barras</th>
                     <th>Descripcion</th>
                     <th>Cantidad</th>
-                    {/* <th>V/B</th> */}
-                    {/* <th>Lote</th> */}
-                    {/* <th>Vencimiento</th> */}
                     <th>Precio U.</th>
                     <th>Descuento</th>
-                    {/* <th>Exentas</th> */}
-                    {/* <th>5%</th> */}
-                    {/* <th>10%</th> */}
                     <th>SubTotal</th>
                     <th></th>
                   </tr>
@@ -3090,9 +2967,6 @@ const PuntoDeVentaNuevo = () => {
                           }}
                         />
                       </td>
-                      {/* <td className="text-center">{item.deve_bonificacion}</td> */}
-                      {/* <td className="text-center">{item.deve_lote}</td> */}
-                      {/* <td className="text-center">{item.deve_vencimiento}</td> */}
                       <td className="text-right">
                         <input
                           type="number"
@@ -3121,15 +2995,6 @@ const PuntoDeVentaNuevo = () => {
                           }}
                         />
                       </td>
-                      {/* <td className="text-right">
-                        {formatNumber(item.deve_exentas)}
-                      </td> */}
-                      {/* <td className="text-right">
-                        {formatNumber(item.deve_cinco)}
-                      </td> */}
-                      {/* <td className="text-right">
-                        {formatNumber(item.deve_diez)}
-                      </td> */}
                       <td className="text-right">
                         {formatNumber(
                           (item.deve_precio -
@@ -3158,76 +3023,6 @@ const PuntoDeVentaNuevo = () => {
             rounded="md"
             className="flex flex-row gap-2 bg-blue-200  items-end"
           >
-            {/* <div className="flex flex-col-reverse gap-2 p-2 w-full bg-orange-200 m-2 rounded-md">
-              <div className="flex flex-row gap-2 w-full flex-1 items-center">
-                <p className="text-md font-bold">Total exentas:</p>
-                <div className="bg-white px-4 py-2 rounded-md w-1/2 ml-auto">
-                  <p className="text-right text-xl font-bold">
-                    {totalExentasFormateado}
-                  </p>
-                </div>
-              </div>
-              <div className="flex flex-row gap-2 w-full flex-1 items-center">
-                <p className="text-md font-bold">Total 5%:</p>
-                <div className="bg-white px-4 py-2 rounded-md w-1/2 ml-auto">
-                  <p className="text-right text-xl font-bold">
-                    {totalCincoFormateado}
-                  </p>
-                </div>
-              </div>
-              <div className="flex flex-row gap-2 w-full flex-1 items-center">
-                <p className="text-md font-bold">Total 10%:</p>
-                <div className="bg-white px-4 py-2 rounded-md w-1/2 ml-auto">
-                  <p className="text-right text-xl font-bold">
-                    {totalDiezFormateado}
-                  </p>
-                </div>
-              </div>
-            </div> */}
-            {/* <div className="flex flex-col gap-2 p-2 w-full">
-              <div className="flex flex-row gap-2 w-full flex-1 items-center">
-                <p className="text-md font-bold">Subtotal:</p>
-                <div className="bg-white px-4 py-2 rounded-md w-1/2 ml-auto">
-                  <p className="text-right text-xl font-bold">
-                    {totalPagarFormateado}
-                  </p>
-                </div>
-              </div>
-              <div className="flex flex-row gap-2 w-full flex-1 items-center">
-                <p className="text-md font-bold">Total desc. por items :</p>
-                <div className="bg-white px-4 py-2 rounded-md w-1/2 ml-auto">
-                  <p className="text-right text-xl font-bold">
-                    {totalDescuentoItemsFormateado}
-                  </p>
-                </div>
-              </div>
-              <div className="flex flex-row gap-2 w-full flex-1 items-center">
-                <p className="text-md font-bold">Total desc. por factura:</p>
-                <div className="bg-white px-4 py-2 rounded-md w-1/2 ml-auto ">
-                  <p className="text-right text-xl font-bold">
-                    {totalDescuentoFormateado}
-                  </p>
-                </div>
-              </div>
-            </div> */}
-            {/* <div className="flex flex-col gap-2 p-2 w-full">
-              <div className="flex flex-row gap-2 w-full flex-1 items-center">
-                <p className="text-md font-bold">Porcentaje de descuento:</p>
-                <div className="bg-white px-4 py-2 rounded-md w-1/2 ml-auto">
-                  <p className="text-right text-xl font-bold">
-                    {porcentajeDescuentoFormateado || 0}
-                  </p>
-                </div>
-              </div>
-              <div className="flex flex-row gap-2 w-full flex-1 items-center">
-                <p className="text-md font-bold">Total de items vendidos:</p>
-                <div className="bg-white px-4 py-2 rounded-md w-1/2 ml-auto">
-                  <p className="text-right text-xl font-bold">
-                    {totalItemsFormateado}
-                  </p>
-                </div>
-              </div>
-            </div> */}
             <div className="flex flex-row gap-2 p-2 w-full  bg-blue-300  m-2 rounded-md">
               <div className="flex flex-row gap-2 w-full flex-1 items-center">
                 <p className="text-xl font-bold">Total GS.:</p>
@@ -3501,8 +3296,10 @@ const PuntoDeVentaNuevo = () => {
                         ...opcionesFinalizacion,
                         tipo_documento: "TICKET",
                       });
+                      // Cuando se selecciona TICKET, desmarcar factura y dejar que el usuario elija entre ticket y nota interna
                       setImprimirFactura(false);
-                      setImprimirTicket(true);
+                      setImprimirTicket(false);
+                      setImprimirNotaInterna(false);
                     }}
                   >
                     Nota Comun
@@ -3518,8 +3315,10 @@ const PuntoDeVentaNuevo = () => {
                         ...opcionesFinalizacion,
                         tipo_documento: "FACTURA",
                       });
+                      // Cuando se selecciona FACTURA, solo se puede imprimir factura
                       setImprimirFactura(true);
                       setImprimirTicket(false);
+                      setImprimirNotaInterna(false);
                     }}
                   >
                     Factura
@@ -3566,6 +3365,7 @@ const PuntoDeVentaNuevo = () => {
                         setImprimirTicket(false);
                         setImprimirNotaInterna(true);
                       }}
+                      disabled={opcionesFinalizacion.tipo_documento === "FACTURA"}
                     />
                     <p className="text-md font-bold">Impr. nota interna</p>
                   </div>
@@ -3574,86 +3374,30 @@ const PuntoDeVentaNuevo = () => {
 
               {/* Campos de Factura */}
               {opcionesFinalizacion.tipo_documento === "FACTURA" && (
-                <div className="flex flex-row gap-4 p-4 bg-blue-100 rounded-md">
-                  <div className="flex flex-col gap-2 w-1/2">
-                    <p className="font-bold">Timbrado</p>
-                    <input
-                      type="text"
-                      className="border rounded-md p-2"
-                      value={opcionesFinalizacion.timbrado || ""}
-                      onChange={(e) =>
-                        setOpcionesFinalizacion({
-                          ...opcionesFinalizacion,
-                          timbrado: e.target.value,
-                        })
-                      }
-                    />
-                  </div>
-                  <div className="flex flex-col gap-2 w-1/2">
-                    <p className="font-bold">Número de Factura</p>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        className="border rounded-md p-2 w-16 text-center"
-                        maxLength={3}
-                        value={
-                          opcionesFinalizacion.nro_establecimiento
-                            ?.toString()
-                            .padStart(3, "0") || ""
-                        }
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/\D/g, "");
-                          setOpcionesFinalizacion({
-                            ...opcionesFinalizacion,
-                            nro_establecimiento: value
-                              ? parseInt(value)
-                              : undefined,
-                          });
-                        }}
-                        placeholder="000"
-                      />
-                      <span className="flex items-center">-</span>
-                      <input
-                        type="text"
-                        className="border rounded-md p-2 w-16 text-center"
-                        maxLength={3}
-                        value={
-                          opcionesFinalizacion.nro_emision
-                            ?.toString()
-                            .padStart(3, "0") || ""
-                        }
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/\D/g, "");
-                          setOpcionesFinalizacion({
-                            ...opcionesFinalizacion,
-                            nro_emision: value ? parseInt(value) : undefined,
-                          });
-                        }}
-                        placeholder="000"
-                      />
-                      <span className="flex items-center">-</span>
-                      <input
-                        type="text"
-                        className="border rounded-md p-2 w-28 text-center"
-                        maxLength={7}
-                        value={
-                          opcionesFinalizacion.nro_factura
-                            ?.toString()
-                            .padStart(7, "0") || ""
-                        }
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/\D/g, "");
-                          setOpcionesFinalizacion({
-                            ...opcionesFinalizacion,
-                            nro_factura: value,
-                          });
-                        }}
-                        placeholder="0000000"
-                      />
-                    </div>
-                  </div>
-                </div>
+                <SelectorTimbrado
+                  userId={Number(operador)}
+                  sucursalId={sucursalSeleccionada?.id || 0}
+                  onDatosCargados={(datos) => {
+                    setOpcionesFinalizacion(prev => ({
+                      ...prev,
+                      nro_establecimiento: Number(datos.d_Establecimiento),
+                      nro_emision: Number(datos.d_P_Emision),
+                      nro_factura: String(datos.d_Nro_Secuencia + 1),
+                      timbrado: datos.d_Nrotimbrado,
+                    }));
+                  }}
+                  onDatosChange={(datos) => {
+                    setOpcionesFinalizacion(prev => ({
+                      ...prev,
+                      nro_establecimiento: Number(datos.d_Establecimiento),
+                      nro_emision: Number(datos.d_P_Emision),
+                      nro_factura: String(datos.d_Nro_Secuencia + 1),
+                      timbrado: datos.d_Nrotimbrado,
+                    }));
+                  }}
+                />
               )}
+
 
               {/* Tipo de Venta */}
               <div className="flex flex-col gap-2">

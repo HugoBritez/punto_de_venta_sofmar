@@ -6,8 +6,9 @@ import { useToast } from "@chakra-ui/react";
 import { AnimatePresence, motion } from "framer-motion";
 import Auditar from "@/services/AuditoriaHook";
 import { ChartColumn } from "lucide-react";
-import { Ingreso, IngresoDetalle, VerificacionItemDTO } from "../types/shared.type";
-import { useVerificarIngresos } from "../hooks/useVerificarIngresos";
+import { Ingreso, IngresoDetalle } from "../types/shared.type";
+import { useVerificarItem, useVerificarCompra } from "../hooks/useMutations";
+import { VerificacionItemDTO } from "@/shared/types/controlIngreso";
 interface FloatingCardProps {
   facturas: Ingreso[];
   onSelect: (factura: Ingreso) => void;
@@ -52,7 +53,7 @@ const FloatingCard = ({
                 >
                   <div>
                     <div className="font-medium">
-                      Factura #{factura.nro_factura}
+                      {factura.nro_factura ? `Factura #${factura.nro_factura}` : `Nro. de Compra #${factura.id_compra}`}
                     </div>
                     <div className="text-sm text-gray-500">
                       {(factura.fecha_compra)}
@@ -86,8 +87,10 @@ const InventarioScanner = () => {
 
   const [articuloFields, setArticuloFields] =
     useState<VerificacionItemDTO>({
-      id_detalle: 0,
+      detalle: 0,
       cantidad: 0,
+      lote: "",
+      vencimiento: "",
     });
 
   const [isFloatingCardVisible, setIsFloatingCardVisible] = useState(false);
@@ -101,6 +104,9 @@ const InventarioScanner = () => {
   const [facturaSeleccionada, setFacturaSeleccionada] =
     useState<Ingreso | null>(null);
 
+  const { mutate: verificarItem } = useVerificarItem();
+  const { mutate: verificarCompra } = useVerificarCompra();
+
   const handleInputClick = (e: React.MouseEvent<HTMLInputElement>) => {
     e.preventDefault();
     searchInputRef.current?.focus();
@@ -111,7 +117,6 @@ const InventarioScanner = () => {
     console.log("ingreso seleccionado", ingreso);
   };
 
-  const { verificarItem, verificarCompra } = useVerificarIngresos();
 
   useEffect(() => {
     if (facturaSeleccionada) {
@@ -120,9 +125,18 @@ const InventarioScanner = () => {
   }, [facturaSeleccionada]);
 
   const handleEditarArticulo = (articulo: IngresoDetalle) => {
+    // Formatear la fecha de vencimiento para el input date
+    const formatearFecha = (fechaString: string) => {
+      if (!fechaString) return "";
+      const fecha = new Date(fechaString);
+      return fecha.toISOString().split('T')[0]; // Convierte a YYYY-MM-DD
+    };
+
     setArticuloFields({
-      id_detalle: articulo.detalle_compra,
+      detalle: articulo.detalle_compra,
       cantidad: 0,
+      lote: articulo.lote,
+      vencimiento: formatearFecha(articulo.vencimiento),
     });
     setArticuloSeleccionado(articulo);
     setModalVisible(true);
@@ -217,7 +231,9 @@ const InventarioScanner = () => {
         description: "Debe seleccionar una factura",
         status: "error",
       });
+      return;
     }
+    
     if (Object.keys(formData).length === 0) {
       toast({
         title: "Error",
@@ -227,7 +243,7 @@ const InventarioScanner = () => {
       return;
     }
 
-    if (formData.id_detalle === 0) {
+    if (formData.detalle === 0) {
       toast({
         title: "Error",
         description: "Debe seleccionar un articulo",
@@ -245,20 +261,23 @@ const InventarioScanner = () => {
       return;
     }
 
-    try {
-      const response = await verificarItem(formData);
-      if (response) {
+    verificarItem(formData, {
+      onSuccess: async () => {
         toast({
           title: "Success",
           description: "Artículo escaneado correctamente",
           status: "success",
         });
+        
         setArticuloFields({
-          id_detalle: 0,
+          detalle: 0,
           cantidad: 0,
+          lote: "",
+          vencimiento: "",
         });
         setArticuloSeleccionado(null);
         setModalVisible(false);
+        
         Auditar(
           1,
           1,
@@ -269,31 +288,47 @@ const InventarioScanner = () => {
 
         console.log('empezando a traer los articulos');
         
-        // Obtener los artículos actualizados y usar el valor retornado
+        // Obtener los artículos actualizados
         const articulosActualizados = await getArticulos();
         
         console.log('articulos actualizados', articulosActualizados?.length);
         
-        // Verificar usando los artículos retornados, no el estado
+        // Verificar si no hay más artículos
         if (articulosActualizados?.length === 0) {
           console.log('verificando la compra', facturaSeleccionada?.id_compra);
-          const compraResponse = await verificarCompra({
-            id_compra: facturaSeleccionada?.id_compra || 0
-          });
           
-          if (compraResponse) {
-            toast({
-              title: "Success",
-              description: "No hay más artículos por verificar",
-              status: "success",
-            });
-          }
-          await fetchFacturasDisponibles();
+          verificarCompra({
+            idCompra: facturaSeleccionada?.id_compra || 0,
+            userId: Number(sessionStorage.getItem("user_id") || 1)
+          }, {
+            onSuccess: () => {
+              toast({
+                title: "Success",
+                description: "No hay más artículos por verificar",
+                status: "success",
+              });
+              fetchFacturasDisponibles();
+            },
+            onError: (error) => {
+              console.error("Error al verificar compra:", error);
+              toast({
+                title: "Error",
+                description: "Error al verificar la compra",
+                status: "error",
+              });
+            }
+          });
         }
+      },
+      onError: (error) => {
+        console.error("Error al escanear el articulo:", error);
+        toast({
+          title: "Error",
+          description: "Error al escanear el artículo",
+          status: "error",
+        });
       }
-    } catch (error) {
-      console.error("Error al escanear el articulo:", error);
-    }
+    });
   }
 
   return (
@@ -434,7 +469,7 @@ const InventarioScanner = () => {
                   </p>
                 </div>
               </div>
-              <div className="flex flex-row  w-full gap-4 mb-4">
+              <div className="flex flex-col  w-full gap-4 mb-4">
                 <div className="w-full">
                   <label className="block text-md font-medium text-gray-700 mb-1">
                     Cantidad
@@ -452,6 +487,40 @@ const InventarioScanner = () => {
                     ref={cantidadInputRef}
                   />
                 </div>
+                <div className="flex flex-row  w-full gap-4 mb-4">
+                <div className="w-full">
+                  <label className="block text-md font-medium text-gray-700 mb-1">
+                    Lote
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full p-2 border rounded"
+                    value={articuloFields.lote || ''}
+                    onChange={(e) => {
+                      setArticuloFields({
+                        ...articuloFields,
+                          lote: e.target.value,
+                      });
+                    }}
+                  />
+                </div>
+                <div className="w-full">
+                  <label className="block text-md font-medium text-gray-700 mb-1">
+                    Fecha de Vencimiento
+                  </label>
+                  <input
+                    type="date"
+                    className="w-full p-2 border rounded"
+                    value={articuloFields.vencimiento || ''}
+                    onChange={(e) => {
+                      setArticuloFields({
+                        ...articuloFields,
+                        vencimiento: e.target.value,
+                      });
+                    }}
+                  />
+                </div>
+              </div>
               </div>
               <div className="mb-4 flex flex-row gap-4"></div>
               <button

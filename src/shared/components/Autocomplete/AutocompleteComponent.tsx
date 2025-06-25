@@ -69,12 +69,22 @@ export const Autocomplete = <T = unknown>({
 
   useEffect(() => {
     if (onSearch) {
+      if (searchTerm.length < 2) {
+        setFilteredData([]);
+        return;
+      }
+      
       setIsLoadingInternal(true)
       setIsErrorInternal(false)
-      onSearch(searchTerm)
-        .then(setFilteredData)
-        .catch(() => setIsErrorInternal(true))
-        .finally(() => setIsLoadingInternal(false))
+      
+      const timeout = setTimeout(() => {
+        onSearch(searchTerm)
+          .then(setFilteredData)
+          .catch(() => setIsErrorInternal(true))
+          .finally(() => setIsLoadingInternal(false))
+      }, 300)
+      
+      return () => clearTimeout(timeout)
     } else {
       const timeout = setTimeout(() => {
         const searchTermLower = searchTerm.toLowerCase().trim()
@@ -88,7 +98,7 @@ export const Autocomplete = <T = unknown>({
       }, 250)
       return () => clearTimeout(timeout)
     }
-  }, [searchTerm, data, searchFields, onSearch])
+  }, [searchTerm, data, searchFields])
 
   useEffect(() => {
     setHighlightedIndex(-1)
@@ -363,7 +373,7 @@ export const Autocomplete = <T = unknown>({
           <div
             ref={parentRef}
             id="autocomplete-options"
-            className="absolute z-10 w-full mt-1 bg-white shadow-md rounded-md border border-gray-200 overflow-auto"
+            className="absolute  w-full mt-1 bg-white shadow-md rounded-md border border-gray-200 overflow-auto"
             style={{ 
               maxHeight: '240px'
             }}

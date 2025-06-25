@@ -1,7 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState, useEffect, useMemo } from "react";
-import {  getArticulos } from "../../../api/articulosApi";
-
+import { getArticulos } from "../../../api/articulosApi";
 
 export interface ConsultaParams {
   busqueda?: string | null,
@@ -10,55 +8,47 @@ export interface ConsultaParams {
   deposito?: number,
   codigo_barra?: string,
   cod_interno?: string
+  tipo_busqueda?: string
 } 
+
+
 
 export const useGetArticulos = (
   params: ConsultaParams,
   options?: {
-    debounceMs?: number;
-    minLength?: number;
     enabled?: boolean;
   }
 ) => {
-  const { debounceMs = 300, enabled = true } = options || {};
+  const { enabled = true } = options || {};
   
-  // Debounce solo del término de búsqueda
-  const [debouncedBusqueda, setDebouncedBusqueda] = useState(params.busqueda);
-  
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedBusqueda(params.busqueda);
-    }, debounceMs);
-    
-    return () => clearTimeout(timer);
-  }, [params.busqueda, debounceMs]);
-  
-  // Parámetros finales con búsqueda debounced
-  const finalParams = useMemo(() => ({
-    ...params,
-    busqueda: debouncedBusqueda
-  }), [params, debouncedBusqueda]);
-  
-  // Condiciones para ejecutar la query
-  const shouldSearch = Boolean(
-    enabled &&
-    typeof debouncedBusqueda === "string" 
-  );
+  // Crear una clave única para cada búsqueda
+  const queryKey = ['get-articulos', {
+    busqueda: params.busqueda || '',
+    deposito: params.deposito || null,
+    moneda: params.moneda || null,
+    stock: params.stock || null,
+    codigo_barra: params.codigo_barra || '',
+    cod_interno: params.cod_interno || '',
+    tipo_busqueda: params.tipo_busqueda || ''
+  }];
   
   return useQuery({
-    queryKey: ['get-articulos', finalParams],
+    queryKey,
     queryFn: () => getArticulos(
-      finalParams.busqueda,
-      finalParams.deposito,
-      finalParams.stock,
-      finalParams.moneda,
-      finalParams.codigo_barra,
-      finalParams.cod_interno
+      params.busqueda,
+      params.deposito,
+      params.stock,
+      params.moneda,
+      params.codigo_barra,
+      params.cod_interno,
+      params.tipo_busqueda
     ),
-    enabled: shouldSearch,
-    staleTime: 5 * 60 * 1000, // 5 minutos de cache
-    // ⚡ Configuraciones importantes para búsqueda
-    refetchOnWindowFocus: false, // No refetch al cambiar ventana
-    retry: 1, // Solo 1 reintento en búsquedas
+    enabled: enabled,
+    staleTime: 0, // Sin cache para búsquedas
+    gcTime: 0, // Sin cache para búsquedas
+    refetchOnWindowFocus: false,
+    retry: 1,
+    // Forzar refetch cuando cambian los parámetros
+    refetchOnMount: true,
   });
 };

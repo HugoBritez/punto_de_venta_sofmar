@@ -9,7 +9,6 @@ import { useEffect, useState, useRef } from "react"
 import { procedencias } from "../utils/procedencias"
 import { useGetTipoDocumento } from "../../../shared/hooks/querys/useTipoDocumento"
 import { Autocomplete } from "../../../shared/components/Autocomplete/AutocompleteComponent"
-import { useToast } from "../../../shared/context/ToastContext"
 import Tabs from "./tabs"
 import { useGetGruposDeClientes } from "../../../shared/hooks/querys/useGruposDeCLientes"
 import { useListaDePrecios } from "../../../shared/hooks/querys/useListaDePrecios"
@@ -23,6 +22,7 @@ import { UsuarioRepository } from "../../../shared/api/usuarioRepository"
 import { useGetUltimoCodigoInterno } from "../../../shared/hooks/querys/usePersonas"
 import type { Ciudad } from "../../../shared/types/ciudad"
 import type { Zona } from "../../../shared/types/zona"
+import { useToast } from "@chakra-ui/react"
 
 type TipoPersona = "operador" | "proveedor" | "cliente"
 
@@ -202,10 +202,7 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
     const { data: ListaDePrecios } = useListaDePrecios();
     const { data: tipoPlazoList } = useGetTipoPlazo();
     const { data: ultimoCodigoInterno } = useGetUltimoCodigoInterno();
-    const { showToast } = useToast()
-
-
-    const [listaDePreciosSeleccionada,] = useState<ListaPrecio | null>(null)
+    const toast = useToast()
 
     const [listaDePreciosSeleccionados, setListaDePreciosSeleccionados] = useState<ListaPrecio[]>([])
 
@@ -251,7 +248,13 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
                 setSelectedAgente(agenteData);
             }
         } catch (error) {
-            showToast('error', 'Error', 'No se pudieron cargar los operadores')
+            toast({
+                title: 'Error al cargar los operadores',
+                status: 'error',
+                duration: 3000,
+                isClosable: true,
+                position: 'bottom'
+            });
         }
     }
 
@@ -459,11 +462,23 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
         try {
             const response = await personaMutation.mutateAsync(dto)
             console.log("Respuesta:", response)
-            showToast('success', 'Éxito', 'Persona creada exitosamente')
+            toast({
+                title: 'Persona creada exitosamente',
+                status: 'success',
+                duration: 3000,
+                isClosable: true,
+                position: 'bottom'
+            });
             handleVaciarCampos()
         } catch (err) {
             console.error("Error al crear persona", err)
-            showToast('error', 'Error', 'No se pudo crear la persona')
+            toast({
+                title: 'Error al crear la persona',
+                status: 'error',
+                duration: 3000,
+                isClosable: true,
+                position: 'bottom'
+            });
         }
     }
 
@@ -508,11 +523,16 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
     }
 
     const updatePrecios = (precio: ListaPrecio) => {
-        setPersonaDTO((prev) => ({
-            ...prev,
-            precios: [...prev.precios, precio.lpCodigo],
-        }))
-        setListaDePreciosSeleccionados((prev) => [...prev, precio])
+        // Verificar si el precio ya está en la lista para evitar duplicados
+        const precioYaExiste = personaDTO.precios.includes(precio.lpCodigo);
+        
+        if (!precioYaExiste) {
+            setPersonaDTO((prev) => ({
+                ...prev,
+                precios: [...prev.precios, precio.lpCodigo],
+            }))
+            setListaDePreciosSeleccionados((prev) => [...prev, precio])
+        }
     }
 
     useEffect(() => {
@@ -1264,12 +1284,12 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
                                 searchFields={["descripcion", "codigo"]}
                                 additionalFields={[
                                     { field: "codigo", label: "Codigo" },
-                                    { field: "descripcion", label: "Ciudad" }
+                                    { field: "descripcion", label: "Zona" }
                                 ]}
-                                label="Ciudad"
+                                label="Zona"
                                 isLoading={isLoadingCiudades}
                                 isError={isErrorCiudades}
-                                errorMessage="Error al cargar las ciudades"
+                                errorMessage="Error al cargar las zonas"
                                 disabled={isLoadingCiudades}
                             />
                         </div>
@@ -1600,20 +1620,10 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
                             <Autocomplete<ListaPrecio>
                                 label=""
                                 data={ListaDePrecios || []}
-                                value={
-                                    listaDePreciosSeleccionada
-                                        ? {
-                                            lpCodigo: listaDePreciosSeleccionada.lpCodigo,
-                                            lpDescripcion: listaDePreciosSeleccionada.lpDescripcion,
-                                            lpEstado: listaDePreciosSeleccionada.lpEstado,
-                                            lpPorcentaje: listaDePreciosSeleccionada.lpPorcentaje
-                                        }
-                                        : null
-                                }
-                                onChange={(option: any) => {
-                                    const listaPrecio = ListaDePrecios?.find(lp => lp.lpCodigo === option?.value) ?? null
-                                    if (listaPrecio) {
-                                        updatePrecios(listaPrecio)
+                                value={null} // Siempre null para permitir múltiples selecciones
+                                onChange={(option: ListaPrecio | null) => {
+                                    if (option) {
+                                        updatePrecios(option)
                                     }
                                 }}
                                 isLoading={isLoadingZonas}

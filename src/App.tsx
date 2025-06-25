@@ -54,6 +54,10 @@ import VerificadorControl from "./views/compras/control_ingreso/components/Verif
 import ConsultaPedidosFaltantes from "./views/entregas/ConsultaPedidosFaltantes";
 import GestionDirecciones from "./views/direcciones/GestionDirecciones";
  import FormularioPedidos from "./views/pedidos/FormularioPedidos/FormularioPedidos";
+import ReporteMovimientoProductos from "./features/Reportes/pages/ReporteMovimientoProductos";
+import ReportePedidosFacturados from "./features/Reportes/pages/ReportePedidosFacturados";
+import PersonasList from "./features/Personas/pages/PersonasList";
+import PWAUpdatePrompt from './shared/components/PWAUpdate/PWAUpdatePrompt';
 
 const ProtectedLayout: React.FC = () => {
   const { auth, isLoading } = useAuth();
@@ -75,7 +79,7 @@ const ProtectedLayout: React.FC = () => {
     <Box bg={isLargerThan768 ? "gray.100" : "white"}>
       <Sidebar />
       <Box
-        ml={isLargerThan768 ? ["80px", "80px", "70px"] : 0}
+        ml={isLargerThan768 ? ["90px", "90px", "90px"] : 0}
         mb={0}
         p={0}
         transition="all 0.3s"
@@ -88,13 +92,17 @@ const ProtectedLayout: React.FC = () => {
 
 function App() {
   return (
-    <SwitchProvider>
-      <ChakraProvider>
-        <AuthProvider>
+    <ChakraProvider>
+      <AuthProvider>
+        <SwitchProvider>
           <Router>
             <Routes>
               <Route path="/login" element={<Login />} />
+              <Route path="/auth" element={<Navigate to="/login" replace />} />
               <Route element={<ProtectedLayout />}>
+                <Route path="/personas" element={<PersonasList />} />
+                <Route path="/ventas/reporte-movimiento-productos" element={<ReporteMovimientoProductos />} />
+                <Route path="/reporte-pedidos-facturados" element={<ReportePedidosFacturados />} />
                 <Route
                   path="/consulta-de-articulos"
                   element={<ConsultaArticulos />}
@@ -184,9 +192,10 @@ function App() {
               <Route path="/playground" element={<FacturaSend />} />
             </Routes>
           </Router>
-        </AuthProvider>
-      </ChakraProvider>
-    </SwitchProvider>
+          <PWAUpdatePrompt />
+        </SwitchProvider>
+      </AuthProvider>
+    </ChakraProvider>
   );
 }
 
