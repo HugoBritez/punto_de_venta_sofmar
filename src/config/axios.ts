@@ -14,7 +14,6 @@ api.interceptors.request.use((config) => {
   // Obtener token del sessionStorage en lugar de usar hook
   const token = sessionStorage.getItem('token');
   if (token) {
-    console.log(token);
     config.headers.Authorization = token; // El token ya incluye "Bearer " desde AuthContext
   }
   return config;

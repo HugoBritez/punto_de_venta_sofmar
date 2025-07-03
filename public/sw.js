@@ -17,3 +17,6 @@ self.addEventListener('message', (event) => {
       })
     );
   });
+
+// Placeholder para que vite-plugin-pwa inyecte el manifiesto
+self.__WB_MANIFEST;

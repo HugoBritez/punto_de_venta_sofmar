@@ -39,7 +39,6 @@ import {
   Podcast,
   Boxes,
   Menu,
-  User,
 } from "lucide-react";
 import { useAuth } from "@/services/AuthContext";
 import { db, fechaRelease, version } from "@/utils";
@@ -174,23 +173,23 @@ const Sidebar = () => {
     //     },
     //   ],
     // },
-    {
-      name: "Módulo Tablas",
-      icon: User,
-      path: "/personas",
-      enabled: true,
-      subItems: [
-        {
-          grupo: 5,
-          orden: 2,
-          id: 115,
-          name: "Personas",
-          icon: User,
-          path: "/personas",
-          enabled: true,
-        },
-      ],
-    },
+    // {
+    //   name: "Módulo Tablas",
+    //   icon: User,
+    //   path: "/personas",
+    //   enabled: true,
+    //   subItems: [
+    //     {
+    //       grupo: 5,
+    //       orden: 2,
+    //       id: 115,
+    //       name: "Personas",
+    //       icon: User,
+    //       path: "/personas",
+    //       enabled: true,
+    //     },
+    //   ],
+    // },
     {
       name: "Modulo Ventas",
       icon: DollarSign,
@@ -212,7 +211,7 @@ const Sidebar = () => {
           id: 421,
           name: "Punto de Venta",
           icon: ShoppingBasket,
-          path: "/punto-de-venta-nuevo",
+          path: "/punto-de-venta",
           enabled: true,
         },
         {
@@ -243,8 +242,8 @@ const Sidebar = () => {
           enabled: true,
         },
         {
-          grupo: 999,
-          orden: 999,
+          grupo: 1,
+          orden: 1,
           id: 53,
           name: "Informes",
           icon: SquareChartGantt,
@@ -253,22 +252,22 @@ const Sidebar = () => {
           subItems: [
             {
               grupo: 2,
-              orden: 53,
+              orden: 117,
               id: 51,
               name: "Informe Movimiento Productos y Metas Agrup. x Año",
               icon: FileChartColumnIncreasing,
               path: "/ventas/reporte-movimiento-productos",
               enabled: true,
             },
-            {
-              grupo: 2,
-              orden: 53,
-              id: 51,
-              name: "Reporte Pedidos Facturados",
-              icon: FileChartColumnIncreasing,
-              path: "/reporte-pedidos-facturados",
-              enabled: true,
-            },
+            // {
+            //   grupo: 2,
+            //   orden: 116,
+            //   id: 51,
+            //   name: "Reporte Pedidos Facturados",
+            //   icon: FileChartColumnIncreasing,
+            //   path: "/reporte-pedidos-facturados",
+            //   enabled: true,
+            // },
             {
               grupo: 2,
               orden: 36,
@@ -913,7 +912,7 @@ const Sidebar = () => {
         pos="fixed"
         right={8}
         bottom={16}
-        zIndex={999999}
+        zIndex={50}
         ref={mobileBarRef}
         transform={isOpen ? "translateX(100%)" : "translateX(0)"}
         transition="all 0.3s ease-in-out"

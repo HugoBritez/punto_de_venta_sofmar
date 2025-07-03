@@ -154,13 +154,8 @@ const VentaRapida = () => {
 
     useEffect(() => {
         if (clientePorDefecto && clientePorDefecto.valor) {
-            console.log('Cliente por defecto completo:', clientePorDefecto);
             const valorCliente = clientePorDefecto.valor;
-            console.log('Valor del cliente por defecto:', valorCliente);
-            console.log('Tipo de valor:', typeof valorCliente);
             const clienteId = parseInt(valorCliente);
-            console.log('Cliente ID convertido:', clienteId);
-            console.log('Es NaN?', isNaN(clienteId));
 
             if (!isNaN(clienteId)) {
                 setVentaDTO(prevState => ({

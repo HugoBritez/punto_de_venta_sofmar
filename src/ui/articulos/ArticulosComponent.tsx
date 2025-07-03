@@ -114,12 +114,15 @@ export const ArticulosComponent = ({
       case "Enter":
         e.preventDefault();
         if (indiceSeleccionado >= 0) {
-          if (articuloSeleccionado) {
-            // Si ya hay un artículo seleccionado, confirmar la selección
+          const articuloSeleccionadoPorTeclado = resultadosBusqueda[indiceSeleccionado];
+          
+          // Si ya hay un artículo seleccionado y es el mismo que se está seleccionando por teclado
+          if (articuloSeleccionado && articuloSeleccionado.id_lote === articuloSeleccionadoPorTeclado.id_lote) {
+            // Segundo Enter: confirmar la selección y cerrar modal
             handleSeleccionarArticulo();
           } else {
-            // Seleccionar el artículo
-            handleArticuloSeleccionado(resultadosBusqueda[indiceSeleccionado]);
+            // Primer Enter: seleccionar el artículo (indicando que es selección por teclado)
+            handleArticuloSeleccionado(articuloSeleccionadoPorTeclado, undefined, true);
           }
         }
         break;
@@ -205,22 +208,26 @@ export const ArticulosComponent = ({
 
   const handleArticuloSeleccionado = (
     articulo: Articulo,
-    event?: React.MouseEvent
+    event?: React.MouseEvent,
+    esSeleccionPorTeclado: boolean = false
   ) => {
     // Prevenir el comportamiento predeterminado si hay un evento
     event?.preventDefault();
     
     // Si ya hay un artículo seleccionado y es el mismo que se está haciendo clic
     if (articuloSeleccionado && articuloSeleccionado.id_lote === articulo.id_lote) {
-      // Segundo clic: confirmar la selección y cerrar modal
+      // Segundo clic/Enter: confirmar la selección y cerrar modal
       handleSeleccionarArticulo();
     } else {
-      // Primer clic: seleccionar el artículo
+      // Primer clic/Enter: seleccionar el artículo
       console.log("Artículo seleccionado:", articulo);
       setArticuloSeleccionado(articulo);
       
-      // Resetear el índice de navegación por teclado cuando se selecciona por clic
-      setIndiceSeleccionado(-1);
+      // Solo resetear el índice de navegación por teclado cuando se selecciona por clic
+      // No resetear cuando se selecciona por teclado para mantener el foco
+      if (!esSeleccionPorTeclado) {
+        setIndiceSeleccionado(-1);
+      }
       
       // Mostrar feedback visual con toast
       toast({

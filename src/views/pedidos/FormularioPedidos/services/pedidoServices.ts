@@ -28,6 +28,28 @@ interface ResultadoAgregarItem {
   error?: string;
   detallePedido?: DetallePedidoTabla[];
 }
+
+// Función para convertir fecha de DD/MM/YYYY a YYYY-MM-DD
+const formatearFechaParaBD = (fecha: string): string => {
+  if (!fecha || fecha === "01/01/1900") {
+    return "1900-01-01";
+  }
+  
+  // Si ya está en formato YYYY-MM-DD, retornarlo tal como está
+  if (/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+    return fecha;
+  }
+  
+  // Si está en formato DD/MM/YYYY, convertirlo
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(fecha)) {
+    const [dia, mes, anio] = fecha.split('/');
+    return `${anio}-${mes}-${dia}`;
+  }
+  
+  // Si no coincide con ningún formato conocido, retornar fecha por defecto
+  return "1900-01-01";
+};
+
 export function agregarItemPedido(
   detallePedido: DetallePedidoTabla[],
   params: ParamsAgregarItem
@@ -128,8 +150,8 @@ export function agregarItemPedido(
     dp_exentas: exentas || 0,
     dp_cinco: cinco || 0,
     dp_diez: diez || 0,
-    dp_lote: articulo.lote,
-    dp_vence: articulo.vencimiento_lote,
+    dp_lote: articulo.lote || "",
+    dp_vence: formatearFechaParaBD(articulo.vencimiento_lote),
     dp_vendedor: vendedorSeleccionado?.op_codigo,
     dp_codigolote: articulo.id_lote,
     dp_facturado: 0,

@@ -136,7 +136,7 @@ const InventarioScanner = () => {
       detalle: articulo.detalle_compra,
       cantidad: 0,
       lote: articulo.lote,
-      vencimiento: formatearFecha(articulo.vencimiento),
+      vencimiento: formatearFecha(articulo.vencimiento as string),
     });
     setArticuloSeleccionado(articulo);
     setModalVisible(true);
@@ -489,6 +489,7 @@ const InventarioScanner = () => {
                     type="text"
                     className="w-full p-2 border rounded"
                     value={articuloFields.lote || ''}
+                    disabled={articuloSeleccionado?.lote === '' || articuloSeleccionado?.lote === null}
                     onChange={(e) => {
                       setArticuloFields({
                         ...articuloFields,
@@ -505,6 +506,7 @@ const InventarioScanner = () => {
                     type="date"
                     className="w-full p-2 border rounded"
                     value={articuloFields.vencimiento || ''}
+                    disabled={articuloSeleccionado?.lote === '' || articuloSeleccionado?.lote === null}
                     onChange={(e) => {
                       setArticuloFields({
                         ...articuloFields,

@@ -24,17 +24,20 @@ import BuscadorClientes from "@/ui/clientes/BuscadorClientes";
 import { ArticulosComponent } from "@/ui/articulos/ArticulosComponent";
 import { formatCurrency } from "./utils/formatCurrency";
 import { usePedidos } from "./hooks/usePedidos";
-
-
+import FormularioPedidosMobile from "./FormularioPedidosMobile";
+import { useIsMobileForPedidos } from "@/hooks/useIsMobile";
 
 const FormularioPedidos = () => {
+  const isMobile = useIsMobileForPedidos();
+  
+
   const { sucursales, fetchSucursales } = useSucursalesStore();
   const { depositos, fetchDepositos } = useDepositosStore();
-  const { vendedorSeleccionado, getOperadorPorCodInterno } =
+  const { vendedorSeleccionado, getOperadorPorCodInterno, setVendedorSeleccionado } =
     useOperadoresStore();
   const { listaPrecios, fetchListaPrecios } = useListaPreciosStore();
   const { monedas, fetchMonedas } = useMonedasStore();
-  const { clienteSeleccionado, cargarClientesPorId } = useClientesStore();
+  const { clienteSeleccionado, cargarClientesPorId, setClienteSeleccionado } = useClientesStore();
   const [clienteSeleccionadoInterno, setClienteSeleccionadoInterno] =
     useState<Cliente>();
   const [precioSeleccionado, setPrecioSeleccionado] = useState<ListaPrecios>();
@@ -43,7 +46,7 @@ const FormularioPedidos = () => {
   const [monedaSeleccionada, setMonedaSeleccionada] = useState<Moneda>();
 
   const [cantidadArticulo, setCantidadArticulo] = useState<number>(1);
-  const [precioArticulo, setPrecioArticulo] = useState<number>(0);
+  const [precioArticulo, setPrecioArticulo] = useState<number | undefined>(undefined);
   const [descuentoArticulo, setDescuentoArticulo] = useState<number>(0);
   const [bonificacionArticulo, setBonificacionArticulo] = useState<number>(0);
 
@@ -56,8 +59,6 @@ const FormularioPedidos = () => {
 
   const user = sessionStorage.getItem("user_name");
   const operador = sessionStorage.getItem("user_id");
-
-
 
   const [pedidoDTO, setPedidoDTO] = useState<PedidoDTO>({
     p_fecha: fechaPedido,
@@ -416,6 +417,8 @@ const FormularioPedidos = () => {
     setBusquedaCliente("");
     setBusquedaVendedor("");
     setClienteSeleccionadoInterno(undefined);
+    setVendedorSeleccionado(null);
+    setClienteSeleccionado(null);
   };
 
   // Agrega este useEffect para hacer focus cuando se selecciona un vendedor
@@ -442,14 +445,19 @@ const FormularioPedidos = () => {
     }
   }, [articulo]);
 
+    // Si es móvil, renderizar la versión móvil
+    if (isMobile) {
+      return <FormularioPedidosMobile />;
+    }
+
   return (
     <div className="flex h-screen w-full bg-gray-100 flex-col gap-2 p-2">
       <div className="flex flex-row p-2 rounded-sm bg-blue-500">
         <ShoppingCartIcon className="w-8 h-8 text-white mr-2" />
         <p className="text-white font-bold text-2xl ">Formulario de Pedidos</p>
       </div>
-      <div className="flex flex-row rounded-sm bg-blue-300 shadow-xs p-2 gap-2">
-        <div className="flex flex-col ">
+      <div className="flex md:flex-row flex-col rounded-sm bg-blue-300 shadow-xs p-2 gap-2">
+        <div className="flex flex-col gap-2 ">
           <div className="flex flex-row gap-2 items-center">
             <label htmlFor="fechaPedido" className="text-sm font-bold">
               Fecha:
@@ -457,19 +465,19 @@ const FormularioPedidos = () => {
             <input
               type="date"
               id="fechaPedido"
-              className="rounded-md p-1 border-2 border-gray-300"
+              className="rounded-md p-1 border-2 border-gray-300 w-full"
               value={fechaPedido}
               onChange={(e) => setFechaPedido(e.target.value)}
             />
           </div>
-          <div className="flex flex-col gap-2 ">
+          <div className="flex md:flex-col flex-row gap-2 ">
             <label htmlFor="fechaPedido" className="text-sm font-bold">
               Operador:
             </label>
             <input
               type="text"
               id="operador"
-              className="rounded-md p-1 border-2 border-gray-300"
+              className="rounded-md p-1 border-2 border-gray-300 w-full"
               value={user || ""}
               readOnly
             />
@@ -483,7 +491,7 @@ const FormularioPedidos = () => {
             <select
               name="sucursal"
               id="sucursal"
-              className="rounded-md p-1 border-2 border-gray-300"
+              className="rounded-md p-1 border-2 border-gray-300 w-full"
               onChange={(e) => {
                 setSucursalSeleccionada(
                   sucursales.find(
@@ -507,7 +515,7 @@ const FormularioPedidos = () => {
             <select
               name="deposito"
               id="deposito"
-              className="rounded-md p-1 border-2 border-gray-300"
+              className="rounded-md p-1 border-2 border-gray-300 w-full"
               onChange={(e) =>
                 setDepositoSeleccionado(
                   depositos.find(
@@ -889,7 +897,7 @@ const FormularioPedidos = () => {
             id="precio"
             className="rounded-md p-1 border-2 border-gray-300 w-full"
             placeholder="Precio:"
-            value={articulo ? formatCurrency(articulo.precio_venta_guaranies) : 0}
+            value={precioArticulo}
             onChange={(e) => setPrecioArticulo(Number(e.target.value))}
             ref={precioRef}
             onKeyDown={handlePrecioKeyDown}
@@ -918,7 +926,7 @@ const FormularioPedidos = () => {
             placeholder="Exentas:"
             value={
               articulo
-                ? articulo.iva === 0
+                ? articulo.iva === 1
                   ? formatCurrency(articulo.precio_venta_guaranies)
                   : 0
                 : "Exenta"
@@ -936,7 +944,7 @@ const FormularioPedidos = () => {
             placeholder="5%:"
             value={
               articulo
-                ? articulo.iva === 2
+                ? articulo.iva === 3
                   ? formatCurrency(articulo.precio_venta_guaranies)
                   : 0
                 : "5%"
@@ -954,7 +962,7 @@ const FormularioPedidos = () => {
             placeholder="10%:"
             value={
               articulo
-                ? articulo.iva === 1
+                ? articulo.iva === 2
                   ? formatCurrency(articulo.precio_venta_guaranies)
                   : 0
                 : "10%"
@@ -1157,7 +1165,9 @@ const FormularioPedidos = () => {
           setDescuentoArticulo(0);
           setBonificacionArticulo(0);
           setCantidadArticulo(1);
+          setPrecioArticulo(articulo.precio_venta_guaranies);
         }}
+        sucursalInicial={sucursalSeleccionada?.id}
       />
     </div>
   );

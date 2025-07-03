@@ -12,12 +12,11 @@ export const usePedidosFacturados = (props: PedidosFacturadosProps) => {
     })
 }
 
-
 export const useGetReporteMovimientoArticulos = (params: GetReporteMovimientoArticulosParams | null) => {
     return useQuery({
         queryKey: ['reporte-movimiento-articulos', params],
         queryFn: () => VentasRepository.GetReporteMovimientoArticulos(params!),
-        enabled: Boolean(params && params.AnioInicio && params.VendedorId),
+        enabled: Boolean(params && params.AnioInicio),
         staleTime: 1000 * 60,
     })
 }

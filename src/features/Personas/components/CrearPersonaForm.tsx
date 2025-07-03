@@ -62,8 +62,8 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
             email: "",
             telefono: "",
             estado: 1,
-            fechaCreacion: new Date().toISOString().split("T")[0],
-            fechaModificacion: new Date().toISOString().split("T")[0],
+            fechaCreacion: new Date().toISOString(),
+            fechaModificacion: new Date().toISOString(),
         },
         // operador: {
         //     opCodigo: 0,
@@ -149,17 +149,17 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
             cobrador: 0,
             referencias: "",
             estado: 1,
-            fechaAd: new Date().toISOString().split("T")[0] || "",
+            fechaAd: new Date().toISOString(),
             descripcion: "",
             condicion: 0,
             tipo: 0,
             grupo: 0,
             plazo: 0,
             zona: 0,
-            llamada: new Date().toISOString().split("T")[0] || "",
-            proxLlamada: new Date().toISOString().split("T")[0] || "",
+            llamada: new Date().toISOString(),
+            proxLlamada: new Date().toISOString(),
             respuesta: "",
-            fecNac: new Date().toISOString().split("T")[0] || "",
+            fecNac: new Date().toISOString(),
             exentas: 0,
             mail: "",
             agente: 0,
@@ -171,7 +171,7 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
             agenteRetentor: 0,
             consultar: 0,
             plan: 0,
-            fechaPago: new Date().toISOString().split("T")[0] || "",
+            fechaPago: new Date().toISOString(),
             departamento: 0,
             gerente: "",
             gerTelefono: "",
@@ -210,6 +210,52 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
 
     // Primero, agregamos un nuevo estado para controlar el enfoque
     const [focusTarget, setFocusTarget] = useState<{ tabId: string, position: 'first' | 'last' } | null>(null);
+
+    // Función helper para convertir fechas a formato string para inputs
+    const formatDateForInput = (date: Date | string | undefined): string => {
+        if (!date) return '';
+        
+        if (date instanceof Date) {
+            return date.toISOString().split("T")[0];
+        }
+        
+        if (typeof date === 'string') {
+            // Si ya es un string en formato YYYY-MM-DD, devolverlo tal como está
+            if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+                return date;
+            }
+            // Si es un string ISO, convertirlo a Date y luego a YYYY-MM-DD
+            const dateObj = new Date(date);
+            if (!isNaN(dateObj.getTime())) {
+                return dateObj.toISOString().split("T")[0];
+            }
+        }
+        
+        return '';
+    };
+
+    // Función helper para convertir Date a string ISO para el backend
+    const formatDateForBackend = (date: Date | string | undefined): string => {
+        if (!date) return new Date().toISOString();
+        
+        if (date instanceof Date) {
+            return date.toISOString();
+        }
+        
+        if (typeof date === 'string') {
+            // Si ya es un string ISO, devolverlo tal como está
+            if (date.includes('T') || date.includes('Z')) {
+                return date;
+            }
+            // Si es YYYY-MM-DD, convertirlo a ISO
+            const dateObj = new Date(date);
+            if (!isNaN(dateObj.getTime())) {
+                return dateObj.toISOString();
+            }
+        }
+        
+        return new Date().toISOString();
+    };
 
     const cargarOperadores = async (person: CrearPersonaDTO) => {
         try {
@@ -291,7 +337,7 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
                     telefono: personaAEditar.persona.telefono,
                     estado: personaAEditar.persona.estado,
                     fechaCreacion: personaAEditar.persona.fechaCreacion,
-                    fechaModificacion: new Date().toISOString().split("T")[0],
+                    fechaModificacion: personaAEditar.persona.fechaModificacion,
                 },
                 // operador: {
                 //     opCodigo: personaAEditar.operador.opCodigo,
@@ -377,17 +423,17 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
                     cobrador: personaAEditar.cliente?.cobrador || 0,
                     referencias: personaAEditar.cliente?.referencias || "",
                     estado: personaAEditar.cliente?.estado || 1,
-                    fechaAd: personaAEditar.cliente?.fechaAd || new Date().toISOString().split("T")[0] || "",
+                    fechaAd: personaAEditar.cliente?.fechaAd || new Date().toISOString(),
                     descripcion: personaAEditar.cliente?.descripcion || "",
                     condicion: personaAEditar.cliente?.condicion || 0,
                     tipo: personaAEditar.cliente?.tipo || 0,
                     grupo: personaAEditar.cliente?.grupo || 0,
                     plazo: personaAEditar.cliente?.plazo || 0,
                     zona: personaAEditar.cliente?.zona || 0,
-                    llamada: personaAEditar.cliente?.llamada || new Date().toISOString().split("T")[0] || "",
-                    proxLlamada: personaAEditar.cliente?.proxLlamada || new Date().toISOString().split("T")[0] || "",
+                    llamada: personaAEditar.cliente?.llamada || new Date().toISOString(),
+                    proxLlamada: personaAEditar.cliente?.proxLlamada || new Date().toISOString(),
                     respuesta: personaAEditar.cliente?.respuesta || "",
-                    fecNac: personaAEditar.cliente?.fecNac || new Date().toISOString().split("T")[0] || "",
+                    fecNac: personaAEditar.cliente?.fecNac || new Date().toISOString(),
                     exentas: personaAEditar.cliente?.exentas || 0,
                     mail: personaAEditar.cliente?.mail || "",
                     agente: personaAEditar.cliente?.agente || 0,
@@ -399,7 +445,7 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
                     agenteRetentor: personaAEditar.cliente?.agenteRetentor || 0,
                     consultar: personaAEditar.cliente?.consultar || 0,
                     plan: personaAEditar.cliente?.plan || 0,
-                    fechaPago: personaAEditar.cliente?.fechaPago || new Date().toISOString().split("T")[0] || "",
+                    fechaPago: personaAEditar.cliente?.fechaPago || new Date().toISOString(),
                     departamento: personaAEditar.cliente?.departamento || 0,
                     gerente: personaAEditar.cliente?.gerente || "",
                     gerTelefono: personaAEditar.cliente?.gerTelefono || "",
@@ -452,9 +498,23 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
             return 0
         })
 
+        // Convertir las fechas a formato ISO antes de enviar
         const dto = {
             ...personaDTO,
             tipo: tipos,
+            cliente: {
+                ...personaDTO.cliente,
+                fechaAd: formatDateForBackend(personaDTO.cliente.fechaAd),
+                llamada: formatDateForBackend(personaDTO.cliente.llamada),
+                proxLlamada: formatDateForBackend(personaDTO.cliente.proxLlamada),
+                fecNac: formatDateForBackend(personaDTO.cliente.fecNac),
+                fechaPago: formatDateForBackend(personaDTO.cliente.fechaPago),
+            },
+                persona: {
+                ...personaDTO.persona,
+                fechaCreacion: formatDateForBackend(personaDTO.persona.fechaCreacion),
+                fechaModificacion: formatDateForBackend(personaDTO.persona.fechaModificacion),
+            }
         }
 
         console.log("Enviando datos de Persona:", dto)
@@ -760,8 +820,8 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
                     email: "",
                     telefono: "",
                     estado: 1,
-                    fechaCreacion: new Date().toISOString().split("T")[0] || "",
-                    fechaModificacion: new Date().toISOString().split("T")[0] || "",
+                    fechaCreacion: new Date().toISOString(),
+                    fechaModificacion: new Date().toISOString(),
                 },
                 operador: {
                     opCodigo: 0,
@@ -770,12 +830,12 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
                     opDireccion: "",
                     opTelefono: "",
                     opEmail: "",
-                    opFechaIngreso: new Date().toISOString().split("T")[0] || "",
+                    opFechaIngreso: new Date().toISOString(),
                     opObservacion: "",
                     opEstado: 1,
                     opUsuario: "",
                     opSucursal: 0,
-                    opFechaAlta: new Date().toISOString().split("T")[0] || "",
+                    opFechaAlta: new Date().toISOString(),
                     opArea: 0,
                     opComision: 0,
                     opNumVen: 0,
@@ -784,7 +844,7 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
                     opVendedorActividad: 0,
                     opAutorizar: 0,
                     opDiaCambClave: 0,
-                    opFechaCambioClave: new Date().toISOString().split("T")[0] || "",
+                    opFechaCambioClave: new Date().toISOString(),
                     opVerUtilidad: 0,
                     opCantidadTurno: 0,
                     opModificarFecha: 0,
@@ -797,7 +857,7 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
                     opTipoOperador: 0,
                     opCliente: 0,
                     opDescuento: 0,
-                    opFechaNacimiento: new Date().toISOString().split("T")[0] || "",
+                    opFechaNacimiento: new Date().toISOString() ,
                 },
                 proveedor: {
                     codigo: 0,
@@ -822,13 +882,6 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
                     aplicarGasto: 0,
                     plan: 0,
                     tipoDoc: 0,
-                    zona: {
-                        codigo: 0,
-                        descripcion: "",
-                        observacion: "",
-                        estado: 1,
-                        proveedores: [],
-                    },
                 },
                 cliente: {
                     codigo: 0,
@@ -847,17 +900,17 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
                     cobrador: 0,
                     referencias: "",
                     estado: 1,
-                    fechaAd: new Date().toISOString().split("T")[0] || "",
+                    fechaAd: new Date().toISOString(),
                     descripcion: "",
                     condicion: 0,
                     tipo: 0,
                     grupo: 0,
                     plazo: 0,
                     zona: 0,
-                    llamada: new Date().toISOString().split("T")[0] || "",
-                    proxLlamada: new Date().toISOString().split("T")[0] || "",
+                    llamada: new Date().toISOString(),
+                    proxLlamada: new Date().toISOString(),
                     respuesta: "",
-                    fecNac: new Date().toISOString().split("T")[0] || "",
+                    fecNac: new Date().toISOString(),
                     exentas: 0,
                     mail: "",
                     agente: 0,
@@ -869,7 +922,7 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
                     agenteRetentor: 0,
                     consultar: 0,
                     plan: 0,
-                    fechaPago: new Date().toISOString().split("T")[0] || "",
+                    fechaPago: new Date().toISOString(),
                     departamento: 0,
                     gerente: "",
                     gerTelefono: "",
@@ -900,14 +953,10 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
     const handleEditarRazonSocial = (e: React.ChangeEvent<HTMLInputElement>) => {
         updatePersona("razonSocial", e.target.value)
         updatePersona("nombreFantasia", e.target.value)
-        if (isProveedorSelected) {
-            updateProveedor("razon", e.target.value)
-            updateProveedor("nombreComun", e.target.value)
-        }
-        if (isClienteSelected) {
-            updateCliente("razon", e.target.value)
-            updateCliente("descripcion", e.target.value)
-        }
+        updateProveedor("razon", e.target.value)
+        updateProveedor("nombreComun", e.target.value)
+        updateCliente("razon", e.target.value)
+        updateCliente("descripcion", e.target.value)
     }
 
     const handleEditarDocumento = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -935,21 +984,15 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
 
             // Actualizar RUC con formato
             updatePersona("ruc", rucFormateado);
-            if (isProveedorSelected) {
-                updateProveedor("ruc", rucFormateado);
-            }
-            if (isClienteSelected) {
-                updateCliente("ruc", rucFormateado);
-            }
+            updateProveedor("ruc", rucFormateado);
+            updateCliente("ruc", rucFormateado);
 
             // Para CI, tomamos los primeros 8 dígitos si es RUC de persona jurídica
             const ciSinVerificador = soloNumeros.length > 8
                 ? soloNumeros.slice(0, 8)  // Si es RUC de persona jurídica, tomamos 8 dígitos
                 : soloNumeros.slice(0, 7); // Si es RUC de persona física, tomamos 7 dígitos
             updatePersona("ci", ciSinVerificador);
-            if (isClienteSelected) {
-                updateCliente("ci", ciSinVerificador);
-            }
+            updateCliente("ci", ciSinVerificador);
         } else {
             // Si no es RUC, validar longitud máxima para CI
             const ciFormateado = soloNumeros.slice(0, 8);
@@ -958,13 +1001,9 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
             const ciSinVerificador = ciFormateado;
             updatePersona("ci", ciSinVerificador);
             updatePersona("ruc", ciFormateado);
-            if (isProveedorSelected) {
-                updateProveedor("ruc", ciFormateado);
-            }
-            if (isClienteSelected) {
-                updateCliente("ci", ciSinVerificador);
-                updateCliente("ruc", ciFormateado);
-            }
+            updateProveedor("ruc", ciFormateado);
+            updateCliente("ci", ciSinVerificador);
+            updateCliente("ruc", ciFormateado);
         }
     }
 
@@ -1201,8 +1240,8 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
                                     id="fecNac"
                                     disabled={!isClienteSelected}
                                     required={isClienteSelected}
-                                    value={personaDTO.cliente.fecNac}
-                                    onChange={(e) => updateCliente("fecNac", e.target.value)}
+                                    value={formatDateForInput(personaDTO.cliente.fecNac)}
+                                    onChange={(e) => updateCliente("fecNac", e.target.value ? new Date(e.target.value).toISOString() : new Date().toISOString())}
                                     onKeyDown={handleEnterDown}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                 />
@@ -1213,11 +1252,11 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
                                 </label>
                                 <input
                                     type="date"
-                                    id="fecNac"
+                                    id="fechaAd"
                                     disabled={!isClienteSelected}
                                     required={isClienteSelected}
-                                    value={personaDTO.cliente.fechaAd}
-                                    onChange={(e) => updateCliente("fechaAd", e.target.value)}
+                                    value={formatDateForInput(personaDTO.cliente.fechaAd)}
+                                    onChange={(e) => updateCliente("fechaAd", e.target.value ? new Date(e.target.value).toISOString() : new Date().toISOString())}
                                     onKeyDown={handleEnterDown}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                                 />
@@ -1276,9 +1315,9 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
                                 data={Zonas || []}
                                 value={Zonas?.find(zona => zona.codigo === personaDTO.persona.zona) || null}
                                 onChange={(zona) => {
-                                    updatePersona("zona", zona?.codigo ?? 0)
-                                    updateCliente("zona", zona?.codigo ?? 0)
-                                    updateProveedor("zona", zona?.codigo ?? 0)
+                                    updatePersona("zona", zona?.codigo ?? 1)
+                                    updateCliente("zona", zona?.codigo ?? 1)
+                                    updateProveedor("zonaId", zona?.codigo ?? 1)
                                 }}
                                 displayField="descripcion"
                                 searchFields={["descripcion", "codigo"]}

@@ -51,38 +51,38 @@ export const useItemsPorDireccion = () => {
         setErrorCrearItemsPorDireccion("No hay datos para crear");
         return;
       }
-      if(datos.rango.d_calle_inicial ===  ''){
-        setErrorCrearItemsPorDireccion("La calle inicial es requerida");
-        return;
-      }
-      if(datos.rango.d_calle_final ===  ''){
-        setErrorCrearItemsPorDireccion("La calle final es requerida");
-        return;
-      }
-      if(datos.rango.d_predio_inicial ===  0){
-        setErrorCrearItemsPorDireccion("El predio inicial es requerido");
-        return;
-      }
-      if(datos.rango.d_predio_final ===  0){
-        setErrorCrearItemsPorDireccion("El predio final es requerido");
-        return;
-      }
-      if(datos.rango.d_piso_inicial ===  0){
-        setErrorCrearItemsPorDireccion("El piso inicial es requerido");
-        return;
-      }
-      if(datos.rango.d_piso_final ===  0){
-        setErrorCrearItemsPorDireccion("El piso final es requerido");
-        return;
-      }
-      if(datos.rango.d_direccion_inicial ===  0){
-        setErrorCrearItemsPorDireccion("La direccion inicial es requerida");
-        return;
-      }
-      if(datos.rango.d_direccion_final ===  0){
-        setErrorCrearItemsPorDireccion("La direccion final es requerida");
-        return;
-      }
+      // if(datos.rango.d_calle_inicial ===  null){
+      //   setErrorCrearItemsPorDireccion("La calle inicial es requerida");
+      //   return;
+      // }
+      // if(datos.rango.d_calle_final ===  null){
+      //   setErrorCrearItemsPorDireccion("La calle final es requerida");
+      //   return;
+      // }
+      // if(datos.rango.d_predio_inicial ===  null){
+      //   setErrorCrearItemsPorDireccion("El predio inicial es requerido");
+      //   return;
+      // }
+      // if(datos.rango.d_predio_final ===  null){
+      //   setErrorCrearItemsPorDireccion("El predio final es requerido");
+      //   return;
+      // }
+      // if(datos.rango.d_piso_inicial ===  null){
+      //   setErrorCrearItemsPorDireccion("El piso inicial es requerido");
+      //   return;
+      // }
+      // if(datos.rango.d_piso_final ===  null){
+      //   setErrorCrearItemsPorDireccion("El piso final es requerido");
+      //   return;
+      // }
+      // if(datos.rango.d_direccion_inicial ===  null){
+      //   setErrorCrearItemsPorDireccion("La direccion inicial es requerida");
+      //   return;
+      // }
+      // if(datos.rango.d_direccion_final ===  null){
+      //   setErrorCrearItemsPorDireccion("La direccion final es requerida");
+      //   return;
+      // }
       if (datos.rango.d_calle_inicial > datos.rango.d_calle_final) {
         setErrorCrearItemsPorDireccion("La calle inicial no puede ser mayor que la final");
         return;
@@ -115,7 +115,7 @@ export const useItemsPorDireccion = () => {
 
   const eliminarItemsPorDireccion = async (rango: Omit<UbicacionDTO, 'd_tipo_direccion' | 'd_estado'>, articulo: number) => {
     try {
-      if(!rango || rango.d_calle_inicial === '' || rango.d_calle_final === '' || rango.d_predio_inicial === 0 || rango.d_predio_final === 0 || rango.d_piso_inicial === 0 || rango.d_piso_final === 0 || rango.d_direccion_inicial === 0 || rango.d_direccion_final === 0) {
+      if(!rango || rango.d_calle_inicial === null || rango.d_calle_final === null || rango.d_predio_inicial === null || rango.d_predio_final === null || rango.d_piso_inicial === null || rango.d_piso_final === null || rango.d_direccion_inicial === null || rango.d_direccion_final === null) {  
         setErrorEliminarItemsPorDireccion("No hay rango de direcciones para eliminar");
         return;
       }

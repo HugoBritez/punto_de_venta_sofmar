@@ -12,7 +12,5 @@ export const getSucursales = async (params?: getSucursalDTO): Promise<SucursalVi
         }
     );
 
-    console.log("sucursales", response.data.body)
-
     return response.data.body;
 }

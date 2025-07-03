@@ -5,6 +5,7 @@ export interface ClienteViewModel {
     cli_ruc: string;
     cli_interno: string;
     cli_ciudad: number;
+    cli_ciudad_interno: number;
     zona: string;
     cli_ciudad_descripcion: string;
     cli_departamento: number;

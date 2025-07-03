@@ -145,7 +145,7 @@ const CustomDrawer: React.FC<CustomDrawerProps> = ({
         }`}
         onClick={onClose}
       />
-      <div className="fixed inset-0 z-999 flex items-start justify-start p-4 pointer-events-none">
+      <div className="fixed inset-0 z-[999] flex items-start justify-start p-4 pointer-events-none">
         <div
           ref={drawerRef}
           className={`bg-white w-64 h-[98%] shadow-xl rounded-xl my-2 relative pointer-events-auto

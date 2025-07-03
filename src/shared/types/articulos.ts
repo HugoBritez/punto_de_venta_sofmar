@@ -4,7 +4,7 @@ export interface ArticuloBusqueda {
     idArticulo: number;
     codigoBarra: string;
     descripcion: string;
-    stockNegativo: number;
+  stockNegativo: number;
     precioCosto: number;
     precioVentaGuaranies: number;
     precioCredito: number;

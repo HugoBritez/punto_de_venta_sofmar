@@ -580,10 +580,8 @@ const ModeloFacturaNuevo = ({
     const init = async () => {
       if (id_venta) {
         try {
-          console.log("Iniciando carga de datos para venta:", id_venta);
           await getConfiguraciones();
           await getVenta();
-          console.log("Datos cargados exitosamente");
         } catch (error) {
           console.error("Error cargando datos:", error);
           toast({
@@ -602,13 +600,7 @@ const ModeloFacturaNuevo = ({
   // Effect para manejar la impresión
   useEffect(() => {
     const imprimirSiDatosListos = async () => {
-      console.log("Verificando condiciones para imprimir:", {
-        onImprimir,
-        prevOnImprimir,
-        tieneVenta: !!venta,
-        tieneConfiguraciones: !!configuraciones,
-        datosVenta: venta,
-      });
+
 
       // Solo intentar imprimir si:
       // 1. onImprimir es true
@@ -616,10 +608,8 @@ const ModeloFacturaNuevo = ({
       // 3. Tenemos todos los datos necesarios
       if (onImprimir && !prevOnImprimir && venta && configuraciones) {
         try {
-          console.log("Iniciando generación de PDF");
           // Esperar a que se complete la generación del PDF
           await generarPDF(accion);
-          console.log("PDF generado exitosamente");
 
           // Actualizar el estado después de una impresión exitosa
           setPrevOnImprimir(true);
@@ -659,7 +649,7 @@ const ModeloFacturaNuevo = ({
           ventaId: id_venta,
         },
       });
-      console.log(response.data.body);
+
       setVenta(response.data.body);
     } catch (error) {
       console.error("Error al obtener la venta:", error);

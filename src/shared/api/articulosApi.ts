@@ -3,6 +3,41 @@ import api from '../../config/axios';
 import type { ArticuloBusqueda, ArticuloLote } from "../types/articulos";
 import { api_url } from '@/utils';
 
+
+export const buscarArticuloPorCodigo = async (
+  codigoBarra: string,
+  deposito: number,
+  stock: boolean
+) : Promise<ArticuloBusqueda | null> => {
+  try {
+    console.log("codigoBarra", codigoBarra)
+    console.log("deposito", deposito)
+    console.log("stock", stock)
+    const response = await api.get("articulo/codigo", {
+      params: {
+        codigoBarra,
+        deposito,
+        stock
+      }
+    })
+    console.log("response", response)
+    
+    // Si el status es 204, no hay contenido, retornamos null
+    if (response.status === 204) {
+      return null;
+    }
+    
+    return response.data.body[0];
+  } catch (error: any) {
+    // Si el error es un status 204, no es realmente un error
+    if (error?.response?.status === 204) {
+      return null;
+    }
+    console.error('Error al buscar artículo por código:', error);
+    throw error;
+  }
+}
+
 export const buscarArticulos = async (
   articuloId?: number,
   busqueda?: string,
@@ -19,6 +54,15 @@ export const buscarArticulos = async (
   negativo?: boolean,
 ): Promise<ArticuloBusqueda[]> => {
   try {
+
+    console.log("parametros de busqueda", {
+      articuloId,
+      busqueda,
+      codigoBarra,
+      moneda,
+      stock,
+      deposito
+    })
     const response = await api.get('articulo/buscar', {
       params: {
         articuloId,

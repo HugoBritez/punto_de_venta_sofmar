@@ -128,6 +128,18 @@ const configs = {
     version: "1.2.4",
     title: "Medical",
   },
+  kardan: {
+    api_url: "https://node.sofmar.com.py:4030/api/",
+    db: "kardan",
+    version: "1.2.4",
+    title: "Kardan",
+  },
+  samaria: {
+    api_url: "https://node.sofmar.com.py:4032/api/",
+    db: "samaria",
+    version: "1.2.4",
+    title: "Samaria",
+  },
 };
 
 async function updateConfig(empresa) {

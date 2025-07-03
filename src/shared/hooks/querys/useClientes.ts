@@ -10,6 +10,15 @@ export const useClientePorId = (param: number) => {
     })
 }
 
+export const useClientePorDefecto = () => {
+    return useQuery({
+        queryKey: ['clientePorDefecto'],
+        queryFn: ()=> ClientesRepository.getClientePorDefecto(),
+        enabled: true,
+        refetchOnWindowFocus: false
+    })
+}
+
 export const useBuscarClientes = (busqueda: string) => {
     return useQuery({
         queryKey: ['buscarClientes', busqueda],

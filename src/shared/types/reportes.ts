@@ -26,6 +26,8 @@ export interface PedidosFacturadosViewModel {
 
 
 export interface GetReporteMovimientoArticulosParams {
+    FechaDesde?: Date;
+    FechaHasta?: Date;
     AnioInicio: number;
     cantidadAnios: number;
     VendedorId?: number;
@@ -92,5 +94,6 @@ export interface DetalleMovimientosArticulos {
     ventaTotal: number; // el monto total de las ventas basadas en la meta establecida
     unidadesVendidas: number; //sumatoria de las unidades vendidas de los ultimos 3 anios
     importeTotal: number; //sumatoria de los importes de los ultimos 3 anios
+    porcentajeUtilidad: number;
 }
 

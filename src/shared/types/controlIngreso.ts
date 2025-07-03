@@ -14,6 +14,7 @@ interface Items {
     cantidadIngreso: number;
     cantidadFactura: number;
     idArticulo: number;
+    vencimiento: Date;
 }
 
 export interface GetControlIngresoParams {

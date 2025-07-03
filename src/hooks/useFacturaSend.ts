@@ -69,8 +69,6 @@ export const useFacturaSend = () => {
         ? datosFacturas
         : [datosFacturas];
 
-      console.log("Enviando lote a:", apiUrl);
-      console.log("Datos a enviar:", datosAEnviar);
 
       const response = await axios.post(apiUrl, datosAEnviar, {
         headers: {

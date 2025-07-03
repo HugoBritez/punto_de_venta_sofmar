@@ -27,7 +27,7 @@ const FormularioCabecera = ({
   onRefresh
 }: CabeceraProps) => {
   const toast = useToast();
-  const { mutate: confirmarVerificacion } = useConfirmarIngreso();
+  const { mutate: confirmarVerificacion} = useConfirmarIngreso();
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [ingresoAConfirmar, setIngresoAConfirmar] = useState<Ingreso | null>(null);
   const [operadorResponsable, setOperadorResponsable] = useState<number | null>(null);
@@ -75,7 +75,7 @@ const FormularioCabecera = ({
     });
   };
 
-  const handleConfirmDeposito = async (depositoDestino: number) => {
+  const handleConfirmDeposito = (depositoDestino: number) => {
     if (!ingresoAConfirmar) {
       mostrarError("No hay información suficiente para confirmar la verificación");
       return;
@@ -89,35 +89,39 @@ const FormularioCabecera = ({
           cantidadIngreso: detalle.cantidad_verificada,
           cantidadFactura: detalle.cantidad,
           idArticulo: detalle.articulo_id,
+          vencimiento: new Date(detalle.vencimiento),
         }))
       : detalleIngreso.body?.map((detalle: IngresoDetalle) => ({
           lote: detalle.lote,
           cantidadIngreso: detalle.cantidad_verificada,
           cantidadFactura: detalle.cantidad,
           idArticulo: detalle.articulo_id,
+          vencimiento: new Date(detalle.vencimiento),
         })) || [];
 
-    try {
-      await confirmarVerificacion({
-        idCompra: ingresoAConfirmar.id_compra,
-        deposito_inicial: ingresoAConfirmar.deposito,
-        deposito_destino: depositoDestino,
-        factura: ingresoAConfirmar.nro_factura,
-        user_id: id_usuario,
-        confirmador_id: operadorResponsable || 0,
-        items: items,
-      });
-
-      mostrarExito("Verificación confirmada correctamente");
-      
-      // Recargar datos
-      onRefresh();
-      
-      // Limpiar estados
-      limpiarEstados();
-    } catch (error) {
-      mostrarError(error as string || "Error al confirmar la verificación");
-    }
+    confirmarVerificacion({
+      idCompra: ingresoAConfirmar.id_compra,
+      deposito_inicial: ingresoAConfirmar.deposito,
+      deposito_destino: depositoDestino,
+      factura: ingresoAConfirmar.nro_factura,
+      user_id: id_usuario,
+      confirmador_id: operadorResponsable || 0,
+      items: items,
+    }, {
+      onSuccess: () => {
+        mostrarExito("Verificación confirmada correctamente");
+        onRefresh();
+        limpiarEstados();
+      },
+      onError: (error: any) => {
+        console.error('Error en confirmación:', error);
+        const errorMessage = error.response?.data?.message || 
+                           error.response?.data?.detail || 
+                           error.message || 
+                           "Error al confirmar la verificación";
+        mostrarError(errorMessage);
+      }
+    });
   };
 
   const limpiarEstados = () => {

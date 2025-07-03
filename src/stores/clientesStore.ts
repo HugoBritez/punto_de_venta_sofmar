@@ -20,6 +20,7 @@ interface ClientesState {
     obtenerClientePorId: (id: number) => ClienteAdapter | undefined;
     cargarClientesPorId: (id: number) => Promise<void>;
     clienteSeleccionado: Cliente | null;
+    setClienteSeleccionado: (cliente: Cliente | null) => void;
 }
 
 export const useClientesStore = create<ClientesState>((set, get) => ({
@@ -75,6 +76,9 @@ export const useClientesStore = create<ClientesState>((set, get) => ({
     },
     obtenerClientes: () => get().clientes,
     obtenerClientePorId: (id: number) => get().clientes.find((cliente) => cliente.id === id),   
+    setClienteSeleccionado: (cliente: Cliente | null) => {
+        set({ clienteSeleccionado: cliente });
+    },
 }))
 
 

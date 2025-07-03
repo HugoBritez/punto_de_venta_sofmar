@@ -74,7 +74,6 @@ export const useBuscadorArticulos = ({
   } = useQuery({
     queryKey,
     queryFn: async () => {
-      console.log("Buscando artículos con TanStack Query:", searchParams);
       return await buscarArticulos(searchParams);
     },
     enabled: true, // Siempre habilitado para búsquedas iniciales

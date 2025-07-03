@@ -39,6 +39,7 @@ import {
   CassetteTape,
   Coins,
   FileSearch,
+  Settings,
 } from "lucide-react";
 import { ShoppingCart } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -64,6 +65,7 @@ import { useClientePorDefecto, useConfiguracionImperionPorDefectoVentaRapida } f
 import { mapPuntoDeVentaToVenta } from "../ventas/core/utils/mappers";
 import { DetalleVenta } from "@/shared/types/venta";
 import { useCrearVenta } from "@/shared/hooks/mutations/ventas/crearVenta";
+import { actualizarUltimaFactura } from "../ventas/core/utils/actualizarUltimaFactura";
 
 interface ItemParaVenta {
   precio_guaranies: number;
@@ -121,12 +123,14 @@ interface DetalleVentaCliente {
 }
 
 interface OpcionesFinalizacionVenta {
+  codigo_secuencia?: number;
   tipo_venta: "CONTADO" | "CREDITO";
   tipo_documento: "FACTURA" | "TICKET";
   nro_factura?: string;
   nro_establecimiento?: number;
   nro_emision?: number;
   timbrado?: string;
+  fecha_vencimiento?: string;
   fecha_vencimiento_timbrado?: string;
   cantidad_cuotas?: number;
   entrega_inicial?: number;
@@ -213,7 +217,7 @@ const PuntoDeVentaNuevo = () => {
   const [depositoSeleccionado, setDepositoSeleccionado] =
     useState<Deposito | null>(null);
 
-  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [, setClientes] = useState<Cliente[]>([]);
   const [clienteSeleccionado, setClienteSeleccionado] =
     useState<Cliente | null>(null);
 
@@ -252,8 +256,6 @@ const PuntoDeVentaNuevo = () => {
   const [isArticuloCardVisible, setIsArticuloCardVisible] =
     useState<boolean>(false);
   const [, setIsVendedorCardVisible] = useState<boolean>(false);
-  const [isClienteCardVisible, setIsClienteCardVisible] =
-    useState<boolean>(false);
 
   const [itemsParaVenta, setItemsParaVenta] = useState<ItemParaVenta[]>([]);
 
@@ -288,7 +290,7 @@ const PuntoDeVentaNuevo = () => {
   const [hoveredArticulo, setHoveredArticulo] =
     useState<ArticuloBusqueda | null>(null);
 
-const { data: clientePorDefecto } = useClientePorDefecto();
+  const { data: clientePorDefecto } = useClientePorDefecto();
 
   const [cuotasList, setCuotasList] = useState<
     Array<{
@@ -346,11 +348,11 @@ const { data: clientePorDefecto } = useClientePorDefecto();
 
   const [, setCodigoBarrasBuffer] = useState<string>("");
   // Reemplazar los estados locales con el store
-  const { 
-    buscarItemsConStock, 
-    busquedaPorScanner, 
-    setBuscarItemsConStock, 
-    setBusquedaPorScanner 
+  const {
+    buscarItemsConStock,
+    busquedaPorScanner,
+    setBuscarItemsConStock,
+    setBusquedaPorScanner
   } = usePuntoVentaStore();
 
   const [numeroPedido, setNumeroPedido] = useState<number | null>(null);
@@ -415,13 +417,11 @@ const { data: clientePorDefecto } = useClientePorDefecto();
   const toast = useToast();
   const { enviarFacturas } = useFacturaSend();
 
-  useEffect(()=> {
-    if (tipoDocumentoVentaRapida?.valor === "1" && opcionesFinalizacion.tipo_documento === "TICKET")
-    {
+  useEffect(() => {
+    if (tipoDocumentoVentaRapida?.valor === "1" && opcionesFinalizacion.tipo_documento === "TICKET") {
       setImprimirTicket(true);
       setImprimirNotaInterna(false);
-    } else if (tipoDocumentoVentaRapida?.valor === "2" && opcionesFinalizacion.tipo_documento === "TICKET")
-    {
+    } else if (tipoDocumentoVentaRapida?.valor === "2" && opcionesFinalizacion.tipo_documento === "TICKET") {
       setImprimirNotaInterna(true);
       setImprimirTicket(false);
     }
@@ -487,7 +487,7 @@ const { data: clientePorDefecto } = useClientePorDefecto();
       });
     }
   }
-  
+
   const getArticulos = async (
     busqueda: string,
     id_articulo?: string | null,
@@ -591,8 +591,6 @@ const { data: clientePorDefecto } = useClientePorDefecto();
     };
   }, []);
 
-
-
   const handleBuscarArticuloPorId = async (codigo: string) => {
     try {
       const response = await axios.get(`${api_url}articulos/buscar-articulos`, {
@@ -656,10 +654,8 @@ const { data: clientePorDefecto } = useClientePorDefecto();
     }
 
     if (busqueda.length >= 0) {
-      setIsClienteCardVisible(true);
       getClientes(busqueda);
     } else {
-      setIsClienteCardVisible(false);
       setClientes([]);
     }
   };
@@ -689,12 +685,6 @@ const { data: clientePorDefecto } = useClientePorDefecto();
     setHoveredArticulo(null);
     setArticuloBusqueda("");
     setArticuloBusquedaId("");
-  };
-
-  const handleSelectCliente = (cliente: Cliente) => {
-    setClienteSeleccionado(cliente);
-    setClienteBusqueda(cliente.cli_razon);
-    setIsClienteCardVisible(false);
   };
 
   const crearItemValidado = (
@@ -956,13 +946,6 @@ const { data: clientePorDefecto } = useClientePorDefecto();
     });
   };
 
-  // const totalExentasFormateado = formatNumber(totalExentas);
-  // const totalCincoFormateado = formatNumber(totalCinco);
-  // const totalDiezFormateado = formatNumber(totalDiez);
-  // const totalItemsFormateado = formatNumber(totalItems);
-  // const totalPagarFormateado = formatNumber(totalPagar);
-  // const totalDescuentoItemsFormateado = formatNumber(totalDescuentoItems);
-  // const totalDescuentoFormateado = formatNumber(totalDescuento);
   const totalDolaresFormateado = formatearDivisasExtranjeras(
     totalesVenta.dolares
   );
@@ -1580,8 +1563,6 @@ const { data: clientePorDefecto } = useClientePorDefecto();
         deveDescripcion: item.articulo,
       }));
 
-      
-
       // Enviar datos al backend usando el patrón correcto del hook
       crearVenta(
         {
@@ -1591,7 +1572,7 @@ const { data: clientePorDefecto } = useClientePorDefecto();
         {
           onSuccess: (data) => {
             console.log('Venta creada exitosamente:', data);
-            
+
             toast({
               title: "Éxito",
               description: "Venta realizada correctamente",
@@ -1599,7 +1580,7 @@ const { data: clientePorDefecto } = useClientePorDefecto();
               duration: 3000,
             });
 
-            
+
             onCloseKCOpen();
 
             handleCancelarVenta();
@@ -1620,20 +1601,25 @@ const { data: clientePorDefecto } = useClientePorDefecto();
                     ? await imprimirFacturaComponente(ventaId, "download")
                     : await imprimirFacturaComponente(ventaId, "print");
                 }
+                actualizarUltimaFactura(
+                  Number(opcionesFinalizacion.nro_factura) + 1,
+                  Number(opcionesFinalizacion.codigo_secuencia)
+              );
               }
-              
+
               if (imprimirTicket) {
                 isMobile
                   ? await imprimirTicketComponente(ventaId, "download")
                   : await imprimirTicketComponente(ventaId, "print");
               }
-              
+
               if (imprimirNotaInterna) {
                 isMobile
                   ? await imprimirNotaComponente(ventaId, "download")
                   : await imprimirNotaComponente(ventaId, "print");
               }
             };
+
 
             imprimirDocumentos();
             getClientePorDefecto();
@@ -2472,6 +2458,12 @@ const { data: clientePorDefecto } = useClientePorDefecto();
       >
         <ShoppingCart size={24} className="mr-2" />
         <Heading size={isMobile ? "sm" : "md"}>Punto de Venta</Heading>
+        <div className="ml-auto">
+        <Settings 
+          size={20} 
+          className="ml-auto cursor-pointer hover:opacity-80 transition-opacity"
+        />
+        </div>
       </Flex>
       <Box
         w="100%"
@@ -3251,20 +3243,17 @@ const { data: clientePorDefecto } = useClientePorDefecto();
                   onChange={(e) => {
                     handleBuscarCliente(e);
                   }}
-                  onClick={() => {
-                    setIsClienteCardVisible(true);
-                  }}
                   className="border rounded-md p-2 flex-1"
                   placeholder="Buscar cliente"
                 />
-                <FloatingCard
+                {/* <FloatingCard
                   isVisible={isClienteCardVisible}
                   items={clientes}
                   onClose={() => setIsClienteCardVisible(false)}
                   onSelect={handleSelectCliente}
                   className="absolute top-28 left-0 right-0 z-999"
                   renderItem={(item) => <p>{item.cli_razon}</p>}
-                />
+                /> */}
               </div>
               {/* Tipo de Documento */}
               <div className="flex flex-col gap-2">
@@ -3371,6 +3360,7 @@ const { data: clientePorDefecto } = useClientePorDefecto();
                   onDatosCargados={(datos) => {
                     setOpcionesFinalizacion(prev => ({
                       ...prev,
+                      codigo_secuencia: Number(datos.d_Codigo),
                       nro_establecimiento: Number(datos.d_Establecimiento),
                       nro_emision: Number(datos.d_P_Emision),
                       nro_factura: String(datos.d_Nro_Secuencia + 1),
@@ -3380,6 +3370,7 @@ const { data: clientePorDefecto } = useClientePorDefecto();
                   onDatosChange={(datos) => {
                     setOpcionesFinalizacion(prev => ({
                       ...prev,
+                      codigo_secuencia: Number(datos.d_Codigo),
                       nro_establecimiento: Number(datos.d_Establecimiento),
                       nro_emision: Number(datos.d_P_Emision),
                       nro_factura: String(datos.d_Nro_Secuencia + 1),

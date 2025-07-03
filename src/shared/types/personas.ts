@@ -66,7 +66,7 @@ interface Operador {
     aplicarGasto: number;
     plan: number;
     tipoDoc: number;
-    zona: Zona;
+    zona?: Zona;
   }
   
   interface Cliente {

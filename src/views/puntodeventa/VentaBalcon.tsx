@@ -54,7 +54,6 @@ import ResumenVentas from "../ventas/ResumenVentas";
 import { createRoot } from "react-dom/client";
 import ModeloNotaComun from "../facturacion/ModeloNotaComun";
 import ItemsFaltantesDoc from "./pdf/impresion_articulos_faltantes";
-import Auditar from "@/services/AuditoriaHook";
 import ArticuloInfoCard from "@/modules/ArticuloInfoCard";
 import { FacturaSendResponse } from "@/types/factura_electronica/types";
 import { useFacturacionElectronicaStore } from "@/stores/facturacionElectronicaStore";
@@ -64,6 +63,10 @@ import ModeloFacturaReport from "../facturacion/ModeloFacturaReport";
 import { ArticulosComponent } from "@/ui/articulos/ArticulosComponent";
 import BuscadorClientes from "@/ui/clientes/BuscadorClientes";
 import { SelectorTimbrado } from "@/shared/components/Facturacion/SelectorTimbrado";
+import { mapPuntoDeVentaToVenta } from "../ventas/core/utils/mappers";
+import { DetalleVenta } from "@/shared/types/venta";
+import { useCrearVenta } from "@/shared/hooks/mutations/ventas/crearVenta";
+import { useConfiguracionImperionPorDefectoVentaRapida } from "@/shared/hooks/querys/useConfiguraciones";
 
 interface ItemParaVenta {
   precio_guaranies: number;
@@ -128,6 +131,7 @@ interface OpcionesFinalizacionVenta {
   nro_emision?: number;
   timbrado?: string;
   fecha_vencimiento?: string;
+  fecha_vencimiento_timbrado?: string;
   cantidad_cuotas?: number;
   entrega_inicial?: number;
   observacion?: string;
@@ -307,7 +311,6 @@ const VentaBalconNuevo = () => {
   const [hoveredArticulo, setHoveredArticulo] =
     useState<ArticuloBusqueda | null>(null);
 
-  const [d_codigo, setD_codigo] = useState<number>(0);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isBuscadorClientesOpen, setIsBuscadorClientesOpen] = useState(false);
@@ -316,6 +319,12 @@ const VentaBalconNuevo = () => {
   );
 
   const [busquedaPorScanner, setBusquedaPorScanner] = useState<boolean>(true);
+
+  const { mutate: crearVenta } = useCrearVenta();
+
+  const { data: tipoDocumentoVentaRapida } = useConfiguracionImperionPorDefectoVentaRapida();
+
+  
 
 
   const [cuotasList, setCuotasList] = useState<
@@ -474,44 +483,18 @@ const VentaBalconNuevo = () => {
     }
   }
 
-  const obtenerDatosFacturacion = async () => {
-    try {
-      const response = await axios.get(`${api_url}definicion-ventas/timbrado`, {
-        params: {
-          usuario: operador,
-        },
-      });
 
-      console.log(response.data.body);
-      setOpcionesFinalizacion({
-        ...opcionesFinalizacion,
-        nro_establecimiento: response.data.body[0].d_establecimiento,
-        nro_emision: response.data.body[0].d_p_emision,
-        nro_factura: response.data.body[0].d_nro_secuencia + 1,
-        timbrado: response.data.body[0].d_nrotimbrado,
-      });
-      setD_codigo(response.data.body[0].d_codigo);
-    } catch (err) {
-      console.log(err);
+  useEffect(()=> {
+    if (tipoDocumentoVentaRapida?.valor === "1" && opcionesFinalizacion.tipo_documento === "TICKET")
+    {
+      setImprimirTicket(true);
+      setImprimirNotaInterna(false);
+    } else if (tipoDocumentoVentaRapida?.valor === "2" && opcionesFinalizacion.tipo_documento === "TICKET")
+    {
+      setImprimirNotaInterna(true);
+      setImprimirTicket(false);
     }
-  };
-
-  async function actualizarUltimaFactura(codigo: number, numero: number) {
-    try {
-      await axios.post(
-        `${api_url}definicion-ventas/sec?secuencia=${codigo}&codigo=${numero}`
-      );
-    } catch (err) {
-      toast({
-        title: "Error",
-        description:
-          "Hubo un problema al actualizar la secuencia de la factura.",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
-    }
-  }
+  }, [tipoDocumentoVentaRapida, opcionesFinalizacion.tipo_documento]);
 
   const getArticulos = async (
     busqueda: string,
@@ -860,7 +843,6 @@ const VentaBalconNuevo = () => {
 
   useEffect(() => {
     getDatos();
-    obtenerDatosFacturacion();
     fetchTipoImpresion();
     clienteCodigoRef.current?.focus();
   }, []);
@@ -1483,42 +1465,43 @@ const VentaBalconNuevo = () => {
 
       // Preparar objeto de venta
       const venta = {
-        ventaId: ventaIdEdicion || null,
+        ventaId: ventaIdEdicion || 0, // Cambiar null por 0
         cliente: clienteSeleccionado.cli_codigo,
         operador: Number(operador),
-        deposito: depositoSeleccionado?.dep_codigo,
-        moneda: monedaSeleccionada?.mo_codigo,
+        deposito: depositoSeleccionado?.dep_codigo || 0,
+        moneda: monedaSeleccionada?.mo_codigo || 1,
         fecha: fecha,
         factura:
           opcionesFinalizacion.tipo_documento === "FACTURA"
-            ? opcionesFinalizacion.nro_emision +
+            ? String(opcionesFinalizacion.nro_emision || 0).padStart(3, '0') +
             "-" +
-            opcionesFinalizacion.nro_establecimiento +
-            "-000" +
-            opcionesFinalizacion.nro_factura
-            : null,
+            String(opcionesFinalizacion.nro_establecimiento || 0).padStart(3, '0') +
+            "-" +
+            String(opcionesFinalizacion.nro_factura || 0).padStart(7, '0')
+            : "",
         credito: opcionesFinalizacion.tipo_venta === "CREDITO" ? 1 : 0,
         saldo:
           opcionesFinalizacion.tipo_venta === "CREDITO"
             ? totalAEnviar() - (opcionesFinalizacion.entrega_inicial || 0)
-            : totalAEnviar(),
-        vencimiento: opcionesFinalizacion.fecha_vencimiento || null,
+            : 0,
+        vencimiento: opcionesFinalizacion.fecha_vencimiento_timbrado || new Date().toISOString().split("T")[0],
+        procesado: 0,
         descuento: totalDescuento,
         total: totalAEnviar(),
         cuotas: opcionesFinalizacion.tipo_venta === "CREDITO" ? 1 : 0,
         cantCuotas: opcionesFinalizacion.cantidad_cuotas || 0,
         obs: opcionesFinalizacion.observacion || "",
         vendedor: vendedorSeleccionado.op_codigo,
-        sucursal: sucursalSeleccionada?.id,
+        sucursal: sucursales[0].id,
         timbrado:
           opcionesFinalizacion.tipo_documento === "FACTURA"
             ? opcionesFinalizacion.timbrado
-            : null,
-        pedido: numeroPedido,
+            : "",
+        pedido: numeroPedido || 0, // Cambiar null por 0
         hora: new Date().toLocaleTimeString(),
         userpc: sessionStorage.getItem("user_name") || "Sistema web",
         situacion: 1,
-        chofer: null,
+        chofer: 0, // Cambiar null por 0
         metodo: metodoPagoSeleccionado?.me_codigo || 1,
         ve_cdc: usaFacturaElectronica
           ? responseFacturaSend?.result?.deList[0]?.cdc || ""
@@ -1526,77 +1509,121 @@ const VentaBalconNuevo = () => {
         ve_qr: usaFacturaElectronica
           ? responseFacturaSend?.result?.deList[0]?.qr || ""
           : "",
+        kmActual: 0,
+        vehiculo: 0, // Cambiar null por 0
+        descTrabajo: "", // Cambiar null por string vacío
+        kilometraje: 0,
+        servicio: 0, // Cambiar null por 0
+        siniestro: "", // Cambiar null por string vacío
+        mecanico: 0, // Cambiar null por 0
+        cajaDefinicion: undefined, // Mantener undefined para campos opcionales
+        confOperacion: undefined, // Mantener undefined para campos opcionales
+        codeudor: 1,
+        estado: 1,
+        devolucion: 0,
+        retencion: 0
       };
 
+      const ventaDTO = mapPuntoDeVentaToVenta(venta);
+
       // Preparar detalles de venta
-      const detalleVentas = itemsParaVenta.map((item) => ({
-        deve_articulo: item.deve_articulo,
-        deve_cantidad: item.deve_cantidad,
-        deve_precio: item.deve_precio,
-        deve_descuento: item.deve_descuento,
-        deve_exentas: item.deve_exentas,
-        deve_cinco: item.deve_cinco,
-        deve_diez: item.deve_diez,
-        deve_color: item.deve_color,
-        deve_bonificacion: item.deve_bonificacion,
-        deve_vendedor: item.deve_vendedor,
-        deve_codioot: item.deve_codioot,
-        deve_costo: item.deve_costo,
-        deve_costo_art: item.deve_costo_art,
-        deve_cinco_x: item.deve_cinco_x,
-        deve_diez_x: item.deve_diez_x,
-        lote: item.deve_lote,
-        loteid: item.loteid,
-        articulo_editado: item.editar_nombre === 1,
-        deve_codigo: item.deve_articulo,
-        deve_descripcion_editada:
-          item.editar_nombre === 1 ? item.articulo : null,
+      const detalleVentas: DetalleVenta[] = itemsParaVenta.map((item) => ({
+        deveArticulo: item.deve_articulo,
+        deveCantidad: item.deve_cantidad,
+        devePrecio: item.deve_precio,
+        deveDescuento: item.deve_descuento,
+        deveExentas: item.deve_exentas,
+        deveCinco: item.deve_cinco,
+        deveDiez: item.deve_diez,
+        deveColor: item.deve_color?.toString() || "", // Convertir number | null a string
+        deveBonificacion: item.deve_bonificacion || 0, // Convertir number | null a number
+        deveVendedor: item.deve_vendedor,
+        deveCodioot: item.deve_codioot || 0, // Convertir number | null a number
+        deveCosto: item.deve_costo || 0, // Convertir number | null a number
+        deveCostoArt: item.deve_costo_art || 0, // Convertir number | null a number
+        deveCincoX: item.deve_cinco_x || 0, // Convertir number | null a number
+        deveDiezX: item.deve_diez_x || 0, // Convertir number | null a number
+        lote: item.deve_lote || "", // Convertir string | null a string
+        loteId: item.loteid || 0, // Convertir number | null a number
+        articuloEditado: item.editar_nombre === 1,
+        deveCodigo: item.deve_articulo,
+        deveDescripcionEditada:
+          item.editar_nombre === 1 ? item.articulo : "",
+        deveTalle: item.deve_talle || "", // Convertir string | null a string
+        deveDevolucion: item.deve_devolucion,
+        deveVencimiento: item.deve_vencimiento || "", // Convertir string | null a string
+        deveVenta: ventaIdEdicion || 0,
+        deveDescripcion: item.articulo,
       }));
+
+
+      
       // Enviar datos al backend
-      console.log("datos enviados a la venta: ", venta, detalleVentas);
-      const response = await axios.post(`${api_url}venta/agregar-venta-nuevo`, {
-        venta,
-        detalle_ventas: detalleVentas,
-      });
-      console.log("Respuesta de la venta: ", response.data.body);
-      if (response.data.body.status === "success") {
-        toast({
-          title: "Éxito",
-          description: "Venta realizada correctamente",
-          status: "success",
-          duration: 3000,
-        });
-        actualizarUltimaFactura(
-          d_codigo,
-          Number(opcionesFinalizacion.nro_factura)
-        );
-        onCloseKCOpen();
-        Auditar(
-          5,
-          8,
-          response.data.body.ventaId,
-          operador ? parseInt(operador) : 0,
-          `Venta ID ${response.data.body.ventaId} realizada por ${operador}`
-        );
-        handleCancelarVenta();
-        setClienteBusqueda("");
-        setClienteSeleccionado(null);
-        setUltimaVentaId(response.data.body.ventaId);
-        if (imprimirFactura) {
-          if (tipoImpresionFactura === 1) {
-            isMobile ? (await imprimirFacturaComponenteReport(response.data.body.ventaId, "download")) : (await imprimirFacturaComponenteReport(response.data.body.ventaId, "print"))
-          } else if (tipoImpresionFactura === 2) {
-            isMobile ? (await imprimirFacturaComponente(response.data.body.ventaId, "download")) : (await imprimirFacturaComponente(response.data.body.ventaId, "print"))
+      crearVenta(
+        {
+          venta: ventaDTO,
+          detalle: detalleVentas,
+        },
+        {
+          onSuccess: (data) => {
+            console.log('Venta creada exitosamente:', data);
+            
+            toast({
+              title: "Éxito",
+              description: "Venta realizada correctamente",
+              status: "success",
+              duration: 3000,
+            });
+
+            
+            onCloseKCOpen();
+
+            handleCancelarVenta();
+
+            // Usar el ID de la venta desde la respuesta
+            const ventaId = data.codigo;
+            setUltimaVentaId(ventaId);
+
+            // Imprimir documentos si es necesario
+            const imprimirDocumentos = async () => {
+              if (imprimirFactura) {
+                if (tipoImpresionFactura === 1) {
+                  isMobile
+                    ? await imprimirFacturaComponenteReport(ventaId, "download")
+                    : await imprimirFacturaComponenteReport(ventaId, "print");
+                } else if (tipoImpresionFactura === 2) {
+                  isMobile
+                    ? await imprimirFacturaComponente(ventaId, "download")
+                    : await imprimirFacturaComponente(ventaId, "print");
+                }
+              }
+              
+              if (imprimirTicket) {
+                isMobile
+                  ? await imprimirTicketCompontente(ventaId, "download")
+                  : await imprimirTicketCompontente(ventaId, "print");
+              }
+              
+              if (imprimirNotaInterna) {
+                isMobile
+                  ? await imprimirNotaComunComponente(ventaId, "download")
+                  : await imprimirNotaComunComponente(ventaId, "print");
+              }
+            };
+
+            imprimirDocumentos();
+          },
+          onError: (error) => {
+            console.error("Error al finalizar la venta:", error);
+            toast({
+              title: "Error",
+              description: "No se pudo completar la venta",
+              status: "error",
+              duration: 3000,
+            });
           }
         }
-        if (imprimirTicket) {
-          isMobile ? (await imprimirTicketCompontente(response.data.body.ventaId, "download")) : (await imprimirTicketCompontente(response.data.body.ventaId, "print"))
-        }
-        if (imprimirNotaInterna) {
-          isMobile ? (await imprimirNotaComunComponente(response.data.body.ventaId, "download")) : (await imprimirNotaComunComponente(response.data.body.ventaId, "print"))
-        }
-      }
-      clienteCodigoRef.current?.focus();
+      );
     } catch (error) {
       console.error("Error al finalizar la venta:", error);
       toast({

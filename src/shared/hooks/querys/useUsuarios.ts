@@ -19,7 +19,6 @@ export const useUsuarioPorId = (id: number) => {
         queryKey: ['usuario', id],
         queryFn: async () => {
             const usuario = await UsuarioRepository.GetUsuarioById(id);
-            console.log("Vendedor seleccionado por id desde el hook", usuario);
             return usuario;
         },
         enabled: !!id,

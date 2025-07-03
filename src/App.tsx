@@ -43,21 +43,21 @@ import VerificacionPedidos from "./views/entregas/VerificacionPedidos";
 import VentaBalconNuevo from "./views/puntodeventa/VentaBalcon";
 import ModeloTicket from "./views/facturacion/ModeloTicket";
 import ModeloFactura from "./views/facturacion/ModeloFactura";
-import PuntoDeVentaNuevo from "./views/puntodeventa/PuntoDeVenta";
 import FormularioPresupuestos from "./views/presupuestos/FormularioPresupuestos";
 import Configuraciones from "./views/configuraciones/Configuraciones";
 import FacturaSend from "./views/playground/FacturaSendTesting";
-import FormularioArticulo from "./views/articulos/components/FormularioArticulo";
 import FormularioControl from "./views/compras/control_ingreso/components/FormularioControl";
 import PlanificacionRuteamientos from "./views/ruteamientos/new_ruteamiento/PlanificacionRuteamientos";
 import VerificadorControl from "./views/compras/control_ingreso/components/VerificadorControl";
 import ConsultaPedidosFaltantes from "./views/entregas/ConsultaPedidosFaltantes";
-import GestionDirecciones from "./views/direcciones/GestionDirecciones";
  import FormularioPedidos from "./views/pedidos/FormularioPedidos/FormularioPedidos";
 import ReporteMovimientoProductos from "./features/Reportes/pages/ReporteMovimientoProductos";
 import ReportePedidosFacturados from "./features/Reportes/pages/ReportePedidosFacturados";
 import PersonasList from "./features/Personas/pages/PersonasList";
 import PWAUpdatePrompt from './shared/components/PWAUpdate/PWAUpdatePrompt';
+import { ListarArticulos } from "./features/Articulos/pages/ListarArticulos";
+import PuntoDeVentaWrapper from "./features/Ventas/views/PuntoDeVentaWrapper";
+import GestionDireccionesV2 from "./views/direcciones/GestionDireccionesV2";
 
 const ProtectedLayout: React.FC = () => {
   const { auth, isLoading } = useAuth();
@@ -138,8 +138,7 @@ function App() {
                   path="/venta-balcon-nuevo"
                   element={<VentaBalconNuevo />}
                 />
-                <Route path="/punto-de-venta-nuevo" element={<PuntoDeVentaNuevo />} />
-
+                <Route path="/punto-de-venta" element={<PuntoDeVentaWrapper />} />
 
                 <Route path="/venta-rapida" element={<VentaRapida />} />
 
@@ -181,11 +180,11 @@ function App() {
                   element={<VerificacionPedidos />}
                 />
                 <Route path="/configuraciones" element={<Configuraciones />} />
-                <Route path="/formulario-articulos" element={<FormularioArticulo />} />
+                <Route path="/formulario-articulos" element={<ListarArticulos />} />
                 <Route path="/control-ingreso" element={<FormularioControl />} />
                 <Route path="/verificador-ingresos" element={<VerificadorControl />} />
                 <Route path="/consulta-pedidos-faltantes" element={<ConsultaPedidosFaltantes />} />
-                <Route path="/gestion-direcciones" element={<GestionDirecciones />} />
+                <Route path="/gestion-direcciones" element={<GestionDireccionesV2 />} />
               </Route>
               <Route path="/" element={<Navigate to="/home" replace />} />
               <Route path="/404" element={<NoExiste />} />

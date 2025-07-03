@@ -23,6 +23,7 @@ interface OperadoresState {
   obtenerOperadorPorId: (id: number) => OperadorAdapter | undefined;
   getOperadorPorCodInterno: (id: number) => Promise<void>;
   vendedorSeleccionado: Operador | null;
+  setVendedorSeleccionado: (vendedor: Operador | null) => void;
 }
 
 export const useOperadoresStore = create<OperadoresState>((set, get) => ({
@@ -67,12 +68,22 @@ export const useOperadoresStore = create<OperadoresState>((set, get) => ({
         },
       });
       console.log("response", response.data.body);
-      set({ vendedorSeleccionado: response.data.body[0] });
+      
+      if (response.data.body && response.data.body.length > 0) {
+        set({ vendedorSeleccionado: response.data.body[0] });
+      } else {
+        set({ vendedorSeleccionado: null });
+      }
     } catch (error) {
       console.error("Error al obtener el operador por cod interno:", error);
+      set({ vendedorSeleccionado: null });
     } finally {
       set({cargando: false})
     }
+  },
+
+  setVendedorSeleccionado: (vendedor: Operador | null) => {
+    set({ vendedorSeleccionado: vendedor });
   },
 
   obtenerOperadores: () => get().operadores,

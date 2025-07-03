@@ -41,8 +41,8 @@ const GestionDirecciones = () => {
     eliminarItemsPorDireccion,
   } = useItemsPorDireccion();
   const [ubicacionDTO, setUbicacionDTO] = useState<UbicacionDTO>({
-    d_calle_inicial: "",
-    d_calle_final: "",
+    d_calle_inicial: 0,
+    d_calle_final: 0,
     d_predio_inicial: 0,
     d_predio_final: 0,
     d_piso_inicial: 0,
@@ -56,8 +56,8 @@ const GestionDirecciones = () => {
   const [ubicacionAgrupadaDTO, setUbicacionAgrupadaDTO] =
     useState<AgrupacionDTO>({
       rango: {
-        d_calle_inicial: "",
-        d_calle_final: "",
+        d_calle_inicial: 0,
+        d_calle_final: 0,
         d_predio_inicial: 0,
         d_predio_final: 0,
         d_piso_inicial: 0,
@@ -71,8 +71,8 @@ const GestionDirecciones = () => {
   const [itemsPorDireccionDTO, setItemsPorDireccionDTO] =
     useState<ItemsPorDireccionDTO>({
       rango: {
-        d_calle_inicial: "",
-        d_calle_final: "",
+        d_calle_inicial: 0,
+        d_calle_final: 0,
         d_predio_inicial: 0,
         d_predio_final: 0,
         d_piso_inicial: 0,
@@ -97,7 +97,7 @@ const GestionDirecciones = () => {
           : type === "number"
           ? Number(value)
           : name === "d_calle_inicial" || name === "d_calle_final"
-          ? value.toUpperCase()
+          ? Number(value)
           : value,
     });
   };
@@ -164,7 +164,7 @@ const GestionDirecciones = () => {
             type === "number"
               ? Number(value)
               : name === "d_calle_inicial" || name === "d_calle_final"
-              ? value.toUpperCase()
+              ? Number(value)
               : value,
         },
       });
@@ -189,7 +189,7 @@ const GestionDirecciones = () => {
           type === "number"
             ? Number(value)
             : name === "d_calle_inicial" || name === "d_calle_final"
-            ? value.toUpperCase()
+            ? Number(value)
             : value,
       },
     });
@@ -200,8 +200,8 @@ const GestionDirecciones = () => {
       await crearUbicaciones(ubicacionDTO);
       // Limpiar el formulario después de crear
       setUbicacionDTO({
-        d_calle_inicial: "",
-        d_calle_final: "",
+        d_calle_inicial: 0,
+        d_calle_final: 0,
         d_predio_inicial: 0,
         d_predio_final: 0,
         d_piso_inicial: 0,
@@ -299,8 +299,8 @@ const GestionDirecciones = () => {
       // Limpiar el formulario después de crear
       setUbicacionAgrupadaDTO({
         rango: {
-          d_calle_inicial: "",
-          d_calle_final: "",
+          d_calle_inicial: 0,
+          d_calle_final: 0,
           d_predio_inicial: 0,
           d_predio_final: 0,
           d_piso_inicial: 0,
@@ -342,8 +342,8 @@ const GestionDirecciones = () => {
 
   const handleImprimirRotulos = async () => {
     if(
-      !itemsPorDireccionDTO.rango.d_calle_inicial || itemsPorDireccionDTO.rango.d_calle_inicial === "" ||
-      !itemsPorDireccionDTO.rango.d_calle_final || itemsPorDireccionDTO.rango.d_calle_final === "" ||
+      !itemsPorDireccionDTO.rango.d_calle_inicial || itemsPorDireccionDTO.rango.d_calle_inicial === 0 ||
+      !itemsPorDireccionDTO.rango.d_calle_final || itemsPorDireccionDTO.rango.d_calle_final === 0 ||
       !itemsPorDireccionDTO.rango.d_predio_inicial || itemsPorDireccionDTO.rango.d_predio_inicial === 0 ||
       !itemsPorDireccionDTO.rango.d_predio_final || itemsPorDireccionDTO.rango.d_predio_final === 0 ||
       !itemsPorDireccionDTO.rango.d_piso_inicial || itemsPorDireccionDTO.rango.d_piso_inicial === 0 ||
@@ -397,7 +397,7 @@ const GestionDirecciones = () => {
                   </td>
                   <td className="border border-gray-300 px-4 py-2">
                     <input
-                      type="text"
+                      type="number"
                       name="d_calle_inicial"
                       value={ubicacionDTO.d_calle_inicial}
                       onChange={handleChange}
@@ -441,7 +441,7 @@ const GestionDirecciones = () => {
                   </td>
                   <td className="border border-gray-300 px-4 py-2">
                     <input
-                      type="text"
+                      type="number"
                       name="d_calle_final"
                       value={ubicacionDTO.d_calle_final}
                       onChange={handleChange}
@@ -545,29 +545,25 @@ const GestionDirecciones = () => {
           </div>
           {/* LISTADO DE DIRECCIONES*/}
           <div className="flex flex-col gap-2 flex-1 overflow-y-auto max-h-[200px]">
-            <table className="border-collapse border border-gray-300">
+            <label className="font-semibold mb-1">Buscar dirección</label>
+            <input
+              type="text"
+              placeholder="Buscar dirección"
+              onChange={handleBusquedaUbicaciones}
+              className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-2"
+            />
+            <table className="w-full border-collapse border border-gray-300">
               <thead className="bg-gray-100">
                 <tr>
-                  <th
-                    className="border border-gray-300 px-4 py-2 text-left"
-                    colSpan={2}
-                  >
+                  <th className="border border-gray-300 px-4 py-2 text-left">
                     Lista de direcciones creadas
-                  </th>
-                  <th className="border border-gray-300 px-4 py-2" colSpan={2}>
-                    <input
-                      type="text"
-                      placeholder="Buscar dirección"
-                      onChange={handleBusquedaUbicaciones}
-                      className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={5} className="text-center p-4">
+                    <td className="text-center p-4">
                       <div className="flex justify-center items-center">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
                       </div>
@@ -577,7 +573,6 @@ const GestionDirecciones = () => {
                   <tr>
                     <td
                       className="border border-gray-300 px-4 py-2 text-center text-gray-500"
-                      colSpan={5}
                     >
                       No hay direcciones creadas
                     </td>
@@ -586,16 +581,7 @@ const GestionDirecciones = () => {
                   ubicaciones.map((ubicacion, index) => (
                     <tr key={index} className="hover:bg-gray-50">
                       <td className="border border-gray-300 px-4 py-2">
-                        {ubicacion?.d_calle || ""}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2">
-                        {ubicacion?.d_predio || ""}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2">
-                        {ubicacion?.d_piso || ""}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2">
-                        {ubicacion?.d_direccion || ""}
+                        {ubicacion?.direccion_completa || ""}
                       </td>
                     </tr>
                   ))
@@ -812,31 +798,27 @@ const GestionDirecciones = () => {
               </tbody>
             </table>
           </div>
-          {/* LISTADO DE DIRECCIONES*/}
+          {/* LISTADO DE DIRECCIONES AGRUPADAS*/}
           <div className="flex flex-col gap-2 flex-1 overflow-y-auto max-h-[250px]">
-            <table className="border-collapse border border-gray-300">
+            <label className="font-semibold mb-1">Buscar dirección</label>
+            <input
+              type="text"
+              placeholder="Buscar dirección"
+              onChange={handleBusquedaUbicacionesAgrupadas}
+              className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-2"
+            />
+            <table className="w-full border-collapse border border-gray-300">
               <thead className="bg-gray-100">
                 <tr>
-                  <th
-                    className="border border-gray-300 px-4 py-2 text-left"
-                    colSpan={2}
-                  >
+                  <th className="border border-gray-300 px-4 py-2 text-left">
                     Lista de direcciones en esta zona
-                  </th>
-                  <th className="border border-gray-300 px-4 py-2" colSpan={2}>
-                    <input
-                      type="text"
-                      placeholder="Buscar dirección"
-                      onChange={handleBusquedaUbicacionesAgrupadas}
-                      className="w-full px-2 py-1 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {loadingAgrupaciones ? (
                   <tr>
-                    <td colSpan={5} className="text-center p-4">
+                    <td className="text-center p-4">
                       <div className="flex justify-center items-center">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
                       </div>
@@ -844,17 +826,14 @@ const GestionDirecciones = () => {
                   </tr>
                 ) : errorAgrupaciones ? (
                   <tr>
-                    <td colSpan={5} className="text-center text-red-500 p-4">
-                      Error al cargar las ubicaciones agrupadas:{" "}
-                      {errorAgrupaciones}
+                    <td className="text-center text-red-500 p-4">
+                      Error al cargar las ubicaciones agrupadas: {errorAgrupaciones}
                     </td>
                   </tr>
-                ) : !ubicacionesAgrupadas ||
-                  ubicacionesAgrupadas.length === 0 ? (
+                ) : !ubicacionesAgrupadas || ubicacionesAgrupadas.length === 0 ? (
                   <tr>
                     <td
                       className="border border-gray-300 px-4 py-2 text-center text-gray-500"
-                      colSpan={5}
                     >
                       No hay direcciones en esta zona
                     </td>
@@ -863,19 +842,7 @@ const GestionDirecciones = () => {
                   ubicacionesAgrupadas.map((ubicacion, index) => (
                     <tr key={index} className="hover:bg-gray-50">
                       <td className="border border-gray-300 px-4 py-2">
-                        {ubicacion?.d_calle || ""}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2">
-                        {ubicacion?.d_predio || ""}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2">
-                        {ubicacion?.d_piso || ""}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2">
-                        {ubicacion?.d_direccion || ""}
-                      </td>
-                      <td className="border border-gray-300 px-4 py-2">
-                        {ubicacion?.d_tipo_direccion || ""}
+                        {ubicacion?.direccion_completa || ""}
                       </td>
                     </tr>
                   ))
@@ -1078,7 +1045,7 @@ const GestionDirecciones = () => {
                   <tr className="hover:bg-gray-50">
                     <td
                       className="border border-gray-300 px-4 py-2 text-center text-gray-500"
-                      colSpan={5}
+                      colSpan={4}
                     >
                       No hay items en esta zona
                     </td>
@@ -1087,7 +1054,7 @@ const GestionDirecciones = () => {
                 <tr>
                   <td
                     className=" px-4 py-2 text-center text-gray-500 items-center justify-center hover:bg-gray-50 "
-                    colSpan={5}
+                    colSpan={4}
                   >
                     <div className="flex flex-row gap-2 items-center justify-center">
                       <button

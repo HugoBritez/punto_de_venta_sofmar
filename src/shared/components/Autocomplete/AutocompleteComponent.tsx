@@ -373,7 +373,7 @@ export const Autocomplete = <T = unknown>({
           <div
             ref={parentRef}
             id="autocomplete-options"
-            className="absolute  w-full mt-1 bg-white shadow-md rounded-md border border-gray-200 overflow-auto"
+            className="absolute  w-full mt-1 bg-white shadow-md rounded-md border border-gray-200 overflow-auto z-50"
             style={{ 
               maxHeight: '240px'
             }}

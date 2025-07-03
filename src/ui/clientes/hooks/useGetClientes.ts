@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { clientesApi } from "../services/clientesApi";
 import { BusquedaDTO } from "../types/BusquedaDTO.type";
-import { Cliente } from "../types/cliente.type";
+import { ClienteViewModel } from "../types/cliente.type";
 
 
 interface UseGetClientes {
-    clientes: Cliente[];
+    clientes: ClienteViewModel[];
     loading: boolean;
     error: string | null;
     getClientes: (busqueda: BusquedaDTO) => Promise<void>;
@@ -13,7 +13,7 @@ interface UseGetClientes {
 
 
 export const useGetClientes = (): UseGetClientes => {
-    const [clientes, setClientes] = useState<Cliente[]>([]);
+    const [clientes, setClientes] = useState<ClienteViewModel[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     

@@ -15,10 +15,10 @@ export const useDirecciones = () => {
     const [error, setError] = useState<string | null>(null);
     const [errorEliminarDireccion, setErrorEliminarDireccion] = useState<string | null>(null);
     const [ successEliminarDireccion, setSuccessEliminarDireccion] = useState<string | null>(null);
-    const [errorCrearUbicacion, setErrorCrearUbicacion] = useState<string | null>(null);
+    const [errorCrearUbicacion, ] = useState<string | null>(null);
     const [loadingAgrupaciones, setLoadingAgrupaciones] = useState(false);
     const [errorAgrupaciones, setErrorAgrupaciones] = useState<string | null>(null);
-    const [errorAgruparDirecciones, setErrorAgruparDirecciones] = useState<string | null>(null);
+    const [errorAgruparDirecciones, ] = useState<string | null>(null);
 
     const obtenerUbicaciones = async (busqueda?: string): Promise<UbicacionResponse> => {
         try{
@@ -45,50 +45,7 @@ export const useDirecciones = () => {
 
     const crearUbicaciones = async (direccion: UbicacionDTO) => {
         try{
-            if(direccion.d_calle_inicial === ''){
-                setErrorCrearUbicacion("La calle inicial es requerida");
-                return;
-            }
-            if(direccion.d_calle_final === ''){
-                setErrorCrearUbicacion("La calle final es requerida");
-                return;
-            }
-            if( direccion.d_predio_inicial === 0 || direccion.d_predio_final === 0 ){
-                setErrorCrearUbicacion("El predio inicial y final son requeridos");
-                return;
-            }
-            if( direccion.d_predio_inicial > direccion.d_predio_final ){
-                setErrorCrearUbicacion("El predio inicial no puede ser mayor al predio final");
-                return;
-            }
-            if( direccion.d_predio_inicial < 0 || direccion.d_predio_final < 0 ){
-                setErrorCrearUbicacion("El predio inicial y final no pueden ser negativos");
-                return;
-            }
-            if(direccion.d_piso_inicial === 0 || direccion.d_piso_final === 0){
-                setErrorCrearUbicacion("El piso inicial y final son requeridos");
-                return;
-            }
-            if(direccion.d_piso_inicial > direccion.d_piso_final){
-                setErrorCrearUbicacion("El piso inicial no puede ser mayor al piso final");
-                return;
-            }
-            if(direccion.d_piso_inicial < 0 || direccion.d_piso_final < 0){
-                setErrorCrearUbicacion("El piso inicial y final no pueden ser negativos");
-                return;
-            }
-            if(direccion.d_direccion_inicial === 0 || direccion.d_direccion_final === 0){
-                setErrorCrearUbicacion("La direccion inicial y final son requeridas");
-                return;
-            }
-            if(direccion.d_direccion_inicial > direccion.d_direccion_final){
-                setErrorCrearUbicacion("La direccion inicial no puede ser mayor a la direccion final");
-                return;
-            }
-            if(direccion.d_direccion_inicial < 0 || direccion.d_direccion_final < 0){
-                setErrorCrearUbicacion("La direccion inicial y final no pueden ser negativas");
-                return;
-            }
+            
             setLoading(true);
             const response = await direccionesApi.crearUbicaciones(direccion);
             setUbicaciones([...ubicaciones, response.body]);
@@ -102,7 +59,7 @@ export const useDirecciones = () => {
 
     const eliminarDireccion = async (rango: Omit<UbicacionDTO, 'd_tipo_direccion' | 'd_estado'>) => {
         try{
-            if(!rango || rango.d_calle_inicial === '' ){
+            if(!rango || rango.d_calle_inicial === 0 ){
                 setErrorEliminarDireccion("No hay rango de direcciones para eliminar");
                 return;
             }
@@ -116,79 +73,79 @@ export const useDirecciones = () => {
 
     const agruparDirecciones = async (agrupacion: AgrupacionDTO) => {
         try{
-            if(agrupacion.zona === 0){
-                setErrorAgruparDirecciones("La zona es requerida");
-                return;
-            }
-            if (agrupacion.rango.d_calle_inicial === "") {
-              setErrorCrearUbicacion("La calle inicial es requerida");
-              return;
-            }
-            if (agrupacion.rango.d_calle_final === "") {
-              setErrorCrearUbicacion("La calle final es requerida");
-              return;
-            }
-            if (
-              agrupacion.rango.d_predio_inicial === 0 ||
-              agrupacion.rango.d_predio_final === 0
-            ) {
-              setErrorCrearUbicacion(
-                "El predio inicial y final son requeridos"
-              );
-              return;
-            }
-            if (agrupacion.rango.d_predio_inicial > agrupacion.rango.d_predio_final) {
-              setErrorCrearUbicacion(
-                "El predio inicial no puede ser mayor al predio final"
-              );
-              return;
-            }
-            if (agrupacion.rango.d_predio_inicial < 0 || agrupacion.rango.d_predio_final < 0) {
-              setErrorCrearUbicacion(
-                "El predio inicial y final no pueden ser negativos"
-              );
-              return;
-            }
-            if (agrupacion.rango.d_piso_inicial === 0 || agrupacion.rango.d_piso_final === 0) {
-              setErrorCrearUbicacion("El piso inicial y final son requeridos");
-              return;
-            }
-            if (agrupacion.rango.d_piso_inicial > agrupacion.rango.d_piso_final) {
-              setErrorCrearUbicacion(
-                "El piso inicial no puede ser mayor al piso final"
-              );
-              return;
-            }
-            if (agrupacion.rango.d_piso_inicial < 0 || agrupacion.rango.d_piso_final < 0) {
-              setErrorCrearUbicacion(
-                "El piso inicial y final no pueden ser negativos"
-              );
-              return;
-            }
-            if (
-              agrupacion.rango.d_direccion_inicial === 0 ||
-              agrupacion.rango.d_direccion_final === 0
-            ) {
-              setErrorCrearUbicacion(
-                "La direccion inicial y final son requeridas"
-              );
-              return;
-            }
-            if (agrupacion.rango.d_direccion_inicial > agrupacion.rango.d_direccion_final) {
-              setErrorCrearUbicacion(
-                "La direccion inicial no puede ser mayor a la direccion final"
-              );
-              return;
-            }
-            if (
-              agrupacion.rango.d_direccion_inicial < 0 ||
-              agrupacion.rango.d_direccion_final < 0
-            ) {
-              setErrorCrearUbicacion(
-                "La direccion inicial y final no pueden ser negativas"
-              );
-              return;
-            }
+            // if(agrupacion.zona === 0){
+            //     setErrorAgruparDirecciones("La zona es requerida");
+            //     return;
+            // }
+            // if (agrupacion.rango.d_calle_inicial === 0) {
+            //   setErrorCrearUbicacion("La calle inicial es requerida");
+            //   return;
+            // }
+            // if (agrupacion.rango.d_calle_final === 0) {
+            //   setErrorCrearUbicacion("La calle final es requerida");
+            //   return;
+            // }
+            // if (
+            //   agrupacion.rango.d_predio_inicial === 0 ||
+            //   agrupacion.rango.d_predio_final === 0
+            // ) {
+            //   setErrorCrearUbicacion(
+            //     "El predio inicial y final son requeridos"
+            //   );
+            //   return;
+            // }
+            // if (agrupacion.rango.d_predio_inicial > agrupacion.rango.d_predio_final) {
+            //   setErrorCrearUbicacion(
+            //     "El predio inicial no puede ser mayor al predio final"
+            //   );
+            //   return;
+            // }
+            // if (agrupacion.rango.d_predio_inicial < 0 || agrupacion.rango.d_predio_final < 0) {
+            //   setErrorCrearUbicacion(
+            //     "El predio inicial y final no pueden ser negativos"
+            //   );
+            //   return;
+            // }
+            // if (agrupacion.rango.d_piso_inicial === 0 || agrupacion.rango.d_piso_final === 0) {
+            //   setErrorCrearUbicacion("El piso inicial y final son requeridos");
+            //   return;
+            // }
+            // if (agrupacion.rango.d_piso_inicial > agrupacion.rango.d_piso_final) {
+            //   setErrorCrearUbicacion(
+            //     "El piso inicial no puede ser mayor al piso final"
+            //   );
+            //   return;
+            // }
+            // if (agrupacion.rango.d_piso_inicial < 0 || agrupacion.rango.d_piso_final < 0) {
+            //   setErrorCrearUbicacion(
+            //     "El piso inicial y final no pueden ser negativos"
+            //   );
+            //   return;
+            // }
+            // if (
+            //   agrupacion.rango.d_direccion_inicial === 0 ||
+            //   agrupacion.rango.d_direccion_final === 0
+            // ) {
+            //   setErrorCrearUbicacion(
+            //     "La direccion inicial y final son requeridas"
+            //   );
+            //   return;
+            // }
+            // if (agrupacion.rango.d_direccion_inicial > agrupacion.rango.d_direccion_final) {
+            //   setErrorCrearUbicacion(
+            //     "La direccion inicial no puede ser mayor a la direccion final"
+            //   );
+            //   return;
+            // }
+            // if (
+            //   agrupacion.rango.d_direccion_inicial < 0 ||
+            //   agrupacion.rango.d_direccion_final < 0
+            // ) {
+            //   setErrorCrearUbicacion(
+            //     "La direccion inicial y final no pueden ser negativas"
+            //   );
+            //   return;
+            // }
             setLoadingAgrupaciones(true);
             const response = await direccionesApi.agruparDirecciones(agrupacion);
             setUbicacionesAgrupadas(response.body);

@@ -3,7 +3,7 @@ import api from "../../config/axios";
 
 
 export const cajaRepository = {
-    async verificarCajaAbierta(moneda: number, operador?: number): Promise<CajaAbiertaViewModel> {
+    async verificarCajaAbierta(moneda: number, operador?: number): Promise<CajaAbiertaViewModel[]> {
         const response = await api.get(`caja/abierta`,
             {
                 params: {
@@ -12,8 +12,7 @@ export const cajaRepository = {
                 }
             }
         );
-        console.log("Cajarepository", response.data)
         
-        return response.data.body[0]
+        return response.data.body || []
     }
 }

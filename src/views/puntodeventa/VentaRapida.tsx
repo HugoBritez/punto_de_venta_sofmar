@@ -43,6 +43,7 @@ import { debounce } from "lodash";
 import VentaModal from "../ventas/imprimirVenta";
 import Auditar from "@/services/AuditoriaHook";
 import { MetodosPago, Factura } from "@/types/shared_interfaces";
+import { actualizarUltimaFactura } from "../ventas/core/utils/actualizarUltimaFactura";
 
 interface Sucursal {
   id: number;
@@ -1052,10 +1053,10 @@ export default function VentaRapida() {
         setDescuentoValor(0);
         setCondicionVenta(0);
         setNotaFiscal(0);
-        // actualizarUltimaFactura(
-        //   Number(facturaData[0].d_nro_secuencia) + 1,
-        //   facturaData[0].d_codigo
-        // );
+         actualizarUltimaFactura(
+           Number(facturaData[0].d_nro_secuencia) + 1,
+           facturaData[0].d_codigo
+        );
         Auditar(
           5,
           8,

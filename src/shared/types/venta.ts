@@ -70,6 +70,8 @@ export interface DetalleVenta {
     descripcion?:string; 
     precioUnitario?: number;
     subtotal?: number;
+    unidadMedida?: number;
+    vencimiento?: string;
 }
 
 export interface DetalleVentaViewModel {

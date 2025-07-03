@@ -22,6 +22,6 @@ export const getDatosFacturacion = async (userId: number, sucursalId: number): P
             sucursal: sucursalId
         }
     });
-    console.log('datos de facturacion', response.data.body);
     return response.data.body;
 }
+

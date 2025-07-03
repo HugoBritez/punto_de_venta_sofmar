@@ -3,13 +3,9 @@ import type { DetalleMovimientosArticulos, GetReporteMovimientoArticulosParams, 
 import { useGetReporteMovimientoArticulos } from "../../../shared/hooks/querys/useReportes";
 import { getCoreRowModel, getSortedRowModel, getFilteredRowModel, useReactTable, type ColumnDef, type ColumnFiltersState, flexRender } from "@tanstack/react-table";
 import { useSucursales } from "../../../shared/hooks/querys/useSucursales";
-import { useDepositos } from "../../../shared/hooks/querys/useDepositos";
 import { useGetCategorias } from "../../../shared/hooks/querys/useCategorias";
 import { useGetMarcas } from "../../../shared/hooks/querys/useMarcas";
-import { useMonedas } from "../../../shared/hooks/querys/useMonedas";
 import {  useUsuarios } from "../../../shared/hooks/querys/useUsuarios";
-import { useGetCiudades } from "../../../shared/hooks/querys/useCiudades";
-import { useGetProveedores } from "../../../shared/hooks/querys/useProveedores";
 import { Autocomplete } from "../../../shared/components/Autocomplete/AutocompleteComponent";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { CategoriaViewModel } from "../../../shared/types/categoria";
@@ -25,9 +21,9 @@ import { useActualizarMetaAcordada } from "../../../shared/hooks/mutations/venta
 import { exportarDatosAExcel } from "../../../shared/utils/exportarAExcel";
 import { esAdmin, esSupervisor } from "../../../shared/utils/permisosRoles";
 import { permisoVerCosto } from "../../../shared/utils/permisoVerCosto";
-import { ProveedorRepository } from "../../../shared/api/proveedoresRepository";
 import { FormButtons } from "../../../shared/components/FormButtons/FormButtons";
 import { ReporteMovimientoProductosPDF } from "../docs/ReporteMovimientoProductosPDF";
+import { useToast } from "@chakra-ui/react";
 
 // Función helper para obtener datos del sessionStorage
 const getAuthData = () => {
@@ -63,6 +59,8 @@ const MetaAcordadaInput = ({
             : ""
     );
 
+    const toast = useToast();
+
     const { rol } = getAuthData();
 
     useEffect(() => {
@@ -84,6 +82,13 @@ const MetaAcordadaInput = ({
         }
 
         if (!selectedVendedor) {
+            toast({
+                title: "Error",
+                description: "No se puede actualizar la meta acordada sin seleccionar un vendedor",
+                status: "error",
+                duration: 3000,
+                isClosable: true,
+            });
             return;
         }
 
@@ -151,6 +156,8 @@ const ReporteMovimientoProductos = () => {
     const user_id = authData.userId;
 
     const [formParams, setFormParams] = useState<GetReporteMovimientoArticulosParams>({
+        FechaDesde: new Date(new Date().getFullYear(), 0, 1),
+        FechaHasta: new Date(),
         AnioInicio: new Date().getFullYear(),
         cantidadAnios: 3,
         VendedorId: esAdmin(authData.rol) || esSupervisor(authData.rol) ? undefined : Number(user_id),
@@ -167,22 +174,12 @@ const ReporteMovimientoProductos = () => {
         MovimientoPorFecha: false,
     })
 
-    // Agregar estado para controlar si se debe ejecutar la consulta
-    const [shouldFetchData, setShouldFetchData] = useState(false);
+    const { data: reporteMovimientoArticulos, isLoading, isError } = useGetReporteMovimientoArticulos(formParams);
 
-    // Modificar el hook para que solo se ejecute cuando shouldFetchData sea true
-    const { data: reporteMovimientoArticulos, isLoading, isError } = useGetReporteMovimientoArticulos(
-        shouldFetchData ? formParams : null
-    );
-
-    const { data: Sucursales, isLoading: isLoadingSucursales, isError: isErrorSucursales } = useSucursales();
-    const { data: Depositos, isLoading: isLoadingDepositos, isError: isErrorDepositos } = useDepositos();
+    const { data: Sucursales, isLoading: isLoadingSucursales } = useSucursales();
     const { data: Categorias, isLoading: isLoadingCategorias, isError: isErrorCategorias } = useGetCategorias();
     const { data: Marcas, isLoading: isLoadingMarcas, isError: isErrorMarcas } = useGetMarcas();
-    const { data: Monedas, isLoading: isLoadingMonedas, isError: isErrorMonedas } = useMonedas();
     const { data: Vendedores, isLoading: isLoadingVendedores, isError: isErrorVendedores } = useUsuarios(undefined, 5);
-    const { data: Ciudades, isLoading: isLoadingCiudades, isError: isErrorCiudades } = useGetCiudades();
-    const { data: Proveedores, isLoading: isLoadingProveedores, isError: isErrorProveedores } = useGetProveedores();
     const { data: ListaPrecios } = useListaDePrecios();
 
     const [selectedSucursal, setSelectedSucursal] = useState<SucursalViewModel | null>(null);
@@ -204,15 +201,6 @@ const ReporteMovimientoProductos = () => {
     const [isLoadingPDF, setIsLoadingPDF] = useState(false);
     const [isLoadingLimpiar, setIsLoadingLimpiar] = useState(false);
 
-    // Función simple de búsqueda en servidor con debounce
-    const handleProveedorSearch = useCallback(async (searchTerm: string) => {
-        // Solo buscar si hay al menos 2 caracteres para evitar llamadas innecesarias
-        if (searchTerm.length < 2) {
-            return [];
-        }
-        return await ProveedorRepository.GetProveedores(searchTerm);
-    }, []);
-
     const handleLimpiarFiltros = async () => {
         setIsLoadingLimpiar(true);
         try {
@@ -220,6 +208,8 @@ const ReporteMovimientoProductos = () => {
             await new Promise(resolve => setTimeout(resolve, 300));
 
             setFormParams({
+                FechaDesde: new Date(new Date().getFullYear(), 0, 1),
+                FechaHasta: new Date(),
                 AnioInicio: new Date().getFullYear(),
                 cantidadAnios: 3,
                 VendedorId: esAdmin(authData.rol) || esSupervisor(authData.rol) ? undefined : Number(user_id),
@@ -254,20 +244,21 @@ const ReporteMovimientoProductos = () => {
     };
 
     useEffect(() => {
-        console.log(reporteMovimientoArticulos?.detalles)
     }, [reporteMovimientoArticulos?.detalles])
 
-    // Efecto para controlar cuándo ejecutar la consulta
-    useEffect(() => {
-        // Solo ejecutar si hay un vendedor seleccionado
-        const hasVendedor = selectedVendedor !== null;
-        setShouldFetchData(hasVendedor);
-    }, [selectedVendedor]);
+    // // Efecto para controlar cuándo ejecutar la consulta
+    // useEffect(() => {
+    //     // Solo ejecutar si hay un vendedor seleccionado
+    //     const hasVendedor = selectedVendedor !== null;
+    //     setShouldFetchData(hasVendedor);
+    // }, [selectedVendedor]);
 
     const handleFiltrosChange = (nombre: string, valor: string) => {
         setFormParams({
             ...formParams,
-            [nombre]: valor
+            [nombre]: nombre === 'FechaDesde' || nombre === 'FechaHasta' 
+                ? (valor && valor.length > 0 ? new Date(valor) : null)
+                : valor
         })
     }
 
@@ -385,6 +376,20 @@ const ReporteMovimientoProductos = () => {
             enableColumnFilter: true,
         },
         {
+            accessorKey: 'metaAcordada',
+            header: `Meta ${formParams.AnioInicio}`,
+            size: 150,
+            enableSorting: false,
+            cell: ({ row }) => (
+                <MetaAcordadaInput
+                    row={row}
+                    selectedVendedor={selectedVendedor}
+                    formParams={formParams}
+                    actualizarMetaAcordada={actualizarMetaAcordada}
+                />
+            )
+        },
+        {
             accessorKey: 'stock',
             header: "Stock",
             size: 120,
@@ -460,26 +465,22 @@ const ReporteMovimientoProductos = () => {
             }
         },
         {
-            accessorKey: 'metaAcordada',
-            header: `Meta ${formParams.AnioInicio}`,
-            size: 150,
-            enableSorting: false,
-            cell: ({ row }) => (
-                <MetaAcordadaInput
-                    row={row}
-                    selectedVendedor={selectedVendedor}
-                    formParams={formParams}
-                    actualizarMetaAcordada={actualizarMetaAcordada}
-                />
-            )
-        },
-        {
             accessorKey: 'ventaTotal',
             header: `Venta Total`,
             size: 120,
             cell: ({ row }) => {
                 return <div className="text-right">
                     {row.original.ventaTotal.toLocaleString('es-PY')}
+                </div>
+            }
+        },
+        {
+            accessorKey: 'porcentajeUtilidad',
+            header: `Utilidad (%)`,
+            size: 120,
+            cell: ({ row }) => {
+                return <div className="text-right">
+                    {((row.original.porcentajeUtilidad * 100).toLocaleString('es-PY', { maximumFractionDigits: 2 }))}%
                 </div>
             }
         },
@@ -563,23 +564,7 @@ const ReporteMovimientoProductos = () => {
     );
 
     const EmptyState = () => {
-        if (!selectedVendedor) {
-            return (
-                <div className="flex items-center justify-center p-12">
-                    <div className="text-center max-w-md">
-                        <div className="mb-4">
-                            <div className="w-16 h-16 mx-auto bg-blue-100 rounded-full flex items-center justify-center">
-                                <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                                </svg>
-                            </div>
-                        </div>
-                        <h3 className="text-lg font-medium text-gray-900 mb-2">Selecciona un vendedor</h3>
-                        <p className="text-gray-500">Para ver el reporte de movimiento de productos, primero debes seleccionar un vendedor.</p>
-                    </div>
-                </div>
-            );
-        }
+
 
         return (
             <div className="flex items-center justify-center p-12">
@@ -793,48 +778,25 @@ const ReporteMovimientoProductos = () => {
 
     return (
         <div className="flex flex-col gap-4 h-[calc(100vh-32px)] p-1">
-            <div className="p-2 bg-blue-200 rounded-md h-[20%] flex flex-row gap-4">
-                <div className="grid grid-cols-4 gap-2 w-[85%] relative" style={{ zIndex: 1000 }}>
-                    <Autocomplete<SucursalViewModel>
-                        data={Sucursales || []}
-                        value={selectedSucursal || null}
-                        onChange={(sucursal) => {
-                            setSelectedSucursal(sucursal);
-                            handleFiltrosChange('SucursalId', sucursal?.id.toString() || '');
-                        }}
-                        displayField="descripcion"
-                        searchFields={["descripcion", "id"]}
-                        additionalFields={[
-                            { field: "id", label: "ID" },
-                            { field: "direccion", label: "Dirección" }
-                        ]}
-                        label="Sucursal"
-                        isLoading={isLoadingSucursales}
-                        isError={isErrorSucursales}
-                        errorMessage="Error al cargar las sucursales"
-                        disabled={isLoadingSucursales}
-                        defaultId={1}
-                    />
-                    <Autocomplete<DepositoViewModel >
-                        data={Depositos || []}
-                        value={selectedDeposito || null}
-                        onChange={(deposito) => {
-                            setSelectedDeposito(deposito);
-                            handleFiltrosChange('DepositoId', deposito?.dep_codigo.toString() || '');
-                        }}
-                        displayField="dep_descripcion"
-                        searchFields={["dep_descripcion", "dep_codigo"]}
-                        additionalFields={[
-                            { field: "dep_codigo", label: "Codigo" },
-                            { field: "dep_descripcion", label: "Deposito" }
-                        ]}
-                        label="Deposito"
-                        isLoading={isLoadingDepositos}
-                        isError={isErrorDepositos}
-                        errorMessage="Error al cargar los depositos"
-                        disabled={isLoadingDepositos}
-                    />
-                    <Autocomplete<ProveedoresViewModel>
+            <div className="p-2 bg-blue-200 rounded-md h-[10%] flex flex-row gap-4">
+                <div className="grid grid-cols-5 gap-2 w-[85%] relative" style={{ zIndex: 1000 }}>
+                    <div className="flex flex-row gap-2 h-full items-start w-full">
+                        <div className="flex flex-col gap-1 w-full">
+                        <label htmlFor="fechaDesde" className="text-slate-800 text-sm">Fecha desde</label>
+                        <input type="date" id="fechaDesde" className="bg-white rounded-md p-2 border  h-10"
+                            value={formParams.FechaDesde?.toISOString().split('T')[0] || ''}
+                            onChange={(e) => handleFiltrosChange('FechaDesde', e.target.value)}
+                        />
+                        </div>
+                        <div className="flex flex-col gap-1 w-full">
+                        <label htmlFor="fechaHasta" className="text-slate-800 text-sm">Fecha hasta</label>
+                        <input type="date" id="fechaHasta" className="bg-white rounded-md p-2 border  h-10"
+                            value={formParams.FechaHasta?.toISOString().split('T')[0] || ''}
+                            onChange={(e) => handleFiltrosChange('FechaHasta', e.target.value)}
+                        />
+                        </div>
+                    </div>
+                    {/* <Autocomplete<ProveedoresViewModel>
                         data={Proveedores || []}
                         value={selectedProveedor || null}
                         onChange={(proveedor) => {
@@ -853,7 +815,7 @@ const ReporteMovimientoProductos = () => {
                         errorMessage="Error al cargar los proveedores"
                         disabled={isLoadingSucursales}
                         onSearch={handleProveedorSearch}
-                    />
+                    /> */}
                     <Autocomplete<MarcaViewModel>
                         data={Marcas || []}
                         value={selectedMarca || null}
@@ -918,7 +880,7 @@ const ReporteMovimientoProductos = () => {
                         }
                         idField="op_codigo"
                     />
-                    <Autocomplete<Moneda>
+                    {/* <Autocomplete<Moneda>
                         data={Monedas || []}
                         value={selectedMoneda || null}
                         onChange={(moneda) => {
@@ -939,8 +901,8 @@ const ReporteMovimientoProductos = () => {
                         id="moneda"
                         defaultId={1}
                         idField="moCodigo"
-                    />
-                    <Autocomplete<Ciudad        >
+                    /> */}
+                    {/* <Autocomplete<Ciudad        >
                         data={Ciudades || []}
                         value={selectedCiudad || null}
                         onChange={(ciudad) => {
@@ -958,7 +920,21 @@ const ReporteMovimientoProductos = () => {
                         isError={isErrorCiudades}
                         errorMessage="Error al cargar las ciudades"
                         disabled={isLoadingCiudades}
-                    />
+                    /> */}
+                    <div className="relative  rounded-md  flex flex-col gap-2 items-center justify-center">
+                        <input
+                            type="text"
+                            placeholder="Buscar por  descripción o cód de barras..."
+                            value={globalFilter ?? ''}
+                            onChange={e => setGlobalFilter(e.target.value)}
+                            className="bg-white w-full p-2 pl-10 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                    </div>
                 </div>
                 <div className="flex flex-col  w-[15%] justify-center h-full">
                     <div className="flex flex-row gap-2">
@@ -995,20 +971,7 @@ const ReporteMovimientoProductos = () => {
                             limpiar: isLoadingLimpiar
                         }}
                     />
-                    <div className="relative">
-                        <input
-                            type="text"
-                            placeholder="Buscar por  descripción o cód de barras..."
-                            value={globalFilter ?? ''}
-                            onChange={e => setGlobalFilter(e.target.value)}
-                            className="bg-white w-full p-2 pl-10 rounded-md border border-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                        </div>
-                    </div>
+                    
                 </div>
 
             </div>

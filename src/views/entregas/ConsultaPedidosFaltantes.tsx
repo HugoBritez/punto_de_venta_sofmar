@@ -17,18 +17,22 @@ import { createRoot } from "react-dom/client";
 import { ReportePedidosFaltantesExcel } from "./docs/InformePedidosFaltantesExcel";
 import { useToast } from "@chakra-ui/react";
 import Modal from "@/ui/modal/Modal";
+  import { useAnularPedido } from "@/shared/hooks/mutations/pedidos";
 
 const ConsultaPedidosFaltantes = () => {
     const { pedidosFaltantes,  obtenerPedidoFaltante, reprocesarPedido } = useCortePedidos();
-    const fechaHoy = new Date().toISOString().split('T')[0];
     const [filtrosDescripcion, setFiltrosDescripcion] = useState<string[]>([]);
     const [pedidoSeleccionado, setPedidoSeleccionado] = useState<PedidoFaltante | null>(null);
     const toast = useToast();
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isModalAnularPedidoOpen, setIsModalAnularPedidoOpen] = useState(false);
+    const [motivoAnulacion, setMotivoAnulacion] = useState<string>("");
+    const { mutate: anularPedido } = useAnularPedido();
+
 
     const [filtros, setFiltros] = useState<FiltrosPedidoFaltante>({
-        fecha_desde: fechaHoy,
-        fecha_hasta: fechaHoy,
+        fecha_desde: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+        fecha_hasta: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).toISOString().split('T')[0],
         cliente: 0,
         vendedor: 0,
         articulo: 0,
@@ -219,6 +223,28 @@ const ConsultaPedidosFaltantes = () => {
         description: "Pedido reprocesado correctamente",
         status: "success",
         duration: 3000,
+      });
+    }
+
+    const handleAnularPedido = () => {
+      console.log("anulando pedido", pedidoSeleccionado, motivoAnulacion);
+      if (!pedidoSeleccionado) {
+        toast({
+          title: "Error",
+          description: "No se ha seleccionado ningún pedido",
+          status: "error",
+          duration: 3000,
+        });
+        return;
+      }
+      anularPedido({codigo: pedidoSeleccionado?.id_pedido,  motivo: motivoAnulacion});
+      setIsModalAnularPedidoOpen(false);
+      obtenerPedidoFaltante(filtros);
+      toast({
+        title: "Anulado",
+        description: "Pedido anulado correctamente",
+        status: "success",
+        duration: 3000, 
       });
     }
     
@@ -460,6 +486,13 @@ const ConsultaPedidosFaltantes = () => {
           </table>
         </div>
         <div className="flex flex-row gap-2 bg-blue-200 shadow-xs p-2 rounded-md mt-auto h-[100px] justify-end items-center">
+        <button
+            className="bg-orange-600 text-white p-2 rounded-md h-12 flex flex-row gap-2 items-center"
+            onClick={() => setIsModalAnularPedidoOpen(true)}
+          >
+            <p className="text-md font-bold">Anular Pedido </p>
+            
+          </button>
           <button
             className="bg-red-600 text-white p-2 rounded-md h-12 flex flex-row gap-2 items-center"
             onClick={ReporteFaltantesPdfComponent}
@@ -556,6 +589,20 @@ const ConsultaPedidosFaltantes = () => {
           ) : (
             <p className="text-red-500">No hay ningún pedido seleccionado</p>
           )}
+        </div>
+      </Modal>
+      <Modal
+        isOpen={isModalAnularPedidoOpen}
+        onClose={() => setIsModalAnularPedidoOpen(false)}
+        title="Anular Pedido"
+        maxWidth="max-w-[1400px]"
+      >
+        <div className="flex flex-col gap-4 max-h-[80vh]">
+          <p>Por favor describa el motivo de la anulación</p>
+          <textarea className="w-full h-24 p-2 border rounded-md" value={motivoAnulacion} onChange={(e) => setMotivoAnulacion(e.target.value)} />
+          <button className="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600" onClick={handleAnularPedido}>
+            Anular Pedido
+          </button>
         </div>
       </Modal>
     </div>

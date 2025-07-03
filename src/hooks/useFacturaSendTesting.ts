@@ -109,9 +109,7 @@ export const useFacturaSendTesting = () => {
 
       const requestLogEntry = logRequest(apiUrl, "POST", datosFactura, headers);
 
-      console.log("Enviando factura individual a:", apiUrl);
-      console.log("Encabezado de autorización:", authHeader);
-      console.log("Datos a enviar:", datosFactura);
+
 
       const response = await axios.post(apiUrl, datosFactura, { headers });
 

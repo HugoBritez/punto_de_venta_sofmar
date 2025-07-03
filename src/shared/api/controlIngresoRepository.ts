@@ -71,6 +71,7 @@ export const controlIngresosRepository = {
     },
 
     async ConfirmarIngreso(dto: ConfirmarIngresoDTO): Promise<boolean> {
+        console.log('Datos a enviar', dto);
         const response = await api.post(`control-ingreso/confirmar`, dto);
         return response.data;
     }

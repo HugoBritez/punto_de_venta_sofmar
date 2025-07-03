@@ -19,21 +19,6 @@ export const buscarArticulos = async ({
   negativo
 }: BusquedaDTO): Promise<Articulo[]> => {
   try {
-    console.log("enviando datos en servicio", {
-      id_articulo,
-      codigo_barra,
-      busqueda,
-      deposito,
-      stock,
-      moneda,
-      marca,
-      categoria,
-      ubicacion,
-      proveedor,
-      cod_interno,
-      lote,
-      negativo
-    });
     const response = await axios.get(`${api_url}articulos/buscar-articulos`, {
       params: {
         articulo_id: id_articulo,
@@ -51,7 +36,6 @@ export const buscarArticulos = async ({
         negativo: negativo
       },
     });
-    console.log(response.data);
     return response.data.body;
   } catch (error) {
     console.error("Error al buscar artículos:", error);

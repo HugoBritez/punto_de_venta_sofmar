@@ -1,6 +1,6 @@
 export interface UbicacionDTO {
-    d_calle_inicial: string;
-    d_calle_final: string;
+    d_calle_inicial: number;
+    d_calle_final: number;
     d_predio_inicial: number;
     d_predio_final: number;
     d_piso_inicial: number;
@@ -13,8 +13,8 @@ export interface UbicacionDTO {
 
 export interface AgrupacionDTO {
     rango: {
-        d_calle_inicial: string;
-        d_calle_final: string;
+        d_calle_inicial: number;
+        d_calle_final: number;
         d_predio_inicial: number;
         d_predio_final: number;
         d_piso_inicial: number;
@@ -31,6 +31,8 @@ export interface Ubicacion {
     d_piso: number;
     d_direccion: number;
     d_tipo_direccion: number;
+    direccion_completa: string;
+    d_zona: number;
 }
 
 export interface ItemsPorDireccion {
@@ -44,8 +46,8 @@ export interface ItemsPorDireccionDTO {
   articulo: number;
   lote?: string;
   rango: {
-    d_calle_inicial: string;
-    d_calle_final: string;
+    d_calle_inicial: number;
+    d_calle_final: number;
     d_predio_inicial: number;
     d_predio_final: number;
     d_piso_inicial: number;

@@ -5,7 +5,6 @@ export const ListaPrecioRepository = {
 
     async GetListaPrecios(): Promise<ListaPrecio[]> {
         const response = await api.get(`lista-precios`);
-        console.log("Lista de precios response:", response.data);
         return response.data.body;
     },
 

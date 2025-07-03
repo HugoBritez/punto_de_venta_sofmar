@@ -1,6 +1,34 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect, useMemo } from "react";
-import { buscarArticulos } from "../../../api/articulosApi";
+import { buscarArticuloPorCodigo, buscarArticulos } from "../../../api/articulosApi";
+
+export const useArticuloPorCodigo = (
+  codigoBarra: string,
+  deposito: number,
+  stock: boolean
+) => {
+  return useQuery({
+    queryKey: ['articuloPorCodigo', codigoBarra, deposito, stock],
+    queryFn: async () => {
+      try {
+        const response = await buscarArticuloPorCodigo(codigoBarra, deposito, stock);
+        return response;
+      } catch (error: any) {
+        // Si el error es un status 204, significa que no se encontró el artículo
+        // pero no es un error real, así que retornamos null
+        if (error?.response?.status === 204) {
+          return null;
+        }
+        // Para otros errores, los propagamos
+        throw error;
+      }
+    },
+    enabled: Boolean(codigoBarra.length > 0 && deposito !== undefined && stock !== undefined),
+    staleTime: 0,
+    refetchOnWindowFocus: false,
+    retry: 0,
+  })
+}
 
 
 interface BusquedaParams {

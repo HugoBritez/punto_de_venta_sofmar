@@ -3,11 +3,7 @@ import react from "@vitejs/plugin-react"
 import { defineConfig } from "vite"
 import { VitePWA } from 'vite-plugin-pwa'
 
-
-
 export default defineConfig({
-
-  
   plugins: [
     react(),
     VitePWA({
@@ -30,8 +26,8 @@ export default defineConfig({
         ]
       },
       manifest: {
-        name: ' Gaesademo - Sofmar Sistema - Tu aliado comercial',
-        short_name: 'Gaesademo',
+        name: ' Caofa - Sofmar Sistema - Tu asistente comercial',
+        short_name: 'Sofmar',
         description: 'Sofmar  Sistema - Tu aliado comercial',
         theme_color: '#ffffff',
         background_color: '#ffffff',
@@ -58,8 +54,9 @@ export default defineConfig({
         enabled: true
       },
       strategies: 'injectManifest',
-      srcDir: 'public',
-      filename: 'sw.js'
+      injectManifest: {
+        injectionPoint: undefined
+      }
     })
   ],
   resolve: {

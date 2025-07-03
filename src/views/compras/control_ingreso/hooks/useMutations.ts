@@ -47,6 +47,14 @@ export const useConfirmarIngreso = () => {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["ingresos"] });
             queryClient.invalidateQueries({ queryKey: ["detalleIngreso"] });
+        },
+        onError: (error: any) => {
+            console.error('Error en useConfirmarIngreso hook:', error);
+            console.error('Datos del error:', error.response?.data);
+            console.error('Status del error:', error.response?.status);
+            
+            // Re-lanzar el error para que el componente pueda manejarlo
+            throw error;
         }
     });
 }

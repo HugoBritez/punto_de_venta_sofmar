@@ -15,7 +15,7 @@ export const ClientesRepository = {
     },
 
     async getClientePorId(id: number): Promise<ClienteViewModel> {
-         const response = await api.get(`clientes`,
+         const response = await api.get(`clientes/id`,
             {
                 params: {
                     id: id
@@ -24,5 +24,10 @@ export const ClientesRepository = {
         );
 
         return response.data.body[0];
+    },
+
+    async getClientePorDefecto(): Promise<ClienteViewModel> {
+        const response = await api.get(`clientes/defecto`);
+        return response.data.body;
     }
 }

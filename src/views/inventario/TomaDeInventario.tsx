@@ -493,6 +493,15 @@ const TomaDeInventario = () => {
     value: number;
   } | null>(null);
 
+  const [editandoLote, setEditandoLote] = useState<{
+    id: number;
+    value: string;
+  } | null>(null);
+  const [editandoVencimiento, setEditandoVencimiento] = useState<{
+    id: number;
+    value: string;
+  } | null>(null);
+
   const toast = useToast();
 
   const {
@@ -872,19 +881,7 @@ const TomaDeInventario = () => {
       });
 
       setInventarios(response.data.body);
-      console.log(response.data.body);
       return response.data.body;
-
-      if (response.data.body.length === 0) {
-        toast({
-          title: "Sin resultados",
-          description:
-            "No se encontraron inventarios con los criterios especificados",
-          status: "info",
-          duration: 3000,
-          isClosable: true,
-        });
-      }
     } catch (error) {
       const errorMsg =
         error instanceof AxiosError
@@ -1126,10 +1123,6 @@ const TomaDeInventario = () => {
 
   async function insertarItemsEnInventario() {
     try {
-      console.log('inventario seleccionado', inventarioSeleccionado);
-      console.log('tipo inventario', tipoInventario);
-      console.log('categorias seleccionadas', categoriasSeleccionadas);
-      console.log('articulo seleccionado', articuloSeleccionado);
       if (inventarioSeleccionado?.id === undefined) {
         toast({
           title: "Error",
@@ -1283,7 +1276,7 @@ const TomaDeInventario = () => {
     cantidad: number,
     lote: string,
     codigo_barras: string,
-    id_inventario: number
+    id_inventario: number,
   ) => {
     if (inventarioSeleccionado?.id === undefined) {
       toast({
@@ -1321,8 +1314,8 @@ const TomaDeInventario = () => {
       console.log(response);
 
       toast({
-        title: "Item escaneado",
-        description: "El item ha sido escaneado correctamente",
+        title: "Item actualizado",
+        description: "El item ha sido actualizado correctamente",
         status: "success",
       });
 
@@ -1330,8 +1323,8 @@ const TomaDeInventario = () => {
     } catch (error) {
       const errorMsg =
         error instanceof AxiosError
-          ? error.response?.data?.mensaje || "Error al escanear item"
-          : "Error inesperado al escanear item";
+          ? error.response?.data?.mensaje || "Error al actualizar item"
+          : "Error inesperado al actualizar item";
       toast({
         title: "Error",
         description: errorMsg,
@@ -1339,6 +1332,70 @@ const TomaDeInventario = () => {
       });
       console.error("[escanearItem]:", error);
     }
+  };
+
+  const actualizarLote = async (
+    id_articulo: number,
+    id_lote: number,
+    nuevo_lote: string
+  ) => {
+    const item = itemsEnInventario.find(item => item.lote_id === id_lote);
+    if (!item) {
+      toast({
+        title: "Error",
+        description: "Item no encontrado",
+        status: "error",
+      });
+      return;
+    }
+
+    await escanearItem(
+      id_articulo,
+      id_lote,
+      item.cantidad_escaneada || 0,
+      nuevo_lote,
+                                    item.cod_barra,
+      inventarioSeleccionado?.id || 0,
+    );
+  };
+
+  const actualizarVencimiento = async (
+    id_articulo: number,
+    id_lote: number,
+  ) => {
+    const item = itemsEnInventario.find(item => item.lote_id === id_lote);
+    if (!item) {
+      toast({
+        title: "Error",
+        description: "Item no encontrado",
+        status: "error",
+      });
+      return;
+    }
+
+    await escanearItem(
+      id_articulo,
+      id_lote,
+      item.cantidad_escaneada || 0,
+      item.lote,
+      item.cod_barra,
+      inventarioSeleccionado?.id || 0,
+    );
+  };
+
+  const handleEditarLote = async (
+    id_articulo: number,
+    id_lote: number,
+    nuevo_lote: string
+  ) => {
+    await actualizarLote(id_articulo, id_lote, nuevo_lote);
+  };
+
+  const handleEditarVencimiento = async (
+    id_articulo: number,
+    id_lote: number,
+  ) => {
+    await actualizarVencimiento(id_articulo, id_lote);
   };
 
   async function handleCambiarCantidadScaneada(
@@ -1849,10 +1906,99 @@ const TomaDeInventario = () => {
                         {item.descripcion}
                       </td>
                       <td className="border border-gray-300 px-2 truncate">
-                        {item.vencimiento}
+                        {editandoVencimiento?.id === item.lote_id ? (
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="date"
+                              className="w-32 px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              value={editandoVencimiento.value}
+                              onChange={(e) =>
+                                setEditandoVencimiento({
+                                  ...editandoVencimiento,
+                                  value: e.target.value,
+                                })
+                              }
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  handleEditarVencimiento(
+                                    item.articulo_id,
+                                    item.lote_id
+                                  );
+                                  setEditandoVencimiento(null);
+                                } else if (e.key === "Escape") {
+                                  setEditandoVencimiento(null);
+                                }
+                              }}
+                            />
+                            <button
+                              className="text-gray-500 hover:text-gray-700 p-1"
+                              onClick={() => setEditandoVencimiento(null)}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ) : (
+                          <div
+                            className="cursor-pointer hover:bg-gray-100 p-1 rounded transition-colors"
+                            onClick={() =>
+                              setEditandoVencimiento({
+                                id: item.lote_id,
+                                value: item.vencimiento || "",
+                              })
+                            }
+                          >
+                            {item.vencimiento || "Sin fecha"}
+                          </div>
+                        )}
                       </td>
                       <td className="border border-gray-300 px-2 truncate">
-                        {item.lote}
+                        {editandoLote?.id === item.lote_id ? (
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="text"
+                              className="w-24 px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              value={editandoLote.value}
+                              onChange={(e) =>
+                                setEditandoLote({
+                                  ...editandoLote,
+                                  value: e.target.value,
+                                })
+                              }
+                              autoFocus
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  handleEditarLote(
+                                    item.articulo_id,
+                                    item.lote_id,
+                                    editandoLote.value
+                                  );
+                                  setEditandoLote(null);
+                                } else if (e.key === "Escape") {
+                                  setEditandoLote(null);
+                                }
+                              }}
+                            />
+                            <button
+                              className="text-gray-500 hover:text-gray-700 p-1"
+                              onClick={() => setEditandoLote(null)}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ) : (
+                          <div
+                            className="cursor-pointer hover:bg-gray-100 p-1 rounded transition-colors"
+                            onClick={() =>
+                              setEditandoLote({
+                                id: item.lote_id,
+                                value: item.lote || "",
+                              })
+                            }
+                          >
+                            {item.lote || "Sin lote"}
+                          </div>
+                        )}
                       </td>
                       <td className="border border-gray-300 px-2 truncate">
                         {editandoCantidadInicial?.id === item.lote_id ? (

@@ -1,9 +1,9 @@
 import { api_url } from "@/utils";
 import axios from "axios";
 import { BusquedaDTO } from "../types/BusquedaDTO.type";
-import { Cliente } from "../types/cliente.type";
+import { ClienteViewModel } from "../types/cliente.type";
 export const clientesApi = {
-    getClientes: async (busqueda: BusquedaDTO): Promise<Cliente[]> => {
+    getClientes: async (busqueda: BusquedaDTO): Promise<ClienteViewModel[]> => {
         try {
             const response = await axios.get(`${api_url}clientes/get-clientes`, {
                 params: {
