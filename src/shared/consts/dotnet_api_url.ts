@@ -1,0 +1,1 @@
+export const dotnet_api_url = "https://localhost:4024/api/"

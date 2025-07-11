@@ -39,6 +39,7 @@ import {
   Podcast,
   Boxes,
   Menu,
+  User,
 } from "lucide-react";
 import { useAuth } from "@/services/AuthContext";
 import { db, fechaRelease, version } from "@/utils";
@@ -259,15 +260,15 @@ const Sidebar = () => {
               path: "/ventas/reporte-movimiento-productos",
               enabled: true,
             },
-            // {
-            //   grupo: 2,
-            //   orden: 116,
-            //   id: 51,
-            //   name: "Reporte Pedidos Facturados",
-            //   icon: FileChartColumnIncreasing,
-            //   path: "/reporte-pedidos-facturados",
-            //   enabled: true,
-            // },
+             {
+               grupo: 2,
+               orden: 116,
+               id: 51,
+               name: "Reporte Pedidos Facturados",
+               icon: FileChartColumnIncreasing,
+               path: "/reporte-pedidos-facturados",
+               enabled: true,
+             },
             {
               grupo: 2,
               orden: 36,
@@ -317,14 +318,31 @@ const Sidebar = () => {
       ],
     },
     {
-      name: "Modulo Inventario",
+      name: "Modulo CRM/ERP",
+      icon: User,
+      path: "/",
+      enabled: true,
+      subItems: [
+        {
+          grupo: 2,
+          orden: 18,
+          id: 68,
+          name: "Consulta de Ventas Proveedores",
+          icon: Truck,
+          path: "/consulta-ventas-proveedores",
+          enabled: true,
+        }
+      ],
+    },
+    {
+      name: "Modulo Stock",
       icon: Package,
       path: "/inventario",
       enabled: true,
       subItems: [
         {
-          grupo: 1,
-          orden: 1,
+          grupo: 999,
+          orden: 999,
           id: 1,
           name: "Formulario de Artículos",
           icon: Archive,
@@ -392,25 +410,7 @@ const Sidebar = () => {
           icon: Truck,
           path: "/ruteamientos",
           enabled: true,
-        },
-        // {
-        //   grupo: 2,
-        //   orden: 18,
-        //   id: 56,
-        //   name: "Iniciar Rutas",
-        //   icon: Truck,
-        //   path: "/rutas",
-        //   enabled: true,
-        // },
-        {
-          grupo: 2,
-          orden: 31,
-          id: 69,
-          name: "Dashboard Planificaciones",
-          icon: Truck,
-          path: "/rutas-dashboard",
-          enabled: true,
-        },
+        }
       ],
     },
     {

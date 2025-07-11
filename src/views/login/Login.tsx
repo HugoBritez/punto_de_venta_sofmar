@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../../services/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import {  Link, useNavigate } from 'react-router-dom';
 import { 
   Box, 
   Button, 
@@ -45,10 +45,12 @@ const Login: React.FC = () => {
         pass: password,
       });
 
+      console.log('response', response.data.body);
+
       // const permisosData = await traerConfiguraciones();
       // setPermisos(permisosData);
       login(response.data.body);
-      sessionStorage.setItem('permiso_graficos', response.data.body.usuario[0].op_graficos);
+      sessionStorage.setItem('permiso_graficos', response.data.body.usuario.op_graficos);
       navigate('/home');
       Auditar(10, 4, userID, 0, 'Inicio de Sesión desde la web');
       getConfiguraciones();
@@ -149,6 +151,13 @@ const Login: React.FC = () => {
           </Button>
 
           <Box alignItems={'center'} textAlign={'center'} mt={4}>
+          <p className={`text-center ${isMobile ? 'text-xs' : 'text-sm'} text-gray-500 my-4`}>
+                        ¿No eres un usuario?{' '}
+                        <Link to="/proveedor-login" className="text-blue-500 hover:text-blue-600 font-medium">
+                            Inicia sesión como proveedor
+                        </Link>
+                    </p>
+
           <Text fontWeight={'bold'} fontSize={isMobile? 'xs' : 'md'} color={'gray.500'}>Celular: 0971 271 288</Text>
           <Text fontWeight={'bold'} fontSize={isMobile? 'xs' : 'md'} color={'gray.500'}>E-Mail: administracion@sofmarsistemas.net</Text>
           </Box>

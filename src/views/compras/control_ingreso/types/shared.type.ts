@@ -26,6 +26,7 @@ export interface IngresoDetalle {
   lote: string;
   vencimiento: string | Date;
   responsable: string;
+  id_lote: number;
 }
 
 export interface FiltrosDTO {

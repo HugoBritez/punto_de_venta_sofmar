@@ -1,6 +1,6 @@
 import axios from 'axios';
 import api from '../../config/axios';
-import type { ArticuloBusqueda, ArticuloLote } from "../types/articulos";
+import type { ArticuloBusqueda, ArticuloDTO, ArticuloLote, ArticuloLoteDTO } from "../types/articulos";
 import { api_url } from '@/utils';
 
 
@@ -157,6 +157,8 @@ export const getArticulos = async (
       params.proveedor = true;
     }
 
+    console.log('params', params);
+
     const response = await axios.get(`${api_url}articulos/consulta-articulos`, {
       params
     });
@@ -209,3 +211,39 @@ export const consultarArticulo = async (
     throw error;
   }
 };
+
+export const crearArticulo = async (articulo: ArticuloDTO)=> {
+  try {
+    const response = await api.post('articulo', {
+      articulo    })
+    return response.data.body
+  } catch (error) {
+    console.error('Error al crear articulo:', error)
+    throw error
+  }
+}
+
+export const crearLote = async (lote: ArticuloLoteDTO)=> {
+  try {
+    const response = await api.post('articulo/lote', lote)
+    return response.data.body
+  } catch (error) {
+    console.error('Error al crear lote:', error)
+    throw error
+  }
+}
+
+export const getLotesArticulo = async (articuloId: number)=> {
+  try {
+    const response = await api.get(`articulo/lotes/`, {
+      params: {
+        articulo_id:articuloId
+      }
+    })
+    console.log("response", response)
+    return response.data.body
+  } catch (error) {
+    console.error('Error al obtener lotes de articulo:', error)
+    throw error
+  }
+}

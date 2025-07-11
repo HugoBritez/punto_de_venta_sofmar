@@ -9,6 +9,8 @@ import { ChartColumn } from "lucide-react";
 import { Ingreso, IngresoDetalle } from "../types/shared.type";
 import { useVerificarItem, useVerificarCompra } from "../hooks/useMutations";
 import { VerificacionItemDTO } from "@/shared/types/controlIngreso";
+import { useGetLotesArticulo } from "@/shared/hooks/querys/articulos/articulos";
+
 interface FloatingCardProps {
   facturas: Ingreso[];
   onSelect: (factura: Ingreso) => void;
@@ -106,6 +108,10 @@ const InventarioScanner = () => {
 
   const { mutate: verificarItem } = useVerificarItem();
   const { mutate: verificarCompra } = useVerificarCompra();
+
+  const { data: lotesArticulo } = useGetLotesArticulo(articuloSeleccionado?.articulo_id || 0);
+
+  const lotesFiltrados = lotesArticulo?.filter((lote: any) => lote.alDeposito === facturaSeleccionada?.deposito)
 
   const handleInputClick = (e: React.MouseEvent<HTMLInputElement>) => {
     e.preventDefault();
@@ -324,6 +330,8 @@ const InventarioScanner = () => {
     });
   }
 
+
+
   return (
     <div className="h-screen w-full flex flex-col overflow-hidden">
       {/* Header Fijo */}
@@ -485,8 +493,7 @@ const InventarioScanner = () => {
                   <label className="block text-md font-medium text-gray-700 mb-1">
                     Lote
                   </label>
-                  <input
-                    type="text"
+                  <select
                     className="w-full p-2 border rounded"
                     value={articuloFields.lote || ''}
                     disabled={articuloSeleccionado?.lote === '' || articuloSeleccionado?.lote === null}
@@ -496,7 +503,11 @@ const InventarioScanner = () => {
                           lote: e.target.value,
                       });
                     }}
-                  />
+                  >
+                    {lotesFiltrados?.map((lote: any) => (
+                      <option key={lote.alCodigo} value={lote.alLote}>{lote.alLote}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="w-full">
                   <label className="block text-md font-medium text-gray-700 mb-1">

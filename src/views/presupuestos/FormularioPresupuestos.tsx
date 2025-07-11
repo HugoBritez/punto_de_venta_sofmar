@@ -154,11 +154,9 @@ const FormularioPresupuestos = () => {
   const [observacionPresupuesto, setObservacionPresupuesto] =
     useState<string>("");
 
-  const [cantidadParaItem, setCantidadParaItem] = useState<number | null>(null);
-  const [descuentoParaItem, setDescuentoParaItem] = useState<number | null>(
-    null
-  );
-  const [precioParaItem, setPrecioParaItem] = useState<number | null>(null);
+  const [cantidadParaItem, setCantidadParaItem] = useState<number>(1);
+  const [descuentoParaItem, setDescuentoParaItem] = useState<number>(0);
+  const [precioParaItem, setPrecioParaItem] = useState<number>(0);
 
   const [totalDescuentoFactura, setTotalDescuentoFactura] = useState<
     number | null
@@ -171,6 +169,8 @@ const FormularioPresupuestos = () => {
   const descuentoItemInputRef = useRef<HTMLInputElement>(null);
   const busquedaItemPorIdInputRef = useRef<HTMLInputElement>(null);
   const busquedaItemInputRef = useRef<HTMLInputElement>(null);
+  const listaPrecioInputRef = useRef<HTMLSelectElement>(null);
+  const precioItemInputRef = useRef<HTMLInputElement>(null);
 
   const permisos_descuento = JSON.parse(
     sessionStorage.getItem("permisos_descuento") || "[]"
@@ -239,7 +239,7 @@ const FormularioPresupuestos = () => {
             articulo_id: id_articulo,
             codigo_barra: codigo_barra,
             busqueda: busqueda,
-            stock  : true
+            stock: true
           },
         }
       );
@@ -394,6 +394,9 @@ const FormularioPresupuestos = () => {
     setHoveredArticulo(null);
     setArticuloBusqueda("");
     setArticuloBusquedaId("");
+    setPrecioParaItem(item.precio_venta_guaranies);
+    setCantidadParaItem(1);
+    setDescuentoParaItem(0);
   };
 
   const crearItemValidado = (
@@ -402,16 +405,6 @@ const FormularioPresupuestos = () => {
     precio: number,
     descuento: number = 0
   ): ItemParaPresupuesto | null => {
-    // 1. Validaciones de stock
-    if (articulo.stock_negativo === 0 && cantidad > articulo.cantidad_lote && articulo.editar_nombre === 0) {
-      toast({
-        title: "Error",
-        description: "No hay stock disponible para este artículo",
-        status: "error",
-      });
-      return null;
-    }
-
     // 5. Cálculo de precios según lista seleccionada
     let precioEnGuaranies = 0;
     switch (listaPrecioSeleccionada?.lp_codigo) {
@@ -511,7 +504,7 @@ const FormularioPresupuestos = () => {
     const nuevoItem = crearItemValidado(
       articuloSeleccionado,
       cantidadParaItem || 1,
-      articuloSeleccionado.precio_venta_guaranies,
+      precioParaItem || articuloSeleccionado.precio_venta_guaranies, // Usar precio editado
       descuentoParaItem || 0
     );
 
@@ -520,14 +513,17 @@ const FormularioPresupuestos = () => {
       setArticuloSeleccionado(null);
       setCantidadParaItem(1);
       setDescuentoParaItem(0);
+      setPrecioParaItem(0); // Limpiar precio
       if(nuevoItem.editar_nombre === 1){
         setNuevaDescripcionItem(nuevoItem.descripcion);
       } else {
         setNuevaDescripcionItem('');
       }
     }
+    busquedaItemPorIdInputRef.current?.focus();
   };
 
+  
   const handleEliminarItem = (item: ItemParaPresupuesto) => {
     setItemParaPresupuesto(itemParaPresupuesto.filter((i) => i !== item));
   };
@@ -558,8 +554,8 @@ const FormularioPresupuestos = () => {
       e.preventDefault();
       const currentIndex = hoveredArticulo
         ? articulos.findIndex(
-            (a) => a.id_articulo === hoveredArticulo.id_articulo
-          )
+          (a) => a.id_articulo === hoveredArticulo.id_articulo
+        )
         : -1;
 
       if (e.key === "ArrowDown") {
@@ -574,22 +570,35 @@ const FormularioPresupuestos = () => {
     }
   };
 
-  const handleDescuentoKeyPress = (e: React.KeyboardEvent) => {
+  const handleCantidadKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
-      cantidadItemInputRef.current?.focus();
+      listaPrecioInputRef.current?.focus();
     }
   };
 
-  const handleCantidadKeyPress = (e: React.KeyboardEvent) => {
+  const handleListaPrecioKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      precioItemInputRef.current?.focus();
+    }
+  };
+
+  const handlePrecioKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      descuentoItemInputRef.current?.focus();
+    }
+  };
+
+
+  const handleDescuentoKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
       if (articuloSeleccionado) {
         agregarItemAPresupuesto();
       }
       setCantidadParaItem(1);
       setDescuentoParaItem(0);
-      busquedaItemPorIdInputRef.current?.focus();
     }
   };
+
 
   const handleCancelarPresupuesto = () => {
     setItemParaPresupuesto([]);
@@ -629,20 +638,20 @@ const FormularioPresupuestos = () => {
   }, []);
 
   useEffect(() => {
-    if (!sucursalSeleccionada) {
+    if (!sucursalSeleccionada && sucursales.length > 0) {
       setSucursalSeleccionada(sucursales[0]);
     }
-    if (!depositoSeleccionado) {
+    if (!depositoSeleccionado && depositos.length > 0) {
       setDepositoSeleccionado(depositos[0]);
     }
-    if (!listaPrecioSeleccionada) {
+    if (!listaPrecioSeleccionada && listaPrecios.length > 0) {
       setListaPrecioSeleccionada(listaPrecios[0]);
     }
-    if (!monedaSeleccionada) {
+    if (!monedaSeleccionada && monedas.length > 0) {
       console.log("monedas", monedas);
       setMonedaSeleccionada(monedas[0]);
     }
-  }, [sucursales, depositos]);
+  }, [sucursales, depositos, monedas, listaPrecios]);
 
   const totalExentas = itemParaPresupuesto.reduce(
     (total, item) => total + item.depre_exentas,
@@ -677,7 +686,7 @@ const FormularioPresupuestos = () => {
     if (num === undefined || num === null) {
       return "0";
     }
-    
+
     if (typeof num === "string") {
       num = Number(num);
       return num.toLocaleString("es-PY", {
@@ -700,6 +709,16 @@ const FormularioPresupuestos = () => {
 
   const guardarPresupuesto = async () => {
     try {
+
+      console.log("clienteSeleccionado", clienteSeleccionado);
+      console.log("vendedorSeleccionado", vendedorSeleccionado);
+      console.log("itemParaPresupuesto", itemParaPresupuesto);
+      console.log("monedaSeleccionada", monedaSeleccionada);
+      console.log("totalDescuentoFactura", totalDescuentoFactura);
+      console.log("observacionPresupuesto", observacionPresupuesto);
+      console.log("plazoEntrega", plazoEntrega);
+
+
       if (!clienteSeleccionado) {
         toast({
           title: "Error",
@@ -728,7 +747,7 @@ const FormularioPresupuestos = () => {
         return;
       }
 
-      if(!monedaSeleccionada){
+      if (!monedaSeleccionada) {
         toast({
           title: "Error",
           description: "Debe seleccionar una moneda",
@@ -819,9 +838,9 @@ const FormularioPresupuestos = () => {
     setArticuloBusqueda("");
     setArticuloBusquedaId("");
     setArticuloSeleccionado(null);
-    setCantidadParaItem(null);
-    setDescuentoParaItem(null);
-    setPrecioParaItem(null);
+    setCantidadParaItem(1);
+    setDescuentoParaItem(0);
+    setPrecioParaItem(0);
   }
 
   function handleGuardarDetalleAdicional() {
@@ -852,37 +871,37 @@ const FormularioPresupuestos = () => {
           },
         }
       );
-      
+
       // Guardamos el código del presupuesto
       setCodigoPresupuesto(response.data.body.pre_codigo);
-      
+
       // Guardamos el presupuesto completo
       setPresupuestoRecuperado(response.data.body);
-      
+
       // Asignamos los items directamente desde la respuesta
       // Aseguramos que items sea un array
       const items = Array.isArray(response.data.body.items) ? response.data.body.items : [];
       setItemParaPresupuesto(items);
-      
+
       // Buscamos el cliente, operador y vendedor por sus IDs
       handleBuscarClientePorId(response.data.body.pre_cliente);
       handleBuscarOperadorPorId(response.data.body.pre_operador);
       handleBuscarVendedorPorId(response.data.body.pre_vendedor);
-      
+
       // Seleccionamos la moneda correspondiente
       setMonedaSeleccionada(
         monedas.find(
           (moneda) => moneda.mo_codigo === response.data.body.pre_moneda
         ) || null
       );
-      
+
       // Asignamos los demás campos del presupuesto
       setObservacionPresupuesto(response.data.body.pre_obs || "");
       setPlazoEntrega(response.data.body.pre_plazo || "8 Dias");
       setValidezOferta(response.data.body.pre_validez || "8 Dias");
       setTipoFlete(response.data.body.pre_flete || "");
       setCondicionPago(response.data.body.pre_condicion || "8 Dias");
-      
+
       // Seleccionamos la sucursal y depósito correspondientes
       setSucursalSeleccionada(
         sucursales.find(
@@ -894,13 +913,13 @@ const FormularioPresupuestos = () => {
           (deposito) => deposito.dep_codigo === response.data.body.pre_deposito
         ) || null
       );
-      
+
       // Si hay un item con editar_nombre = 1, actualizamos la descripción
       const itemEditable = items.find((item: ItemParaPresupuesto) => item.editar_nombre === 1);
       if (itemEditable) {
         setNuevaDescripcionItem(itemEditable.depre_descripcio_art || "");
       }
-      
+
       toast({
         title: "Presupuesto recuperado",
         description: `Presupuesto #${response.data.body.pre_codigo} recuperado correctamente`,
@@ -927,12 +946,12 @@ const FormularioPresupuestos = () => {
     root.render(
       <NotaPresupuesto
         presupuesto={presupuesto}
-        onComplete={() => {}}
-        onError={() => {}}
+        onComplete={() => { }}
+        onError={() => { }}
         mostrarSubtotal={mostrarSubtotalCheck}
         mostrarTotal={mostrarTotalCheck}
         mostrarMarca={mostrarMarcaCheck}
-        action={isMobile? "download" : impresoraCheck ? "print" : pdfCheck ? "download" : "print"}
+        action={isMobile ? "download" : impresoraCheck ? "print" : pdfCheck ? "download" : "print"}
       />
     );
 
@@ -942,46 +961,71 @@ const FormularioPresupuestos = () => {
     }, 2000);
   };
 
-    useEffect(() => {
-      const handleGlobalEnter = (e: KeyboardEvent) => {
-        if (e.key === "Enter" && document.activeElement === document.body) {
-          e.preventDefault();
-          clienteRef.current?.focus();
-        }
-      };
+  useEffect(() => {
+    const handleGlobalEnter = (e: KeyboardEvent) => {
+      // Solo activar cuando se presiona Enter y el elemento activo es específicamente el body
+      // o cuando no hay ningún elemento enfocado
+      const activeElement = document.activeElement;
+      
+      // Verificar que realmente estemos en el body o que no haya elemento activo
+      const isBodyOrNoElement = activeElement === document.body || 
+                               activeElement === document.documentElement ||
+                               activeElement === null;
+      
+      // Verificar que no estemos en ningún tipo de input
+      const isInputElement = activeElement instanceof HTMLInputElement || 
+                            activeElement instanceof HTMLTextAreaElement || 
+                            activeElement instanceof HTMLSelectElement ||
+                            activeElement instanceof HTMLButtonElement;
+      
+      // Verificar que no estemos en un modal o componente flotante
+      const isInModal = activeElement?.closest('[role="dialog"]') || 
+                       activeElement?.closest('.modal') ||
+                       activeElement?.closest('[data-modal]');
+      
+      // Verificar que no estemos en el FloatingCard
+      const isInFloatingCard = activeElement?.closest('.floating-card') ||
+                              document.querySelector('.floating-card')?.contains(activeElement);
+      
+      if (e.key === "Enter" && isBodyOrNoElement && !isInputElement && !isInModal && !isInFloatingCard) {
+        e.preventDefault();
+        clienteRef.current?.focus();
+      }
+    };
 
-      document.addEventListener("keydown", handleGlobalEnter);
-      return () => {
-        document.removeEventListener("keydown", handleGlobalEnter);
-      };
-    }, []);
+    // Usar capture: false (por defecto) para que no interfiera con otros eventos
+    document.addEventListener("keydown", handleGlobalEnter);
+    return () => {
+      document.removeEventListener("keydown", handleGlobalEnter);
+    };
+  }, []);
 
-      const handleClienteIdKeyPress = (
-        e: React.KeyboardEvent<HTMLInputElement>
-      ) => {
-        if (
-          e.key === "Enter" &&
-          clienteRef.current?.value !== "" &&
-          clienteRef.current?.value !== null
-        ) {
-          e.preventDefault();
-          vendedorRef.current?.focus();
-        } else if (
-          (e.key === "Enter" && clienteRef.current?.value === "") ||
-          clienteRef.current?.value === null
-        ) {
-          setIsBuscadorClientesOpen(true);
-        }
-      };
+  const handleClienteIdKeyPress = (
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    if (
+      e.key === "Enter" &&
+      clienteRef.current?.value !== "" &&
+      clienteRef.current?.value !== null
+    ) {
+      e.preventDefault();
+      vendedorRef.current?.focus();
+    } else if (
+      (e.key === "Enter" && clienteRef.current?.value === "") ||
+      clienteRef.current?.value === null
+    ) {
+      setIsBuscadorClientesOpen(true);
+    }
+  };
 
-      const handleVendedorKeyPress = (
-        e: React.KeyboardEvent<HTMLInputElement>
-      ) => {
-        if (e.key === "Enter" && vendedorRef.current?.value !== "" && vendedorRef.current?.value !== null) {
-          e.preventDefault();
-          busquedaItemPorIdInputRef.current?.focus();
-        } 
-      };
+  const handleVendedorKeyPress = (
+    e: React.KeyboardEvent<HTMLInputElement>
+  ) => {
+    if (e.key === "Enter" && vendedorRef.current?.value !== "" && vendedorRef.current?.value !== null) {
+      e.preventDefault();
+      busquedaItemPorIdInputRef.current?.focus();
+    }
+  };
 
   return (
     <Box
@@ -1017,18 +1061,16 @@ const FormularioPresupuestos = () => {
               className="ml-auto relative h-6 w-8 overflow-hidden"
             >
               <div
-                className={`absolute inset-0 transition-all duration-300 transform ${
-                  mostrarFiltros ? "opacity-100" : "opacity-0 rotate-90 scale-0"
-                }`}
+                className={`absolute inset-0 transition-all duration-300 transform ${mostrarFiltros ? "opacity-100" : "opacity-0 rotate-90 scale-0"
+                  }`}
               >
                 <X size={isMobile ? 24 : 32} color="white" />
               </div>
               <div
-                className={`absolute inset-0 transition-all duration-300 transform ${
-                  mostrarFiltros
+                className={`absolute inset-0 transition-all duration-300 transform ${mostrarFiltros
                     ? "opacity-0 -rotate-90 scale-0"
                     : "opacity-100"
-                }`}
+                  }`}
               >
                 <Filter size={isMobile ? 24 : 32} color="white" />
               </div>
@@ -1495,7 +1537,7 @@ const FormularioPresupuestos = () => {
                   : "bg-white rounded-md p-2 "
               }
               placeholder="Cantidad"
-              value={cantidadParaItem || ""}
+              value={cantidadParaItem}
               onChange={(e) => setCantidadParaItem(Number(e.target.value))}
               ref={cantidadItemInputRef}
               onKeyDown={handleCantidadKeyPress}
@@ -1512,6 +1554,8 @@ const FormularioPresupuestos = () => {
                   ) || null
                 )
               }
+              ref={listaPrecioInputRef}
+              onKeyDown={handleListaPrecioKeyPress}
             >
               {listaPrecios.map((listaPrecio) => (
                 <option
@@ -1558,11 +1602,16 @@ const FormularioPresupuestos = () => {
               }
               placeholder="Precio Unitario"
               value={
-                articuloSeleccionado
-                  ? articuloSeleccionado.precio_venta_guaranies
-                  : precioParaItem || ""
+                precioParaItem > 0 
+                  ? precioParaItem 
+                  : articuloSeleccionado 
+                    ? articuloSeleccionado.precio_venta_guaranies
+                    : ""
               }
               onChange={(e) => setPrecioParaItem(Number(e.target.value))}
+              ref={precioItemInputRef}
+              onKeyDown={handlePrecioKeyPress}
+              readOnly= { true}
             />
             <input
               type="number"
@@ -1715,8 +1764,8 @@ const FormularioPresupuestos = () => {
                       item.estado_vencimiento === "VIGENTE"
                         ? "text-green-500"
                         : item.estado_vencimiento === "PROXIMO"
-                        ? "text-yellow-500"
-                        : "text-red-500"
+                          ? "text-yellow-500"
+                          : "text-red-500"
                     }
                   >
                     {item.vencimiento_lote}
@@ -2181,13 +2230,17 @@ const FormularioPresupuestos = () => {
           setArticuloSeleccionado(articulo);
           cantidadItemInputRef.current?.focus();
         }}
+        depositoInicial={depositoSeleccionado?.dep_codigo}
       />
       <BuscadorClientes
         isOpen={isBuscadorClientesOpen}
         setIsOpen={setIsBuscadorClientesOpen}
         onSelect={(cliente: Cliente) => {
           setClienteSeleccionado(cliente);
-          vendedorRef.current?.focus();
+          // Usar setTimeout para dar tiempo a que el modal se cierre
+          setTimeout(() => {
+            vendedorRef.current?.focus();
+          }, 100);
         }}
       />
     </Box>

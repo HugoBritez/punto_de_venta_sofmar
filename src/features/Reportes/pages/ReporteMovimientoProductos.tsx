@@ -17,12 +17,15 @@ import type { Ciudad } from "../../../shared/types/ciudad";
 import type { UsuarioViewModel } from "../../../shared/types/operador";
 import type { Moneda } from "../../../shared/types/moneda";
 import { useListaDePrecios } from "../../../shared/hooks/querys/useListaDePrecios";
-import { useActualizarMetaAcordada } from "../../../shared/hooks/mutations/ventas/actualizarMeta";
+import { useActualizarMetaAcordada, useActualizarMetaGeneral } from "../../../shared/hooks/mutations/ventas/actualizarMeta";
 import { exportarDatosAExcel } from "../../../shared/utils/exportarAExcel";
 import { esAdmin, esSupervisor } from "../../../shared/utils/permisosRoles";
 import { permisoVerCosto } from "../../../shared/utils/permisoVerCosto";
 import { FormButtons } from "../../../shared/components/FormButtons/FormButtons";
 import { ReporteMovimientoProductosPDF } from "../docs/ReporteMovimientoProductosPDF";
+import { useBuscarClientes } from "../../../shared/hooks/querys/useClientes";
+import { ClienteViewModel } from "@/shared/types/clientes";
+import { ClientesRepository } from "@/shared/api/clientesRepository";
 import { useToast } from "@chakra-ui/react";
 
 // Función helper para obtener datos del sessionStorage
@@ -46,65 +49,104 @@ const MetaAcordadaInput = ({
     row, 
     selectedVendedor, 
     formParams, 
-    actualizarMetaAcordada
+    actualizarMetaAcordada,
+    actualizarMetaGeneral
 }: {
     row: any;
     selectedVendedor: UsuarioViewModel | null;
     formParams: GetReporteMovimientoArticulosParams;
     actualizarMetaAcordada: any;
+    actualizarMetaGeneral: any;
 }) => {
     const [valor, setValor] = useState(
         row.original.metaAcordada !== undefined && row.original.metaAcordada !== null
             ? String(row.original.metaAcordada)
             : ""
     );
-
+    const [isSaving, setIsSaving] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
     const toast = useToast();
 
     const { rol } = getAuthData();
 
     useEffect(() => {
-        setValor(
-            row.original.metaAcordada !== undefined && row.original.metaAcordada !== null
-                ? String(row.original.metaAcordada)
-                : ""
-        );
-    }, [row.original.metaAcordada]);
-
-    const guardarMeta = useCallback(() => {
-        if (valor === "" || Number(valor) < 0) {
+        // Solo actualizar el valor si no está en modo edición
+        if (!isEditing) {
             setValor(
                 row.original.metaAcordada !== undefined && row.original.metaAcordada !== null
                     ? String(row.original.metaAcordada)
                     : ""
             );
-            return;
         }
+    }, [row.original.metaAcordada, isEditing]);
 
-        if (!selectedVendedor) {
+    const guardarMeta = useCallback(async () => {
+        // Validaciones
+        if (valor === "" || Number(valor) < 0) {
             toast({
-                title: "Error",
-                description: "No se puede actualizar la meta acordada sin seleccionar un vendedor",
-                status: "error",
+                title: "Valor inválido",
+                description: "La meta debe ser un número mayor o igual a 0",
+                status: "warning",
                 duration: 3000,
                 isClosable: true,
             });
+            setValor(
+                row.original.metaAcordada !== undefined && row.original.metaAcordada !== null
+                    ? String(row.original.metaAcordada)
+                    : ""
+            );
+            setIsEditing(false);
             return;
         }
 
-        actualizarMetaAcordada({
-            id: 0,
-            articuloId: row.original.codigoArticulo,
-            operadorId: selectedVendedor?.op_codigo,
-            metaAcordada: Number(valor),
-            periodo: formParams.AnioInicio,
-            estado: true
-        });
-    }, [valor, selectedVendedor, actualizarMetaAcordada, formParams.AnioInicio, row.original.codigoArticulo, row.original.metaAcordada]);
+        // Evitar guardar si el valor no cambió
+        const valorNumerico = Number(valor);
+        if (valorNumerico === row.original.metaAcordada) {
+            setIsEditing(false);
+            return;
+        }
+        setIsSaving(true);
+        try {
+            if (!selectedVendedor) {
+                console.log('Actualizando meta general 👌', valorNumerico);
+                await actualizarMetaGeneral({
+                    id: 0,
+                    arCodigo: row.original.codigoArticulo,
+                    metaGeneral: valorNumerico,
+                    periodo: formParams.AnioInicio,
+                    estado: 1
+                });
+            } else {
+                await actualizarMetaAcordada({
+                    id: 0,
+                    articuloId: row.original.codigoArticulo,
+                    operadorId: selectedVendedor?.op_codigo,
+                    metaAcordada: valorNumerico,
+                    periodo: formParams.AnioInicio,
+                    estado: 1
+                });
+            }
+        } catch (error) {
+            // El error ya se maneja en el hook de mutación
+            console.error('Error al guardar meta:', error);
+        } finally {
+            setIsSaving(false);
+            setIsEditing(false);
+        }
+        
+    }, [valor, selectedVendedor, actualizarMetaAcordada, actualizarMetaGeneral, formParams.AnioInicio, row.original.codigoArticulo, row.original.metaAcordada, toast, isEditing]);
 
     // SIMPLIFICAR drásticamente los event handlers
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setValor(e.target.value);
+    };
+
+    const handleFocus = () => {
+        setIsEditing(true);
+        // Si el valor es "0", limpiar el input para facilitar la edición
+        if (valor === "0") {
+            setValor("");
+        }
     };
 
     const handleBlur = () => {
@@ -127,17 +169,27 @@ const MetaAcordadaInput = ({
     }
 
     return (
-        <input
-            type="number"
-            min={0}
-            className="text-center border rounded border-blue-500 focus:border-blue-700 focus:ring-1 focus:ring-blue-700 px-2 py-1 w-full bg-white"
-            value={valor}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            onKeyDown={handleKeyDown}
-            autoComplete="off"
-            spellCheck="false"
-        />
+        <div className="relative">
+            <input
+                type="number"
+                className={`text-center border rounded border-none focus:border focus:border-blue-700 focus:ring-1 focus:ring-blue-700 px-2 py-1 w-full bg-white ${
+                    isSaving ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+                value={valor}
+                onChange={handleChange}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+                onKeyDown={handleKeyDown}
+                autoComplete="off"
+                spellCheck="false"
+                disabled={isSaving}
+            />
+            {isSaving && (
+                <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 rounded">
+                    <div className="w-4 h-4 border-2 border-blue-200 rounded-full animate-spin border-t-blue-600"></div>
+                </div>
+            )}
+        </div>
     );
 };
 
@@ -164,7 +216,7 @@ const ReporteMovimientoProductos = () => {
         CategoriaId: undefined,
         ClienteId: undefined,
         MarcaId: undefined,
-        ArticuloId: undefined,
+        ArticuloId: undefined,      
         CiudadId: undefined,
         SucursalId: undefined,
         DepositoId: undefined,
@@ -174,12 +226,15 @@ const ReporteMovimientoProductos = () => {
         MovimientoPorFecha: false,
     })
 
-    const { data: reporteMovimientoArticulos, isLoading, isError } = useGetReporteMovimientoArticulos(formParams);
+    const [busquedaCliente,] = useState('');
+    const [selectedCliente, setSelectedCliente] = useState<ClienteViewModel | null>(null);
 
+    const { data: reporteMovimientoArticulos, isLoading, isError } = useGetReporteMovimientoArticulos(formParams);
     const { data: Sucursales, isLoading: isLoadingSucursales } = useSucursales();
     const { data: Categorias, isLoading: isLoadingCategorias, isError: isErrorCategorias } = useGetCategorias();
     const { data: Marcas, isLoading: isLoadingMarcas, isError: isErrorMarcas } = useGetMarcas();
     const { data: Vendedores, isLoading: isLoadingVendedores, isError: isErrorVendedores } = useUsuarios(undefined, 5);
+    const { data: Clientes, isLoading: isLoadingClientes, isError: isErrorClientes } = useBuscarClientes(busquedaCliente);
     const { data: ListaPrecios } = useListaDePrecios();
 
     const [selectedSucursal, setSelectedSucursal] = useState<SucursalViewModel | null>(null);
@@ -262,6 +317,11 @@ const ReporteMovimientoProductos = () => {
         })
     }
 
+    const handleClienteSearch = async (busqueda: string) => {
+        const clientes = await ClientesRepository.buscarClientes(busqueda);
+        return clientes;
+    }
+
     const handleGenerarExcel = async () => {
         if (!reporteMovimientoArticulos?.detalles || reporteMovimientoArticulos.detalles.length === 0) {
             return;
@@ -328,6 +388,7 @@ const ReporteMovimientoProductos = () => {
     };
 
     const { mutate: actualizarMetaAcordada } = useActualizarMetaAcordada();
+    const { mutate: actualizarMetaGeneral } = useActualizarMetaGeneral();
 
     // Genera dinámicamente las columnas de años según cantidadAnios
     const getYearColumns = () => {
@@ -338,17 +399,17 @@ const ReporteMovimientoProductos = () => {
                 {
                     accessorKey: `cantidadAnio${i + 1}`,
                     header: `Unidades ${year}`,
-                    size: 120,
+                    size: 150,
                     cell: ({ row }: any) => (
                         <div className="text-center">
-                            {row.original[`cantidadAnio${i + 1}`]}
+                            {row.original[`cantidadAnio${i + 1}`]?.toLocaleString('es-PY')}
                         </div>
                     ),
                 },
                 {
                     accessorKey: `importeAnio${i + 1}`,
                     header: `Importe ${year}`,
-                    size: 120,
+                    size: 180,
                     cell: ({ row }: any) => (
                         <div className="text-right">
                             {row.original[`importeAnio${i + 1}`]?.toLocaleString('es-PY')}
@@ -386,6 +447,7 @@ const ReporteMovimientoProductos = () => {
                     selectedVendedor={selectedVendedor}
                     formParams={formParams}
                     actualizarMetaAcordada={actualizarMetaAcordada}
+                    actualizarMetaGeneral={actualizarMetaGeneral}
                 />
             )
         },
@@ -395,7 +457,7 @@ const ReporteMovimientoProductos = () => {
             size: 120,
             cell: ({ row }) => {
                 return <div className="text-center">
-                    {row.original.stock}
+                    {row.original.stock.toLocaleString('es-PY')}
                 </div>
             }
         },
@@ -779,7 +841,7 @@ const ReporteMovimientoProductos = () => {
     return (
         <div className="flex flex-col gap-4 h-[calc(100vh-32px)] p-1">
             <div className="p-2 bg-blue-200 rounded-md h-[10%] flex flex-row gap-4">
-                <div className="grid grid-cols-5 gap-2 w-[85%] relative" style={{ zIndex: 1000 }}>
+                <div className="grid grid-cols-6 gap-2 w-[85%] relative" style={{ zIndex: 1000 }}>
                     <div className="flex flex-row gap-2 h-full items-start w-full">
                         <div className="flex flex-col gap-1 w-full">
                         <label htmlFor="fechaDesde" className="text-slate-800 text-sm">Fecha desde</label>
@@ -796,26 +858,7 @@ const ReporteMovimientoProductos = () => {
                         />
                         </div>
                     </div>
-                    {/* <Autocomplete<ProveedoresViewModel>
-                        data={Proveedores || []}
-                        value={selectedProveedor || null}
-                        onChange={(proveedor) => {
-                            setSelectedProveedor(proveedor);
-                            handleFiltrosChange('ProveedorId', proveedor?.proCodigo.toString() || '');
-                        }}
-                        displayField="proRazon"
-                        searchFields={["proRazon", "proCodigo"]}
-                        additionalFields={[
-                            { field: "proCodigo", label: "Codigo" },
-                            { field: "proRazon", label: "Proveedor" }
-                        ]}
-                        label="Proveedor"
-                        isLoading={isLoadingProveedores}
-                        isError={isErrorProveedores}
-                        errorMessage="Error al cargar los proveedores"
-                        disabled={isLoadingSucursales}
-                        onSearch={handleProveedorSearch}
-                    /> */}
+                    
                     <Autocomplete<MarcaViewModel>
                         data={Marcas || []}
                         value={selectedMarca || null}
@@ -880,6 +923,48 @@ const ReporteMovimientoProductos = () => {
                         }
                         idField="op_codigo"
                     />
+                    <Autocomplete<ClienteViewModel>
+                        data={Clientes || []}
+                        value={selectedCliente || null}
+                        onChange={(cliente) => {
+                            handleFiltrosChange('ClienteId', cliente?.cli_codigo.toString() || '');
+                            setSelectedCliente(cliente);
+                        }}
+                        displayField="cli_razon"
+                        searchFields={["cli_razon", "cli_codigo"]}
+                        additionalFields={[
+                            { field: "cli_codigo", label: "Codigo" },
+                            { field: "cli_razon", label: "Cliente" }
+                        ]}
+                        label="Cliente"
+                        isLoading={isLoadingClientes}
+                        isError={isErrorClientes}
+                        errorMessage="Error al cargar los clientes"
+                        disabled={isLoadingClientes}
+                        id="cliente"
+                        idField="cli_codigo"
+                        onSearch={handleClienteSearch}
+                    />
+                    {/* <Autocomplete<ProveedoresViewModel>
+                        data={Proveedores || []}
+                        value={selectedProveedor || null}
+                        onChange={(proveedor) => {
+                            setSelectedProveedor(proveedor);
+                            handleFiltrosChange('ProveedorId', proveedor?.proCodigo.toString() || '');
+                        }}
+                        displayField="proRazon"
+                        searchFields={["proRazon", "proCodigo"]}
+                        additionalFields={[
+                            { field: "proCodigo", label: "Codigo" },
+                            { field: "proRazon", label: "Proveedor" }
+                        ]}
+                        label="Proveedor"
+                        isLoading={isLoadingProveedores}
+                        isError={isErrorProveedores}
+                        errorMessage="Error al cargar los proveedores"
+                        disabled={isLoadingSucursales}
+                        onSearch={handleProveedorSearch}
+                    /> */}
                     {/* <Autocomplete<Moneda>
                         data={Monedas || []}
                         value={selectedMoneda || null}

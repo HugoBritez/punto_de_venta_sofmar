@@ -36,9 +36,9 @@ export const useGetArticulos = (
     queryKey,
     queryFn: () => getArticulos(
       params.busqueda,
-      params.deposito,
-      params.stock,
       params.moneda,
+      params.stock,
+      params.deposito,
       params.codigo_barra,
       params.cod_interno,
       params.tipo_busqueda

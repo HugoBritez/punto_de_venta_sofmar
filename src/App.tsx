@@ -58,6 +58,9 @@ import PWAUpdatePrompt from './shared/components/PWAUpdate/PWAUpdatePrompt';
 import { ListarArticulos } from "./features/Articulos/pages/ListarArticulos";
 import PuntoDeVentaWrapper from "./features/Ventas/views/PuntoDeVentaWrapper";
 import GestionDireccionesV2 from "./views/direcciones/GestionDireccionesV2";
+import { ProveedorLogin } from "./features/Login/view/ProveedorLogin";
+import { ConsultaVentasProveedores } from "./features/public/ConsultaVentasProveedor/ReporteVentasProveedores";
+  // import InventarioPannel from "./features/Inventario/views/InventarioPannel";
 
 const ProtectedLayout: React.FC = () => {
   const { auth, isLoading } = useAuth();
@@ -98,6 +101,8 @@ function App() {
           <Router>
             <Routes>
               <Route path="/login" element={<Login />} />
+              <Route path="/proveedor-login" element={<ProveedorLogin />} />
+              <Route path="/consulta-ventas-proveedores" element={<ConsultaVentasProveedores />} />
               <Route path="/auth" element={<Navigate to="/login" replace />} />
               <Route element={<ProtectedLayout />}>
                 <Route path="/personas" element={<PersonasList />} />

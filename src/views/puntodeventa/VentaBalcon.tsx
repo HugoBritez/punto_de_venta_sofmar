@@ -43,7 +43,7 @@ import {
   Printer,
 } from "lucide-react";
 import { ShoppingCart } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import FloatingCard from "@/modules/FloatingCard";
 import ModeloTicket from "../facturacion/ModeloTicket";
 import ModeloFacturaNuevo from "../facturacion/ModeloFacturaNuevo";
@@ -67,6 +67,7 @@ import { mapPuntoDeVentaToVenta } from "../ventas/core/utils/mappers";
 import { DetalleVenta } from "@/shared/types/venta";
 import { useCrearVenta } from "@/shared/hooks/mutations/ventas/crearVenta";
 import { useConfiguracionImperionPorDefectoVentaRapida } from "@/shared/hooks/querys/useConfiguraciones";
+import { FloatingLabelInput } from "@/shared/components/Inputs/FloatingLabelInput";
 
 interface ItemParaVenta {
   precio_guaranies: number;
@@ -219,6 +220,45 @@ const useTotalesVenta = (items: ItemParaVenta[]) => {
   return totales;
 };
 
+
+interface InputPrecioUnitarioProps {
+  item: ItemParaVenta;
+  handleCambiarPrecio: (e: React.ChangeEvent<HTMLInputElement>, item: ItemParaVenta) => void;
+}
+
+const InputPrecioUnitario = ({ item, handleCambiarPrecio }: InputPrecioUnitarioProps): React.JSX.Element => {
+  const [isFocused, setIsFocused] = useState(false);
+
+  // Formatea con separador de miles y sin decimales
+  const formatNumberWithSeparator = (num: number | string): string => {
+    // Convierte a número si es string
+    const value = typeof num === "string" ? parseFloat(num) : num;
+    if (isNaN(value)) return "";
+    return value.toLocaleString("es-PY", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
+  };
+
+  return (
+    <input
+      type={isFocused ? "number" : "text"}
+      min="0"
+      className={`border rounded-md p-1 text-right ${Number(item.deve_precio) !== Number(item.precio_original) ? "bg-yellow-100" : ""}`}
+      value={
+        isFocused
+          ? Number(item.deve_precio) || "" // Modo edición: valor puro
+          : formatNumberWithSeparator(item.deve_precio) // Modo visual: formateado
+      }
+      onChange={e => handleCambiarPrecio(e, item)}
+      onFocus={() => setIsFocused(true)}
+      onBlur={() => setIsFocused(false)}
+      style={{ textAlign: "right" }}
+    />
+  );
+};
+
+
 const VentaBalconNuevo = () => {
   const [isMobile] = useMediaQuery("(max-width: 768px)");
 
@@ -286,6 +326,8 @@ const VentaBalconNuevo = () => {
   const busquedaInputRef = useRef<HTMLInputElement>(null);
   const descuentoInputRef = useRef<HTMLInputElement>(null);
   const cantidadInputRef = useRef<HTMLInputElement>(null);
+  const bonificacionInputRef = useRef<HTMLSelectElement>(null);
+  const precioInputRef = useRef<HTMLSelectElement>(null);
 
   const tipoDocumentoKCInputRef = useRef<HTMLInputElement>(null);
   const tipoVentaKCInputRef = useRef<HTMLInputElement>(null);
@@ -324,7 +366,10 @@ const VentaBalconNuevo = () => {
 
   const { data: tipoDocumentoVentaRapida } = useConfiguracionImperionPorDefectoVentaRapida();
 
-  
+
+  const [esBonificacion, setEsBonificacion] = useState<number>(0);
+
+
 
 
   const [cuotasList, setCuotasList] = useState<
@@ -483,14 +528,11 @@ const VentaBalconNuevo = () => {
     }
   }
 
-
-  useEffect(()=> {
-    if (tipoDocumentoVentaRapida?.valor === "1" && opcionesFinalizacion.tipo_documento === "TICKET")
-    {
+  useEffect(() => {
+    if (tipoDocumentoVentaRapida?.valor === "1" && opcionesFinalizacion.tipo_documento === "TICKET") {
       setImprimirTicket(true);
       setImprimirNotaInterna(false);
-    } else if (tipoDocumentoVentaRapida?.valor === "2" && opcionesFinalizacion.tipo_documento === "TICKET")
-    {
+    } else if (tipoDocumentoVentaRapida?.valor === "2" && opcionesFinalizacion.tipo_documento === "TICKET") {
       setImprimirNotaInterna(true);
       setImprimirTicket(false);
     }
@@ -660,9 +702,12 @@ const VentaBalconNuevo = () => {
     articulo: ArticuloBusqueda,
     cantidad: number,
     descuento: number = 0,
-    vendedor: number = 0
+    vendedor: number = 0,
+    esBonificacion: number = 0
   ): ItemParaVenta | null => {
     // 1. Validaciones de stock
+
+    console.log("esBonificacion", esBonificacion);
 
     if (articulo.stock_negativo === 0 && cantidad > articulo.cantidad_lote) {
       toast({
@@ -711,29 +756,29 @@ const VentaBalconNuevo = () => {
 
     // 9. Crear el item con todas las validaciones aplicadas
     const nuevoItem = {
-      precio_guaranies: articulo.precio_venta_guaranies,
-      precio_dolares: articulo.precio_venta_dolar,
-      precio_reales: articulo.precio_venta_real,
-      precio_pesos: articulo.precio_venta_pesos,
+      precio_guaranies: esBonificacion === 1 ? 0 : articulo.precio_venta_guaranies,
+      precio_dolares: esBonificacion === 1 ? 0 : articulo.precio_venta_dolar,
+      precio_reales: esBonificacion === 1 ? 0 : articulo.precio_venta_real,
+      precio_pesos: esBonificacion === 1 ? 0 : articulo.precio_venta_pesos,
       cod_barra: articulo.codigo_barra,
       deve_articulo: articulo.id_articulo,
       articulo: articulo.descripcion,
       deve_cantidad: cantidad,
-      deve_precio: precioUnitarioMonedaActual,
+      deve_precio: esBonificacion === 1 ? 0 : precioUnitarioMonedaActual,
       deve_descuento: descuento || 0,
-      deve_exentas: Number(deve_exentas),
-      deve_cinco: Number(deve_cinco),
-      deve_diez: Number(deve_diez),
+      deve_exentas: esBonificacion === 1 ? 0 : Number(deve_exentas),
+      deve_cinco: esBonificacion === 1 ? 0 : Number(deve_cinco),
+      deve_diez: esBonificacion === 1 ? 0 : Number(deve_diez),
       deve_devolucion: 0,
       deve_vendedor: vendedor || Number(vendedorSeleccionado?.op_codigo) || 0,
       deve_color: null,
-      deve_bonificacion: null,
+      deve_bonificacion: esBonificacion,
       deve_talle: null,
       deve_codioot: null,
       deve_costo: null,
       deve_costo_art: null,
-      deve_cinco_x: deve_cinco > 0 ? Number(deve_cinco * 0.05) : 0,
-      deve_diez_x: deve_diez > 0 ? Number(deve_diez * 0.1) : 0,
+      deve_cinco_x: esBonificacion === 1 ? 0 : deve_cinco > 0 ? Number(deve_cinco * 0.05) : 0,
+      deve_diez_x: esBonificacion === 1 ? 0 : deve_diez > 0 ? Number(deve_diez * 0.1) : 0,
       editar_nombre: articulo.editar_nombre,
       deve_lote: articulo.lote,
       loteid: articulo.id_lote,
@@ -749,7 +794,10 @@ const VentaBalconNuevo = () => {
     const nuevoItem = crearItemValidado(
       articuloSeleccionado,
       cantidad,
-      descuento || 0
+      descuento || 0,
+      Number(vendedorSeleccionado?.op_codigo) || 0,
+      esBonificacion
+
     );
 
     if (nuevoItem) {
@@ -824,9 +872,11 @@ const VentaBalconNuevo = () => {
       }
       setCantidad(1);
       setDescuento(0);
+      setEsBonificacion(0);
       busquedaPorIdInputRef.current?.focus(); // Volvemos al input de búsqueda
     }
   };
+
   //asdfas
   const handleCancelarVenta = () => {
     setItemsParaVenta([]);
@@ -834,6 +884,7 @@ const VentaBalconNuevo = () => {
     setArticuloBusqueda("");
     setCantidad(1);
     setDescuento(0);
+    setEsBonificacion(0);
     setClienteSeleccionado(null);
     setClienteBusqueda("");
     setVendedorSeleccionado(null);
@@ -1557,7 +1608,7 @@ const VentaBalconNuevo = () => {
       }));
 
 
-      
+
       // Enviar datos al backend
       crearVenta(
         {
@@ -1567,7 +1618,7 @@ const VentaBalconNuevo = () => {
         {
           onSuccess: (data) => {
             console.log('Venta creada exitosamente:', data);
-            
+
             toast({
               title: "Éxito",
               description: "Venta realizada correctamente",
@@ -1575,7 +1626,7 @@ const VentaBalconNuevo = () => {
               duration: 3000,
             });
 
-            
+
             onCloseKCOpen();
 
             handleCancelarVenta();
@@ -1597,13 +1648,13 @@ const VentaBalconNuevo = () => {
                     : await imprimirFacturaComponente(ventaId, "print");
                 }
               }
-              
+
               if (imprimirTicket) {
                 isMobile
                   ? await imprimirTicketCompontente(ventaId, "download")
                   : await imprimirTicketCompontente(ventaId, "print");
               }
-              
+
               if (imprimirNotaInterna) {
                 isMobile
                   ? await imprimirNotaComunComponente(ventaId, "download")
@@ -2099,6 +2150,14 @@ const VentaBalconNuevo = () => {
         return;
       }
 
+      if (document.activeElement === bonificacionInputRef.current) {
+        cantidadInputRef.current?.focus();
+      }
+
+      if (document.activeElement === precioInputRef.current && e.key === "Enter") {
+        bonificacionInputRef.current?.focus();
+      }
+
       // Mantenemos los atajos existentes
       if (e.key === "F6") {
         e.preventDefault();
@@ -2166,6 +2225,14 @@ const VentaBalconNuevo = () => {
   ]);
 
   const handleKCKeyDown = (e: React.KeyboardEvent) => {
+    if (document.activeElement === bonificacionInputRef.current) {
+      return;
+    }
+
+    if (document.activeElement === precioInputRef.current) {
+      return;
+    }
+
     // Para el input de tipo de documento
     if (document.activeElement === tipoDocumentoKCInputRef.current) {
       if (e.key === "1") {
@@ -2548,6 +2615,21 @@ const VentaBalconNuevo = () => {
       getArticulos("", null, valor);
     }
   };
+
+  const calcularPreciosInput = (iva: number, precio: number) => {
+    const exentas = iva === 1 ? precio : 0;
+    const cinco = iva === 3 ? precio : 0;  // ✅ Corregido: IVA 5% es tipo 3
+    const diez = iva === 2 ? precio : 0;   // ✅ Corregido: IVA 10% es tipo 2
+
+    return {
+      iva: iva.toString(),
+      exentas: exentas.toString(),
+      cinco: cinco.toString(),
+      diez: diez.toString()
+    }
+  }
+
+
 
   return (
     <Box
@@ -2934,12 +3016,27 @@ const VentaBalconNuevo = () => {
                     ) || null
                   );
                 }}
+                ref={precioInputRef}
               >
                 {listaPrecios.map((precio) => (
                   <option value={precio.lp_codigo}>
                     {precio.lp_descripcion}
                   </option>
                 ))}
+              </select>
+              <select
+                className="border rounded-md p-2"
+                value={esBonificacion}
+                name=""
+                id=""
+                onChange={(e) => {
+                  setEsBonificacion(Number(e.target.value));
+                  console.log("esBonificacion", e.target.value);
+                }}
+                ref={bonificacionInputRef}
+              >
+                <option value="0">V</option>
+                <option value="1">B</option>
               </select>
               <input
                 type="number"
@@ -2952,6 +3049,38 @@ const VentaBalconNuevo = () => {
                 min={1}
                 ref={cantidadInputRef}
                 onKeyDown={handleCantidadKeyPress}
+              />
+              <FloatingLabelInput
+                label="Lote"
+                type="text"
+                value={articuloSeleccionado?.lote || ""}
+                disabled={true}
+                className="w-48"
+                onChange={() => { }}
+              />
+              <FloatingLabelInput
+                label="Exentas"
+                type="text"
+                value={calcularPreciosInput(articuloSeleccionado?.iva || 1, articuloSeleccionado?.precio_venta_guaranies || 0).exentas}
+                disabled={true}
+                className="w-48"
+                onChange={() => { }}
+              />
+              <FloatingLabelInput
+                label="5%"
+                type="text"
+                value={calcularPreciosInput(articuloSeleccionado?.iva || 1, articuloSeleccionado?.precio_venta_guaranies || 0).cinco}
+                disabled={true}
+                className="w-48"
+                onChange={() => { }}
+              />
+              <FloatingLabelInput
+                label="10%"
+                type="text"
+                value={calcularPreciosInput(articuloSeleccionado?.iva || 1, articuloSeleccionado?.precio_venta_guaranies || 0).diez}
+                disabled={true}
+                className="w-48"
+                onChange={() => { }}
               />
               <Button colorScheme="green" onClick={agregarItemAVenta}>
                 <Plus />
@@ -3092,18 +3221,7 @@ const VentaBalconNuevo = () => {
                       <td className="text-center">{item.deve_lote}</td>
                       <td className="text-center">{item.deve_vencimiento}</td>
                       <td className="text-right">
-                        <input
-                          type="number"
-                          min="0"
-                          className={`border rounded-md p-1 ${item.deve_precio !== item.precio_original
-                            ? "bg-yellow-100"
-                            : ""
-                            }`}
-                          value={item.deve_precio}
-                          onChange={(e) => {
-                            handleCambiarPrecio(e, item);
-                          }}
-                        />
+                        <InputPrecioUnitario item={item} handleCambiarPrecio={handleCambiarPrecio} />
                       </td>
                       <td className="text-right">
                         <input
@@ -4025,7 +4143,12 @@ const VentaBalconNuevo = () => {
         setIsOpen={setIsArticuloModalOpen}
         onSelect={(articulo) => {
           setArticuloSeleccionado(articulo);
-          cantidadInputRef.current?.focus();
+          // Verificar permisos de descuento antes de hacer focus
+          if (permisos_descuento === 1) {
+            descuentoInputRef.current?.focus();
+          } else {
+            precioInputRef.current?.focus();
+          }
         }}
         depositoInicial={depositoSeleccionado?.dep_codigo}
       />

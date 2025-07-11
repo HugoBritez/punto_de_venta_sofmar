@@ -347,7 +347,8 @@ export default function ResumenVentas({
     setIsLoadingMore(pageNum > 1);
     setIsLoading(pageNum === 1);
     try {
-      const response = await axios.post(`${api_url}venta/consultas`, {
+      const response = await axios.get(`${api_url}venta/consultas`, {
+        params: {
         fecha_desde: fechaDesde,
         fecha_hasta: fechaHasta,
         sucursal: sucursalSeleccionadaFiltro?.id,
@@ -364,6 +365,7 @@ export default function ResumenVentas({
         listarFacturasSinCDC,
         page: pageNum,
         itemsPorPagina: 50,
+        }
       });
 
       const newVentas = response.data.body;
@@ -1245,7 +1247,7 @@ export default function ResumenVentas({
                       <th className="border border-gray-300">Cliente</th>
                       <th className="border border-gray-300">Fecha/Hora</th>
                       <th className="border border-gray-300">Nro. Factura</th>
-                      <th className="border border-gray-300">Total</th>
+                      <th className="border border-gray-300">Importe factura</th>
                       <th className="border border-gray-300">Saldo</th>
                       <th className="border border-gray-300">Descuento</th>
                       <th className="border border-gray-300">Vencimiento</th>

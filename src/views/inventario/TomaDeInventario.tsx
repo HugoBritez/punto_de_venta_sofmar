@@ -131,7 +131,7 @@ interface ItemsEnInventario {
   sub_ubicacion: string;
   lote: string;
   cantidad_inicial: number;
-  cantidad_escaneada: number;
+  cantidad_final: number;
   cantidad_actual: number;
   stock: number;
 }
@@ -926,6 +926,8 @@ const TomaDeInventario = () => {
         },
       });
 
+      console.log(response.data.body);
+
       setItemsEnInventario(response.data.body);
     } catch (error) {
       const errorMsg =
@@ -1352,7 +1354,7 @@ const TomaDeInventario = () => {
     await escanearItem(
       id_articulo,
       id_lote,
-      item.cantidad_escaneada || 0,
+      item.cantidad_final || 0,
       nuevo_lote,
                                     item.cod_barra,
       inventarioSeleccionado?.id || 0,
@@ -1376,7 +1378,7 @@ const TomaDeInventario = () => {
     await escanearItem(
       id_articulo,
       id_lote,
-      item.cantidad_escaneada || 0,
+      item.cantidad_final || 0,
       item.lote,
       item.cod_barra,
       inventarioSeleccionado?.id || 0,
@@ -1431,9 +1433,9 @@ const TomaDeInventario = () => {
   const totalInventariado = () => {
     const total = itemsEnInventario.filter(
       (item) =>
-        item.cantidad_escaneada != null &&
-        item.cantidad_escaneada != undefined &&
-        item.cantidad_escaneada != 0
+        item.cantidad_final != null &&
+        item.cantidad_final != undefined &&
+        item.cantidad_final != 0
     ).length;
     return total;
   };
@@ -2091,11 +2093,11 @@ const TomaDeInventario = () => {
                             onClick={() =>
                               setEditingItem({
                                 id: item.lote_id,
-                                value: item.cantidad_escaneada || 0,
+                                value: item.cantidad_final || 0,
                               })
                             }
                           >
-                            {item.cantidad_escaneada || 0}
+                            {item.cantidad_final || 0}
                           </div>
                         )}
                       </td>

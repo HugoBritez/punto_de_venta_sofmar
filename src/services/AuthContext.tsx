@@ -32,7 +32,7 @@ interface AuthState {
 
 interface LoginData {
   token: string;
-  usuario: [
+  usuario: 
     {
       op_codigo: string;
       op_nombre: string;
@@ -53,7 +53,7 @@ interface LoginData {
         editar: number;
       }[];
     }
-  ];
+
 }
 
 interface AuthContextType {
@@ -173,26 +173,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
   }, [auth?.tokenExpiration, lastActivity]);
 
   const login = (data: LoginData) => {
+
+    console.log('data en el hook de login', data);
     const expirationTime = new Date().getTime() + 30 * 60 * 1000;
 
-    const permisosMenu = Array.isArray(data.usuario[0].permisos_menu)
-      ? data.usuario[0].permisos_menu
+    const permisosMenu = Array.isArray(data.usuario.permisos_menu)
+      ? data.usuario.permisos_menu
       : [];
 
     const authData: AuthState = {
       token: `Bearer ${data.token}`,
-      userId: data.usuario[0].op_codigo,
-      userName: data.usuario[0].op_nombre,
-      userSuc: data.usuario[0].op_sucursal,
-      permisosAutorizarPedido: data.usuario[0].op_autorizar,
-      permisoVerUtilidad: data.usuario[0].op_ver_utilidad,
-      permisoVerProveedor: data.usuario[0].op_ver_proveedor,
-      permisos_descuento: data.usuario[0].op_aplicar_descuento,
+      userId: data.usuario.op_codigo,
+      userName: data.usuario.op_nombre,
+      userSuc: data.usuario.op_sucursal,
+      permisosAutorizarPedido: data.usuario.op_autorizar,
+      permisoVerUtilidad: data.usuario.op_ver_utilidad,
+      permisoVerProveedor: data.usuario.op_ver_proveedor,
+      permisos_descuento: data.usuario.op_aplicar_descuento,
       tokenExpiration: expirationTime,
-      rol: data.usuario[0].or_rol,
-      movimiento: data.usuario[0].op_movimiento,
+      rol: data.usuario.or_rol,
+      movimiento: data.usuario.op_movimiento,
       permisos_menu: permisosMenu,
     };
+    
     sessionStorage.setItem("token", authData.token);
     sessionStorage.setItem("user_id", authData.userId);
     sessionStorage.setItem("user_name", authData.userName);

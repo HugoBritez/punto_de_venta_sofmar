@@ -7,6 +7,9 @@ import { Menu, Grid, List, ChartColumn, ListStart } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import BusquedaPreparador from "./ui/BusquedaPreparador";
 import CortePedido from "./ui/CortePedido";
+import { useCambiarLote } from "@/shared/hooks/mutations/pedidos";
+import { useGetLotesArticulo } from "@/shared/hooks/querys/articulos/articulos";
+import Auditar from "@/services/AuditoriaHook";
 
 interface Articulo {
   ar_codigo: number;
@@ -161,6 +164,7 @@ const VerificacionPedidos = () => {
     }>
   >([]);
   const [cantidad, setCantidad] = useState<number | null>(null);
+  const [loteSeleccionado, setLoteSeleccionado] = useState<string | null>(null);
 
   const [pedidoSeleccionado, setPedidoSeleccionado] = useState<
     (typeof pedidosDisponibles)[number] | null
@@ -384,6 +388,7 @@ const VerificacionPedidos = () => {
 
   const handleSeleccionarArticulo = (articulo: Articulo) => {
     setArticuloSeleccionado(articulo);
+    setLoteSeleccionado(articulo.al_lote);
     setModalVisible(true);
   };
 
@@ -607,6 +612,27 @@ const VerificacionPedidos = () => {
       });
     }
   };
+
+  const { mutate: cambiarLote } = useCambiarLote();
+  
+  const { data: lotesArticulo, isLoading: isLoadingLotes } = useGetLotesArticulo(articuloSeleccionado?.ar_codigo || 0);
+
+  const lotesFiltrados = lotesArticulo?.filter((lote: any) => lote.alDeposito === deposito?.dep_codigo && lote.alCantidad > 0)
+
+  const handleCambiarLote = (idDetallePedido: number, lote: string, idLote: number) => {
+    if(!pedidoSeleccionado?.id_pedido) return;
+    cambiarLote({
+      idDetallePedido,
+      lote,
+      idLote
+    });
+    Auditar(1, 1, pedidoSeleccionado?.id_pedido, Number(sessionStorage.getItem("user_id")), "Cambio de lote desde el verificador de pedidos");
+    toast({
+      title: "Success",
+      description: "Lote cambiado correctamente",
+      status: "success",
+    });
+  }
 
   return (
     <div className="h-screen w-full flex flex-col overflow-hidden">
@@ -891,17 +917,31 @@ const VerificacionPedidos = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Lote
                   </label>
-                  <input
-                    placeholder={
-                      articuloSeleccionado?.ar_vencimiento === 1
-                        ? "Solo p/ lote nuevo"
-                        : ""
-                    }
-                    type="text"
+                  <select
                     className="w-full p-2 border rounded"
-                    value={articuloSeleccionado?.al_lote}
-                    disabled={true}
-                  />
+                    value={loteSeleccionado || ''}
+                    disabled={isLoadingLotes}
+                    onChange={(e) => {
+                      const loteSeleccionado = e.target.value;
+                      setLoteSeleccionado(loteSeleccionado);
+                      
+                      // Encontrar el lote seleccionado para obtener su código
+                      const loteEncontrado = lotesFiltrados?.find((lote: any) => lote.alLote === loteSeleccionado);
+                      const codigoLote = loteEncontrado?.alCodigo || 0;
+                      
+                      handleCambiarLote(articuloSeleccionado?.id_detalle || 0, loteSeleccionado, codigoLote);
+                    }}
+                  >
+                    {isLoadingLotes ? (
+                      <option value="">Cargando lotes...</option>
+                    ) : lotesFiltrados && lotesFiltrados.length > 0 ? (
+                      lotesFiltrados.map((lote: any) => (
+                        <option key={lote.alCodigo} value={lote.alLote}>{lote.alLote} <span className="text-xs text-gray-300">({lote.alCantidad})</span></option>
+                      ))
+                    ) : (
+                      <option value="">No hay lotes disponibles</option>
+                    )}
+                  </select>
                 </div>
               </div>
               <button

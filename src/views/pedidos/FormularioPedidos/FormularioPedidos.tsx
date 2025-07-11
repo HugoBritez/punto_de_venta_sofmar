@@ -499,7 +499,7 @@ const FormularioPedidos = () => {
                   )
                 );
               }}
-              value={sucursalSeleccionada?.descripcion}
+              value={sucursalSeleccionada?.id || ""}
             >
               {sucursales.map((sucursal) => (
                 <option key={sucursal.id} value={sucursal.id}>
@@ -523,7 +523,7 @@ const FormularioPedidos = () => {
                   )
                 )
               }
-              value={depositoSeleccionado?.dep_descripcion}
+              value={depositoSeleccionado?.dep_codigo || ""}
             >
               {depositos.map((deposito) => (
                 <option key={deposito.dep_codigo} value={deposito.dep_codigo}>
@@ -1168,6 +1168,7 @@ const FormularioPedidos = () => {
           setPrecioArticulo(articulo.precio_venta_guaranies);
         }}
         sucursalInicial={sucursalSeleccionada?.id}
+        depositoInicial={depositoSeleccionado?.dep_codigo}
       />
     </div>
   );

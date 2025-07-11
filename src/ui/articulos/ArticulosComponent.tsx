@@ -31,7 +31,7 @@ export const ArticulosComponent = ({
     id_articulo: undefined,
     codigo_barra: undefined,
     deposito: depositoInicial ?? undefined,
-    stock: false,
+    stock: true,
     moneda: undefined,
     marca: undefined,
     categoria: undefined,
@@ -80,9 +80,9 @@ export const ArticulosComponent = ({
     }
   }, [isOpen]);
 
-  useEffect(()=> {
+  useEffect(() => {
     const handleGlobalKeyDown = (event: KeyboardEvent) => {
-      if (event.key ===  "Escape") {
+      if (event.key === "Escape") {
         event.preventDefault();
         limpiarFiltros();
         setIsOpen(false);
@@ -115,11 +115,11 @@ export const ArticulosComponent = ({
         e.preventDefault();
         if (indiceSeleccionado >= 0) {
           const articuloSeleccionadoPorTeclado = resultadosBusqueda[indiceSeleccionado];
-          
+
           // Si ya hay un artículo seleccionado y es el mismo que se está seleccionando por teclado
           if (articuloSeleccionado && articuloSeleccionado.id_lote === articuloSeleccionadoPorTeclado.id_lote) {
             // Segundo Enter: confirmar la selección y cerrar modal
-            handleSeleccionarArticulo();
+            handleSeleccionarArticulo(e);
           } else {
             // Primer Enter: seleccionar el artículo (indicando que es selección por teclado)
             handleArticuloSeleccionado(articuloSeleccionadoPorTeclado, undefined, true);
@@ -213,22 +213,28 @@ export const ArticulosComponent = ({
   ) => {
     // Prevenir el comportamiento predeterminado si hay un evento
     event?.preventDefault();
-    
+
     // Si ya hay un artículo seleccionado y es el mismo que se está haciendo clic
     if (articuloSeleccionado && articuloSeleccionado.id_lote === articulo.id_lote) {
       // Segundo clic/Enter: confirmar la selección y cerrar modal
-      handleSeleccionarArticulo();
+      // Si es selección por teclado, crear un evento sintético para pasarlo
+      if (esSeleccionPorTeclado) {
+        const syntheticEvent = new KeyboardEvent('keydown', { key: 'Enter' }) as any;
+        handleSeleccionarArticulo(syntheticEvent);
+      } else {
+        handleSeleccionarArticulo();
+      }
     } else {
       // Primer clic/Enter: seleccionar el artículo
       console.log("Artículo seleccionado:", articulo);
       setArticuloSeleccionado(articulo);
-      
+
       // Solo resetear el índice de navegación por teclado cuando se selecciona por clic
       // No resetear cuando se selecciona por teclado para mantener el foco
       if (!esSeleccionPorTeclado) {
         setIndiceSeleccionado(-1);
       }
-      
+
       // Mostrar feedback visual con toast
       toast({
         title: "Artículo seleccionado",
@@ -322,13 +328,12 @@ export const ArticulosComponent = ({
                 key={resultado.id_lote}
                 ref={index === indiceSeleccionado ? selectedRowRef : null}
                 onClick={(e) => handleArticuloSeleccionado(resultado, e)}
-                className={`hover:bg-blue-100 cursor-pointer transition-all duration-200 ${
-                  articuloSeleccionado?.id_lote === resultado.id_lote
+                className={`hover:bg-blue-100 cursor-pointer transition-all duration-200 ${articuloSeleccionado?.id_lote === resultado.id_lote
                     ? "bg-blue-200 ring-2 ring-blue-500 shadow-md"
                     : indiceSeleccionado === index
-                    ? "bg-blue-100 ring-1 ring-blue-300"
-                    : ""
-                }`}
+                      ? "bg-blue-100 ring-1 ring-blue-300"
+                      : ""
+                  }`}
                 title={
                   articuloSeleccionado?.id_lote === resultado.id_lote
                     ? "Haz clic nuevamente para confirmar la selección"
@@ -360,15 +365,14 @@ export const ArticulosComponent = ({
                   {resultado.lote}
                 </td>
                 <td
-                  className={`px-4 py-2 font-medium border-r-2 border-gray-200 ${
-                    resultado.estado_vencimiento === "VENCIDO"
+                  className={`px-4 py-2 font-medium border-r-2 border-gray-200 ${resultado.estado_vencimiento === "VENCIDO"
                       ? "bg-red-300"
                       : resultado.estado_vencimiento === "PROXIMO"
-                      ? "bg-yellow-300"
-                      : resultado.precompra === 1
-                      ? "bg-cyan-300"
-                      : "bg-white"
-                  }`}
+                        ? "bg-yellow-300"
+                        : resultado.precompra === 1
+                          ? "bg-cyan-300"
+                          : "bg-white"
+                    }`}
                 >
                   {resultado.lote}
                 </td>
@@ -535,7 +539,11 @@ export const ArticulosComponent = ({
     );
   };
 
-  const handleSeleccionarArticulo = () => {
+  const handleSeleccionarArticulo = (event?: React.KeyboardEvent) => {
+    // Detener la propagación del evento para evitar que llegue al componente padre
+    event?.preventDefault();
+    event?.stopPropagation();
+
     if (articuloSeleccionado) {
       if (
         articuloSeleccionado.cantidad_lote < 0 &&
@@ -574,11 +582,11 @@ export const ArticulosComponent = ({
     if (indiceSeleccionado >= 0 && selectedRowRef.current) {
       const element = selectedRowRef.current;
       const container = element.closest('.overflow-y-auto');
-      
+
       if (container) {
         const elementRect = element.getBoundingClientRect();
         const containerRect = container.getBoundingClientRect();
-        
+
         // Solo hacemos scroll si el elemento está fuera del área visible
         if (elementRect.top < containerRect.top || elementRect.bottom > containerRect.bottom) {
           element.scrollIntoView({
@@ -940,7 +948,7 @@ export const ArticulosComponent = ({
               </button>
               <button
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors font-bold"
-                onClick={handleSeleccionarArticulo}
+                onClick={() => handleSeleccionarArticulo()}
               >
                 Seleccionar articulo
               </button>

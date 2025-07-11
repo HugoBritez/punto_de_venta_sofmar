@@ -177,3 +177,11 @@ export interface ActualizarMetaAcordadaDTO {
     periodo: number;
     estado: boolean;
 }
+
+export interface ActualizarMetaGeneralDTO {
+    id: number;
+    arCodigo: number;
+    metaGeneral: number;
+    periodo: number;
+    estado: number;
+}

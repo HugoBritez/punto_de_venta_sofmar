@@ -12,7 +12,7 @@ const BuscadorClientes = ({ isOpen, setIsOpen, onSelect }: BuscadorClientesProps
     <Modal
       isOpen={isOpen}
       onClose={() => setIsOpen(false)}
-      size="h-[calc(100vh-20rem)]"
+      size="h-[calc(100vh-15rem)]"
       maxWidth="max-w-[calc(100vw-60rem)]"
       backgroundColor="bg-gray-100"
     >

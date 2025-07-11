@@ -363,6 +363,33 @@ const formatearNumero = (num: number | string) => {
   });
 };
 
+// Agregar logs para diagnosticar el problema
+useEffect(() => {
+  console.log('Estado actualizado:', {
+    deposito: depositoSeleccionado?.dep_codigo,
+    moneda: monedaSeleccionada?.mo_codigo,
+    busqueda,
+    stock
+  });
+}, [depositoSeleccionado, monedaSeleccionada, busqueda, stock]);
+
+// Modificar los manejadores para agregar logs
+const handleDepositoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const nuevoDeposito = depositos.find(
+    (deposito) => deposito.dep_codigo === Number(e.target.value)
+  ) || null;
+  console.log('Cambiando depósito a:', nuevoDeposito?.dep_codigo);
+  setDepositoSeleccionado(nuevoDeposito);
+};
+
+const handleMonedaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const nuevaMoneda = monedas.find(
+    (moneda) => moneda.mo_codigo === Number(e.target.value)
+  ) || null;
+  console.log('Cambiando moneda a:', nuevaMoneda?.mo_codigo);
+  setMonedaSeleccionada(nuevaMoneda);
+};
+
   return (
     <Flex bg={"gray.100"} h={"100vh"} w={"100%"} p={2}>
       <div className=" w-full h-full">
@@ -417,16 +444,10 @@ const formatearNumero = (num: number | string) => {
                         borderColor={"gray.300"}
                         borderRadius="md"
                         size="sm"
+                        value={depositoSeleccionado?.dep_codigo || ""}
                         _hover={{ borderColor: "blue.400" }}
                         _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3B82F6" }}
-                        onChange={(e) =>
-                          setDepositoSeleccionado(
-                            depositos.find(
-                              (deposito) =>
-                                deposito.dep_codigo === Number(e.target.value)
-                            ) || null
-                          )
-                        }
+                        onChange={handleDepositoChange}
                       >
                         {depositos.map((deposito) => (
                           <option
@@ -451,16 +472,10 @@ const formatearNumero = (num: number | string) => {
                         borderColor={"gray.300"}
                         borderRadius="md"
                         size="sm"
+                        value={monedaSeleccionada?.mo_codigo || ""}
                         _hover={{ borderColor: "blue.400" }}
                         _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3B82F6" }}
-                        onChange={(e) =>
-                          setMonedaSeleccionada(
-                            monedas.find(
-                              (moneda) =>
-                                moneda.mo_codigo === Number(e.target.value)
-                            ) || null
-                          )
-                        }
+                        onChange={handleMonedaChange}
                       >
                         {monedas.map((moneda) => (
                           <option key={moneda.mo_codigo} value={moneda.mo_codigo}>
@@ -554,16 +569,10 @@ const formatearNumero = (num: number | string) => {
                       bg={"white"}
                       borderColor={"gray.300"}
                       borderRadius="md"
+                      value={depositoSeleccionado?.dep_codigo || ""}
                       _hover={{ borderColor: "blue.400" }}
                       _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3B82F6" }}
-                      onChange={(e) =>
-                        setDepositoSeleccionado(
-                          depositos.find(
-                            (deposito) =>
-                              deposito.dep_codigo === Number(e.target.value)
-                          ) || null
-                        )
-                      }
+                      onChange={handleDepositoChange}
                     >
                       {depositos.map((deposito) => (
                         <option
@@ -583,16 +592,10 @@ const formatearNumero = (num: number | string) => {
                       bg={"white"}
                       borderColor={"gray.300"}
                       borderRadius="md"
+                      value={monedaSeleccionada?.mo_codigo || ""}
                       _hover={{ borderColor: "blue.400" }}
                       _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3B82F6" }}
-                      onChange={(e) =>
-                        setMonedaSeleccionada(
-                          monedas.find(
-                            (moneda) =>
-                              moneda.mo_codigo === Number(e.target.value)
-                          ) || null
-                        )
-                      }
+                      onChange={handleMonedaChange}
                     >
                       {monedas.map((moneda) => (
                         <option key={moneda.mo_codigo} value={moneda.mo_codigo}>

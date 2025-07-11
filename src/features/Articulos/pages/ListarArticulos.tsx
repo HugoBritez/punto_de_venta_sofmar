@@ -15,8 +15,12 @@ import {
 
 import { useVirtualizer, VirtualItem, Virtualizer } from '@tanstack/react-virtual'
 import { ListaArticulo } from "../types/ListaArticulo";
+import Modal from "@/ui/modal/Modal";
+import { FormCrearArticulo } from "./FormCrearArticulo";
 
 export const ListarArticulos = () => {
+
+    const [isOpen, setIsOpen] = useState(false)
 
     const [params, setParams] = useState<getListaParams>({
         busqueda: "",
@@ -71,7 +75,7 @@ export const ListarArticulos = () => {
                     accessorKey: "codigo",
                     size: 150,
                     cell: ({ row }) => {
-                        return <div className="text-center">{row.original.codigo}</div>
+                        return <div className="text-center px-3 py-2 text-sm font-medium text-gray-900">{row.original.codigo}</div>
                     }
                 },
                 {
@@ -79,7 +83,7 @@ export const ListarArticulos = () => {
                     accessorKey: "descripcion",
                     size: 500,
                     cell: ({ row }) => {
-                        return <div className="text-center">{row.original.descripcion}</div>
+                        return <div className="text-left px-3 py-2 text-sm text-gray-700">{row.original.descripcion}</div>
                     }
                 },
                 {
@@ -87,7 +91,7 @@ export const ListarArticulos = () => {
                     accessorKey: "proveedor",
                     size: 300,
                     cell: ({ row }) => {
-                        return <div className="text-center">{row.original.proveedor}</div>
+                        return <div className="text-center px-3 py-2 text-sm text-gray-700">{row.original.proveedor}</div>
                     }
                 },
                 {
@@ -95,7 +99,7 @@ export const ListarArticulos = () => {
                     accessorKey: "marca",
                     size: 300,
                     cell: ({ row }) => {
-                        return <div className="text-center">{row.original.marca}</div>
+                        return <div className="text-center px-3 py-2 text-sm text-gray-700">{row.original.marca}</div>
                     }
                 },
                 {
@@ -103,7 +107,7 @@ export const ListarArticulos = () => {
                     accessorKey: "categoria",
                     size: 300,
                     cell: ({ row }) => {
-                        return <div className="text-center">{row.original.categoria}</div>
+                        return <div className="text-center px-3 py-2 text-sm text-gray-700">{row.original.categoria}</div>
                     }
                 },
                 // {
@@ -119,7 +123,7 @@ export const ListarArticulos = () => {
                     accessorKey: "iva",
                     size: 150,
                     cell: ({ row }) => {
-                        return <div className="text-center">{row.original.iva}</div>
+                        return <div className="text-center px-3 py-2 text-sm text-gray-700">{row.original.iva}</div>
                     }
                 },
                 {
@@ -127,7 +131,7 @@ export const ListarArticulos = () => {
                     accessorKey: "tipoMedida",
                     size: 150,
                     cell: ({ row }) => {
-                        return <div className="text-center">{row.original.tipoMedida}</div>
+                        return <div className="text-center px-3 py-2 text-sm text-gray-700">{row.original.tipoMedida}</div>
                     }
                 },
                 {
@@ -135,7 +139,7 @@ export const ListarArticulos = () => {
                     accessorKey: "unidadMedida",
                     size: 150,
                     cell: ({ row }) => {
-                        return <div className="text-center">{row.original.unidadMedida}</div>
+                        return <div className="text-center px-3 py-2 text-sm text-gray-700">{row.original.unidadMedida}</div>
                     }
                 },
                 {
@@ -143,7 +147,7 @@ export const ListarArticulos = () => {
                     accessorKey: "fraccionable",
                     size: 150,
                     cell: ({ row }) => {
-                        return <div className="text-center">{row.original.fraccionable}</div>
+                        return <div className="text-center px-3 py-2 text-sm text-gray-700">{row.original.fraccionable}</div>
                     }
                 }
             ]
@@ -167,7 +171,7 @@ export const ListarArticulos = () => {
             <EmptyState
                 actionButton={{
                     text: "Crear Artículo",
-                    onClick: () => console.log("Crear artículo"),
+                    onClick: () => setIsOpen(true),
                     icon: (
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -178,17 +182,16 @@ export const ListarArticulos = () => {
         )
 
         return (
-            <div className="bg-white rounded-lg shadow-sm border  w-full h-full">
-                {/* Aquí irá tu tabla de artículos */}
+            <div className="bg-white rounded-lg shadow-lg border border-gray-200 w-full h-full overflow-hidden">
                 <div className="flex" ref={tableContainerRef} style={{
                     overflow: 'auto',
                     position: 'relative',
                     height: '800px',
                 }}
                 >
-                    <table style={{ display: 'grid' }} className="w-full  ">
+                    <table style={{ display: 'grid' }} className="w-full border-collapse">
                         <thead
-                            className="bg-blue-500 p-2 text-white "
+                            className="bg-gradient-to-r from-blue-600 to-blue-700 text-white"
                             style={{
                                 display: 'grid',
                                 position: 'sticky',
@@ -197,28 +200,34 @@ export const ListarArticulos = () => {
                             }}
                         >
                             {table.getHeaderGroups().map(headerGroup => (
-                                <tr key={headerGroup.id} className="" style={{
+                                <tr key={headerGroup.id} className="border-b border-blue-500" style={{
                                     display: 'flex',
                                     width: '100%',
                                 }}
                                 >
-                                    {headerGroup.headers.map(header => {
+                                    {headerGroup.headers.map((header) => {
                                         return (
-                                            <th key={header.id} style={{
-                                                display: 'flex',
-                                                width: header.getSize(),
-                                            }}
+                                            <th key={header.id} 
+                                                className={`border-r border-blue-500 last:border-r-0 font-semibold text-sm py-3`}
+                                                style={{
+                                                    display: 'flex',
+                                                    width: header.getSize(),
+                                                }}
                                             >
                                                 <div
+                                                    className={`flex items-center justify-center w-full ${
+                                                        header.column.getCanSort() ? 'cursor-pointer select-none hover:bg-blue-600 transition-colors' : ''
+                                                    }`}
                                                     {...{
-                                                        className: header.column.getCanSort() ? 'cursor-pointer select-none' : '',
                                                         onClick: header.column.getToggleSortingHandler(),
                                                     }}
                                                 >
-                                                    {flexRender(
-                                                        header.column.columnDef.header,
-                                                        header.getContext()
-                                                    )}
+                                                    <span className="mr-1">
+                                                        {flexRender(
+                                                            header.column.columnDef.header,
+                                                            header.getContext()
+                                                        )}
+                                                    </span>
                                                     {header.column.getIsSorted() === 'asc' ? (
                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 11l5-5m0 0l5 5m-5-5v12" />
@@ -229,7 +238,6 @@ export const ListarArticulos = () => {
                                                         </svg>
                                                     ) : null}
                                                 </div>
-
                                             </th>
                                         )
                                     })}
@@ -296,20 +304,22 @@ export const ListarArticulos = () => {
       function TableBodyRow({ row, virtualRow, rowVirtualizer }: TableBodyRowProps) {
         return (
           <tr
-            data-index={virtualRow.index} //needed for dynamic row height measurement
-            ref={node => rowVirtualizer.measureElement(node)} //measure dynamic row height
+            data-index={virtualRow.index}
+            ref={node => rowVirtualizer.measureElement(node)}
             key={row.id}
+            className="border-b border-gray-200 hover:bg-gray-50 transition-colors duration-150"
             style={{
               display: 'flex',
               position: 'absolute',
-              transform: `translateY(${virtualRow.start}px)`, //this should always be a `style` as it changes on scroll
+              transform: `translateY(${virtualRow.start}px)`,
               width: '100%',
             }}
           >
-            {row.getVisibleCells().map(cell => {
+            {row.getVisibleCells().map((cell) => {
               return (
                 <td
                   key={cell.id}
+                  className={`border-r border-gray-200 last:border-r-0 bg-white`}
                   style={{
                     display: 'flex',
                     width: cell.column.getSize(),
@@ -339,7 +349,7 @@ export const ListarArticulos = () => {
                                 </p>
                             </div>
                             <div className="mt-4 sm:mt-0">
-                                <button className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200">
+                                <button onClick={() => setIsOpen(true)} className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200">
                                     <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                                     </svg>
@@ -468,6 +478,9 @@ export const ListarArticulos = () => {
             <div className="max-w-full  mx-auto py-2 h-full">
                 {renderContent()}
             </div>
+            <Modal isOpen={isOpen} onClose={() => setIsOpen(false)}>
+                <FormCrearArticulo />
+            </Modal>
         </div>
     )
 }

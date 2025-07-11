@@ -2,7 +2,7 @@ import axios from "axios";
 import api from "../../config/axios";
 import { api_url } from "../consts/expres_api_url";
 import type { GetReporteMovimientoArticulosParams, ReporteMovimientoArticulos } from "../types/reportes";
-import type { ActualizarMetaAcordadaDTO, DetalleVenta, DetalleVentaViewModel, GetVentaParams, Venta, VentaViewModel } from "../types/venta";
+import type { ActualizarMetaAcordadaDTO, ActualizarMetaGeneralDTO, DetalleVenta, DetalleVentaViewModel, GetVentaParams, Venta, VentaViewModel } from "../types/venta";
 
 interface CrearVentaDTO {
     venta: Venta;
@@ -38,6 +38,12 @@ export const VentasRepository = {
 
     async ActualizarMetaAcordada(data: ActualizarMetaAcordadaDTO): Promise<void> {
         const response = await api.post(`ventas/metas`, data);
+        return response.data.body;
+    },
+
+
+    async ActualizarMetaGeneral(data: ActualizarMetaGeneralDTO): Promise<void> {
+        const response = await api.post(`ventas/metas-general`, data);
         return response.data.body;
     },
 

@@ -1,9 +1,10 @@
 import axios from 'axios';
 import { config } from '../config/env';
+import { dotnet_api_url } from '../shared/consts/dotnet_api_url';
 
 // singleton para la instancia de axios
 const api = axios.create({
-  baseURL: config.apiUrl || "https://localhost:4024/api/", // Usar la URL del env o fallback
+  baseURL: config.apiUrl || dotnet_api_url, // Usar la URL del env o fallback desde dotnet_api_url
   headers: {
     'Content-Type': 'application/json',
   },

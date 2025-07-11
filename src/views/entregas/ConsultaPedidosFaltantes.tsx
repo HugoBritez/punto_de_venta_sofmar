@@ -18,6 +18,8 @@ import { ReportePedidosFaltantesExcel } from "./docs/InformePedidosFaltantesExce
 import { useToast } from "@chakra-ui/react";
 import Modal from "@/ui/modal/Modal";
   import { useAnularPedido } from "@/shared/hooks/mutations/pedidos";
+import { UltimasVentasCliente } from "@/features/Ventas/components/UltimasVentasCliente";
+import Auditar from "@/services/AuditoriaHook";
 
 const ConsultaPedidosFaltantes = () => {
     const { pedidosFaltantes,  obtenerPedidoFaltante, reprocesarPedido } = useCortePedidos();
@@ -26,6 +28,7 @@ const ConsultaPedidosFaltantes = () => {
     const toast = useToast();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isModalAnularPedidoOpen, setIsModalAnularPedidoOpen] = useState(false);
+    const [isModalUltimasVentasOpen, setIsModalUltimasVentasOpen] = useState(false);
     const [motivoAnulacion, setMotivoAnulacion] = useState<string>("");
     const { mutate: anularPedido } = useAnularPedido();
 
@@ -58,6 +61,7 @@ const ConsultaPedidosFaltantes = () => {
     }
 
     const handleSeleccionarPedido = (pedido: PedidoFaltante) => {
+      console.log("pedido seleccioando", pedido)
       setPedidoSeleccionado(pedido);
       // Inicializar los datos del pedido a reprocesar
       setDatosRehacerPedido({
@@ -237,17 +241,18 @@ const ConsultaPedidosFaltantes = () => {
         });
         return;
       }
-      anularPedido({codigo: pedidoSeleccionado?.id_pedido,  motivo: motivoAnulacion});
+      anularPedido({codigo: pedidoSeleccionado?.id_detalle});
       setIsModalAnularPedidoOpen(false);
       obtenerPedidoFaltante(filtros);
       toast({
         title: "Anulado",
-        description: "Pedido anulado correctamente",
+        description: "Faltante anulado correctamente",
         status: "success",
         duration: 3000, 
       });
+      Auditar(67, 3, pedidoSeleccionado?.id_pedido, 0, motivoAnulacion);
     }
-    
+
   return (
     <div className="w-full h-screen  bg-gray-100">
       <div className="flex flex-col p-2 gap-2">
@@ -458,7 +463,7 @@ const ConsultaPedidosFaltantes = () => {
                       esPedidoSeleccionado(pedido)
                         ? "bg-blue-100 hover:bg-blue-200"
                         : "hover:bg-gray-100"
-                    } cursor-pointer border-2 border-gray-200 [&>td]:border-2 [&>td]:border-gray-200 [&>td]:px-2`}
+                    } cursor-pointer border-2 border-gray-200 [&>td]:border-2 [&>td]:border-gray-200 [&>td]:px-2 ${pedido.impreso === 1 ? "bg-green-100" : ""}`}
                     onClick={() => handleSeleccionarPedido(pedido)}
                   >
                     <td>{pedido.id_pedido}</td>
@@ -487,10 +492,16 @@ const ConsultaPedidosFaltantes = () => {
         </div>
         <div className="flex flex-row gap-2 bg-blue-200 shadow-xs p-2 rounded-md mt-auto h-[100px] justify-end items-center">
         <button
+            className="bg-teal-600 text-white p-2 rounded-md h-12 flex flex-row gap-2 items-center"
+            onClick={() => setIsModalUltimasVentasOpen(true)}
+          >
+            <p className="text-md font-bold">Consultar ventas de cliente </p>
+          </button>
+        <button
             className="bg-orange-600 text-white p-2 rounded-md h-12 flex flex-row gap-2 items-center"
             onClick={() => setIsModalAnularPedidoOpen(true)}
           >
-            <p className="text-md font-bold">Anular Pedido </p>
+            <p className="text-md font-bold">Anular faltante </p>
             
           </button>
           <button
@@ -605,6 +616,13 @@ const ConsultaPedidosFaltantes = () => {
           </button>
         </div>
       </Modal>
+      {pedidoSeleccionado && (
+        <UltimasVentasCliente
+          cliente={pedidoSeleccionado.codCliente}
+          isOpen={isModalUltimasVentasOpen}
+          onClose={() => setIsModalUltimasVentasOpen(false)}
+        />
+      )}
     </div>
   );
 }

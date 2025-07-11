@@ -38,6 +38,13 @@ const FloatingCard = <T extends object>({
     (e: KeyboardEvent) => {
       if (!isVisible) return;
 
+      // Solo manejar eventos si el elemento activo está dentro del FloatingCard
+      const activeElement = document.activeElement;
+      const isInFloatingCard = activeElement?.closest('.floating-card') ||
+                              document.querySelector('.floating-card')?.contains(activeElement);
+      
+      if (!isInFloatingCard) return;
+
       switch (e.key) {
         case "ArrowDown":
           e.preventDefault();
@@ -65,13 +72,15 @@ const FloatingCard = <T extends object>({
   );
 
   useEffect(() => {
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleKeyDown]);
+    if (isVisible) {
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }
+  }, [handleKeyDown, isVisible]);
 
   return (
     <div
-      className={`absolute z-[9999] bg-white shadow-xs rounded-md border border-slate-300 p-4 w-full min-h-[100px] max-h-[500px] overflow-y-auto mt-2
+      className={`absolute z-[9999] bg-white shadow-xs rounded-md border border-slate-300 p-4 w-full min-h-[100px] max-h-[500px] overflow-y-auto mt-2 floating-card
         transition-all duration-400 ease-out origin-top
         ${
           isVisible

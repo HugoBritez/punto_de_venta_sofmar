@@ -3,6 +3,7 @@ export interface PedidoFaltante {
     id_pedido: number;
     fecha: string;
     cliente: string;
+    codCliente: number;
     cod_barra: string;
     descripcion: string;
     marca: string;
@@ -20,6 +21,7 @@ export interface PedidoFaltante {
     p_unitario: number;
     p_unitario_num: number;
     tiene_lotes_disponibles: string;
+    impreso?: number;
     lotes_disponibles: {
         id_lote: number;
         lote: string;

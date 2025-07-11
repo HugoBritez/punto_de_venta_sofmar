@@ -36,6 +36,8 @@ export const buscarArticulos = async ({
         negativo: negativo
       },
     });
+    console.log("Token enviado:", axios.defaults.headers.common["Authorization"]);
+    console.log("Headers completos:", axios.defaults.headers);
     return response.data.body;
   } catch (error) {
     console.error("Error al buscar artículos:", error);
