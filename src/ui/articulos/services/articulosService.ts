@@ -16,9 +16,18 @@ export const buscarArticulos = async ({
   proveedor,
   cod_interno,
   lote,
-  negativo
+  negativo,
+  proveedor_id
 }: BusquedaDTO): Promise<Articulo[]> => {
   try {
+    console.log("parametros", {
+      articulo_id: id_articulo,
+      codigo_barra: codigo_barra,
+      busqueda: busqueda,
+      deposito: deposito,
+      stock: stock,
+      proveedor_id: proveedor_id
+    })
     const response = await axios.get(`${api_url}articulos/buscar-articulos`, {
       params: {
         articulo_id: id_articulo,
@@ -33,11 +42,11 @@ export const buscarArticulos = async ({
         proveedor: proveedor,
         cod_interno: cod_interno,
         lote: lote,
-        negativo: negativo
+        negativo: negativo,
+        proveedor_id: proveedor_id
       },
     });
-    console.log("Token enviado:", axios.defaults.headers.common["Authorization"]);
-    console.log("Headers completos:", axios.defaults.headers);
+
     return response.data.body;
   } catch (error) {
     console.error("Error al buscar artículos:", error);

@@ -17,6 +17,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { ClienteViewModel } from "@/shared/types/clientes";
 import BuscadorClientes from "@/ui/clientes/BuscadorClientes";
 import { UltimasVentas } from "@/features/Ventas/components/UltimasVentas";
+import { ConsultaPedidosPortable } from "@/features/Ventas/components/ConsultaPedidosPortable";
 
 // Hook personalizado para debounce
 const useDebounce = (value: string, delay: number) => {
@@ -64,7 +65,7 @@ const ErrorMessage = () => (
 );
 
 // Componente de tarjeta móvil
-const MobileCard = ({ item }: { item: ConsultaVentasProveedor }) => (
+const MobileCard = ({ item, proEsAdmin }: { item: ConsultaVentasProveedor, proEsAdmin: number }) => (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-4 hover:shadow-md transition-shadow duration-200">
         <div className="flex justify-between items-start mb-3">
             <div>
@@ -84,14 +85,49 @@ const MobileCard = ({ item }: { item: ConsultaVentasProveedor }) => (
                     <span className="font-medium">{item.totalStock.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
-                    <span className="text-gray-600">Vendidos:</span>
-                    <span className="font-medium text-blue-600">{item.totalItems.toLocaleString()}</span>
+                    <span className="text-gray-600">Valorización:</span>
+                    <span className="font-medium text-gray-700">
+                        {new Intl.NumberFormat('es-PY', {
+                            style: 'currency',
+                            currency: 'PYG',
+                            minimumFractionDigits: 0,
+                        }).format(item.valorizacion)}
+                    </span>
+                </div>
+                <div className="flex justify-between">
+                    <span className="text-gray-600">Precio Costo:</span>
+                    <span className="font-medium text-orange-600">
+                        {new Intl.NumberFormat('es-PY', {
+                            style: 'currency',
+                            currency: 'PYG',
+                            minimumFractionDigits: 0,
+                        }).format(item.precioCosto)}
+                    </span>
                 </div>
             </div>
 
             <div className="space-y-2">
                 <div className="flex justify-between">
-                    <span className="text-gray-600">Importe:</span>
+                    <span className="text-gray-600">Unid. Compradas:</span>
+                    <span className="font-semibold text-purple-600">{item.totalCompras.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                    <span className="text-gray-600">Unid. Vendidas:</span>
+                    <span className="font-semibold text-blue-600">{item.totalItems.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                    <span className="text-gray-600">% Utilidad:</span>
+                    <span className="font-semibold text-green-600">
+                        {proEsAdmin === 1 ? `${item.utilidad.toLocaleString('es-PY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%` : '-'}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div className="mt-3 pt-3 border-t border-gray-100">
+            <div className="grid grid-cols-2 gap-4">
+                <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Importe Compra:</span>
                     <span className="font-semibold text-green-600">
                         {new Intl.NumberFormat('es-PY', {
                             style: 'currency',
@@ -100,8 +136,8 @@ const MobileCard = ({ item }: { item: ConsultaVentasProveedor }) => (
                         }).format(item.totalImporte)}
                     </span>
                 </div>
-                <div className="flex justify-between">
-                    <span className="text-gray-600">Cobrado:</span>
+                <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Monto Cobrado:</span>
                     <span className="font-semibold text-emerald-600">
                         {new Intl.NumberFormat('es-PY', {
                             style: 'currency',
@@ -110,19 +146,6 @@ const MobileCard = ({ item }: { item: ConsultaVentasProveedor }) => (
                         }).format(item.montoCobrado)}
                     </span>
                 </div>
-            </div>
-        </div>
-
-        <div className="mt-3 pt-3 border-t border-gray-100">
-            <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-600">Total Compras:</span>
-                <span className="font-semibold text-purple-600">
-                    {new Intl.NumberFormat('es-PY', {
-                        style: 'currency',
-                        currency: 'PYG',
-                        minimumFractionDigits: 0,
-                    }).format(item.totalCompras)}
-                </span>
             </div>
         </div>
     </div>
@@ -172,7 +195,7 @@ const VirtualizedTableBody = ({
 };
 
 // Componente para mostrar totales
-const TableTotals = ({ data }: { data: ConsultaVentasProveedor[] }) => {
+const TableTotals = ({ data, proEsAdmin }: { data: ConsultaVentasProveedor[], proEsAdmin: number }) => {
     const totals = useMemo(() => {
         return data.reduce((acc, item) => ({
             totalStock: acc.totalStock + item.totalStock,
@@ -180,24 +203,50 @@ const TableTotals = ({ data }: { data: ConsultaVentasProveedor[] }) => {
             totalItems: acc.totalItems + item.totalItems,
             totalImporte: acc.totalImporte + item.totalImporte,
             montoCobrado: acc.montoCobrado + item.montoCobrado,
+            valorizacion: acc.valorizacion + item.valorizacion,
+            precioCosto: acc.precioCosto + item.precioCosto,
+            utilidad: acc.utilidad + item.utilidad,
         }), {
             totalStock: 0,
             totalCompras: 0,
             totalItems: 0,
             totalImporte: 0,
             montoCobrado: 0,
+            valorizacion: 0,
+            precioCosto: 0,
+            utilidad: 0,
         });
     }, [data]);
 
     return (
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-t-2 border-blue-200">
             <div className="px-4 md:px-6 py-4">
-                {/* Vista móvil: 2 columnas */}
-                <div className="grid grid-cols-2 md:hidden gap-3">
+                {/* Vista móvil: 3 columnas */}
+                <div className="grid grid-cols-3 md:hidden gap-3">
                     <div className="text-center bg-white/50 rounded-lg p-3">
-                        <div className="text-xs font-medium text-gray-600 mb-1">Total Stock</div>
+                        <div className="text-xs font-medium text-gray-600 mb-1">Total Unidades</div>
                         <div className="text-base font-bold text-gray-900">
                             {new Intl.NumberFormat('es-PY').format(totals.totalStock)}
+                        </div>
+                    </div>
+                    <div className="text-center bg-white/50 rounded-lg p-3">
+                        <div className="text-xs font-medium text-gray-600 mb-1">Valorización</div>
+                        <div className="text-base font-bold text-gray-700">
+                            {new Intl.NumberFormat('es-PY', {
+                                style: 'currency',
+                                currency: 'PYG',
+                                minimumFractionDigits: 0,
+                            }).format(totals.valorizacion)}
+                        </div>
+                    </div>
+                    <div className="text-center bg-white/50 rounded-lg p-3">
+                        <div className="text-xs font-medium text-gray-600 mb-1">Total Compras</div>
+                        <div className="text-base font-bold text-orange-600">
+                            {new Intl.NumberFormat('es-PY', {
+                                style: 'currency',
+                                currency: 'PYG',
+                                minimumFractionDigits: 0,
+                            }).format(totals.precioCosto)}
                         </div>
                     </div>
                     <div className="text-center bg-white/50 rounded-lg p-3">
@@ -213,7 +262,13 @@ const TableTotals = ({ data }: { data: ConsultaVentasProveedor[] }) => {
                         </div>
                     </div>
                     <div className="text-center bg-white/50 rounded-lg p-3">
-                        <div className="text-xs font-medium text-gray-600 mb-1">Total Importe</div>
+                        <div className="text-xs font-medium text-gray-600 mb-1">% Utilidad</div>
+                        <div className="text-base font-bold text-green-600">
+                            {proEsAdmin === 1 ? `${(totals.utilidad / data.length).toLocaleString('es-PY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%` : '-'}
+                        </div>
+                    </div>
+                    <div className="text-center bg-white/50 rounded-lg p-3 col-span-3">
+                        <div className="text-xs font-medium text-gray-600 mb-1">Total Ventas</div>
                         <div className="text-base font-bold text-green-600">
                             {new Intl.NumberFormat('es-PY', {
                                 style: 'currency',
@@ -222,7 +277,7 @@ const TableTotals = ({ data }: { data: ConsultaVentasProveedor[] }) => {
                             }).format(totals.totalImporte)}
                         </div>
                     </div>
-                    <div className="text-center bg-white/50 rounded-lg p-3 col-span-2">
+                    <div className="text-center bg-white/50 rounded-lg p-3 col-span-3">
                         <div className="text-xs font-medium text-gray-600 mb-1">Total Cobrado</div>
                         <div className="text-base font-bold text-emerald-600">
                             {new Intl.NumberFormat('es-PY', {
@@ -234,12 +289,32 @@ const TableTotals = ({ data }: { data: ConsultaVentasProveedor[] }) => {
                     </div>
                 </div>
 
-                {/* Vista desktop: 5 columnas */}
-                <div className="hidden md:grid grid-cols-5 gap-4">
+                {/* Vista desktop: 8 columnas */}
+                <div className="hidden md:grid grid-cols-8 gap-4">
                     <div className="text-center">
                         <div className="text-sm font-medium text-gray-600 mb-1">Total Stock</div>
                         <div className="text-lg font-bold text-gray-900">
                             {new Intl.NumberFormat('es-PY').format(totals.totalStock)}
+                        </div>
+                    </div>
+                    <div className="text-center">
+                        <div className="text-sm font-medium text-gray-600 mb-1">Valorización</div>
+                        <div className="text-lg font-bold text-gray-700">
+                            {new Intl.NumberFormat('es-PY', {
+                                style: 'currency',
+                                currency: 'PYG',
+                                minimumFractionDigits: 0,
+                            }).format(totals.valorizacion)}
+                        </div>
+                    </div>
+                    <div className="text-center">
+                        <div className="text-sm font-medium text-gray-600 mb-1">Total Compras</div>
+                        <div className="text-lg font-bold text-orange-600">
+                            {new Intl.NumberFormat('es-PY', {
+                                style: 'currency',
+                                currency: 'PYG',
+                                minimumFractionDigits: 0,
+                            }).format(totals.precioCosto)}
                         </div>
                     </div>
                     <div className="text-center">
@@ -255,7 +330,13 @@ const TableTotals = ({ data }: { data: ConsultaVentasProveedor[] }) => {
                         </div>
                     </div>
                     <div className="text-center">
-                        <div className="text-sm font-medium text-gray-600 mb-1">Total Importe</div>
+                        <div className="text-sm font-medium text-gray-600 mb-1">% Utilidad Promedio</div>
+                        <div className="text-lg font-bold text-green-600">
+                            {proEsAdmin === 1 ? `${(totals.utilidad / data.length).toLocaleString('es-PY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%` : '-'}
+                        </div>
+                    </div>
+                    <div className="text-center">
+                        <div className="text-sm font-medium text-gray-600 mb-1">Total Ventas</div>
                         <div className="text-lg font-bold text-green-600">
                             {new Intl.NumberFormat('es-PY', {
                                 style: 'currency',
@@ -310,6 +391,7 @@ export const ConsultaVentasProveedores = () => {
     // Estado para vista móvil
     const [isMobile, setIsMobile] = useState(false);
     const [isOpenUltimasVentas, setIsOpenUltimasVentas] = useState(false);
+    const [isOpenConsultaPedidos, setIsOpenConsultaPedidos] = useState(false);
 
     const proveedorId = proveedor?.proCodigo ?? 0;
 
@@ -400,6 +482,24 @@ export const ConsultaVentasProveedores = () => {
                 ),
             },
             {
+                accessorKey: 'valorizacion',
+                header: 'Valorización',
+                size: 100,
+                minSize: 80,
+                maxSize: 120,
+                cell: ({ getValue }) => (
+                    <div className="px-3 py-2 text-center w-full">
+                        <span className="text-sm font-medium text-gray-900">
+                            {new Intl.NumberFormat('es-PY', {
+                                style: 'currency',
+                                currency: 'PYG',
+                                minimumFractionDigits: 0,
+                            }).format(getValue<number>())}
+                        </span>
+                    </div>
+                ),
+            },
+            {
                 accessorKey: 'totalCompras',
                 header: 'Unid. Compradas',
                 size: 140,
@@ -409,6 +509,24 @@ export const ConsultaVentasProveedores = () => {
                     <div className="px-3 py-2 text-center w-full">
                         <span className="text-sm font-semibold text-purple-600">
                             {new Intl.NumberFormat('es-PY').format(getValue<number>())}
+                        </span>
+                    </div>
+                ),
+            },
+            {
+                accessorKey: 'totalImporte',
+                header: 'Importe Compra',
+                size: 140,
+                minSize: 120,
+                maxSize: 160,
+                cell: ({ getValue }) => (
+                    <div className="px-3 py-2 text-right  w-full">
+                        <span className="text-sm font-semibold text-green-600">
+                            {new Intl.NumberFormat('es-PY', {
+                                style: 'currency',
+                                currency: 'PYG',
+                                minimumFractionDigits: 0,
+                            }).format(getValue<number>())}
                         </span>
                     </div>
                 ),
@@ -429,7 +547,7 @@ export const ConsultaVentasProveedores = () => {
             },
             {
                 accessorKey: 'totalImporte',
-                header: 'Importe Total',
+                header: 'Importe Venta',
                 size: 140,
                 minSize: 120,
                 maxSize: 160,
@@ -441,6 +559,20 @@ export const ConsultaVentasProveedores = () => {
                                 currency: 'PYG',
                                 minimumFractionDigits: 0,
                             }).format(getValue<number>())}
+                        </span>
+                    </div>
+                ),
+            },
+            {
+                accessorKey: 'utilidad',
+                header: '% Utilidad',
+                size: 140,
+                minSize: 120,
+                maxSize: 160,
+                cell: ({ getValue }) => (
+                    <div className="px-3 py-2 text-right w-full">
+                        <span className="text-sm font-semibold text-green-600">
+                            {proEsAdmin === 1 ? `${getValue<number>().toLocaleString('es-PY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%` : '-'}
                         </span>
                     </div>
                 ),
@@ -463,7 +595,6 @@ export const ConsultaVentasProveedores = () => {
                     </div>
                 ),
             },
-            
         ],
         []
     );
@@ -512,7 +643,7 @@ export const ConsultaVentasProveedores = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-            <div className="max-w-7xl mx-auto px-2 sm:px-2 lg:px-4 py-2">
+            <div className="max-w-full mx-auto px-2 sm:px-2 lg:px-4 py-2">
                 {/* Header mejorado */}
                 <div className="mb-2">
                     <div className=" rounded-2xl shadow-sm border border-gray-200 p-2 md:p-4 bg-blue-200">
@@ -580,7 +711,7 @@ export const ConsultaVentasProveedores = () => {
                             </div>
                             <div className="space-y-2 col-span-2 md:col-span-1 flex justify-end">
                                 {proEsAdmin === 1 && (
-                                    <button className="w-full px-2 py-2 bg-green-700 text-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" onClick={() => setIsOpenBuscadorClientes(true)}>
+                                    <button className="w-full px-2 py-2 bg-green-700 text-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" onClick={() => setIsOpenConsultaPedidos(true)}>
                                         <p className="text-md font-medium">Consultar Pedidos</p>
                                     </button>
                                 )}
@@ -657,11 +788,11 @@ export const ConsultaVentasProveedores = () => {
                                 </div>
                                 <div className="max-h-screen overflow-y-auto">
                                     {table.getRowModel().rows.map((row) => (
-                                        <MobileCard key={row.id} item={row.original} />
+                                        <MobileCard key={row.id} item={row.original} proEsAdmin={proEsAdmin} />
                                     ))}
                                 </div>
                                 {/* Totales para móvil */}
-                                <TableTotals data={table.getRowModel().rows.map(r => r.original)} />
+                                <TableTotals data={table.getRowModel().rows.map(r => r.original)} proEsAdmin={proEsAdmin} />
                             </div>
                         ) : (
                             /* Vista desktop con tabla virtualizada siguiendo la documentación oficial */
@@ -720,7 +851,7 @@ export const ConsultaVentasProveedores = () => {
                                 </div>
 
                                 {/* Totales para desktop */}
-                                <TableTotals data={table.getRowModel().rows.map(r => r.original)} />
+                                <TableTotals data={table.getRowModel().rows.map(r => r.original)} proEsAdmin={proEsAdmin} />
 
                                 {/* Footer con información */}
                                 <div className="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-gray-200">
@@ -744,6 +875,14 @@ export const ConsultaVentasProveedores = () => {
             <UltimasVentas
                 isOpen={isOpenUltimasVentas}
                 onClose={() => setIsOpenUltimasVentas(false)}
+                fechaDesde={fechaDesde}
+                fechaHasta={fechaHasta}
+                proveedorSeleccionado={proveedor?.proCodigo}
+                clienteSeleccionado={clienteSeleccionado?.cli_codigo}
+            />
+            <ConsultaPedidosPortable
+                isOpen={isOpenConsultaPedidos}
+                onClose={() => setIsOpenConsultaPedidos(false)}
                 fechaDesde={fechaDesde}
                 fechaHasta={fechaHasta}
                 proveedorSeleccionado={proveedor?.proCodigo}

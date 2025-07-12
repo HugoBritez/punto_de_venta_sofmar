@@ -6,4 +6,7 @@ export interface ConsultaVentasProveedor {
     totalImporte: number;
     montoCobrado: number;
     totalCompras: number;
+    precioCosto: number;
+    utilidad: number;
+    valorizacion: number;
 }

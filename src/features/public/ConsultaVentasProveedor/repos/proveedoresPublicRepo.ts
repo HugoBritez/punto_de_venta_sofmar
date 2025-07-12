@@ -9,5 +9,6 @@ export const getConsultaVentas = async (fechaDesde: string, fechaHasta: string, 
             cliente
         }
     })
+    console.log('response.data.body en getConsultaVentas' ,response.data.body)
     return response.data.body
 }

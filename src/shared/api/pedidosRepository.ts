@@ -1,4 +1,5 @@
 import api from "@/config/axios";
+import { PedidoDetalle } from "../types/pedidos";
 
 export const anularPedido = async (detalleFaltante: number) => {
     const response = await api.post(`pedidos/anular-faltante`, { detalleFaltante});
@@ -12,4 +13,44 @@ export const cambiarLote =  async (idDetallePedido: number, lote: string, idLote
             idLote
          });
     return response.data;
+}
+
+export const getPedidosProveedor = async (fecha_desde: string, fecha_hasta: string, proveedor: number, cliente?: number, nroPedido?: number, vendedor?: number, articulo?: number, moneda?: number, estado?: number) => {
+    console.log("params en getpedidos", {
+        fecha_desde,
+        fecha_hasta,
+        proveedor,
+        cliente,
+        nroPedido,
+        vendedor,
+        articulo,
+        moneda,
+        estado
+    });
+    const response = await api.get(`pedidos/reporte-pedidos-proveedor`, {
+        params: {
+            fecha_desde,
+            fecha_hasta,
+            proveedor,
+            cliente,
+            nroPedido,
+            vendedor,
+            articulo,
+            moneda,
+            estado
+        }
+    });
+    return response.data.body;
+}   
+
+
+export const getPedidosDetalle = async (pedidoId: number): Promise<PedidoDetalle[]> => {
+
+    const response = await api.get(`pedidos/detalles`, {
+        params: {
+            codigo: pedidoId
+        }
+    });
+    console.log(response.data.body);
+    return response.data.body;
 }

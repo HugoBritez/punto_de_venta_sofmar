@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useCortePedidos } from "./hooks/useCortePedidos";
 import { FiltrosPedidoFaltante, PedidoFaltante, RehacerPedidoDTO } from "./types/shared.type";
-import { ArchiveX } from "lucide-react";
+import { ArchiveX, CheckCircle } from "lucide-react";
 import ClientesSelect from "@/ui/select/ClientesSelect";
 import OperadoresSelect from "@/ui/select/OperadoresSelect";
 import CategoriasSelect from "@/ui/select/CategoriasSelect";
@@ -32,6 +32,8 @@ const ConsultaPedidosFaltantes = () => {
     const [motivoAnulacion, setMotivoAnulacion] = useState<string>("");
     const { mutate: anularPedido } = useAnularPedido();
 
+    const [detalleSeleccionado, setDetalleSeleccionado] = useState<PedidoFaltante | null>(null);
+
 
     const [filtros, setFiltros] = useState<FiltrosPedidoFaltante>({
         fecha_desde: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
@@ -61,8 +63,9 @@ const ConsultaPedidosFaltantes = () => {
     }
 
     const handleSeleccionarPedido = (pedido: PedidoFaltante) => {
-      console.log("pedido seleccioando", pedido)
-      setPedidoSeleccionado(pedido);
+      console.log("detalle seleccionado", pedido)
+      setDetalleSeleccionado(pedido);
+      setPedidoSeleccionado(pedido); // Mantener para compatibilidad con el modal
       // Inicializar los datos del pedido a reprocesar
       setDatosRehacerPedido({
         id_pedido: pedido.id_pedido,
@@ -86,8 +89,8 @@ const ConsultaPedidosFaltantes = () => {
       }));
     }
 
-    const esPedidoSeleccionado = (pedido: PedidoFaltante) => {
-      return pedidoSeleccionado?.id_pedido === pedido.id_pedido;
+    const esDetalleSeleccionado = (pedido: PedidoFaltante) => {
+      return detalleSeleccionado?.id_detalle === pedido.id_detalle;
     }
 
     useEffect(() => {
@@ -231,8 +234,8 @@ const ConsultaPedidosFaltantes = () => {
     }
 
     const handleAnularPedido = () => {
-      console.log("anulando pedido", pedidoSeleccionado, motivoAnulacion);
-      if (!pedidoSeleccionado) {
+      console.log("anulando pedido", detalleSeleccionado, motivoAnulacion);
+      if (!detalleSeleccionado) {
         toast({
           title: "Error",
           description: "No se ha seleccionado ningún pedido",
@@ -241,7 +244,7 @@ const ConsultaPedidosFaltantes = () => {
         });
         return;
       }
-      anularPedido({codigo: pedidoSeleccionado?.id_detalle});
+      anularPedido({codigo: detalleSeleccionado?.id_detalle});
       setIsModalAnularPedidoOpen(false);
       obtenerPedidoFaltante(filtros);
       toast({
@@ -250,7 +253,7 @@ const ConsultaPedidosFaltantes = () => {
         status: "success",
         duration: 3000, 
       });
-      Auditar(67, 3, pedidoSeleccionado?.id_pedido, 0, motivoAnulacion);
+      Auditar(67, 3, detalleSeleccionado?.id_pedido, 0, motivoAnulacion);
     }
 
   return (
@@ -460,13 +463,21 @@ const ConsultaPedidosFaltantes = () => {
                   <tr
                     key={pedido.id_detalle}
                     className={` ${
-                      esPedidoSeleccionado(pedido)
-                        ? "bg-blue-100 hover:bg-blue-200"
-                        : "hover:bg-gray-100"
+                      esDetalleSeleccionado(pedido)
+                        ? "bg-blue-50 border-l-4 border-l-blue-500 shadow-md"
+                        : "hover:bg-gray-50"
                     } cursor-pointer border-2 border-gray-200 [&>td]:border-2 [&>td]:border-gray-200 [&>td]:px-2 ${pedido.impreso === 1 ? "bg-green-100" : ""}`}
                     onClick={() => handleSeleccionarPedido(pedido)}
                   >
-                    <td>{pedido.id_pedido}</td>
+                    <td className="relative">
+                      {esDetalleSeleccionado(pedido) && (
+                        <CheckCircle 
+                          className="absolute -left-1 -top-1 text-blue-500 bg-white rounded-full" 
+                          size={16} 
+                        />
+                      )}
+                      {pedido.id_pedido}
+                    </td>
                     <td>{pedido.fecha}</td>
                     <td>{pedido.cliente}</td>
                     <td>{pedido.descripcion}</td>
@@ -500,6 +511,7 @@ const ConsultaPedidosFaltantes = () => {
         <button
             className="bg-orange-600 text-white p-2 rounded-md h-12 flex flex-row gap-2 items-center"
             onClick={() => setIsModalAnularPedidoOpen(true)}
+            disabled={!detalleSeleccionado || detalleSeleccionado.impreso === 1}
           >
             <p className="text-md font-bold">Anular faltante </p>
             

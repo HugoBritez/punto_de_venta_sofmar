@@ -17,6 +17,7 @@ interface ArticulosComponentProps {
   onSelect?: (articulo: any) => void;
   depositoInicial?: number;
   sucursalInicial?: number;
+  proveedorInicial?: number;
 }
 
 export const ArticulosComponent = ({
@@ -25,6 +26,7 @@ export const ArticulosComponent = ({
   onSelect,
   depositoInicial,
   sucursalInicial,
+  proveedorInicial,
 }: ArticulosComponentProps) => {
   const [busquedaDTO, setBusquedaDTO] = useState<BusquedaDTO>({
     busqueda: "",
@@ -41,6 +43,7 @@ export const ArticulosComponent = ({
     articulo: 1,
     lote: undefined,
     negativo: false,
+    proveedor_id: proveedorInicial ?? undefined,
   });
 
   const [articuloSeleccionado, setArticuloSeleccionado] =
@@ -53,6 +56,10 @@ export const ArticulosComponent = ({
   const { listaPrecios, obtenerListaPrecios } = useListasDePrecios();
 
   const toast = useToast();
+
+  useEffect(() => {
+    console.log("busquedaDTO", busquedaDTO);
+  }, [busquedaDTO]);
 
   const {
     setTermino,

@@ -14,6 +14,7 @@ interface UseBuscadorArticulosProps {
   cod_interno?: number;
   lote?: number;
   negativo?: boolean;
+  proveedor_id?: number;
 }
 
 export const useBuscadorArticulos = ({
@@ -27,7 +28,8 @@ export const useBuscadorArticulos = ({
   proveedor,
   cod_interno,
   lote,
-  negativo
+  negativo,
+  proveedor_id
 }: UseBuscadorArticulosProps = {}) => {
   const [termino, setTermino] = useState("");
 
@@ -44,7 +46,8 @@ export const useBuscadorArticulos = ({
     proveedor,
     cod_interno,
     lote,
-    negativo
+    negativo,
+    proveedor_id
   }), [
     termino,
     deposito,
@@ -57,7 +60,8 @@ export const useBuscadorArticulos = ({
     proveedor,
     cod_interno,
     lote,
-    negativo
+    negativo,
+    proveedor_id
   ]);
 
   const queryKey = useMemo(() => 

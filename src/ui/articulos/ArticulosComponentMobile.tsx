@@ -12,6 +12,7 @@ interface ArticulosComponentMobileProps {
   onSelect?: (articulo: any) => void;
   depositoInicial?: number;
   sucursalInicial?: number;
+  proveedorInicial?: number;
 }
 
 export const ArticulosComponentMobile = ({
@@ -19,6 +20,7 @@ export const ArticulosComponentMobile = ({
   setIsOpen,
   onSelect,
   depositoInicial,
+  proveedorInicial,
 }: ArticulosComponentMobileProps) => {
   const [busquedaDTO, setBusquedaDTO] = useState<BusquedaDTO>({
     busqueda: "",
@@ -35,6 +37,7 @@ export const ArticulosComponentMobile = ({
     articulo: 1,
     lote: undefined,
     negativo: false,
+    proveedor_id: proveedorInicial ?? undefined,
   });
 
   const [articuloSeleccionado, setArticuloSeleccionado] = useState<Articulo | null>(null);
@@ -53,6 +56,15 @@ export const ArticulosComponentMobile = ({
       }));
     }
   }, [depositoInicial]);
+
+  useEffect(() => {
+    if (proveedorInicial !== undefined) {
+      setBusquedaDTO((prev) => ({
+        ...prev,
+        proveedor_id: proveedorInicial,
+      }));
+    }
+  }, [proveedorInicial]);
 
   const {
     setTermino,
@@ -200,6 +212,7 @@ export const ArticulosComponentMobile = ({
       id_articulo: undefined,
       codigo_barra: undefined,
       deposito: depositoInicial ?? undefined,
+      proveedor_id: proveedorInicial ?? undefined,
       moneda: undefined,
       articulo: 1,
     }));

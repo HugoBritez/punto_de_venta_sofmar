@@ -36,8 +36,8 @@ const Modal: React.FC<ModalProps> = ({
             onClick={onClose}
           />
 
-          {/* Modal */}
-          <div className={`flex min-h-full items-center justify-center p-4 `}>
+          {/* Modal Container - Mejorado para móviles */}
+          <div className="flex min-h-full items-center justify-center p-2 sm:p-4">
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -46,26 +46,26 @@ const Modal: React.FC<ModalProps> = ({
                 duration: 0.2,
                 ease: [0.4, 0, 0.2, 1],
               }}
-              className={`relative transform overflow-hidden rounded-lg  text-left shadow-xl transition-all sm:my-8 sm:w-full ${maxWidth} ${size} ${backgroundColor}`}
+              className={`relative transform overflow-hidden rounded-lg text-left shadow-xl transition-all w-full h-full sm:h-auto sm:my-8 ${maxWidth} ${size} ${backgroundColor}`}
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Header */}
+              {/* Header - Mejorado para móviles */}
               {(title || showCloseButton) && (
-                <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3">
+                <div className="flex items-center justify-between border-b border-gray-200 px-3 sm:px-4 py-3 sm:py-4 sticky top-0 bg-white z-10">
                   {title && (
-                    <h3 className="text-lg font-medium leading-6 text-gray-900">
+                    <h3 className="text-base sm:text-lg font-medium leading-6 text-gray-900 pr-2">
                       {title}
                     </h3>
                   )}
                   {showCloseButton && (
                     <button
                       type="button"
-                      className="text-gray-400 hover:text-gray-500"
+                      className="text-gray-400 hover:text-gray-500 p-1 rounded-full hover:bg-gray-100 transition-colors duration-150"
                       onClick={onClose}
                     >
                       <span className="sr-only">Cerrar</span>
                       <svg
-                        className="h-6 w-6"
+                        className="h-5 w-5 sm:h-6 sm:w-6"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -82,8 +82,12 @@ const Modal: React.FC<ModalProps> = ({
                 </div>
               )}
 
-              {/* Content */}
-              <div className="p-4 overflow-y-auto max-h-[80vh]">{children}</div>
+              {/* Content - Mejorado para móviles */}
+              <div className="overflow-y-auto max-h-[calc(100vh-120px)] sm:max-h-[80vh]">
+                <div className="p-3 sm:p-4">
+                  {children}
+                </div>
+              </div>
             </motion.div>
           </div>
         </div>
