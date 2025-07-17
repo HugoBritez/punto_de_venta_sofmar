@@ -1,0 +1,6 @@
+## id server
+node.sofmar.com.py:21116
+## relay server
+node.sofmar.com.py:21117
+## key
+lCcfypPPC+JZuRGhgi7yoc4h6UJaLEtlNds8jGINwu4=

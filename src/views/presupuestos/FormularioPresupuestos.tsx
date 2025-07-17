@@ -48,6 +48,7 @@ import { NotaPresupuesto } from "./pdf/NotaPresupuesto";
 import { createRoot } from "react-dom/client";
 import { ArticulosComponent } from "@/ui/articulos/ArticulosComponent";
 import BuscadorClientes from "@/ui/clientes/BuscadorClientes";
+import BuscadorClientesMobile from "@/ui/clientes/BuscardorClientesMobile";
 
 interface ItemParaPresupuesto {
   depre_articulo: number;
@@ -1169,21 +1170,31 @@ const FormularioPresupuestos = () => {
               <label htmlFor="cliente" className="text-black font-bold">
                 Cliente:
               </label>
-              <input
-                ref={clienteRef}
-                type="number"
-                name="cliente_id"
-                id="cliente_id"
-                className="bg-white rounded-md p-2"
-                placeholder="Buscar cliente por id"
-                value={
-                  clienteSeleccionado
-                    ? clienteSeleccionado.cli_interno
-                    : busquedaClienteId || ""
-                }
-                onChange={(e) => handleBuscarClientePorId(e)}
-                onKeyDown={handleClienteIdKeyPress}
-              />
+              <div className={isMobile ? "flex flex-row gap-2 items-center" : "flex flex-row gap-2 items-center"}>
+                <input
+                  ref={clienteRef}
+                  type="number"
+                  name="cliente_id"
+                  id="cliente_id"
+                  className={isMobile ? "bg-white rounded-md p-2 flex-1" : "bg-white rounded-md p-2"}
+                  placeholder="Buscar cliente por id"
+                  value={
+                    clienteSeleccionado
+                      ? clienteSeleccionado.cli_interno
+                      : busquedaClienteId || ""
+                  }
+                  onChange={(e) => handleBuscarClientePorId(e)}
+                  onKeyDown={handleClienteIdKeyPress}
+                />
+                {isMobile && (
+                  <button
+                    className="bg-blue-600 text-white px-3 rounded-md text-sm"
+                    onClick={() => setIsBuscadorClientesOpen(true)}
+                  >
+                    Buscar
+                  </button>
+                )}
+              </div>
               <input
                 type="text"
                 name="cliente_nombre"
@@ -2232,17 +2243,31 @@ const FormularioPresupuestos = () => {
         }}
         depositoInicial={depositoSeleccionado?.dep_codigo}
       />
-      <BuscadorClientes
-        isOpen={isBuscadorClientesOpen}
-        setIsOpen={setIsBuscadorClientesOpen}
-        onSelect={(cliente: Cliente) => {
-          setClienteSeleccionado(cliente);
-          // Usar setTimeout para dar tiempo a que el modal se cierre
-          setTimeout(() => {
-            vendedorRef.current?.focus();
-          }, 100);
-        }}
-      />
+      {isMobile ? (
+        <BuscadorClientesMobile
+          isOpen={isBuscadorClientesOpen}
+          setIsOpen={setIsBuscadorClientesOpen}
+          onSelect={(cliente: Cliente) => {
+            setClienteSeleccionado(cliente);
+            // Usar setTimeout para dar tiempo a que el modal se cierre
+            setTimeout(() => {
+              vendedorRef.current?.focus();
+            }, 100);
+          }}
+        />
+      ) : (
+        <BuscadorClientes
+          isOpen={isBuscadorClientesOpen}
+          setIsOpen={setIsBuscadorClientesOpen}
+          onSelect={(cliente: Cliente) => {
+            setClienteSeleccionado(cliente);
+            // Usar setTimeout para dar tiempo a que el modal se cierre
+            setTimeout(() => {
+              vendedorRef.current?.focus();
+            }, 100);
+          }}
+        />
+      )}
     </Box>
   );
 };

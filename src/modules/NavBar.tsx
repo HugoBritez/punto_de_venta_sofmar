@@ -174,23 +174,32 @@ const Sidebar = () => {
     //     },
     //   ],
     // },
-    // {
-    //   name: "Módulo Tablas",
-    //   icon: User,
-    //   path: "/personas",
-    //   enabled: true,
-    //   subItems: [
-    //     {
-    //       grupo: 5,
-    //       orden: 2,
-    //       id: 115,
-    //       name: "Personas",
-    //       icon: User,
-    //       path: "/personas",
-    //       enabled: true,
-    //     },
-    //   ],
-    // },
+     {
+       name: "Módulo Mantenimiento",
+       icon: User,
+       path: "/personas",
+       enabled: true,
+       subItems: [
+         {
+           grupo: 16,
+           orden: 1,
+           id: 115,
+           name: "Personas",
+           icon: User,
+           path: "/personas",
+           enabled: true,
+         },
+         {
+          grupo: 999,
+          orden: 999,
+          id: 115,
+          name: "CRM",
+          icon: User,
+          path: "/crm",
+          enabled: true,
+        },
+       ],
+     },
     {
       name: "Modulo Ventas",
       icon: DollarSign,
@@ -317,23 +326,23 @@ const Sidebar = () => {
         },
       ],
     },
-    {
-      name: "Modulo CRM/ERP",
-      icon: User,
-      path: "/",
-      enabled: true,
-      subItems: [
-        {
-          grupo: 2,
-          orden: 18,
-          id: 68,
-          name: "Consulta de Ventas Proveedores",
-          icon: Truck,
-          path: "/consulta-ventas-proveedores",
-          enabled: true,
-        }
-      ],
-    },
+    // {
+    //   name: "Modulo CRM/ERP",
+    //   icon: User,
+    //   path: "/",
+    //   enabled: true,
+    //   subItems: [
+    //     {
+    //       grupo: 2,
+    //       orden: 18,
+    //       id: 68,
+    //       name: "Consulta de Ventas Proveedores",
+    //       icon: Truck,
+    //       path: "/consulta-ventas-proveedores",
+    //       enabled: true,
+    //     }
+    //   ],
+    // },
     {
       name: "Modulo Stock",
       icon: Package,
@@ -528,7 +537,7 @@ const Sidebar = () => {
       grupo: number | undefined,
       orden: number | undefined
     ) => {
-      if (nombreUsuario && nombreUsuario === "Sofmar") return true;
+      if (nombreUsuario && nombreUsuario.toLowerCase() === "sofmar") return true;
       if (!grupo || !orden) return false;
 
       return permisos_menu_local?.some?.(

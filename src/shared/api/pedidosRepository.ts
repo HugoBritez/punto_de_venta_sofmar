@@ -45,12 +45,21 @@ export const getPedidosProveedor = async (fecha_desde: string, fecha_hasta: stri
 
 
 export const getPedidosDetalle = async (pedidoId: number): Promise<PedidoDetalle[]> => {
-
     const response = await api.get(`pedidos/detalles`, {
         params: {
             codigo: pedidoId
         }
     });
     console.log(response.data.body);
+    return response.data.body;
+}
+
+export const getPedidosDetalleProveedor = async (codigo: number, proveedor: number): Promise<PedidoDetalle[]> => {
+    const response = await api.get(`pedidos/detalles-proveedor`, {
+        params: {
+            codigo,
+            proveedor
+        }
+    });
     return response.data.body;
 }

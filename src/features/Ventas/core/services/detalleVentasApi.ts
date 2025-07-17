@@ -1,3 +1,4 @@
+import api from "@/config/axios";
 import { api_url } from "@/utils";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
@@ -39,10 +40,30 @@ export const getDetallesVentas = async (cod: number): Promise<DetalleVenta[]> =>
     return response.data.body;
 }
 
+
+export const getDetalleVentasProveedor = async (proveedor: number, venta_id: number): Promise<DetalleVenta[]> => {
+    const response = await api.get('ventas/detalle-proveedor', {
+        params: {
+            proveedor,
+            venta_id
+        }
+    })
+
+    return response.data.body;
+}
+
 export const useGetDetallesVentas = (id: number | null) => {
     return useQuery({
         queryKey: ['detalles-ventas', id],
         queryFn: () => getDetallesVentas(id!),
         enabled: !!id, // Solo ejecutar cuando id no sea null
+    });
+};
+
+export const useGetDetalleVentasProveedor = (proveedor: number, venta_id: number) => {
+    return useQuery({
+        queryKey: ['detalle-ventas-proveedor', proveedor, venta_id],
+        queryFn: () => getDetalleVentasProveedor(proveedor, venta_id),
+        enabled: !!proveedor && !!venta_id,
     });
 };

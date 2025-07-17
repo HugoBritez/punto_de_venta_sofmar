@@ -26,7 +26,7 @@ export default defineConfig({
         ]
       },
       manifest: {
-        name: ' Gaesa - Sofmar Sistema - Tu asistente comercial',
+        name: ' Demo - Sofmar Sistema - Tu asistente comercial',
         short_name: 'Sofmar',
         description: 'Sofmar  Sistema - Tu aliado comercial',
         theme_color: '#ffffff',

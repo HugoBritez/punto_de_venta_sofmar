@@ -1,0 +1,39 @@
+.contactoCard {
+    /* Estilos existentes */
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 2rem 1rem;
+    background-color: white;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(229, 231, 235, 0.5);
+    width: 24rem;
+    height: 750px;
+    overflow-y: auto;
+    border-radius: 0.375rem;
+  }
+  
+  /* Scrollbar personalizado solo para este componente */
+  .contactoCard::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .contactoCard::-webkit-scrollbar-track {
+    background: #f3f4f6;
+    border-radius: 3px;
+  }
+  
+  .contactoCard::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 3px;
+  }
+  
+  .contactoCard::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+  }
+  
+  /* Para Firefox */
+  .contactoCard {
+    scrollbar-width: thin;
+    scrollbar-color: #d1d5db #f3f4f6;
+  }

@@ -23,7 +23,7 @@ const configs = {
   },
   lobeck: {
     api_url: "https://node.sofmar.com.py:4009/api/",
-    api_url_secondary: "https://node.sofmar.com.py:5009/api/",
+    api_url_secondary: "https://node.sofmar.com.py:5026/api/",
     db: "lobeck",
     version: "1.2.4",
     title: "Lobeck",
@@ -128,7 +128,7 @@ const configs = {
   },
   caofa: {
     api_url: "https://backend.caofa.com.py:4000/api/",
-    api_url_secondary: "https://backend.caofa.com.py:5000/api/",
+    api_url_secondary: "https://backend.caofa.com.py:4001/api/",
     db: "caofa",
     version: "1.2.4",
     title: "Caofa",

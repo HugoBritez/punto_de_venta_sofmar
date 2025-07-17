@@ -18,6 +18,7 @@ import { ClienteViewModel } from "@/shared/types/clientes";
 import BuscadorClientes from "@/ui/clientes/BuscadorClientes";
 import { UltimasVentas } from "@/features/Ventas/components/UltimasVentas";
 import { ConsultaPedidosPortable } from "@/features/Ventas/components/ConsultaPedidosPortable";
+import { useSessionTimeout } from "../../Login/hooks/useSessionTimeout";
 
 // Hook personalizado para debounce
 const useDebounce = (value: string, delay: number) => {
@@ -95,7 +96,7 @@ const MobileCard = ({ item, proEsAdmin }: { item: ConsultaVentasProveedor, proEs
                     </span>
                 </div>
                 <div className="flex justify-between">
-                    <span className="text-gray-600">Precio Costo:</span>
+                    <span className="text-gray-600">Importe Compra:</span>
                     <span className="font-medium text-orange-600">
                         {new Intl.NumberFormat('es-PY', {
                             style: 'currency',
@@ -127,7 +128,7 @@ const MobileCard = ({ item, proEsAdmin }: { item: ConsultaVentasProveedor, proEs
         <div className="mt-3 pt-3 border-t border-gray-100">
             <div className="grid grid-cols-2 gap-4">
                 <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Importe Compra:</span>
+                    <span className="text-sm text-gray-600">Importe Ventas:</span>
                     <span className="font-semibold text-green-600">
                         {new Intl.NumberFormat('es-PY', {
                             style: 'currency',
@@ -222,7 +223,7 @@ const TableTotals = ({ data, proEsAdmin }: { data: ConsultaVentasProveedor[], pr
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-t-2 border-blue-200">
             <div className="px-4 md:px-6 py-4">
                 {/* Vista móvil: 3 columnas */}
-                <div className="grid grid-cols-3 md:hidden gap-3">
+                <div className="grid grid-cols-2 md:hidden gap-3">
                     <div className="text-center bg-white/50 rounded-lg p-3">
                         <div className="text-xs font-medium text-gray-600 mb-1">Total Unidades</div>
                         <div className="text-base font-bold text-gray-900">
@@ -267,7 +268,7 @@ const TableTotals = ({ data, proEsAdmin }: { data: ConsultaVentasProveedor[], pr
                             {proEsAdmin === 1 ? `${(totals.utilidad / data.length).toLocaleString('es-PY', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%` : '-'}
                         </div>
                     </div>
-                    <div className="text-center bg-white/50 rounded-lg p-3 col-span-3">
+                    <div className="text-center bg-white/50 rounded-lg p-3 col-span-2">
                         <div className="text-xs font-medium text-gray-600 mb-1">Total Ventas</div>
                         <div className="text-base font-bold text-green-600">
                             {new Intl.NumberFormat('es-PY', {
@@ -277,7 +278,7 @@ const TableTotals = ({ data, proEsAdmin }: { data: ConsultaVentasProveedor[], pr
                             }).format(totals.totalImporte)}
                         </div>
                     </div>
-                    <div className="text-center bg-white/50 rounded-lg p-3 col-span-3">
+                    <div className="text-center bg-white/50 rounded-lg p-3 col-span-2">
                         <div className="text-xs font-medium text-gray-600 mb-1">Total Cobrado</div>
                         <div className="text-base font-bold text-emerald-600">
                             {new Intl.NumberFormat('es-PY', {
@@ -362,8 +363,11 @@ const TableTotals = ({ data, proEsAdmin }: { data: ConsultaVentasProveedor[], pr
 };
 
 export const ConsultaVentasProveedores = () => {
-    const { proveedor, token, proEsAdmin } = useProveedorAuthStore();
+    const { proveedor, token, proEsAdmin, logout } = useProveedorAuthStore();
     const navigate = useNavigate();
+    
+    // Verificar expiración de sesión
+    useSessionTimeout();
 
     // Estados locales para las fechas
     const [fechaDesdeLocal, setFechaDesdeLocal] = useState<string>(() => {
@@ -514,7 +518,7 @@ export const ConsultaVentasProveedores = () => {
                 ),
             },
             {
-                accessorKey: 'totalImporte',
+                accessorKey: 'precioCosto',
                 header: 'Importe Compra',
                 size: 140,
                 minSize: 120,
@@ -629,6 +633,11 @@ export const ConsultaVentasProveedores = () => {
         setGlobalFilter(e.target.value);
     }, []);
 
+    const handleLogout = useCallback(() => {
+        logout();
+        navigate('/proveedor-login');
+    }, [logout, navigate]);
+
     useEffect(() => {
         if (!token || !proveedor || token === null || proveedor === null) {
             console.log("Token o datos del proveedor no válidos, redirigiendo al login");
@@ -656,11 +665,25 @@ export const ConsultaVentasProveedores = () => {
                                     Analiza las ventas de tus productos en el período seleccionado
                                 </p>
                             </div>
-                            <div className="hidden md:block">
-                                <div className="w-16 h-16 bg-blue-500 rounded-2xl flex items-center justify-center">
-                                    <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            <div className="flex items-center gap-3">
+                                {/* Botón de logout sutil */}
+                                <button 
+                                    onClick={handleLogout}
+                                    className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 group"
+                                    title="Cerrar sesión"
+                                >
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                                     </svg>
+                                </button>
+                                
+                                {/* Ícono existente */}
+                                <div className="hidden md:block">
+                                    <div className="w-16 h-16 bg-blue-500 rounded-2xl flex items-center justify-center">
+                                        <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                        </svg>
+                                    </div>
                                 </div>
                             </div>
                         </div>

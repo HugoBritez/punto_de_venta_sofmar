@@ -1,5 +1,5 @@
 import Modal from "@/ui/modal/Modal";
-import { usePedidosProveedor, usePedidosDetalle } from "@/shared/hooks/querys/usePedidos";
+import { usePedidosProveedor, usePedidosDetalleProveedor } from "@/shared/hooks/querys/usePedidos";
 import { PedidoProveedor, PedidoDetalle } from "@/shared/types/pedidos";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -111,10 +111,10 @@ const PedidoCard = ({ pedido, onVerDetalles }: { pedido: PedidoProveedor; onVerD
 );
 
 // Componente para mostrar detalles de pedido (responsive)
-const DetallesPedidoModal = ({ pedidoId, isOpen, onClose }: { pedidoId: number | null; isOpen: boolean; onClose: () => void }) => {
-    const { data: detalles, isLoading, error } = usePedidosDetalle(pedidoId || 0);
+const DetallesPedidoModal = ({ pedidoId, isOpen, onClose, proveedor }: { pedidoId: number | null; isOpen: boolean; onClose: () => void, proveedor: number }) => {
+    const { data: detalles, isLoading, error } = usePedidosDetalleProveedor(pedidoId || 0, proveedor);
 
-    if (!isOpen || !pedidoId) return null;
+    if (!isOpen || !pedidoId || !proveedor) return null;
 
     return (
         <Modal
@@ -546,6 +546,7 @@ export const ConsultaPedidosPortable = ({
                 pedidoId={detallesPedidoId}
                 isOpen={!!detallesPedidoId}
                 onClose={() => setDetallesPedidoId(null)}
+                proveedor={proveedorSeleccionado!}
             />
             {/* Componente de vendedores responsive */}
             <div className="hidden lg:block">

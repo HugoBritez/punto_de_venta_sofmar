@@ -1,6 +1,6 @@
 import Modal from "@/ui/modal/Modal";
 import { useGetVentasConFiltros } from "../core/hooks/useGetVentasConFiltros";
-import { useGetDetallesVentas } from "../core/services/detalleVentasApi";
+import {  useGetDetalleVentasProveedor } from "../core/services/detalleVentasApi";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useState } from "react";
@@ -36,6 +36,16 @@ const EmptyState = () => (
     </div>
 );
 
+// Función para formatear montos como guaraníes
+const formatCurrency = (amount: number | string): string => {
+    const numAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+    return numAmount.toLocaleString('es-PY', { 
+        style: 'currency', 
+        currency: 'PYG', 
+        minimumFractionDigits: 0 
+    });
+};
+
 // Componente de tarjeta para móviles
 const VentaCard = ({ venta, onVerDetalles }: { venta: any; onVerDetalles: (id: number) => void }) => (
     <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4 shadow-sm hover:shadow-md transition-shadow duration-200">
@@ -60,11 +70,11 @@ const VentaCard = ({ venta, onVerDetalles }: { venta: any; onVerDetalles: (id: n
             </div>
             <div className="flex justify-between">
                 <span className="text-sm font-medium text-gray-600">Total:</span>
-                <span className="text-sm font-semibold text-gray-900">{venta.total}</span>
+                <span className="text-sm font-semibold text-gray-900">{formatCurrency(venta.total)}</span>
             </div>
             <div className="flex justify-between">
                 <span className="text-sm font-medium text-gray-600">Saldo:</span>
-                <span className="text-sm text-gray-900">{venta.saldo}</span>
+                <span className="text-sm text-gray-900">{formatCurrency(venta.saldo)}</span>
             </div>
             <div className="flex justify-between">
                 <span className="text-sm font-medium text-gray-600">Factura:</span>
@@ -92,10 +102,10 @@ const VentaCard = ({ venta, onVerDetalles }: { venta: any; onVerDetalles: (id: n
 );
 
 // Componente para mostrar detalles de venta (responsive)
-const DetallesVentaModal = ({ ventaId, isOpen, onClose }: { ventaId: number | null; isOpen: boolean; onClose: () => void }) => {
-    const { data: detalles, isLoading, error } = useGetDetallesVentas(ventaId);
+const DetallesVentaModal = ({ ventaId, isOpen, onClose, proveedor }: { ventaId: number | null; isOpen: boolean; onClose: () => void, proveedor: number }) => {
+    const { data: detalles, isLoading, error } = useGetDetalleVentasProveedor(proveedor, ventaId!);
 
-    if (!isOpen || !ventaId) return null;
+    if (!isOpen || !ventaId || !proveedor) return null;
 
     return (
         <Modal
@@ -135,7 +145,7 @@ const DetallesVentaModal = ({ ventaId, isOpen, onClose }: { ventaId: number | nu
                                             <p className="text-xs text-gray-500">#{detalle.art_codigo}</p>
                                         </div>
                                         <span className="text-sm font-semibold text-gray-900">
-                                            {detalle.precio_number * parseFloat(detalle.cantidad.replace(/\./g, '')) - detalle.descuento_number}
+                                            {formatCurrency(detalle.precio_number * parseFloat(detalle.cantidad.replace(/\./g, '')) - detalle.descuento_number)}
                                         </span>
                                     </div>
                                     <div className="space-y-1 text-sm">
@@ -155,17 +165,11 @@ const DetallesVentaModal = ({ ventaId, isOpen, onClose }: { ventaId: number | nu
                                         </div>
                                         <div className="flex justify-between">
                                             <span className="text-gray-600">Precio:</span>
-                                            <span className="text-gray-900">{detalle.precio}</span>
+                                            <span className="text-gray-900">{formatCurrency(detalle.precio_number)}</span>
                                         </div>
-                                        {detalle.kilos && (
-                                            <div className="flex justify-between">
-                                                <span className="text-gray-600">Kilos:</span>
-                                                <span className="text-gray-900">{detalle.kilos} kg</span>
-                                            </div>
-                                        )}
                                         <div className="flex justify-between">
                                             <span className="text-gray-600">Descuento:</span>
-                                            <span className="text-gray-900">{detalle.descuento}</span>
+                                            <span className="text-gray-900">{formatCurrency(detalle.descuento_number)}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -223,14 +227,14 @@ const DetallesVentaModal = ({ ventaId, isOpen, onClose }: { ventaId: number | nu
                                             </td>
                                             <td className="px-3 py-2 text-sm text-gray-900 border-b text-right">
                                                 <div>
-                                                    <div className="font-medium">{detalle.precio}</div>
+                                                    <div className="font-medium">{formatCurrency(detalle.precio_number)}</div>
                                                 </div>
                                             </td>
                                             <td className="px-3 py-2 text-sm text-gray-900 border-b text-right">
-                                                {detalle.descuento}
+                                                {formatCurrency(detalle.descuento_number)}
                                             </td>
                                             <td className="px-3 py-2 text-sm font-medium text-gray-900 border-b text-right">
-                                                {(detalle.precio_number * parseFloat(detalle.cantidad.replace(/\./g, '')) - detalle.descuento_number).toLocaleString('es-PY', { style: 'currency', currency: 'PYG' })}
+                                                {formatCurrency(detalle.precio_number * parseFloat(detalle.cantidad.replace(/\./g, '')) - detalle.descuento_number)}
                                             </td>
                                         </tr>
                                     ))}
@@ -380,13 +384,13 @@ export const UltimasVentas = ({
                                                     {venta.factura || '-'}
                                                 </td>
                                                 <td className="px-4 py-3 text-sm font-medium text-gray-900 border-b text-right">
-                                                    {venta.total.toLocaleString('es-PY', { style: 'currency', currency: 'PYG' })}
+                                                    {formatCurrency(venta.total)}
                                                 </td>
                                                 <td className="px-4 py-3 text-sm text-gray-900 border-b text-right">
-                                                    {venta.saldo.toLocaleString('es-PY', { style: 'currency', currency: 'PYG' })}
+                                                    {formatCurrency(venta.saldo)}
                                                 </td>
                                                 <td className="px-4 py-3 text-sm text-gray-900 border-b text-right">
-                                                    {venta.descuento.toLocaleString('es-PY', { style: 'currency', currency: 'PYG' })}
+                                                    {formatCurrency(venta.descuento)}
                                                 </td>
                                                 <td className="px-4 py-3 text-sm text-gray-900 border-b">
                                                     {venta.condicion || '-'}
@@ -428,6 +432,7 @@ export const UltimasVentas = ({
                 ventaId={detallesVentaId}
                 isOpen={!!detallesVentaId}
                 onClose={() => setDetallesVentaId(null)}
+                proveedor={proveedorSeleccionado!}
             />
         </>
     );

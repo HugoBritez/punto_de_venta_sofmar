@@ -60,6 +60,7 @@ import PuntoDeVentaWrapper from "./features/Ventas/views/PuntoDeVentaWrapper";
 import GestionDireccionesV2 from "./views/direcciones/GestionDireccionesV2";
 import { ProveedorLogin } from "./features/Login/view/ProveedorLogin";
 import { ConsultaVentasProveedores } from "./features/public/ConsultaVentasProveedor/ReporteVentasProveedores";
+import { ModuloCRM } from "./features/CRM/views/MainPage";
   // import InventarioPannel from "./features/Inventario/views/InventarioPannel";
 
 const ProtectedLayout: React.FC = () => {
@@ -105,6 +106,7 @@ function App() {
               <Route path="/consulta-ventas-proveedores" element={<ConsultaVentasProveedores />} />
               <Route path="/auth" element={<Navigate to="/login" replace />} />
               <Route element={<ProtectedLayout />}>
+                <Route path="/crm" element={<ModuloCRM />} />
                 <Route path="/personas" element={<PersonasList />} />
                 <Route path="/ventas/reporte-movimiento-productos" element={<ReporteMovimientoProductos />} />
                 <Route path="/reporte-pedidos-facturados" element={<ReportePedidosFacturados />} />
