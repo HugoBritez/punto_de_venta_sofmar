@@ -169,3 +169,117 @@ export const useTiposTareas = () => {
     queryFn: crmApi.getTiposTareas,
   });
 };
+
+// --- Estados ---
+export const useEstados = () => {
+  return useQuery({
+    queryKey: ["estadosCRM"],
+    queryFn: crmApi.getEstados,
+  });
+};
+
+export const useCambiarNombre = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ codigo, descripcion }: { codigo: string; descripcion: string }) =>
+      crmApi.cambiarNombre(codigo, descripcion),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["estadosCRM"] });
+    },
+  });
+};
+
+
+export const useAgendamientos = () => {
+  return useQuery({
+    queryKey: ["agendamientos"],
+    queryFn: crmApi.getAgendamientos,
+  });
+};
+
+export const useAgendamientoById = (id: number) => {
+  return useQuery({
+    queryKey: ["agendamiento", id],
+    queryFn: () => crmApi.getAgendamientoById(id),
+    enabled: !!id,
+    });
+};
+
+export const useAgendamientosByDoctor = (doctor: number) => {
+  return useQuery({
+    queryKey: ["agendamientos", "doctor", doctor],
+    queryFn: () => crmApi.getAgendamientosByDoctor(doctor),
+    enabled: !!doctor,
+  });
+};
+
+export const useAgendamientosByOperador = (operador: number) => {
+  return useQuery({
+    queryKey: ["agendamientos", "operador", operador],
+    queryFn: () => crmApi.getAgendamientosByOperador(operador),
+    enabled: !!operador,
+  });
+};
+
+export const useCrearAgendamiento = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: crmApi.crearAgendamiento,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["agendamientos"] });
+    },
+  });
+};
+
+export const useActualizarAgendamiento = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: crmApi.actualizarAgendamiento,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["agendamientos"] });
+    },
+  });
+};
+
+
+// --- Recordatorios ---
+
+export const useRecordatorios = () => {
+  return useQuery({
+    queryKey: ["recordatorios"],
+    queryFn: crmApi.getRecordatorios,
+  });
+};
+
+export const useRecordatorioById = (id: number) => {
+  return useQuery({
+    queryKey: ["recordatorio", id],
+    queryFn: () => crmApi.getRecordatorioById(id),
+    enabled: !!id,
+  });
+};
+
+export const useCrearRecordatorio = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: crmApi.crearRecordatorio,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["recordatorios"] });
+    },
+  });
+};
+
+export const useActualizarRecordatorio = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: crmApi.actualizarRecordatorio,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["recordatorios"] });
+    },
+  });
+};

@@ -26,7 +26,7 @@ export default defineConfig({
         ]
       },
       manifest: {
-        name: ' Demo - Sofmar Sistema - Tu asistente comercial',
+        name: ' Sofmar Sistema - Sofmar Sistema - Tu asistente comercial',
         short_name: 'Sofmar',
         description: 'Sofmar  Sistema - Tu aliado comercial',
         theme_color: '#ffffff',

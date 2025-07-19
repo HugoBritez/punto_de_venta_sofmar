@@ -2,8 +2,10 @@
     
 import api from "@/config/axios";
 import { ContactoCRM, CrearContactoCRM, ActualizarContactoCRM } from "../types/contactos.type";
-import { OportunidadCRM, CrearOportunidadCRM, ActualizarOportunidadCRM, OportunidadViewModel } from "../types/oportunidades.type";
+import { OportunidadCRM, CrearOportunidadCRM, ActualizarOportunidadCRM, OportunidadViewModel, EstadoCRM } from "../types/oportunidades.type";
 import { TareaCRM, CrearTareaCRM, ActualizarTareaCRM, TipoTareaCRM } from "../types/tareas.type";
+import { AgendamientoCRM, CreateAgendamientoCRMDTO, UpdateAgendamientoCRM } from "../types/agendamientos.type";
+import { CreateRecordatorioCRMDTO, RecordatorioViewModel, UpdateRecordatorioCRMDTO } from "../types/recordatorios.type";
 
 // --- Contactos ---
 export const crmApi = {
@@ -107,6 +109,74 @@ export const crmApi = {
     const { data } = await api.get("/crm/tipos-tareas");
     return data.body;
   },
+
+    getEstados: async (): Promise<EstadoCRM[]> => {
+    const { data } = await api.get(`/crm/estados`);
+    return data.body;
+  },
+
+  cambiarNombre: async (codigo: string, descripcion: string): Promise<EstadoCRM> => {
+    const { data } = await api.put(`/crm/estados/${codigo}`, {
+      descripcion: descripcion
+    });
+    return data.body;
+  },
+
+  // --- Agendamientos ---
+
+  getAgendamientos: async (): Promise<AgendamientoCRM[]> => {
+    const { data} = await api.get("/crm/agendamientos");
+    return data.body;
+  },
+
+  getAgendamientoById: async (id: number): Promise<AgendamientoCRM> => {
+    const { data } = await api.get(`/crm/agendamientos/${id}`);
+    return data.body;
+  },
+
+  getAgendamientosByDoctor: async (doctor: number): Promise<AgendamientoCRM[]> => {
+    const { data } = await api.get(`/crm/agendamientos/doctor/${doctor}`);
+    return data.body;
+  },
+
+  getAgendamientosByOperador: async (operador: number): Promise<AgendamientoCRM[]> => {
+    const { data } = await api.get(`/crm/agendamientos/operador/${operador}`);
+    return data.body;
+  },
+
+  crearAgendamiento: async (agendamiento: CreateAgendamientoCRMDTO): Promise<AgendamientoCRM> => {
+    const { data } = await api.post("/crm/agendamientos", agendamiento);
+    return data.body;
+  },
+
+  actualizarAgendamiento: async (agendamiento: UpdateAgendamientoCRM): Promise<AgendamientoCRM> => {
+    const { data } = await api.put("/crm/agendamientos", agendamiento);
+    return data.body;
+  },
+
+
+  // --- Recordatorios ---
+
+  getRecordatorios: async (): Promise<RecordatorioViewModel[]> => {
+    const { data } = await api.get("/crm/recordatorios");
+    return data.body;
+  },
+
+  getRecordatorioById: async (id: number): Promise<RecordatorioViewModel> => {
+    const { data } = await api.get(`/crm/recordatorios/${id}`);
+    return data.body;
+  },
+
+  crearRecordatorio: async (recordatorio: CreateRecordatorioCRMDTO): Promise<RecordatorioViewModel> => {
+    const { data } = await api.post("/crm/recordatorios", recordatorio);
+    return data.body;
+  },
+
+  actualizarRecordatorio: async (recordatorio: UpdateRecordatorioCRMDTO): Promise<RecordatorioViewModel> => {
+    const { data } = await api.put("/crm/recordatorios", recordatorio);
+    return data.body;
+  },
+
 };
 
 export default crmApi;

@@ -50,7 +50,7 @@ export const ContactoForm = ({ contacto, onClose, onSuccess }: ContactoFormProps
         ciudad: contacto?.ciudad || 1,
         zona: contacto?.zona || 1,
         estado:  1,
-        general: contacto?.general || 0,
+        general: contacto?.general || 1,
         operador: contacto?.operador || operador,
     });
 
@@ -463,7 +463,7 @@ export const ContactoForm = ({ contacto, onClose, onSuccess }: ContactoFormProps
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Compartir cliente
+                                    Compartir contacto
                                 </label>
                                 <select
                                     value={formData.general}

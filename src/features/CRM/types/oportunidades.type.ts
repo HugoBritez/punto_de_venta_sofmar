@@ -43,3 +43,9 @@ export interface ActualizarOportunidadCRM {
   estado?: number;
   general?: number;
 }
+
+
+export interface EstadoCRM {
+  id: string;
+  descripcions: string;
+}

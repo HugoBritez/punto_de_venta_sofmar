@@ -1,1 +1,1 @@
-export const api_url = "https://localhost:4024/api/"
+export const api_url = "https://node.sofmar.com.py:5016/api/"

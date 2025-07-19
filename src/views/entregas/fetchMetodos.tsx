@@ -71,8 +71,12 @@ const fetchClientes = async (busqueda: string = '') => {
 }
 
 
-const fetchProveedores = async () => {
-    const response = await axios.get(`${api_url}proveedores/`);
+const fetchProveedores = async (busqueda: string ) => {
+    const response = await axios.get(`${api_url}proveedores/`, {
+        params: {
+            busqueda: busqueda
+        }
+    });
     return response.data.body;
 }
 

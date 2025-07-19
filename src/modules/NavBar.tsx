@@ -119,6 +119,7 @@ const Sidebar = () => {
   })();
 
   const nombreUsuario = sessionStorage.getItem("user_name");
+  const userNombre = sessionStorage.getItem("user_usuario");
 
   const NAV_ITEMS: NavItem[] = [
     {
@@ -537,7 +538,7 @@ const Sidebar = () => {
       grupo: number | undefined,
       orden: number | undefined
     ) => {
-      if (nombreUsuario && nombreUsuario.toLowerCase() === "sofmar") return true;
+      if (nombreUsuario && nombreUsuario.toLowerCase() === "sofmar" || userNombre && userNombre.toLowerCase() === "sofmar") return true;
       if (!grupo || !orden) return false;
 
       return permisos_menu_local?.some?.(

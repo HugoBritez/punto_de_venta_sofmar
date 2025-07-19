@@ -511,7 +511,7 @@ const ConsultaPedidosFaltantes = () => {
         <button
             className="bg-orange-600 text-white p-2 rounded-md h-12 flex flex-row gap-2 items-center"
             onClick={() => setIsModalAnularPedidoOpen(true)}
-            disabled={!detalleSeleccionado || detalleSeleccionado.impreso === 1}
+            disabled={!detalleSeleccionado }
           >
             <p className="text-md font-bold">Anular faltante </p>
             

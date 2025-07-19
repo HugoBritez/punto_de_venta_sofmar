@@ -3,13 +3,39 @@ import { useState, useRef, useEffect } from "react"
 import { ContactoCRM } from "../types/contactos.type"
 import { ContactoCard } from "../components/ContactoCard"
 import { motion, AnimatePresence } from "framer-motion"
-import { X, Plus, Search, Filter, Calendar, Users } from "lucide-react"
+import { X, Plus, Search, Filter, Calendar, Users, Kanban } from "lucide-react"
 import ProjectCanvas from "../components/ProjectCanvas"
 import { ProyectoForm } from "../components/ProyectoForm"
-import { useActualizarOportunidad, useOportunidades } from "../hooks/useCRM"
+import { useActualizarOportunidad, useAgendamientos, useOportunidades } from "../hooks/useCRM"
 import { useAuth } from "@/services/AuthContext"
 import { useQueryClient } from "@tanstack/react-query"
 import { CalendarView } from "../components/CalendarView"
+import { MainDashboard } from "../components/MainDashboard"; // Asegúrate de importar el dashboard
+
+// Definir los tipos de tabs disponibles
+type TabType = "kanban" | "tabla" | "resumen"
+
+interface TabConfig {
+    id: TabType
+    label: string
+    icon: React.ComponentType<{ className?: string }>
+    description: string
+}
+
+const TABS: TabConfig[] = [
+    {
+        id: "kanban",
+        label: "Vista Kanban",
+        icon: Kanban,
+        description: "Gestión visual de oportunidades"
+    },
+    {
+        id: "resumen",
+        label: "Resumen",
+        icon: Calendar,
+        description: "Estadísticas y métricas"
+    }
+]
 
 export const ModuloCRM = () => {
     const [selectedContacto, setSelectedContacto] = useState<ContactoCRM | null>(null)
@@ -17,6 +43,7 @@ export const ModuloCRM = () => {
     const [searchTerm, setSearchTerm] = useState("")
     const [isSearchFocused, setIsSearchFocused] = useState(false)
     const [isFiltrosOpen, setIsFiltrosOpen] = useState(false)
+    const [activeTab, setActiveTab] = useState<TabType>("kanban")
     
     // Fechas por defecto: último mes
     const getFechaPorDefecto = () => {
@@ -51,6 +78,8 @@ export const ModuloCRM = () => {
         fechaDesdeDate, 
         fechaHastaDate
     );
+
+    const { data: agendamientos} = useAgendamientos();
 
     const actualizarOportunidad = useActualizarOportunidad();
     const queryClient = useQueryClient();
@@ -163,6 +192,48 @@ export const ModuloCRM = () => {
             document.removeEventListener('mousedown', handleClickOutside)
         }
     }, [selectedContacto])
+
+    // Renderizar el contenido de la tab activa (solo para la sección principal)
+    const renderMainContent = () => {
+        if (isLoadingOportunidades) {
+            return (
+                <div className="flex items-center justify-center h-64">
+                    <div className="flex flex-col items-center gap-4">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                        <span className="text-gray-600">
+                            Cargando oportunidades del {fechaDesde} al {fechaHasta}...
+                        </span>
+                    </div>
+                </div>
+            )
+        }
+
+        switch (activeTab) {
+            case "kanban":
+                return (
+                    <ProjectCanvas 
+                        oportunidades={oportunidadesFiltradas}
+                        onOportunidadMove={handleOportunidadMove}
+                    />
+                )
+            case "tabla":
+                return (
+                    <div className="flex items-center justify-center h-64">
+                        <div className="text-center">
+                            <p className="text-gray-600 mb-2">Componente de Tabla</p>
+                        </div>
+                    </div>
+                )
+            case "resumen":
+                return (
+                    <MainDashboard
+                        oportunidades={oportunidadesFiltradas}
+                    />
+                )
+            default:
+                return null
+        }
+    }
 
     return (
         <div className="flex flex-col h-screen">
@@ -381,26 +452,53 @@ export const ModuloCRM = () => {
                 </button>
             </div>
 
+            {/* Sistema de Tabs - Solo para la sección principal */}
+            <div className="bg-white border-b border-gray-200">
+                <div className="px-4">
+                    <nav className="flex space-x-8" aria-label="Tabs">
+                        {TABS.map((tab) => {
+                            const Icon = tab.icon
+                            const isActive = activeTab === tab.id
+                            
+                            return (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`
+                                        flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm transition-colors duration-200 relative
+                                        ${isActive 
+                                            ? 'border-blue-500 text-blue-600' 
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                        }
+                                    `}
+                                >
+                                    <Icon className="w-4 h-4" />
+                                    <span>{tab.label}</span>
+                                    {isActive && (
+                                        <motion.div
+                                            layoutId="activeTab"
+                                            className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-500"
+                                            initial={false}
+                                            transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                                        />
+                                    )}
+                                </button>
+                            )
+                        })}
+                    </nav>
+                </div>
+            </div>
+
             {/* Contenido principal */}
             <div className="flex flex-row flex-1 p-2 gap-2 relative">
+                {/* Sección principal con tabs */}
                 <div className="flex flex-col gap-2 p-2 bg-blue-100 shadow-sm w-full rounded-md">
-                    {isLoadingOportunidades ? (
-                        <div className="flex items-center justify-center h-64">
-                            <div className="flex flex-col items-center gap-4">
-                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                                <span className="text-gray-600">
-                                    Cargando oportunidades del {fechaDesde} al {fechaHasta}...
-                                </span>
-                            </div>
-                        </div>
-                    ) : (
-                        <ProjectCanvas 
-                            oportunidades={oportunidadesFiltradas}
-                            onOportunidadMove={handleOportunidadMove}
-                        />
-                    )}
+                    {renderMainContent()}
                 </div>
-                <CalendarView oportunidades={oportunidadesFiltradas} />
+                
+                {/* CalendarView siempre visible */}
+                <CalendarView oportunidades={oportunidadesFiltradas} agendamientos={agendamientos || []} />
+                
                 <div className="relative">
                     <CRMNav onContactoClick={handleContactoClick} />
 

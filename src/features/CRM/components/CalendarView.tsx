@@ -1,173 +1,38 @@
 import { useState } from "react"
-import { ChevronLeft, ChevronRight, Calendar, Bell, Clock, CheckCircle, AlertCircle, X } from "lucide-react"
-import { useTareasByOperador } from "../hooks/useCRM"
+import { ChevronLeft, ChevronRight, Calendar, Bell, Clock, CheckCircle, AlertCircle, ListTodo, CalendarDays } from "lucide-react"
+import { useTareasByOperador, useRecordatorios } from "../hooks/useCRM"
 import { useAuth } from "@/services/AuthContext"
 import { DetalleProyectoModal } from "./DetalleProyectoModal"
 import { OportunidadViewModel } from "../types/oportunidades.type"
+import { TareasDiaModal } from "./TareasDiasModal"
+import { AgendamientosCRMModel } from "../types/agendamientos.type"
 
 interface CalendarViewProps {
     oportunidades: OportunidadViewModel[]
+    agendamientos: AgendamientosCRMModel[]
 }
 
 // Modal para mostrar tareas del día seleccionado
-const TareasDiaModal = ({ 
-    isOpen, 
-    onClose, 
-    tareas, 
-    fecha, 
-    onTareaClick 
-}: { 
-    isOpen: boolean
-    onClose: () => void
-    tareas: any[]
-    fecha: Date
-    onTareaClick: (tarea: any) => void
-}) => {
-    if (!isOpen) return null
 
-    const formatDate = (date: Date) => {
-        return date.toLocaleDateString('es-ES', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        })
-    }
 
-    const getEstadoTareaIcon = (estado: number) => {
-        switch (estado) {
-            case 0:
-                return <Clock className="w-4 h-4 text-yellow-500" />
-            case 1:
-                return <AlertCircle className="w-4 h-4 text-blue-500" />
-            case 2:
-                return <CheckCircle className="w-4 h-4 text-green-500" />
-            default:
-                return <Clock className="w-4 h-4 text-gray-500" />
-        }
-    }
-
-    const getEstadoTareaText = (estado: number) => {
-        switch (estado) {
-            case 0:
-                return "Pendiente"
-            case 1:
-                return "En Progreso"
-            case 2:
-                return "Completada"
-            default:
-                return "Desconocido"
-        }
-    }
-
-    const getEstadoTareaColor = (estado: number) => {
-        switch (estado) {
-            case 0:
-                return "bg-yellow-100 text-yellow-800"
-            case 1:
-                return "bg-blue-100 text-blue-800"
-            case 2:
-                return "bg-green-100 text-green-800"
-            default:
-                return "bg-gray-100 text-gray-800"
-        }
-    }
-
-    return (
-        <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 ${isOpen ? 'block' : 'hidden'}`}>
-            <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden">
-                {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                    <div className="flex items-center gap-3">
-                        <Calendar className="w-6 h-6 text-blue-600" />
-                        <div>
-                            <h2 className="text-xl font-semibold text-gray-900">
-                                Tareas del {formatDate(fecha)}
-                            </h2>
-                            <p className="text-sm text-gray-500">
-                                {tareas.length} tarea{tareas.length !== 1 ? 's' : ''} encontrada{tareas.length !== 1 ? 's' : ''}
-                            </p>
-                        </div>
-                    </div>
-                    <button
-                        onClick={onClose}
-                        className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                    >
-                        <X className="w-5 h-5 text-gray-500" />
-                    </button>
-                </div>
-
-                {/* Contenido */}
-                <div className="p-6 overflow-y-auto max-h-[calc(80vh-120px)]">
-                    {tareas.length > 0 ? (
-                        <div className="space-y-4">
-                            {tareas.map((tarea) => (
-                                <div
-                                    key={tarea.codigo}
-                                    className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-                                    onClick={() => onTareaClick(tarea)}
-                                >
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-3 mb-2">
-                                                {getEstadoTareaIcon(tarea.estado)}
-                                                <h3 className="font-medium text-gray-900">
-                                                    {tarea.titulo || 'Sin título'}
-                                                </h3>
-                                            </div>
-                                            
-                                            <div className="flex items-center gap-4 text-sm text-gray-600 mb-2">
-                                                <span>#{tarea.codigo}</span>
-                                                <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${getEstadoTareaColor(tarea.estado)}`}>
-                                                    {getEstadoTareaText(tarea.estado)}
-                                                </span>
-                                            </div>
-
-                                            {tarea.descripcion && (
-                                                <p className="text-sm text-gray-600 line-clamp-2">
-                                                    {tarea.descripcion}
-                                                </p>
-                                            )}
-
-                                            {tarea.oportunidad && (
-                                                <div className="mt-2 text-xs text-gray-500">
-                                                    Proyecto: #{tarea.oportunidad}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <div className="text-center py-8">
-                            <Calendar className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">
-                                No hay tareas programadas
-                            </h3>
-                            <p className="text-gray-500">
-                                No tienes tareas pendientes para el {formatDate(fecha)}
-                            </p>
-                        </div>
-                    )}
-                </div>
-            </div>
-        </div>
-    )
-}
-
-export const CalendarView = ({ oportunidades }: CalendarViewProps) => {
+export const CalendarView = ({ oportunidades, agendamientos }: CalendarViewProps) => {
     const [currentDate, setCurrentDate] = useState(new Date())
     const [selectedDate, setSelectedDate] = useState<Date | null>(null)
     const [selectedOportunidad, setSelectedOportunidad] = useState<OportunidadViewModel | null>(null)
     const [isDetalleModalOpen, setIsDetalleModalOpen] = useState(false)
     const [isTareasDiaModalOpen, setIsTareasDiaModalOpen] = useState(false)
 
+    // Agregar estado para el tab activo
+    const [activeTab, setActiveTab] = useState<'tareas' | 'agendamientos' | 'recordatorios'>('tareas')
+
     const auth = useAuth()
     const operador = Number(auth.auth?.userId)
 
     // Obtener tareas del operador
     const { data: tareas = [], isLoading: isLoadingTareas } = useTareasByOperador(operador)
+    
+    // Obtener recordatorios
+    const { data: recordatorios = [] } = useRecordatorios()
 
     // Obtener el primer día del mes y el número de días
     const getDaysInMonth = (date: Date) => {
@@ -203,12 +68,7 @@ export const CalendarView = ({ oportunidades }: CalendarViewProps) => {
 
     const handleDateClick = (date: Date) => {
         setSelectedDate(date)
-        const dayTareas = getTareasForDate(date)
-        
-        // Si hay tareas para ese día, abrir el modal
-        if (dayTareas.length > 0) {
-            setIsTareasDiaModalOpen(true)
-        }
+        setIsTareasDiaModalOpen(true)        
     }
 
     // Obtener tareas para una fecha específica
@@ -241,6 +101,60 @@ export const CalendarView = ({ oportunidades }: CalendarViewProps) => {
             .slice(0, 5) // Mostrar solo las próximas 5
     }
 
+    // Obtener agendamientos para una fecha específica
+    const getAgendamientosForDate = (date: Date) => {
+        return agendamientos.filter(agendamiento => {
+            const agendamientoDate = new Date(agendamiento.fechaAgendamiento)
+            return agendamientoDate.toDateString() === date.toDateString()
+        })
+    }
+
+    // Obtener agendamientos próximos (próximos 7 días)
+    const getAgendamientosProximos = () => {
+        const hoy = new Date()
+        const proximaSemana = new Date()
+        proximaSemana.setDate(hoy.getDate() + 7)
+
+        return agendamientos
+            .filter(agendamiento => {
+                const agendamientoDate = new Date(agendamiento.fechaAgendamiento)
+                return agendamientoDate >= hoy && agendamientoDate <= proximaSemana
+            })
+            .sort((a, b) => {
+                const fechaA = new Date(a.fechaAgendamiento)
+                const fechaB = new Date(b.fechaAgendamiento)
+                return fechaA.getTime() - fechaB.getTime()
+            })
+            .slice(0, 5) // Mostrar solo los próximos 5
+    }
+
+    // Obtener recordatorios para una fecha específica
+    const getRecordatoriosForDate = (date: Date) => {
+        return recordatorios.filter(recordatorio => {
+            const recordatorioDate = new Date(recordatorio.fechaLimite)
+            return recordatorioDate.toDateString() === date.toDateString()
+        })
+    }
+
+    // Obtener recordatorios próximos (próximos 7 días)
+    const getRecordatoriosProximos = () => {
+        const hoy = new Date()
+        const proximaSemana = new Date()
+        proximaSemana.setDate(hoy.getDate() + 7)
+
+        return recordatorios
+            .filter(recordatorio => {
+                const recordatorioDate = new Date(recordatorio.fechaLimite)
+                return recordatorioDate >= hoy && recordatorioDate <= proximaSemana
+            })
+            .sort((a, b) => {
+                const fechaA = new Date(a.fechaLimite)
+                const fechaB = new Date(b.fechaLimite)
+                return fechaA.getTime() - fechaB.getTime()
+            })
+            .slice(0, 5) // Mostrar solo los próximos 5
+    }
+
     // Función helper para obtener el icono del estado de la tarea
     const getEstadoTareaIcon = (estado: number) => {
         switch (estado) {
@@ -269,6 +183,34 @@ export const CalendarView = ({ oportunidades }: CalendarViewProps) => {
         }
     }
 
+    // Función helper para obtener el icono del estado del agendamiento
+    const getEstadoAgendamientoIcon = (estado: number) => {
+        switch (estado) {
+            case 0:
+                return <Clock className="w-3 h-3" />
+            case 1:
+                return <AlertCircle className="w-3 h-3" />
+            case 2:
+                return <CheckCircle className="w-3 h-3" />
+            default:
+                return <Clock className="w-3 h-3" />
+        }
+    }
+
+    // Función helper para obtener el color del estado del agendamiento
+    const getEstadoAgendamientoColor = (estado: number) => {
+        switch (estado) {
+            case 0:
+                return 'bg-blue-500' // Programado
+            case 1:
+                return 'bg-orange-500' // En curso
+            case 2:
+                return 'bg-green-500' // Completado
+            default:
+                return 'bg-gray-500'
+        }
+    }
+
     // Función helper para formatear fecha
     const formatDate = (date: Date | string) => {
         const fecha = new Date(date)
@@ -292,8 +234,48 @@ export const CalendarView = ({ oportunidades }: CalendarViewProps) => {
         }
     }
 
+    // Función helper para formatear hora
+    const formatTime = (timeString: string) => {
+        try {
+            const [hours, minutes] = timeString.split(':')
+            return `${hours}:${minutes}`
+        } catch {
+            return timeString
+        }
+    }
+
+    // Función helper para obtener el icono del estado del recordatorio
+    const getEstadoRecordatorioIcon = (estado: number) => {
+        switch (estado) {
+            case 0:
+                return <Clock className="w-3 h-3" />
+            case 1:
+                return <AlertCircle className="w-3 h-3" />
+            case 2:
+                return <CheckCircle className="w-3 h-3" />
+            default:
+                return <Clock className="w-3 h-3" />
+        }
+    }
+
+    // Función helper para obtener el color del estado del recordatorio
+    const getEstadoRecordatorioColor = (estado: number) => {
+        switch (estado) {
+            case 0:
+                return 'bg-orange-500' // Pendiente
+            case 1:
+                return 'bg-blue-500' // En progreso
+            case 2:
+                return 'bg-green-500' // Completado
+            default:
+                return 'bg-gray-500'
+        }
+    }
+
     const days = getDaysInMonth(currentDate)
     const tareasProximas = getTareasProximas()
+    const agendamientosProximos = getAgendamientosProximos()
+    const recordatoriosProximos = getRecordatoriosProximos()
 
     // Función para manejar el clic en una tarea/recordatorio
     const handleTareaClick = (tarea: any) => {
@@ -320,6 +302,13 @@ export const CalendarView = ({ oportunidades }: CalendarViewProps) => {
         } else {
             console.warn('No se encontró la oportunidad asociada a la tarea:', tarea.oportunidad)
         }
+    }
+
+    // Función para manejar el clic en un agendamiento
+    const handleAgendamientoClick = (agendamiento: AgendamientosCRMModel) => {
+        // Aquí puedes implementar la lógica para mostrar detalles del agendamiento
+        console.log('Agendamiento seleccionado:', agendamiento)
+        // Por ahora solo mostramos en consola, pero puedes crear un modal específico
     }
 
     const handleCloseDetalleModal = () => {
@@ -367,7 +356,7 @@ export const CalendarView = ({ oportunidades }: CalendarViewProps) => {
 
                     {/* Días de la semana */}
                     <div className="grid grid-cols-7">
-                        {['D', 'L', 'M', 'X', 'J', 'V', 'S'].map(day => (
+                        {['D', 'L', 'M', 'MI', 'J', 'V', 'S'].map(day => (
                             <div key={day} className="p-2 text-center">
                                 <span className="text-xs text-gray-500">{day}</span>
                             </div>
@@ -381,9 +370,13 @@ export const CalendarView = ({ oportunidades }: CalendarViewProps) => {
                             const isToday = day.toDateString() === new Date().toDateString()
                             const isSelected = selectedDate?.toDateString() === day.toDateString()
                             const dayTareas = getTareasForDate(day)
+                            const dayAgendamientos = getAgendamientosForDate(day)
+                            const dayRecordatorios = getRecordatoriosForDate(day)
                             
-                            // Solo mostrar indicador si hay tareas pendientes (estado 0 o 1)
+                            // Mostrar indicador si hay tareas pendientes, agendamientos o recordatorios
                             const hasPendingTasks = dayTareas.some(tarea => tarea.estado === 0 || tarea.estado === 1)
+                            const hasAgendamientos = dayAgendamientos.length > 0
+                            const hasRecordatorios = dayRecordatorios.length > 0
                             
                             return (
                                 <div
@@ -402,10 +395,18 @@ export const CalendarView = ({ oportunidades }: CalendarViewProps) => {
                                             {day.getDate()}
                                         </span>
                                         
-                                        {/* Indicador de tareas pendientes */}
-                                        {hasPendingTasks && (
-                                            <div className="w-1.5 h-1.5 bg-red-500 rounded-full mt-1" />
-                                        )}
+                                        {/* Indicadores de tareas y agendamientos */}
+                                        <div className="flex gap-1 mt-1">
+                                            {hasPendingTasks && (
+                                                <div className="w-1.5 h-1.5 bg-red-500 rounded-full" />
+                                            )}
+                                            {hasAgendamientos && (
+                                                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
+                                            )}
+                                            {hasRecordatorios && (
+                                                <div className="w-1.5 h-1.5 bg-orange-500 rounded-full" />
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             )
@@ -416,48 +417,164 @@ export const CalendarView = ({ oportunidades }: CalendarViewProps) => {
                 {/* Separador */}
                 <div className="border-t border-gray-200"/>
 
-                {/* Sección de Recordatorios */}
-                <div className="flex flex-col gap-3">
-                    {/* Header de recordatorios */}
-                    <div className="flex items-center gap-2">
-                        <Bell className="w-5 h-5 text-orange-600" />
-                        <h3 className="font-semibold text-gray-900">Recordatorios</h3>
+                {/* Sistema de Tabs Compacto */}
+                <div className="border-t border-gray-200 pt-3">
+                    {/* Tabs */}
+                    <div className="flex space-x-1 mb-3">
+                        <button
+                            onClick={() => setActiveTab('tareas')}
+                            className={`flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                                activeTab === 'tareas'
+                                    ? 'bg-red-100 text-red-700 border border-red-200'
+                                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                            }`}
+                        >
+                            <ListTodo className="w-3 h-3" />
+                            Tareas ({tareasProximas.length})
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('agendamientos')}
+                            className={`flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                                activeTab === 'agendamientos'
+                                    ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                            }`}
+                        >
+                            <CalendarDays className="w-3 h-3" />
+                            Agendas ({agendamientosProximos.length})
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('recordatorios')}
+                            className={`flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                                activeTab === 'recordatorios'
+                                    ? 'bg-orange-100 text-orange-700 border border-orange-200'
+                                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                            }`}
+                        >
+                            <Bell className="w-3 h-3" />
+                            Record. ({recordatoriosProximos.length})
+                        </button>
                     </div>
 
-                    {/* Lista de recordatorios */}
-                    <div className="space-y-2">
-                        {isLoadingTareas ? (
-                            <div className="text-center py-4 text-gray-500">
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                                <p className="text-xs">Cargando tareas...</p>
-                            </div>
-                        ) : tareasProximas.length > 0 ? (
-                            tareasProximas.map(tarea => (
-                                <div 
-                                    key={tarea.codigo} 
-                                    className="p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors"
-                                    onClick={() => handleTareaClick(tarea)}
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <h4 className="text-sm font-medium text-gray-900">
-                                                {tarea.titulo || 'Sin título'}
-                                            </h4>
-                                                                                         <p className="text-xs text-gray-600">
-                                                 {formatDate(tarea.fechaLimite ? new Date(tarea.fechaLimite) : new Date(tarea.fecha))}
-                                             </p>
-                                        </div>
-                                        <div className="flex items-center gap-1">
-                                            {getEstadoTareaIcon(tarea.estado)}
-                                            <div className={`w-2 h-2 rounded-full ${getEstadoTareaColor(tarea.estado)}`} />
-                                        </div>
+                    {/* Contenido de los Tabs */}
+                    <div className="overflow-y-auto max-h-[300px]">
+                        {/* Tab Tareas */}
+                        {activeTab === 'tareas' && (
+                            <div className="space-y-2">
+                                {isLoadingTareas ? (
+                                    <div className="text-center py-4 text-gray-500">
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600 mx-auto mb-2"></div>
+                                        <p className="text-xs">Cargando tareas...</p>
                                     </div>
-                                </div>
-                            ))
-                        ) : (
-                            <div className="text-center py-4 text-gray-500">
-                                <Bell className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                                <p className="text-xs">No hay tareas programadas</p>
+                                ) : tareasProximas.length > 0 ? (
+                                    tareasProximas.map(tarea => (
+                                        <div 
+                                            key={tarea.codigo} 
+                                            className="p-2 bg-red-50 rounded-lg cursor-pointer hover:bg-red-100 transition-colors border-l-2 border-red-300"
+                                            onClick={() => handleTareaClick(tarea)}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex-1 min-w-0">
+                                                    <h4 className="text-xs font-medium text-gray-900 truncate">
+                                                        {tarea.titulo || 'Sin título'}
+                                                    </h4>
+                                                    <p className="text-xs text-gray-600">
+                                                        {formatDate(tarea.fechaLimite ? new Date(tarea.fechaLimite) : new Date(tarea.fecha))}
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-center gap-1 ml-2">
+                                                    {getEstadoTareaIcon(tarea.estado)}
+                                                    <div className={`w-1.5 h-1.5 rounded-full ${getEstadoTareaColor(tarea.estado)}`} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="text-center py-4 text-gray-500">
+                                        <ListTodo className="w-6 h-6 mx-auto mb-1 text-gray-300" />
+                                        <p className="text-xs">No hay tareas próximas</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Tab Agendamientos */}
+                        {activeTab === 'agendamientos' && (
+                            <div className="space-y-2">
+                                {agendamientosProximos.length > 0 ? (
+                                    agendamientosProximos.map(agendamiento => (
+                                        <div 
+                                            key={agendamiento.codigo} 
+                                            className="p-2 bg-blue-50 rounded-lg cursor-pointer hover:bg-blue-100 transition-colors border-l-2 border-blue-300"
+                                            onClick={() => handleAgendamientoClick(agendamiento)}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex-1 min-w-0">
+                                                    <h4 className="text-xs font-medium text-gray-900 truncate">
+                                                        {agendamiento.titulo || 'Sin título'}
+                                                    </h4>
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <p className="text-xs text-gray-600">
+                                                            {formatDate(new Date(agendamiento.fechaAgendamiento))}
+                                                        </p>
+                                                        <span className="text-xs text-blue-600 font-medium">
+                                                            {formatTime(agendamiento.horaAgendamiento)}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-1 ml-2">
+                                                    {getEstadoAgendamientoIcon(agendamiento.estado)}
+                                                    <div className={`w-1.5 h-1.5 rounded-full ${getEstadoAgendamientoColor(agendamiento.estado)}`} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="text-center py-4 text-gray-500">
+                                        <CalendarDays className="w-6 h-6 mx-auto mb-1 text-gray-300" />
+                                        <p className="text-xs">No hay agendamientos próximos</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Tab Recordatorios */}
+                        {activeTab === 'recordatorios' && (
+                            <div className="space-y-2">
+                                {recordatoriosProximos.length > 0 ? (
+                                    recordatoriosProximos.map(recordatorio => (
+                                        <div 
+                                            key={recordatorio.codigo} 
+                                            className="p-2 bg-orange-50 rounded-lg cursor-pointer hover:bg-orange-100 transition-colors border-l-2 border-orange-300"
+                                            onClick={() => handleTareaDiaClick(recordatorio)}
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex-1 min-w-0">
+                                                    <h4 className="text-xs font-medium text-gray-900 truncate">
+                                                        {recordatorio.titulo || 'Sin título'}
+                                                    </h4>
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        <p className="text-xs text-gray-600">
+                                                            {formatDate(new Date(recordatorio.fechaLimite))}
+                                                        </p>
+                                                        <span className="text-xs text-orange-600 font-medium">
+                                                            {formatTime(recordatorio.hora)}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-1 ml-2">
+                                                    {getEstadoRecordatorioIcon(recordatorio.estado)}
+                                                    <div className={`w-1.5 h-1.5 rounded-full ${getEstadoRecordatorioColor(recordatorio.estado)}`} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="text-center py-4 text-gray-500">
+                                        <Bell className="w-6 h-6 mx-auto mb-1 text-gray-300" />
+                                        <p className="text-xs">No hay recordatorios próximos</p>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>

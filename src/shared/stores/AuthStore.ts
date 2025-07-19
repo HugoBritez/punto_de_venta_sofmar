@@ -7,6 +7,7 @@ interface LoginData {
     usuario: [{
       op_codigo: string;
       op_nombre: string;
+      op_usuario: string;
       op_sucursal: string;
       op_autorizar: number;
       op_ver_utilidad: number;
@@ -57,6 +58,7 @@ interface LoginData {
           const userId = sessionStorage.getItem("user_id");
           const userName = sessionStorage.getItem("user_name");
           const userSuc = sessionStorage.getItem("user_suc");
+          const userUsuario = sessionStorage.getItem("user_usuario");
           const rol = Number(sessionStorage.getItem("rol"));
           const permisoVerUtilidad = Number(sessionStorage.getItem("permiso_ver_utilidad"));
           const permisosAutorizarPedido = Number(sessionStorage.getItem("permisos_autorizar_pedido"));
@@ -79,6 +81,7 @@ interface LoginData {
             const usuario = {
               op_codigo: userId,
               op_nombre: userName,
+              op_usuario: userUsuario || "",
               op_sucursal: userSuc,
               op_autorizar: permisosAutorizarPedido,
               op_ver_utilidad: permisoVerUtilidad,
@@ -112,6 +115,7 @@ interface LoginData {
           sessionStorage.setItem("user_id", data.usuario[0].op_codigo);
           sessionStorage.setItem("user_name", data.usuario[0].op_nombre);
           sessionStorage.setItem("user_suc", data.usuario[0].op_sucursal);
+          sessionStorage.setItem("user_usuario", data.usuario[0].op_usuario);
           sessionStorage.setItem("permisos_autorizar_pedido", data.usuario[0].op_autorizar.toString());
           sessionStorage.setItem("operador_movimiento", data.usuario[0].op_movimiento.toString());
           sessionStorage.setItem("permiso_ver_utilidad", data.usuario[0].op_ver_utilidad.toString());

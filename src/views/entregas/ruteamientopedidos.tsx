@@ -321,9 +321,9 @@ const RuteamientoPedidos = () => {
     }
   };
 
-  const fetchProveedores = async () => {
+  const fetchProveedores = async (busqueda: string = '') => {
     try {
-      const response = await fetchProveedoresAPI();
+      const response = await fetchProveedoresAPI(busqueda);
       setProveedores(response);
       console.log("Proveedores", response);
     } catch (error) {
@@ -593,9 +593,7 @@ const RuteamientoPedidos = () => {
   };
 
   function buscarProveedor(searchTerm: string) {
-    return proveedores.filter((proveedor) => 
-      proveedor.pro_razon.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    fetchProveedores(searchTerm);
   }
 
   function obtenerNombreClientePorId(clienteId: number) {
@@ -1233,9 +1231,8 @@ const deseleccionarItem = (id: number | undefined) => {
           <ModalBody>
             <Input
               placeholder="Buscar proveedor"
-              onChange={(e) => setProveedores(buscarProveedor(e.target.value))}
+              onChange={(e) => buscarProveedor(e.target.value)}
             />
-
             <Flex
               flexDirection={"column"}
               gap={2}

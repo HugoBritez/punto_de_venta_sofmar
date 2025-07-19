@@ -11,6 +11,7 @@ interface AuthState {
   token: string;
   userId: string;
   userName: string;
+  userUsuario: string;
   userSuc: string;
   permisosAutorizarPedido: number;
   permisoVerUtilidad: number;
@@ -36,6 +37,7 @@ interface LoginData {
     {
       op_codigo: string;
       op_nombre: string;
+      op_usuario: string;
       op_sucursal: string;
       op_autorizar: number;
       op_ver_utilidad: number;
@@ -80,6 +82,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       const userId = sessionStorage.getItem("user_id");
       const userName = sessionStorage.getItem("user_name");
       const userSuc = sessionStorage.getItem("user_suc");
+      const userUsuario = sessionStorage.getItem("user_usuario");
       const permisos_descuento = Number(
         sessionStorage.getItem("permisos_descuento")
       );
@@ -106,11 +109,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
          console.error("Error parsing permisos_menu:", error);
        }
 
-      if (token && userId && userName && userSuc) {
+      if (token && userId && userName && userSuc && userUsuario) {
         setAuth({
           token,
           userId,
           userName,
+          userUsuario,
           userSuc,
           permisosAutorizarPedido,
           permisoVerUtilidad,
@@ -185,6 +189,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       token: `Bearer ${data.token}`,
       userId: data.usuario.op_codigo,
       userName: data.usuario.op_nombre,
+      userUsuario: data.usuario.op_usuario,
       userSuc: data.usuario.op_sucursal,
       permisosAutorizarPedido: data.usuario.op_autorizar,
       permisoVerUtilidad: data.usuario.op_ver_utilidad,
@@ -199,6 +204,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
     sessionStorage.setItem("token", authData.token);
     sessionStorage.setItem("user_id", authData.userId);
     sessionStorage.setItem("user_name", authData.userName);
+    sessionStorage.setItem("user_usuario", authData.userUsuario);
     sessionStorage.setItem("user_suc", authData.userSuc);
     sessionStorage.setItem(
       "permisos_autorizar_pedido",

@@ -34,10 +34,12 @@ import {
   RotateCcw,
   X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import ReporteAnomalias from "./reporte-anomalias";
 import { motion, AnimatePresence } from "framer-motion";
 import FloatingCard from "@/modules/FloatingCard";
+import { ColumnDef, flexRender, getCoreRowModel, useReactTable, Row, Table } from "@tanstack/react-table";
+import { useVirtualizer, VirtualItem, Virtualizer } from "@tanstack/react-virtual";
 
 interface ArticulosCategoria {
   id: number;
@@ -413,6 +415,359 @@ const ListadoInventarios = ({
     </div>
   );
 };
+
+interface TableBodyProps {
+  table: Table<ItemsEnInventario>;
+  tableContainerRef: React.RefObject<HTMLDivElement>;
+  editandoVencimiento: { id: number; value: string } | null;
+  setEditandoVencimiento: (value: { id: number; value: string } | null) => void;
+  editandoLote: { id: number; value: string } | null;
+  setEditandoLote: (value: { id: number; value: string } | null) => void;
+  editandoCantidadInicial: { id: number; value: number } | null;
+  setEditandoCantidadInicial: (value: { id: number; value: number } | null) => void;
+  editingItem: { id: number; value: number } | null;
+  setEditingItem: (value: { id: number; value: number } | null) => void;
+  handleEditarVencimiento: (articulo_id: number, lote_id: number) => void;
+  handleEditarLote: (articulo_id: number, lote_id: number, nuevo_lote: string) => void;
+  handleEditarCantidadInicial: (articulo_id: number, lote_id: number, cantidad: number) => void;
+  handleCambiarCantidadScaneada: (articulo_id: number, lote_id: number, cantidad: number, lote: string, codigo_barras: string, id_inventario: number) => void;
+  inventarioSeleccionado: Inventario | null;
+}
+
+function TableBody({ 
+  table, 
+  tableContainerRef, 
+  editandoVencimiento,
+  setEditandoVencimiento,
+  editandoLote,
+  setEditandoLote,
+  editandoCantidadInicial,
+  setEditandoCantidadInicial,
+  editingItem,
+  setEditingItem,
+  handleEditarVencimiento,
+  handleEditarLote,
+  handleEditarCantidadInicial,
+  handleCambiarCantidadScaneada,
+  inventarioSeleccionado
+}: TableBodyProps) {
+  const { rows } = table.getRowModel();
+
+  const rowVirtualizer = useVirtualizer<HTMLDivElement, HTMLTableRowElement>({
+    count: rows.length,
+    estimateSize: () => 50, // Altura estimada de cada fila
+    getScrollElement: () => tableContainerRef.current,
+    measureElement:
+      typeof window !== 'undefined' &&
+      navigator.userAgent.indexOf('Firefox') === -1
+        ? element => element?.getBoundingClientRect().height
+        : undefined,
+    overscan: 5,
+  });
+
+  return (
+    <tbody
+      style={{
+        display: 'grid',
+        height: `${rowVirtualizer.getTotalSize()}px`,
+        position: 'relative',
+      }}
+    >
+      {rowVirtualizer.getVirtualItems().map(virtualRow => {
+        const row = rows[virtualRow.index] as Row<ItemsEnInventario>;
+        const item = row.original;
+        
+        return (
+          <TableBodyRow
+            key={row.id}
+            row={row}
+            virtualRow={virtualRow}
+            rowVirtualizer={rowVirtualizer}
+            item={item}
+            editandoVencimiento={editandoVencimiento}
+            setEditandoVencimiento={setEditandoVencimiento}
+            editandoLote={editandoLote}
+            setEditandoLote={setEditandoLote}
+            editandoCantidadInicial={editandoCantidadInicial}
+            setEditandoCantidadInicial={setEditandoCantidadInicial}
+            editingItem={editingItem}
+            setEditingItem={setEditingItem}
+            handleEditarVencimiento={handleEditarVencimiento}
+            handleEditarLote={handleEditarLote}
+            handleEditarCantidadInicial={handleEditarCantidadInicial}
+            handleCambiarCantidadScaneada={handleCambiarCantidadScaneada}
+            inventarioSeleccionado={inventarioSeleccionado}
+          />
+        );
+      })}
+    </tbody>
+  );
+}
+
+interface TableBodyRowProps {
+  row: Row<ItemsEnInventario>;
+  virtualRow: VirtualItem;
+  rowVirtualizer: Virtualizer<HTMLDivElement, HTMLTableRowElement>;
+  item: ItemsEnInventario;
+  editandoVencimiento: { id: number; value: string } | null;
+  setEditandoVencimiento: (value: { id: number; value: string } | null) => void;
+  editandoLote: { id: number; value: string } | null;
+  setEditandoLote: (value: { id: number; value: string } | null) => void;
+  editandoCantidadInicial: { id: number; value: number } | null;
+  setEditandoCantidadInicial: (value: { id: number; value: number } | null) => void;
+  editingItem: { id: number; value: number } | null;
+  setEditingItem: (value: { id: number; value: number } | null) => void;
+  handleEditarVencimiento: (articulo_id: number, lote_id: number) => void;
+  handleEditarLote: (articulo_id: number, lote_id: number, nuevo_lote: string) => void;
+  handleEditarCantidadInicial: (articulo_id: number, lote_id: number, cantidad: number) => void;
+  handleCambiarCantidadScaneada: (articulo_id: number, lote_id: number, cantidad: number, lote: string, codigo_barras: string, id_inventario: number) => void;
+  inventarioSeleccionado: Inventario | null;
+}
+
+function TableBodyRow({ 
+  row, 
+  virtualRow, 
+  rowVirtualizer, 
+  item,
+  editandoVencimiento,
+  setEditandoVencimiento,
+  editandoLote,
+  setEditandoLote,
+  editandoCantidadInicial,
+  setEditandoCantidadInicial,
+  editingItem,
+  setEditingItem,
+  handleEditarVencimiento,
+  handleEditarLote,
+  handleEditarCantidadInicial,
+  handleCambiarCantidadScaneada,
+  inventarioSeleccionado
+}: TableBodyRowProps) {
+  return (
+    <tr
+      data-index={virtualRow.index}
+      ref={node => rowVirtualizer.measureElement(node)}
+      key={row.id}
+      style={{
+        display: 'flex',
+        position: 'absolute',
+        transform: `translateY(${virtualRow.start}px)`,
+        width: '100%',
+      }}
+      className="border border-gray-300"
+    >
+      <td className="border border-gray-300 px-2 truncate" style={{ flex: 1, minWidth: 0 }}>
+        {item.ubicacion} / {item.sub_ubicacion}
+      </td>
+      <td className="border border-gray-300 px-2 truncate" style={{ flex: 1, minWidth: 0 }}>
+        {item.cod_interno}
+      </td>
+      <td className="border border-gray-300 px-2 truncate" style={{ flex: 1, minWidth: 0 }}>
+        {item.cod_barra_articulo}
+      </td>
+      <td className="border border-gray-300 px-2 truncate" style={{ flex: 2, minWidth: 0 }}>
+        {item.descripcion}
+      </td>
+      <td className="border border-gray-300 px-2 truncate" style={{ flex: 1, minWidth: 0 }}>
+        {editandoVencimiento?.id === item.lote_id ? (
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              className="w-32 px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={editandoVencimiento.value}
+              onChange={(e) =>
+                setEditandoVencimiento({
+                  ...editandoVencimiento,
+                  value: e.target.value,
+                })
+              }
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleEditarVencimiento(
+                    item.articulo_id,
+                    item.lote_id
+                  );
+                  setEditandoVencimiento(null);
+                } else if (e.key === "Escape") {
+                  setEditandoVencimiento(null);
+                }
+              }}
+            />
+            <button
+              className="text-gray-500 hover:text-gray-700 p-1"
+              onClick={() => setEditandoVencimiento(null)}
+            >
+              ✕
+            </button>
+          </div>
+        ) : (
+          <div
+            className="cursor-pointer hover:bg-gray-100 p-1 rounded transition-colors"
+            onClick={() =>
+              setEditandoVencimiento({
+                id: item.lote_id,
+                value: item.vencimiento || "",
+              })
+            }
+          >
+            {item.vencimiento || "Sin fecha"}
+          </div>
+        )}
+      </td>
+      <td className="border border-gray-300 px-2 truncate" style={{ flex: 1, minWidth: 0 }}>
+        {editandoLote?.id === item.lote_id ? (
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              className="w-24 px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={editandoLote.value}
+              onChange={(e) =>
+                setEditandoLote({
+                  ...editandoLote,
+                  value: e.target.value,
+                })
+              }
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleEditarLote(
+                    item.articulo_id,
+                    item.lote_id,
+                    editandoLote.value
+                  );
+                  setEditandoLote(null);
+                } else if (e.key === "Escape") {
+                  setEditandoLote(null);
+                }
+              }}
+            />
+            <button
+              className="text-gray-500 hover:text-gray-700 p-1"
+              onClick={() => setEditandoLote(null)}
+            >
+              ✕
+            </button>
+          </div>
+        ) : (
+          <div
+            className="cursor-pointer hover:bg-gray-100 p-1 rounded transition-colors"
+            onClick={() =>
+              setEditandoLote({
+                id: item.lote_id,
+                value: item.lote || "",
+              })
+            }
+          >
+            {item.lote || "Sin lote"}
+          </div>
+        )}
+      </td>
+      <td className="border border-gray-300 px-2 truncate" style={{ flex: 1, minWidth: 0 }}>
+        {editandoCantidadInicial?.id === item.lote_id ? (
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              className="w-20 px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={editandoCantidadInicial.value}
+              onChange={(e) =>
+                setEditandoCantidadInicial({
+                  ...editandoCantidadInicial,
+                  value: parseInt(e.target.value) || 0,
+                })
+              }
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleEditarCantidadInicial(
+                    item.articulo_id,
+                    item.lote_id,
+                    editandoCantidadInicial.value
+                  );
+                  setEditandoCantidadInicial(null);
+                } else if (e.key === "Escape") {
+                  setEditandoCantidadInicial(null);
+                }
+              }}
+            />
+            <button
+              className="text-gray-500 hover:text-gray-700 p-1"
+              onClick={() => setEditandoCantidadInicial(null)}
+            >
+              ✕
+            </button>
+          </div>
+        ) : (
+          <div
+            className="cursor-pointer hover:bg-gray-100 p-1 rounded transition-colors"
+            onClick={() =>
+              setEditandoCantidadInicial({
+                id: item.lote_id,
+                value: item.cantidad_inicial || 0,
+              })
+            }
+          >
+            {item.cantidad_inicial || 0}
+          </div>
+        )}
+      </td>
+      <td className="border border-gray-300 px-2 truncate" style={{ flex: 1, minWidth: 0 }}>
+        {editingItem?.id === item.lote_id ? (
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              className="w-20 px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={editingItem.value}
+              onChange={(e) =>
+                setEditingItem({
+                  ...editingItem,
+                  value: parseInt(e.target.value) || 0,
+                })
+              }
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleCambiarCantidadScaneada(
+                    item.articulo_id,
+                    item.lote_id,
+                    editingItem.value,
+                    item.lote,
+                    item.cod_barra,
+                    inventarioSeleccionado?.id || 0
+                  );
+                  setEditingItem(null);
+                } else if (e.key === "Escape") {
+                  setEditingItem(null);
+                }
+              }}
+            />
+            <button
+              className="text-gray-500 hover:text-gray-700 p-1"
+              onClick={() => setEditingItem(null)}
+            >
+              ✕
+            </button>
+          </div>
+        ) : (
+          <div
+            className="cursor-pointer hover:bg-gray-100 p-1 rounded transition-colors"
+            onClick={() =>
+              setEditingItem({
+                id: item.lote_id,
+                value: item.cantidad_final || 0,
+              })
+            }
+          >
+            {item.cantidad_final || 0}
+          </div>
+        )}
+      </td>
+      <td className="border border-gray-300 px-2 truncate" style={{ flex: 1, minWidth: 0 }}>
+        {item.cantidad_actual === null ? "0" : item.cantidad_actual}
+      </td>
+    </tr>
+  );
+}
 
 const TomaDeInventario = () => {
   const [fechaActual, setFechaActual] = useState(new Date());
@@ -1524,6 +1879,75 @@ const TomaDeInventario = () => {
     return null;
   };
 
+  // interface ItemsEnInventario {
+  //   articulo_id: number;
+  //   cod_interno: string;
+  //   cod_barra: string;
+  //   cod_barra_articulo: string;
+  //   lote_id: number;
+  //   descripcion: string;
+  //   vencimiento: string;
+  //   ubicacion: string;
+  //   sub_ubicacion: string;
+  //   lote: string;
+  //   cantidad_inicial: number;
+  //   cantidad_final: number;
+  //   cantidad_actual: number;
+  //   stock: number;
+  // }
+
+  // Referencia para el contenedor de la tabla virtualizada
+  const tableContainerRef = useRef<HTMLDivElement>(null);
+
+  // Definición de columnas para la tabla virtualizada
+  const columns = useMemo<ColumnDef<ItemsEnInventario>[]>(() => [
+    {
+      accessorKey: 'ubicacion',
+      header: 'Ubi./Sub-ubi.',
+      cell: ({ row }) => `${row.original.ubicacion} / ${row.original.sub_ubicacion}`,
+    },
+    {
+      accessorKey: 'cod_interno',
+      header: 'Cod. Interno',
+    },
+    {
+      accessorKey: 'cod_barra_articulo',
+      header: 'Codigo Barras',
+    },
+    {
+      accessorKey: 'descripcion',
+      header: 'Descripcion',
+    },
+    {
+      accessorKey: 'vencimiento',
+      header: 'Vencimiento',
+    },
+    {
+      accessorKey: 'lote',
+      header: 'Lote',
+    },
+    {
+      accessorKey: 'cantidad_inicial',
+      header: 'C. Inicial',
+    },
+    {
+      accessorKey: 'cantidad_final',
+      header: 'C. Escaneada',
+    },
+    {
+      accessorKey: 'cantidad_actual',
+      header: 'C. Actual',
+    },
+  ], []);
+
+  // Configuración de la tabla con TanStack Table
+  const table = useReactTable({
+    data: itemsEnInventario,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    debugTable: false,
+  });
+
   return (
     <Flex
       bg={"gray.100"}
@@ -1827,8 +2251,8 @@ const TomaDeInventario = () => {
           </div>
         </div>
         <div className="flex flex-col w-3/4 border border-gray-300 rounded-md bg-white h-[100%]">
-          <div className="flex flex-row justify-between items-center px-4 py-2 ">
-            <div className="flex items-center gap-2 p-2 bg-white  w-full">
+          <div className="flex flex-row justify-between items-center px-4 py-2">
+            <div className="flex items-center gap-2 p-2 bg-white w-full">
               <input
                 type="text"
                 placeholder="Buscar items en el inventario..."
@@ -1858,262 +2282,84 @@ const TomaDeInventario = () => {
             </Button>
           </div>
           <Divider />
-          <div className="flex-1 overflow-hidden">
-            <div className="flex w-full h-full overflow-y-auto">
-              <table className="w-full ">
-                <thead className="bg-gray-200 text-center sticky top-0">
-                  <tr className="border border-gray-300">
-                    <th className="text-left border border-gray-300 px-2">
-                      Ubi./Sub-ubi.
-                    </th>
-                    <th className="text-left border border-gray-300 px-2">
-                      Cod. Interno
-                    </th>
-                    <th className="text-left border border-gray-300 px-2">
-                      Codigo Barras
-                    </th>
-                    <th className="text-left border border-gray-300 px-2">
-                      Descripcion
-                    </th>
-                    <th className="text-left border border-gray-300 px-2">
-                      Vencimiento
-                    </th>
-                    <th className="text-left border border-gray-300 px-2">
-                      Lote
-                    </th>
-                    <th className="text-left border border-gray-300 px-2">
-                      C. Inicial
-                    </th>
-                    <th className="text-left border border-gray-300 px-2">
-                      C. Escaneada
-                    </th>
-                    <th className="text-left border border-gray-300 px-2">
-                      C. Actual
-                    </th>
+          
+          {/* Tabla virtualizada */}
+          <div 
+            className="flex-1 overflow-hidden"
+            ref={tableContainerRef}
+            style={{
+              overflow: 'auto',
+              position: 'relative',
+              height: 'calc(100% - 80px)', // Ajustar según el header
+            }}
+          >
+            <table style={{ display: 'grid', width: '100%' }}>
+              <thead
+                style={{
+                  display: 'grid',
+                  position: 'sticky',
+                  top: 0,
+                  zIndex: 1,
+                  backgroundColor: '#f3f4f6',
+                }}
+              >
+                {table.getHeaderGroups().map(headerGroup => (
+                  <tr
+                    key={headerGroup.id}
+                    style={{ display: 'flex', width: '100%' }}
+                    className="border border-gray-300"
+                  >
+                    {headerGroup.headers.map((header, index) => {
+                      // Usar la misma lógica de flex que en el body
+                      const flexValue = index === 3 ? 2 : 1; // Columna 3 (descripción) tiene flex: 2
+                      
+                      return (
+                        <th
+                          key={header.id}
+                          style={{
+                            display: 'flex',
+                            flex: flexValue,
+                            alignItems: 'center',
+                            padding: '8px',
+                            border: '1px solid #d1d5db',
+                            textAlign: 'left',
+                            fontWeight: 'bold',
+                            minWidth: 0,
+                          }}
+                        >
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                        </th>
+                      );
+                    })}
                   </tr>
-                </thead>
-                <tbody className="align-top">
-                  {itemsEnInventario.map((item) => (
-                    <tr key={item.lote_id} className="border border-gray-300">
-                      <td className="border border-gray-300 px-2 truncate">
-                        {item.ubicacion} / {item.sub_ubicacion}
-                      </td>
-                      <td className="border border-gray-300 px-2 truncate">
-                        {item.cod_interno}
-                      </td>
-                      <td className="border border-gray-300 px-2 truncate">
-                        {item.cod_barra_articulo}
-                      </td>
-                      <td className="border border-gray-300 px-2 truncate ">
-                        {item.descripcion}
-                      </td>
-                      <td className="border border-gray-300 px-2 truncate">
-                        {editandoVencimiento?.id === item.lote_id ? (
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="date"
-                              className="w-32 px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              value={editandoVencimiento.value}
-                              onChange={(e) =>
-                                setEditandoVencimiento({
-                                  ...editandoVencimiento,
-                                  value: e.target.value,
-                                })
-                              }
-                              autoFocus
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  handleEditarVencimiento(
-                                    item.articulo_id,
-                                    item.lote_id
-                                  );
-                                  setEditandoVencimiento(null);
-                                } else if (e.key === "Escape") {
-                                  setEditandoVencimiento(null);
-                                }
-                              }}
-                            />
-                            <button
-                              className="text-gray-500 hover:text-gray-700 p-1"
-                              onClick={() => setEditandoVencimiento(null)}
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        ) : (
-                          <div
-                            className="cursor-pointer hover:bg-gray-100 p-1 rounded transition-colors"
-                            onClick={() =>
-                              setEditandoVencimiento({
-                                id: item.lote_id,
-                                value: item.vencimiento || "",
-                              })
-                            }
-                          >
-                            {item.vencimiento || "Sin fecha"}
-                          </div>
-                        )}
-                      </td>
-                      <td className="border border-gray-300 px-2 truncate">
-                        {editandoLote?.id === item.lote_id ? (
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="text"
-                              className="w-24 px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              value={editandoLote.value}
-                              onChange={(e) =>
-                                setEditandoLote({
-                                  ...editandoLote,
-                                  value: e.target.value,
-                                })
-                              }
-                              autoFocus
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  handleEditarLote(
-                                    item.articulo_id,
-                                    item.lote_id,
-                                    editandoLote.value
-                                  );
-                                  setEditandoLote(null);
-                                } else if (e.key === "Escape") {
-                                  setEditandoLote(null);
-                                }
-                              }}
-                            />
-                            <button
-                              className="text-gray-500 hover:text-gray-700 p-1"
-                              onClick={() => setEditandoLote(null)}
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        ) : (
-                          <div
-                            className="cursor-pointer hover:bg-gray-100 p-1 rounded transition-colors"
-                            onClick={() =>
-                              setEditandoLote({
-                                id: item.lote_id,
-                                value: item.lote || "",
-                              })
-                            }
-                          >
-                            {item.lote || "Sin lote"}
-                          </div>
-                        )}
-                      </td>
-                      <td className="border border-gray-300 px-2 truncate">
-                        {editandoCantidadInicial?.id === item.lote_id ? (
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="number"
-                              className="w-20 px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              value={editandoCantidadInicial.value}
-                              onChange={(e) =>
-                                setEditandoCantidadInicial({
-                                  ...editandoCantidadInicial,
-                                  value: parseInt(e.target.value) || 0,
-                                })
-                              }
-                              autoFocus
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  handleEditarCantidadInicial(
-                                    item.articulo_id,
-                                    item.lote_id,
-                                    editandoCantidadInicial.value
-                                  );
-                                  setEditandoCantidadInicial(null);
-                                } else if (e.key === "Escape") {
-                                  setEditandoCantidadInicial(null);
-                                }
-                              }}
-                            />
-                            <button
-                              className="text-gray-500 hover:text-gray-700 p-1"
-                              onClick={() => setEditandoCantidadInicial(null)}
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        ) : (
-                          <div
-                            className="cursor-pointer hover:bg-gray-100 p-1 rounded transition-colors"
-                            onClick={() =>
-                              setEditandoCantidadInicial({
-                                id: item.lote_id,
-                                value: item.cantidad_inicial || 0,
-                              })
-                            }
-                          >
-                            {item.cantidad_inicial || 0}
-                          </div>
-                        )}
-                      </td>
-                      <td className="border border-gray-300 px-2 truncate">
-                        {editingItem?.id === item.lote_id ? (
-                          <div className="flex items-center gap-2">
-                            <input
-                              type="number"
-                              className="w-20 px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                              value={editingItem.value}
-                              onChange={(e) =>
-                                setEditingItem({
-                                  ...editingItem,
-                                  value: parseInt(e.target.value) || 0,
-                                })
-                              }
-                              autoFocus
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  handleCambiarCantidadScaneada(
-                                    item.articulo_id,
-                                    item.lote_id,
-                                    editingItem.value,
-                                    item.lote,
-                                    item.cod_barra,
-                                    inventarioSeleccionado?.id || 0
-                                  );
-                                  setEditingItem(null);
-                                } else if (e.key === "Escape") {
-                                  setEditingItem(null);
-                                }
-                              }}
-                            />
-                            <button
-                              className="text-gray-500 hover:text-gray-700 p-1"
-                              onClick={() => setEditingItem(null)}
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        ) : (
-                          <div
-                            className="cursor-pointer hover:bg-gray-100 p-1 rounded transition-colors"
-                            onClick={() =>
-                              setEditingItem({
-                                id: item.lote_id,
-                                value: item.cantidad_final || 0,
-                              })
-                            }
-                          >
-                            {item.cantidad_final || 0}
-                          </div>
-                        )}
-                      </td>
-                      <td className="border border-gray-300 px-2 truncate">
-                        {item.cantidad_actual === null
-                          ? "0"
-                          : item.cantidad_actual}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </thead>
+              <TableBody 
+                table={table} 
+                tableContainerRef={tableContainerRef}
+                editandoVencimiento={editandoVencimiento}
+                setEditandoVencimiento={setEditandoVencimiento}
+                editandoLote={editandoLote}
+                setEditandoLote={setEditandoLote}
+                editandoCantidadInicial={editandoCantidadInicial}
+                setEditandoCantidadInicial={setEditandoCantidadInicial}
+                editingItem={editingItem}
+                setEditingItem={setEditingItem}
+                handleEditarVencimiento={handleEditarVencimiento}
+                handleEditarLote={handleEditarLote}
+                handleEditarCantidadInicial={handleEditarCantidadInicial}
+                handleCambiarCantidadScaneada={handleCambiarCantidadScaneada}
+                inventarioSeleccionado={inventarioSeleccionado}
+              />
+            </table>
           </div>
         </div>
       </div>
+      
+      {/* ... existing modals ... */}
       <ConfirmModal
         isOpen={showConfirmModal}
         onClose={() => setShowConfirmModal(false)}

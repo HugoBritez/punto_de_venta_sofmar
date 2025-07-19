@@ -161,6 +161,13 @@ const configs = {
     version: "1.2.4",
     title: "Samaria",
   },
+  sofmareas: {
+    api_url: "https://node.sofmar.com.py:4016/api/",
+    api_url_secondary: "https://node.sofmar.com.py:5016/api/",
+    db: "sofmareas",
+    version: "1.2.4",
+    title: "Sofmar Sistema",
+  },
 };
 
 async function updateConfig(empresa) {
