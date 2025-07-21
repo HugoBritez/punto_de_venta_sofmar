@@ -294,124 +294,124 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
   };
 
   return (
-    <div className="h-full bg-gray-50 p-6">
-      <div className="max-w-7xl ">
+    <div className="h-full bg-gray-50 p-3  sm:p-4 md:p-6">
+      <div className="max-w-7xl mx-auto mb-16 md:mb-0">
 
 
         {/* Tarjetas de métricas principales */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-6 sm:mb-8">
           {/* Oportunidades */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Oportunidades</p>
-                <p className="text-3xl font-bold text-gray-900">{estadisticas.totalOportunidades}</p>
-                <p className="text-sm text-green-600 flex items-center gap-1 mt-1">
-                  <TrendingUpIcon className="w-4 h-4" />
-                  {estadisticas.oportunidadesLogradas} logradas
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Total Oportunidades</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-900">{estadisticas.totalOportunidades}</p>
+                <p className="text-xs sm:text-sm text-green-600 flex items-center gap-1 mt-1">
+                  <TrendingUpIcon className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                  <span className="truncate">{estadisticas.oportunidadesLogradas} logradas</span>
                 </p>
               </div>
-              <div className="p-3 bg-blue-100 rounded-lg">
-                <BriefcaseIcon className="w-8 h-8 text-blue-600" />
+              <div className="p-2 sm:p-3 bg-blue-100 rounded-lg flex-shrink-0 ml-3">
+                <BriefcaseIcon className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
               </div>
             </div>
           </div>
 
           {/* Valor de Negociación */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Valor Total</p>
-                <p className="text-2xl font-bold text-gray-900">{formatCurrency(estadisticas.valorTotalNegociacion)}</p>
-                <p className="text-sm text-green-600 flex items-center gap-1 mt-1">
-                  <DollarSignIcon className="w-4 h-4" />
-                  {formatCurrency(estadisticas.valorLogrado)} logrado
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Valor Total</p>
+                <p className="text-xl sm:text-2xl font-bold text-gray-900 break-words">{formatCurrency(estadisticas.valorTotalNegociacion)}</p>
+                <p className="text-xs sm:text-sm text-green-600 flex items-center gap-1 mt-1">
+                  <DollarSignIcon className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                  <span className="truncate">{formatCurrency(estadisticas.valorLogrado)} logrado</span>
                 </p>
               </div>
-              <div className="p-3 bg-green-100 rounded-lg">
-                <DollarSignIcon className="w-8 h-8 text-green-600" />
+              <div className="p-2 sm:p-3 bg-green-100 rounded-lg flex-shrink-0 ml-3">
+                <DollarSignIcon className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
               </div>
             </div>
           </div>
 
           {/* Tasa de Éxito */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Tasa de Éxito</p>
-                <p className="text-3xl font-bold text-gray-900">{estadisticas.tasaExito.toFixed(1)}%</p>
-                <p className="text-sm text-blue-600 flex items-center gap-1 mt-1">
-                  <TargetIcon className="w-4 h-4" />
-                  {estadisticas.oportunidadesEnNegociacion} en negociación
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Tasa de Éxito</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-900">{estadisticas.tasaExito.toFixed(1)}%</p>
+                <p className="text-xs sm:text-sm text-blue-600 flex items-center gap-1 mt-1">
+                  <TargetIcon className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                  <span className="truncate">{estadisticas.oportunidadesEnNegociacion} en negociación</span>
                 </p>
               </div>
-              <div className="p-3 bg-yellow-100 rounded-lg">
-                <AwardIcon className="w-8 h-8 text-yellow-600" />
+              <div className="p-2 sm:p-3 bg-yellow-100 rounded-lg flex-shrink-0 ml-3">
+                <AwardIcon className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-600" />
               </div>
             </div>
           </div>
 
           {/* Tareas */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Tareas</p>
-                <p className="text-3xl font-bold text-gray-900">{estadisticas.totalTareas}</p>
-                <p className="text-sm text-green-600 flex items-center gap-1 mt-1">
-                  <CheckCircleIcon className="w-4 h-4" />
-                  {estadisticas.tareasCompletadas} completadas
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Total Tareas</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-900">{estadisticas.totalTareas}</p>
+                <p className="text-xs sm:text-sm text-green-600 flex items-center gap-1 mt-1">
+                  <CheckCircleIcon className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                  <span className="truncate">{estadisticas.tareasCompletadas} completadas</span>
                 </p>
               </div>
-              <div className="p-3 bg-purple-100 rounded-lg">
-                <ActivityIcon className="w-8 h-8 text-purple-600" />
+              <div className="p-2 sm:p-3 bg-purple-100 rounded-lg flex-shrink-0 ml-3">
+                <ActivityIcon className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
               </div>
             </div>
           </div>
         </div>
 
         {/* Gráficos y estadísticas detalladas */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
           {/* Gráfico de Dona - Oportunidades por Estado */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <PieChartIcon className="w-5 h-5 text-blue-600" />
-              Distribución de Oportunidades por Estado
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2">
+              <PieChartIcon className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
+              <span className="truncate">Distribución de Oportunidades por Estado</span>
             </h3>
-            <div className="h-64">
+            <div className="h-48 sm:h-64">
               <Doughnut data={chartDataOportunidades} options={chartOptions} />
             </div>
           </div>
 
           {/* Gráfico de Líneas - Valor por Estado */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <BarChart3Icon className="w-5 h-5 text-green-600" />
-              Valor de Oportunidades por Estado
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2">
+              <BarChart3Icon className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
+              <span className="truncate">Valor de Oportunidades por Estado</span>
             </h3>
-            <div className="h-64">
+            <div className="h-48 sm:h-64">
               <Line data={chartDataValor} options={lineChartOptions} />
             </div>
           </div>
         </div>
 
         {/* Estadísticas adicionales */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
           {/* Distribución de Tareas por Estado */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <ActivityIcon className="w-5 h-5 text-purple-600" />
-              Tareas por Estado
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2">
+              <ActivityIcon className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 flex-shrink-0" />
+              <span className="truncate">Tareas por Estado</span>
             </h3>
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               {Object.entries(estadisticas.tareasPorEstado).map(([estado, cantidad]) => (
                 <div key={estado} className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-gray-700">{estado}</span>
-                    <span className="text-sm font-bold text-gray-900">{cantidad}</span>
+                    <span className="text-xs sm:text-sm font-medium text-gray-700 truncate pr-2">{estado}</span>
+                    <span className="text-xs sm:text-sm font-bold text-gray-900 flex-shrink-0">{cantidad}</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="w-full bg-gray-200 rounded-full h-1.5 sm:h-2">
                     <div 
-                      className="bg-purple-500 h-2 rounded-full transition-all duration-500"
+                      className="bg-purple-500 h-1.5 sm:h-2 rounded-full transition-all duration-500"
                       style={{ 
                         width: `${estadisticas.totalTareas > 0 ? (cantidad / estadisticas.totalTareas) * 100 : 0}%` 
                       }}
@@ -423,20 +423,20 @@ export const MainDashboard: React.FC<MainDashboardProps> = ({
           </div>
 
           {/* Distribución de Tareas por Tipo */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <TargetIcon className="w-5 h-5 text-orange-600" />
-              Tareas por Tipo
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4 flex items-center gap-2">
+              <TargetIcon className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600 flex-shrink-0" />
+              <span className="truncate">Tareas por Tipo</span>
             </h3>
-            <div className="space-y-3">
+            <div className="space-y-2 sm:space-y-3">
               {Object.entries(estadisticas.tareasPorTipo).map(([tipo, cantidad]) => (
                 <div key={tipo} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full bg-orange-500"></div>
-                    <span className="text-sm font-medium text-gray-700">{tipo}</span>
+                  <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+                    <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-orange-500 flex-shrink-0"></div>
+                    <span className="text-xs sm:text-sm font-medium text-gray-700 truncate">{tipo}</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-gray-900">{cantidad}</span>
+                  <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 ml-2">
+                    <span className="text-xs sm:text-sm font-bold text-gray-900">{cantidad}</span>
                     <span className="text-xs text-gray-500">
                       ({((cantidad / estadisticas.totalTareas) * 100).toFixed(1)}%)
                     </span>

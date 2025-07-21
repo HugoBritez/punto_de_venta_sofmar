@@ -192,10 +192,16 @@ export const CRMNav = ({ onContactoClick }: CRMNavProps) => {
                     )}
                 </AnimatePresence>
                 
-                {/* Lista de contactos con animaciones */}
+                {/* Lista de contactos con scroll mejorado */}
                 <div 
-                    className="flex flex-col gap-2 flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-blue-300 scrollbar-track-blue-400/20 hover:scrollbar-thumb-blue-200" 
+                    className="flex flex-col gap-2 flex-1 overflow-y-auto pr-2 contactos-scroll" 
                     onClick={(e) => e.stopPropagation()}
+                    style={{ 
+                        maxHeight: 'calc(100vh - 300px)',
+                        minHeight: '200px',
+                        scrollbarWidth: 'thin',
+                        scrollbarColor: 'rgba(59, 130, 246, 0.5) rgba(59, 130, 246, 0.1)'
+                    }}
                 >
                     {isLoading ? (
                         <AnimatePresence>
@@ -216,7 +222,7 @@ export const CRMNav = ({ onContactoClick }: CRMNavProps) => {
                         <>
                             <AnimatePresence>
                                 {isExpanded && filteredContactos.length > 0 && (
-                                    <>
+                                    <div className="space-y-2">
                                         {filteredContactos.map((contacto, index) => (
                                             <ContactosRow 
                                                 key={contacto.codigo} 
@@ -227,7 +233,7 @@ export const CRMNav = ({ onContactoClick }: CRMNavProps) => {
                                                 onEdit={(e: React.MouseEvent) => handleEditContacto(contacto, e)}
                                             />
                                         ))}
-                                    </>
+                                    </div>
                                 )}
                             </AnimatePresence>
                             

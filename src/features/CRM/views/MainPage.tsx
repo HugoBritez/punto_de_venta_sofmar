@@ -10,7 +10,8 @@ import { useActualizarOportunidad, useAgendamientos, useOportunidades } from "..
 import { useAuth } from "@/services/AuthContext"
 import { useQueryClient } from "@tanstack/react-query"
 import { CalendarView } from "../components/CalendarView"
-import { MainDashboard } from "../components/MainDashboard"; // Asegúrate de importar el dashboard
+import { MainDashboard } from "../components/MainDashboard"
+import { MobileView } from "./MobileView"
 
 // Definir los tipos de tabs disponibles
 type TabType = "kanban" | "tabla" | "resumen"
@@ -44,6 +45,7 @@ export const ModuloCRM = () => {
     const [isSearchFocused, setIsSearchFocused] = useState(false)
     const [isFiltrosOpen, setIsFiltrosOpen] = useState(false)
     const [activeTab, setActiveTab] = useState<TabType>("kanban")
+    const [isMobile, setIsMobile] = useState(false)
     
     // Fechas por defecto: último mes
     const getFechaPorDefecto = () => {
@@ -63,12 +65,10 @@ export const ModuloCRM = () => {
     const cardRef = useRef<HTMLDivElement>(null)
 
     const auth = useAuth();
-
     const operador = Number(auth.auth?.userId);
     const esAdmin = auth.auth?.rol === 7;
 
     // Convertir fechas string a Date para el hook
-    // Asegurar que las fechas se creen correctamente para el backend
     const fechaDesdeDate = fechaDesde ? new Date(fechaDesde + 'T00:00:00') : undefined;
     const fechaHastaDate = fechaHasta ? new Date(fechaHasta + 'T23:59:59') : undefined;
 
@@ -83,6 +83,19 @@ export const ModuloCRM = () => {
 
     const actualizarOportunidad = useActualizarOportunidad();
     const queryClient = useQueryClient();
+
+    // Detectar si es dispositivo móvil
+    useEffect(() => {
+        const checkIsMobile = () => {
+            setIsMobile(window.innerWidth < 1024) // lg breakpoint
+        }
+
+        checkIsMobile()
+        window.addEventListener('resize', checkIsMobile)
+
+        return () => window.removeEventListener('resize', checkIsMobile)
+    }, [])
+
     const handleContactoClick = (contacto: ContactoCRM) => {
         setSelectedContacto(contacto)
     }
@@ -96,7 +109,6 @@ export const ModuloCRM = () => {
     }
 
     const handleProyectoCreated = () => {
-        // Invalidar todas las consultas de oportunidades para que se actualicen con las fechas actuales
         queryClient.invalidateQueries({ queryKey: ["oportunidades"] });
     }
 
@@ -106,16 +118,13 @@ export const ModuloCRM = () => {
                 codigo: oportunidadId,
                 estado: nuevoEstado
             });
-            // La invalidación se maneja automáticamente en el hook
         } catch (error) {
             console.error('Error al actualizar oportunidad:', error);
-            // Aquí podrías mostrar un toast de error
         }
     }
 
-    // Filtrar oportunidades basado en la búsqueda y filtros (solo filtros del frontend)
+    // Filtrar oportunidades basado en la búsqueda y filtros
     const oportunidadesFiltradas = oportunidades?.filter(oportunidad => {
-        // Filtro de búsqueda
         if (searchTerm.trim()) {
             const searchLower = searchTerm.toLowerCase();
             const coincideBusqueda = (
@@ -127,7 +136,6 @@ export const ModuloCRM = () => {
             if (!coincideBusqueda) return false;
         }
 
-        // Filtro de proyectos (generales/mios) - este se mantiene en frontend
         if (filtroProyectos === "generales") {
             if (oportunidad.general !== 1) return false;
         } else if (filtroProyectos === "mios") {
@@ -146,7 +154,6 @@ export const ModuloCRM = () => {
     }
 
     const limpiarFiltros = () => {
-        // Al limpiar, volver al rango por defecto (último mes)
         const fechasDefecto = getFechaPorDefecto();
         setFechaDesde(fechasDefecto.desde)
         setFechaHasta(fechasDefecto.hasta)
@@ -154,7 +161,6 @@ export const ModuloCRM = () => {
     }
 
     const tieneFiltrosActivos = () => {
-        // Considerar activo si no está en el rango por defecto o si hay otros filtros
         const fechasDefecto = getFechaPorDefecto();
         const esRangoPorDefecto = fechaDesde === fechasDefecto.desde && fechaHasta === fechasDefecto.hasta;
         return !esRangoPorDefecto || filtroProyectos !== "todos"
@@ -162,7 +168,6 @@ export const ModuloCRM = () => {
 
     const handleFechaDesdeChange = (fecha: string) => {
         setFechaDesde(fecha)
-        // Validar que fechaDesde no sea mayor que fechaHasta
         if (fecha && fechaHasta && fecha > fechaHasta) {
             setFechaHasta("")
         }
@@ -170,7 +175,6 @@ export const ModuloCRM = () => {
 
     const handleFechaHastaChange = (fecha: string) => {
         setFechaHasta(fecha)
-        // Validar que fechaHasta no sea menor que fechaDesde
         if (fecha && fechaDesde && fecha < fechaDesde) {
             setFechaDesde("")
         }
@@ -193,7 +197,7 @@ export const ModuloCRM = () => {
         }
     }, [selectedContacto])
 
-    // Renderizar el contenido de la tab activa (solo para la sección principal)
+    // Renderizar el contenido de la tab activa
     const renderMainContent = () => {
         if (isLoadingOportunidades) {
             return (
@@ -235,6 +239,43 @@ export const ModuloCRM = () => {
         }
     }
 
+    // Si es móvil, mostrar MobileView
+    if (isMobile) {
+        return (
+            <MobileView
+                oportunidades={oportunidadesFiltradas}
+                agendamientos={agendamientos || []}
+                contactos={[]} // Agregar esta prop si es necesaria
+                isLoadingOportunidades={isLoadingOportunidades}
+                searchTerm={searchTerm}
+                isSearchFocused={isSearchFocused}
+                isFiltrosOpen={isFiltrosOpen}
+                fechaDesde={fechaDesde}
+                fechaHasta={fechaHasta}
+                filtroProyectos={filtroProyectos}
+                tieneFiltrosActivos={tieneFiltrosActivos()}
+                isProyectoFormOpen={isProyectoFormOpen}
+                operador={operador}
+                esAdmin={esAdmin}
+                onSearchChange={handleSearchChange}
+                onClearSearch={handleClearSearch}
+                onSearchFocus={() => setIsSearchFocused(true)}
+                onSearchBlur={() => setIsSearchFocused(false)}
+                onFiltrosToggle={() => setIsFiltrosOpen(!isFiltrosOpen)}
+                onFechaDesdeChange={handleFechaDesdeChange}
+                onFechaHastaChange={handleFechaHastaChange}
+                onFiltroProyectosChange={setFiltroProyectos}
+                onLimpiarFiltros={limpiarFiltros}
+                onCrearProyecto={handleCrearProyecto}
+                onProyectoFormClose={() => setIsProyectoFormOpen(false)}
+                onProyectoCreated={handleProyectoCreated}
+                onOportunidadMove={handleOportunidadMove}
+                onContactoClick={handleContactoClick} // Agregar esta prop faltante
+            />
+        )
+    }
+
+    // Desktop view - mantener la estructura original
     return (
         <div className="flex flex-col h-screen">
             {/* Header */}

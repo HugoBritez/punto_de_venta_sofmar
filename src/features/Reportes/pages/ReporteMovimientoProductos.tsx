@@ -1,11 +1,11 @@
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useState, useEffect, useCallback, useMemo } from "react";
 import type { DetalleMovimientosArticulos, GetReporteMovimientoArticulosParams, TotalesMovimientoArticulos } from "../../../shared/types/reportes";
 import { useGetReporteMovimientoArticulos } from "../../../shared/hooks/querys/useReportes";
 import { getCoreRowModel, getSortedRowModel, getFilteredRowModel, useReactTable, type ColumnDef, type ColumnFiltersState, flexRender } from "@tanstack/react-table";
 import { useSucursales } from "../../../shared/hooks/querys/useSucursales";
 import { useGetCategorias } from "../../../shared/hooks/querys/useCategorias";
 import { useGetMarcas } from "../../../shared/hooks/querys/useMarcas";
-import {  useUsuarios } from "../../../shared/hooks/querys/useUsuarios";
+import { useUsuarios } from "../../../shared/hooks/querys/useUsuarios";
 import { Autocomplete } from "../../../shared/components/Autocomplete/AutocompleteComponent";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { CategoriaViewModel } from "../../../shared/types/categoria";
@@ -17,7 +17,6 @@ import type { Ciudad } from "../../../shared/types/ciudad";
 import type { UsuarioViewModel } from "../../../shared/types/operador";
 import type { Moneda } from "../../../shared/types/moneda";
 import { useListaDePrecios } from "../../../shared/hooks/querys/useListaDePrecios";
-import { useActualizarMetaAcordada, useActualizarMetaGeneral } from "../../../shared/hooks/mutations/ventas/actualizarMeta";
 import { exportarDatosAExcel } from "../../../shared/utils/exportarAExcel";
 import { esAdmin, esSupervisor } from "../../../shared/utils/permisosRoles";
 import { permisoVerCosto } from "../../../shared/utils/permisoVerCosto";
@@ -26,6 +25,7 @@ import { ReporteMovimientoProductosPDF } from "../docs/ReporteMovimientoProducto
 import { useBuscarClientes } from "../../../shared/hooks/querys/useClientes";
 import { ClienteViewModel } from "@/shared/types/clientes";
 import { ClientesRepository } from "@/shared/api/clientesRepository";
+import { VentasRepository } from "@/shared/api/ventasRepository";
 import { useToast } from "@chakra-ui/react";
 
 // Función helper para obtener datos del sessionStorage
@@ -35,7 +35,7 @@ const getAuthData = () => {
     const userSuc = sessionStorage.getItem("user_suc");
     const rol = Number(sessionStorage.getItem("rol"));
     const permisoVerUtilidad = Number(sessionStorage.getItem("permiso_ver_utilidad"));
-    
+
     return {
         userId,
         userName,
@@ -45,18 +45,19 @@ const getAuthData = () => {
     };
 };
 
-const MetaAcordadaInput = ({ 
-    row, 
-    selectedVendedor, 
-    formParams, 
-    actualizarMetaAcordada,
-    actualizarMetaGeneral
+const MetaAcordadaInput = ({
+    row,
+    selectedVendedor,
+    formParams,
+    actualizarMetaSinInvalidar,
+    setLocalMetas,
 }: {
     row: any;
     selectedVendedor: UsuarioViewModel | null;
     formParams: GetReporteMovimientoArticulosParams;
-    actualizarMetaAcordada: any;
-    actualizarMetaGeneral: any;
+    actualizarMetaSinInvalidar: (data: any, isGeneral: boolean) => Promise<void>;
+    scrollParentRef: React.RefObject<HTMLDivElement>;
+    setLocalMetas: (updater: (prev: Record<string, number>) => Record<string, number>) => void;
 }) => {
     const [valor, setValor] = useState(
         row.original.metaAcordada !== undefined && row.original.metaAcordada !== null
@@ -65,9 +66,12 @@ const MetaAcordadaInput = ({
     );
     const [isSaving, setIsSaving] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
+    const [isSavingRef, setIsSavingRef] = useState(false); // Ref para evitar doble guardado
     const toast = useToast();
 
     const { rol } = getAuthData();
+
+
 
     useEffect(() => {
         // Solo actualizar el valor si no está en modo edición
@@ -81,6 +85,12 @@ const MetaAcordadaInput = ({
     }, [row.original.metaAcordada, isEditing]);
 
     const guardarMeta = useCallback(async () => {
+        // Evitar doble ejecución
+        if (isSavingRef) {
+            console.log('Evitando doble guardado...');
+            return;
+        }
+
         // Validaciones
         if (valor === "" || Number(valor) < 0) {
             toast({
@@ -105,36 +115,51 @@ const MetaAcordadaInput = ({
             setIsEditing(false);
             return;
         }
+
         setIsSaving(true);
+        setIsSavingRef(true);
+
         try {
+            // Actualizar estado local inmediatamente
+            setLocalMetas(prev => ({
+                ...prev,
+                [row.original.codigoArticulo]: valorNumerico
+            }));
+
             if (!selectedVendedor) {
-                console.log('Actualizando meta general 👌', valorNumerico);
-                await actualizarMetaGeneral({
+                console.log('Actualizando meta general ', valorNumerico);
+                await actualizarMetaSinInvalidar({
                     id: 0,
                     arCodigo: row.original.codigoArticulo,
                     metaGeneral: valorNumerico,
                     periodo: formParams.AnioInicio,
                     estado: 1
-                });
+                }, true);
             } else {
-                await actualizarMetaAcordada({
+                await actualizarMetaSinInvalidar({
                     id: 0,
                     articuloId: row.original.codigoArticulo,
                     operadorId: selectedVendedor?.op_codigo,
                     metaAcordada: valorNumerico,
                     periodo: formParams.AnioInicio,
                     estado: 1
-                });
+                }, false);
             }
         } catch (error) {
-            // El error ya se maneja en el hook de mutación
+            // Revertir en caso de error
+            setLocalMetas(prev => {
+                const newState = { ...prev };
+                delete newState[row.original.codigoArticulo];
+                return newState;
+            });
             console.error('Error al guardar meta:', error);
         } finally {
             setIsSaving(false);
+            setIsSavingRef(false);
             setIsEditing(false);
         }
-        
-    }, [valor, selectedVendedor, actualizarMetaAcordada, actualizarMetaGeneral, formParams.AnioInicio, row.original.codigoArticulo, row.original.metaAcordada, toast, isEditing]);
+
+    }, [valor, selectedVendedor, actualizarMetaSinInvalidar, formParams.AnioInicio, row.original.codigoArticulo, row.original.metaAcordada, toast, isEditing, setLocalMetas, isSavingRef]);
 
     // SIMPLIFICAR drásticamente los event handlers
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -156,7 +181,8 @@ const MetaAcordadaInput = ({
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === "Enter") {
             guardarMeta();
-            (e.currentTarget as HTMLInputElement).blur();
+            // No llamar blur() aquí para evitar doble ejecución
+            // El blur se manejará automáticamente
         }
     };
 
@@ -172,9 +198,8 @@ const MetaAcordadaInput = ({
         <div className="relative">
             <input
                 type="number"
-                className={`text-center border rounded border-none focus:border focus:border-blue-700 focus:ring-1 focus:ring-blue-700 px-2 py-1 w-full bg-white ${
-                    isSaving ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
+                className={`text-center border rounded border-none focus:border focus:border-blue-700 focus:ring-1 focus:ring-blue-700 px-2 py-1 w-full bg-white ${isSaving ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
                 value={valor}
                 onChange={handleChange}
                 onFocus={handleFocus}
@@ -196,7 +221,13 @@ const MetaAcordadaInput = ({
 const ReporteMovimientoProductos = () => {
     const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
     const tableContainerRef = useRef<HTMLDivElement>(null)
-    
+    const scrollPositionRef = useRef({ top: 0, left: 0 });
+    const [skipReset, setSkipReset] = useState(false);
+    const isUpdatingMetaRef = useRef(false); // Nuevo ref para detectar actualizaciones de meta
+    const virtualizerRef = useRef<any>(null); // Ref para acceder al virtualizador
+    const visibleRowIndexRef = useRef<number>(0); // Ref para preservar el índice de la fila visible
+    const scrollRestorationTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Ref para el timeout de restauración
+
     // Usar sessionStorage directamente
     const authData = getAuthData();
     const usuario = {
@@ -216,7 +247,7 @@ const ReporteMovimientoProductos = () => {
         CategoriaId: undefined,
         ClienteId: undefined,
         MarcaId: undefined,
-        ArticuloId: undefined,      
+        ArticuloId: undefined,
         CiudadId: undefined,
         SucursalId: undefined,
         DepositoId: undefined,
@@ -255,6 +286,10 @@ const ReporteMovimientoProductos = () => {
     const [isLoadingExcel, setIsLoadingExcel] = useState(false);
     const [isLoadingPDF, setIsLoadingPDF] = useState(false);
     const [isLoadingLimpiar, setIsLoadingLimpiar] = useState(false);
+
+    const skipResetRef = useRef(false);
+
+    const scrollParentRef = useRef<HTMLDivElement>(null);
 
     const handleLimpiarFiltros = async () => {
         setIsLoadingLimpiar(true);
@@ -298,8 +333,34 @@ const ReporteMovimientoProductos = () => {
         }
     };
 
+    // Efecto para manejar el reset del flag después de que los datos se han aplicado
     useEffect(() => {
-    }, [reporteMovimientoArticulos?.detalles])
+        if (skipResetRef.current) {
+            skipResetRef.current = false;
+        }
+    }, [reporteMovimientoArticulos?.detalles]);
+
+    // Efecto para preservar y restaurar la posición del scroll
+    useEffect(() => {
+        if (skipReset && tableContainerRef.current) {
+            // Guardar la posición actual del scroll
+            scrollPositionRef.current = {
+                top: tableContainerRef.current.scrollTop,
+                left: tableContainerRef.current.scrollLeft
+            };
+
+            // Restaurar la posición después de que los datos se actualicen
+            const timer = setTimeout(() => {
+                if (tableContainerRef.current) {
+                    tableContainerRef.current.scrollTop = scrollPositionRef.current.top;
+                    tableContainerRef.current.scrollLeft = scrollPositionRef.current.left;
+                }
+                setSkipReset(false);
+            }, 100); // Pequeño delay para asegurar que los datos se han actualizado
+
+            return () => clearTimeout(timer);
+        }
+    }, [reporteMovimientoArticulos?.detalles, skipReset]);
 
     // // Efecto para controlar cuándo ejecutar la consulta
     // useEffect(() => {
@@ -311,7 +372,7 @@ const ReporteMovimientoProductos = () => {
     const handleFiltrosChange = (nombre: string, valor: string) => {
         setFormParams({
             ...formParams,
-            [nombre]: nombre === 'FechaDesde' || nombre === 'FechaHasta' 
+            [nombre]: nombre === 'FechaDesde' || nombre === 'FechaHasta'
                 ? (valor && valor.length > 0 ? new Date(valor) : null)
                 : valor
         })
@@ -330,7 +391,7 @@ const ReporteMovimientoProductos = () => {
         setIsLoadingExcel(true);
         try {
             await new Promise(resolve => setTimeout(resolve, 100));
-            
+
             exportarDatosAExcel(
                 reporteMovimientoArticulos.detalles,
                 'reporte-movimiento-articulos',
@@ -351,7 +412,7 @@ const ReporteMovimientoProductos = () => {
         setIsLoadingPDF(true);
         try {
             await new Promise(resolve => setTimeout(resolve, 100));
-            
+
             const filtros = {
                 anioInicio: formParams.AnioInicio,
                 cantidadAnios: formParams.cantidadAnios,
@@ -387,8 +448,21 @@ const ReporteMovimientoProductos = () => {
         }
     };
 
-    const { mutate: actualizarMetaAcordada } = useActualizarMetaAcordada();
-    const { mutate: actualizarMetaGeneral } = useActualizarMetaGeneral();
+
+
+    // Función para actualizar meta sin invalidar la query
+    const actualizarMetaSinInvalidar = useCallback(async (data: any, isGeneral: boolean) => {
+        try {
+            if (isGeneral) {
+                await VentasRepository.ActualizarMetaGeneral(data);
+            } else {
+                await VentasRepository.ActualizarMetaAcordada(data);
+            }
+        } catch (error) {
+            console.error('Error al actualizar meta:', error);
+            throw error;
+        }
+    }, []);
 
     // Genera dinámicamente las columnas de años según cantidadAnios
     const getYearColumns = () => {
@@ -446,8 +520,9 @@ const ReporteMovimientoProductos = () => {
                     row={row}
                     selectedVendedor={selectedVendedor}
                     formParams={formParams}
-                    actualizarMetaAcordada={actualizarMetaAcordada}
-                    actualizarMetaGeneral={actualizarMetaGeneral}
+                    actualizarMetaSinInvalidar={actualizarMetaSinInvalidar}
+                    setLocalMetas={setLocalMetasWithFlag}
+                    scrollParentRef={scrollParentRef}
                 />
             )
         },
@@ -568,12 +643,52 @@ const ReporteMovimientoProductos = () => {
         }
     ]
 
+    // Estado local para las metas editadas
+    const [localMetas, setLocalMetas] = useState<Record<string, number>>({});
+
+    // Función wrapper para setLocalMetas que marca cuando se está actualizando una meta
+    const setLocalMetasWithFlag = useCallback((updater: (prev: Record<string, number>) => Record<string, number>) => {
+        console.log('Actualizando meta, preservando posición...');
+        
+        // Preservar la posición del scroll ANTES de actualizar el estado
+        if (scrollParentRef.current) {
+            const currentScrollTop = scrollParentRef.current.scrollTop;
+            const currentScrollLeft = scrollParentRef.current.scrollLeft;
+            console.log('Posición preservada:', { top: currentScrollTop, left: currentScrollLeft });
+            
+            // Guardar la posición en el ref para restaurarla después
+            scrollPositionRef.current = { top: currentScrollTop, left: currentScrollLeft };
+            
+            // También preservar el índice de la fila visible
+            if (virtualizerRef.current) {
+                const visibleIndex = Math.floor(currentScrollTop / 48); // 48 es el estimateSize
+                visibleRowIndexRef.current = Math.max(0, visibleIndex);
+                console.log('Índice de fila visible preservado:', visibleRowIndexRef.current);
+            }
+        }
+        
+        isUpdatingMetaRef.current = true;
+        setLocalMetas(updater);
+    }, []);
+
+    // Combinar datos del cache con datos locales
+    const datosCombinados = useMemo(() => {
+        if (!reporteMovimientoArticulos?.detalles) return [];
+
+        return reporteMovimientoArticulos.detalles.map(item => ({
+            ...item,
+            metaAcordada: localMetas[item.codigoArticulo] ?? item.metaAcordada
+        }));
+    }, [reporteMovimientoArticulos?.detalles, localMetas]);
+
     const table = useReactTable({
-        data: reporteMovimientoArticulos?.detalles || [],
+        data: datosCombinados,
         columns,
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
+        autoResetPageIndex: false,
+        autoResetExpanded: false,
         state: {
             columnFilters,
             globalFilter,
@@ -581,6 +696,81 @@ const ReporteMovimientoProductos = () => {
         onColumnFiltersChange: setColumnFilters,
         onGlobalFilterChange: setGlobalFilter,
     });
+
+    // Efecto para preservar la posición del scroll cuando solo cambian las metas
+    useEffect(() => {
+        if (isUpdatingMetaRef.current && scrollParentRef.current) {
+            console.log('Restaurando posición del scroll...');
+            
+            // Limpiar timeout anterior si existe
+            if (scrollRestorationTimeoutRef.current) {
+                clearTimeout(scrollRestorationTimeoutRef.current);
+            }
+            
+            // Usar la posición que ya guardamos en el ref
+            const { top, left } = scrollPositionRef.current;
+            console.log('Posición a restaurar:', { top, left });
+            
+            // Restaurar la posición después de que los datos se actualicen
+            const restoreScroll = () => {
+                if (scrollParentRef.current) {
+                    // Forzar el scroll directamente al elemento DOM
+                    console.log('Forzando scroll directo...');
+                    scrollParentRef.current.scrollTop = top;
+                    scrollParentRef.current.scrollLeft = left;
+                    
+                    // También intentar con el virtualizador como respaldo
+                    if (virtualizerRef.current) {
+                        console.log('También usando virtualizador...');
+                        try {
+                            virtualizerRef.current.scrollToOffset(top, { align: 'start' });
+                        } catch (error) {
+                            console.log('Error con virtualizador:', error);
+                        }
+                    }
+                    
+                    console.log('Posición restaurada:', { top, left });
+                }
+                isUpdatingMetaRef.current = false;
+            };
+            
+            // Usar un delay más largo para asegurar que la tabla se haya re-renderizado completamente
+            scrollRestorationTimeoutRef.current = setTimeout(() => {
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(restoreScroll);
+                    });
+                });
+            }, 100);
+        }
+    }, [datosCombinados]);
+
+    // Efecto para monitorear cambios en la posición del scroll
+    useEffect(() => {
+        const scrollElement = scrollParentRef.current;
+        if (!scrollElement) return;
+
+        const handleScroll = () => {
+            if (isUpdatingMetaRef.current) {
+                console.log('Scroll detectado durante actualización de meta:', {
+                    current: scrollElement.scrollTop,
+                    expected: scrollPositionRef.current.top
+                });
+            }
+        };
+
+        scrollElement.addEventListener('scroll', handleScroll);
+        return () => scrollElement.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    // Cleanup effect para limpiar timeouts
+    useEffect(() => {
+        return () => {
+            if (scrollRestorationTimeoutRef.current) {
+                clearTimeout(scrollRestorationTimeoutRef.current);
+            }
+        };
+    }, []);
 
     useEffect(() => {
         if (!esAdmin(authData.rol) && !esSupervisor(authData.rol) && Vendedores && user_id) {
@@ -654,13 +844,16 @@ const ReporteMovimientoProductos = () => {
         const rowVirtualizer = useVirtualizer({
             count: rows.length,
             estimateSize: () => 48,
-            getScrollElement: () => tableContainerRef.current,
+            getScrollElement: () => scrollParentRef.current,
             overscan: 8,
         });
 
+        // Asignar el virtualizador al ref para poder accederlo desde el efecto principal
+        virtualizerRef.current = rowVirtualizer;
+
         return (
             <div
-                ref={tableContainerRef}
+                ref={scrollParentRef}
                 className="overflow-auto max-h-[650px] bg-white"
                 style={{
                     position: 'relative',
@@ -751,24 +944,24 @@ const ReporteMovimientoProductos = () => {
                                             }}
                                             className="border-r border-gray-100 last:border-r-0 px-6 py-3 text-sm text-gray-900"
                                         >
-                                            <div 
-                                            className={`w-full ${
-                                                // Si la celda contiene un input, no truncar
-                                                cell.column.columnDef.cell && 
-                                                typeof cell.column.columnDef.cell === 'function' &&
-                                                cell.getValue() !== undefined &&
-                                                (cell.column.id.includes('input') || cell.column.id.includes('edit'))
-                                                ? '' : 'truncate'
-                                            }`}
-                                            title={
-                                                // Solo mostrar tooltip para texto truncado
-                                                cell.column.id.includes('input') || cell.column.id.includes('edit') 
-                                                ? undefined 
-                                                : String(cell.getValue())
-                                            }
-                                        >
-                                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                                        </div>
+                                            <div
+                                                className={`w-full ${
+                                                    // Si la celda contiene un input, no truncar
+                                                    cell.column.columnDef.cell &&
+                                                        typeof cell.column.columnDef.cell === 'function' &&
+                                                        cell.getValue() !== undefined &&
+                                                        (cell.column.id.includes('input') || cell.column.id.includes('edit'))
+                                                        ? '' : 'truncate'
+                                                    }`}
+                                                title={
+                                                    // Solo mostrar tooltip para texto truncado
+                                                    cell.column.id.includes('input') || cell.column.id.includes('edit')
+                                                        ? undefined
+                                                        : String(cell.getValue())
+                                                }
+                                            >
+                                                {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                            </div>
                                         </td>
                                     ))}
                                 </tr>
@@ -844,21 +1037,21 @@ const ReporteMovimientoProductos = () => {
                 <div className="grid grid-cols-6 gap-2 w-[85%] relative" style={{ zIndex: 1000 }}>
                     <div className="flex flex-row gap-2 h-full items-start w-full">
                         <div className="flex flex-col gap-1 w-full">
-                        <label htmlFor="fechaDesde" className="text-slate-800 text-sm">Fecha desde</label>
-                        <input type="date" id="fechaDesde" className="bg-white rounded-md p-2 border  h-10"
-                            value={formParams.FechaDesde?.toISOString().split('T')[0] || ''}
-                            onChange={(e) => handleFiltrosChange('FechaDesde', e.target.value)}
-                        />
+                            <label htmlFor="fechaDesde" className="text-slate-800 text-sm">Fecha desde</label>
+                            <input type="date" id="fechaDesde" className="bg-white rounded-md p-2 border  h-10"
+                                value={formParams.FechaDesde?.toISOString().split('T')[0] || ''}
+                                onChange={(e) => handleFiltrosChange('FechaDesde', e.target.value)}
+                            />
                         </div>
                         <div className="flex flex-col gap-1 w-full">
-                        <label htmlFor="fechaHasta" className="text-slate-800 text-sm">Fecha hasta</label>
-                        <input type="date" id="fechaHasta" className="bg-white rounded-md p-2 border  h-10"
-                            value={formParams.FechaHasta?.toISOString().split('T')[0] || ''}
-                            onChange={(e) => handleFiltrosChange('FechaHasta', e.target.value)}
-                        />
+                            <label htmlFor="fechaHasta" className="text-slate-800 text-sm">Fecha hasta</label>
+                            <input type="date" id="fechaHasta" className="bg-white rounded-md p-2 border  h-10"
+                                value={formParams.FechaHasta?.toISOString().split('T')[0] || ''}
+                                onChange={(e) => handleFiltrosChange('FechaHasta', e.target.value)}
+                            />
                         </div>
                     </div>
-                    
+
                     <Autocomplete<MarcaViewModel>
                         data={Marcas || []}
                         value={selectedMarca || null}
@@ -1056,7 +1249,7 @@ const ReporteMovimientoProductos = () => {
                             limpiar: isLoadingLimpiar
                         }}
                     />
-                    
+
                 </div>
 
             </div>

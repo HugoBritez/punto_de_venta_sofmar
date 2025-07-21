@@ -8,8 +8,10 @@ import { useGetDepartamento } from "@/shared/hooks/querys/useDepartamentos";
 import { Autocomplete } from "@/shared/components/Autocomplete/AutocompleteComponent";
 import { Ciudad } from "@/shared/types/ciudad";
 import BuscadorClientes from "@/ui/clientes/BuscadorClientes";
+import BuscadorClientesMobile from "@/ui/clientes/BuscardorClientesMobile";
 import { ClienteViewModel } from "@/shared/types/clientes";
 import { useAuth } from "@/services/AuthContext";
+import { useMediaQuery } from "@chakra-ui/react";
 
 interface ContactoFormProps {
     contacto?: ContactoCRMModel;
@@ -30,6 +32,7 @@ export const ContactoForm = ({ contacto, onClose, onSuccess }: ContactoFormProps
     const isEditing = !!contacto;
     const crearContacto = useCrearContacto();
     const actualizarContacto = useActualizarContacto();
+    const [isMobile] = useMediaQuery("(max-width: 768px)");
 
     const auth = useAuth();
 
@@ -212,7 +215,7 @@ export const ContactoForm = ({ contacto, onClose, onSuccess }: ContactoFormProps
     };
 
     return (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 mb-16 md:mb-0">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -518,7 +521,19 @@ export const ContactoForm = ({ contacto, onClose, onSuccess }: ContactoFormProps
                     </div>
                 </form>
             </div>
-            <BuscadorClientes isOpen={isOpen} setIsOpen={setIsOpen} onSelect={handleSelectCliente} />
+            {isMobile ? (
+                <BuscadorClientesMobile 
+                    isOpen={isOpen} 
+                    setIsOpen={setIsOpen} 
+                    onSelect={handleSelectCliente} 
+                />
+            ) : (
+                <BuscadorClientes 
+                    isOpen={isOpen} 
+                    setIsOpen={setIsOpen} 
+                    onSelect={handleSelectCliente} 
+                />
+            )}
         </div>
     );
 };

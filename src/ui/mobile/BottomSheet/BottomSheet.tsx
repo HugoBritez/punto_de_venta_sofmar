@@ -58,7 +58,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
   if (!isVisible && !isClosing) return null;
 
   return (
-    <div className="fixed inset-0 z-[9998] pointer-events-none">
+    <div className="fixed inset-0 z-10 pointer-events-none">
       {/* Overlay */}
       <div 
         className={`absolute inset-0 bg-black/30 transition-opacity duration-300 ${
@@ -70,7 +70,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
       {/* Bottom Sheet */}
       <div
         ref={sheetRef}
-        className={`fixed bottom-0 left-4 right-4 bg-white rounded-2xl shadow-xl transition-all duration-300 ease-out pointer-events-auto z-[9999] ${
+        className={`fixed bottom-0 left-4 right-4 bg-white rounded-2xl shadow-xl transition-all duration-300 ease-out pointer-events-auto z-[999] ${
           isDragging ? 'transition-none' : ''
         } ${
           isVisible ? 'translate-y-0' : 'translate-y-full'

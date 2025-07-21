@@ -3,13 +3,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import crmApi from "../services/crmApi";
 import { contactosFilter } from "../services/contactosFilter";
 import { oportunidadesFilter } from "../services/oportunidadesFilter";
+import { ContactoCRM } from "../types/contactos.type";
 
 // --- Contactos ---
 export const useContactos = (operador: number, esAdmin: boolean) => {
-  return useQuery({
+  return useQuery<ContactoCRM[]>({
     queryKey: ["contactos"],
     queryFn: crmApi.getContactos,
-    select: (data) => contactosFilter(data, esAdmin, operador),
+    select: (data: ContactoCRM[]) => contactosFilter(data, esAdmin, operador),
   });
 };
 

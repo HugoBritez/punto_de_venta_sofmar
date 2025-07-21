@@ -17,6 +17,7 @@ const BuscadorClientesMobile = ({ isOpen, setIsOpen, onSelect }: BuscadorCliente
     saldocero: false
   });
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [lastTapTime, setLastTapTime] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { clientes, loading, error, getClientes } = useGetClientes();
@@ -59,6 +60,22 @@ const BuscadorClientesMobile = ({ isOpen, setIsOpen, onSelect }: BuscadorCliente
     }
   };
 
+  const handleClienteClick = (index: number) => {
+    const currentTime = new Date().getTime();
+    const tapLength = currentTime - lastTapTime;
+    
+    if (tapLength < 500 && tapLength > 0) {
+      // Doble tap detectado
+      setSelectedIndex(index);
+      handleSeleccionarCliente();
+    } else {
+      // Tap simple - solo seleccionar
+      setSelectedIndex(index);
+    }
+    
+    setLastTapTime(currentTime);
+  };
+
   useEffect(() => {
     if (isOpen) {
       inputRef.current?.focus();
@@ -83,7 +100,7 @@ const BuscadorClientesMobile = ({ isOpen, setIsOpen, onSelect }: BuscadorCliente
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-end">
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-100 flex items-end">
       <div className="bg-white w-full h-[90%] rounded-t-lg flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
@@ -167,9 +184,7 @@ const BuscadorClientesMobile = ({ isOpen, setIsOpen, onSelect }: BuscadorCliente
               {clientes.map((cliente, index) => (
                 <div
                   key={cliente.cli_codigo}
-                  onClick={() => {
-                    setSelectedIndex(index);
-                  }}
+                  onClick={() => handleClienteClick(index)}
                   className={`
                     p-4 border-b border-gray-100 cursor-pointer transition-colors
                     ${index === selectedIndex ? 'bg-blue-50 border-blue-200' : 'hover:bg-gray-50'}

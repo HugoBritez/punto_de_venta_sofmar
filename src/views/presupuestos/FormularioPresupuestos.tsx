@@ -157,7 +157,6 @@ const FormularioPresupuestos = () => {
 
   const [cantidadParaItem, setCantidadParaItem] = useState<number>(1);
   const [descuentoParaItem, setDescuentoParaItem] = useState<number>(0);
-  const [precioParaItem, setPrecioParaItem] = useState<number>(0);
 
   const [totalDescuentoFactura, setTotalDescuentoFactura] = useState<
     number | null
@@ -208,6 +207,8 @@ const FormularioPresupuestos = () => {
   const [pdfCheck, setPdfCheck] = useState<boolean>(false);
   const [isArticuloModalOpen, setIsArticuloModalOpen] = useState<boolean>(false);
 
+  // Agregar este estado junto a los otros estados (cerca de la línea 159)
+  const [precioArticulo, setPrecioArticulo] = useState<number>(0);
 
   const {
     onOpen: onOpenDetallesVentasCliente,
@@ -395,7 +396,8 @@ const FormularioPresupuestos = () => {
     setHoveredArticulo(null);
     setArticuloBusqueda("");
     setArticuloBusquedaId("");
-    setPrecioParaItem(item.precio_venta_guaranies);
+    console.log("Precio del artículo seleccionado:", item.precio_venta_guaranies);
+    setPrecioArticulo(item.precio_venta_guaranies);
     setCantidadParaItem(1);
     setDescuentoParaItem(0);
   };
@@ -406,22 +408,12 @@ const FormularioPresupuestos = () => {
     precio: number,
     descuento: number = 0
   ): ItemParaPresupuesto | null => {
-    // 5. Cálculo de precios según lista seleccionada
-    let precioEnGuaranies = 0;
-    switch (listaPrecioSeleccionada?.lp_codigo) {
-      case 1: // Lista precio contado
-        precioEnGuaranies = articulo.precio_venta_guaranies;
-        break;
-      case 2: // Lista precio credito
-        precioEnGuaranies = articulo.precio_venta_guaranies;
-        break;
-      case 3: // Lista precio mostrador
-        precioEnGuaranies = articulo.precio_mostrador;
-        break;
-      default:
-        precioEnGuaranies = articulo.precio_venta_guaranies;
-    }
-
+    // Usar directamente el precio que se pasa
+    const precioNumerico = precio;
+    
+    // Usar el precio modificado como base en lugar del precio original del artículo
+    let precioEnGuaranies = precioNumerico;
+    
     // 6. Cálculo de precio en moneda actual
     let precioUnitarioMonedaActual = precioEnGuaranies;
     if (monedaSeleccionada?.mo_codigo !== 1) {
@@ -443,8 +435,8 @@ const FormularioPresupuestos = () => {
     }
 
     // 7. Cálculo de montos con descuento
-    const montoDescuento = (precio * cantidad * descuento) / 100;
-    const montoTotal = precio * cantidad - montoDescuento;
+    const montoDescuento = (precioNumerico * cantidad * descuento) / 100;
+    const montoTotal = precioNumerico * cantidad - montoDescuento;
 
     // 8. Cálculo de impuestos
     let deve_exentas = 0;
@@ -479,8 +471,8 @@ const FormularioPresupuestos = () => {
       depre_articulo: articulo.id_articulo,
       descripcion: articulo.descripcion,
       depre_cantidad: cantidad,
-      depre_precio: precioUnitarioMonedaActual,
-      precio_original: precioEnGuaranies,
+      depre_precio: precioUnitarioMonedaActual, // Ahora usará el precio modificado
+      precio_original: articulo.precio_venta_guaranies, // Guardar el precio original
       depre_descuento: descuento || 0,
       depre_exentas: Number(deve_exentas),
       depre_cinco: Number(deve_cinco),
@@ -505,7 +497,7 @@ const FormularioPresupuestos = () => {
     const nuevoItem = crearItemValidado(
       articuloSeleccionado,
       cantidadParaItem || 1,
-      precioParaItem || articuloSeleccionado.precio_venta_guaranies, // Usar precio editado
+      precioArticulo,
       descuentoParaItem || 0
     );
 
@@ -514,13 +506,14 @@ const FormularioPresupuestos = () => {
       setArticuloSeleccionado(null);
       setCantidadParaItem(1);
       setDescuentoParaItem(0);
-      setPrecioParaItem(0); // Limpiar precio
+      setPrecioArticulo(0); // Resetear el nuevo estado
       if(nuevoItem.editar_nombre === 1){
         setNuevaDescripcionItem(nuevoItem.descripcion);
       } else {
         setNuevaDescripcionItem('');
       }
     }
+    console.log("Precio al agregar:", precioArticulo);
     busquedaItemPorIdInputRef.current?.focus();
   };
 
@@ -841,7 +834,7 @@ const FormularioPresupuestos = () => {
     setArticuloSeleccionado(null);
     setCantidadParaItem(1);
     setDescuentoParaItem(0);
-    setPrecioParaItem(0);
+    setPrecioArticulo(0); // Resetear el nuevo estado
   }
 
   function handleGuardarDetalleAdicional() {
@@ -1603,7 +1596,7 @@ const FormularioPresupuestos = () => {
             }
           >
             <input
-              type="number"
+              type="text"
               name="precio_articulo"
               id="precio_articulo"
               className={
@@ -1612,17 +1605,13 @@ const FormularioPresupuestos = () => {
                   : "bg-white rounded-md p-2 w-1/2"
               }
               placeholder="Precio Unitario"
-              value={
-                precioParaItem > 0 
-                  ? precioParaItem 
-                  : articuloSeleccionado 
-                    ? articuloSeleccionado.precio_venta_guaranies
-                    : ""
-              }
-              onChange={(e) => setPrecioParaItem(Number(e.target.value))}
+              value={precioArticulo}
+              onChange={(e) => {
+                const value = e.target.value;
+                setPrecioArticulo(value === "" ? 0 : Number(value));
+              }}
               ref={precioItemInputRef}
               onKeyDown={handlePrecioKeyPress}
-              readOnly= { true}
             />
             <input
               type="number"
@@ -2238,7 +2227,7 @@ const FormularioPresupuestos = () => {
         isOpen={isArticuloModalOpen}
         setIsOpen={setIsArticuloModalOpen}
         onSelect={(articulo) => {
-          setArticuloSeleccionado(articulo);
+          handleSelectArticulo(articulo); // Llamar a la función completa
           cantidadItemInputRef.current?.focus();
         }}
         depositoInicial={depositoSeleccionado?.dep_codigo}

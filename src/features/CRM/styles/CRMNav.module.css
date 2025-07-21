@@ -1,0 +1,18 @@
+/* Estilos globales para scrollbar personalizado */
+.contactos-scroll::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .contactos-scroll::-webkit-scrollbar-track {
+    background: rgba(59, 130, 246, 0.1);
+    border-radius: 3px;
+  }
+  
+  .contactos-scroll::-webkit-scrollbar-thumb {
+    background: rgba(59, 130, 246, 0.5);
+    border-radius: 3px;
+  }
+  
+  .contactos-scroll::-webkit-scrollbar-thumb:hover {
+    background: rgba(59, 130, 246, 0.7);
+  }

@@ -218,16 +218,14 @@ export const DetalleProyectoModal = ({
                     <p className="font-medium text-gray-900">{formatDate(oportunidad.fechaInicio)}</p>
                   </div>
                 </div>
-
-                {oportunidad.fechaFin && (
                   <div className="flex items-center gap-3">
                     <CalendarIcon className="h-5 w-5 text-gray-400" />
                     <div>
-                      <label className="text-sm text-gray-500">Fecha de Fin</label>
-                      <p className="font-medium text-gray-900">{formatDate(oportunidad.fechaFin)}</p>
+                      <label className="text-sm text-gray-500">Fecha de Finalización</label>
+                      <p className="font-medium text-gray-900">{oportunidad.fechaFin ? formatDate(oportunidad.fechaFin) : 'Fecha no definida'}</p>
                     </div>
                   </div>
-                )}
+                
               </div>
             </div>
 

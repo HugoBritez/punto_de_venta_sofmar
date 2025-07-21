@@ -1,6 +1,6 @@
-export const api_url = 'https://node.sofmar.com.py:4016/api/'
+export const api_url = 'http://localhost:4000/api/'
 
-export const api_url_secondary = 'https://node.sofmar.com.py:5016/api/'
+export const api_url_secondary = 'https://localhost:4024/api/'
 
 //export const api_url = 'https://localhost:4000/api/'
 //export const  api_url = 'https://db.sofmar.com.py:4009/api/' //acricolor
@@ -22,6 +22,6 @@ export const api_url_secondary = 'https://node.sofmar.com.py:5016/api/'
 export const version = '1.2.4'
 
 
-export const fechaRelease = '19/07/2025'
-export const db = 'sofmareas'
+export const fechaRelease = '21/07/2025'
+export const db = 'local'
 export const userName = sessionStorage.getItem('userName')
