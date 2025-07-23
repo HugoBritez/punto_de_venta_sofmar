@@ -1,4 +1,4 @@
-import type { ClienteViewModel } from "../types/clientes";
+import type { ClienteViewModel, CobroViewModel } from "../types/clientes";
 import api from "../../config/axios";
 
 
@@ -28,6 +28,17 @@ export const ClientesRepository = {
 
     async getClientePorDefecto(): Promise<ClienteViewModel> {
         const response = await api.get(`clientes/defecto`);
+        return response.data.body;
+    },
+
+
+    async getUltimoCobro(clienteRuc: string): Promise<CobroViewModel> {
+        const response = await api.get(`clientes/ultimo-cobro/${clienteRuc}`);
+        return response.data.body;
+    },
+
+    async getDeuda(clienteRuc: string): Promise<number> {
+        const response = await api.get(`clientes/deuda/${clienteRuc}`);
         return response.data.body;
     }
 }

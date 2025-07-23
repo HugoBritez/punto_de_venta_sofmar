@@ -6,13 +6,13 @@ import { OportunidadCRM, CrearOportunidadCRM, ActualizarOportunidadCRM, Oportuni
 import { TareaCRM, CrearTareaCRM, ActualizarTareaCRM, TipoTareaCRM } from "../types/tareas.type";
 import { AgendamientoCRM, CreateAgendamientoCRMDTO, UpdateAgendamientoCRM } from "../types/agendamientos.type";
 import { CreateRecordatorioCRMDTO, RecordatorioViewModel, UpdateRecordatorioCRMDTO } from "../types/recordatorios.type";
+import { ColaboradorDTO, ColaboradoresDTO } from "../types/colaboradores.type";
 
 // --- Contactos ---
 export const crmApi = {
   // Contactos
   getContactos: async (): Promise<ContactoCRM[]> => {
     const { data } = await api.get("/crm/contactos");
-    console.log(data);
     return data.body;
   },
   getContactoById: async (id: number): Promise<ContactoCRM> => {
@@ -21,6 +21,7 @@ export const crmApi = {
   },
   crearContacto: async (contacto: CrearContactoCRM): Promise<ContactoCRM> => {
     const { data } = await api.post("/crm/contactos", contacto);
+    console.log("response al crear el contacto", data);
     return data.body;
   },
   actualizarContacto: async (contacto: ActualizarContactoCRM): Promise<ContactoCRM> => {
@@ -176,6 +177,18 @@ export const crmApi = {
     const { data } = await api.put("/crm/recordatorios", recordatorio);
     return data.body;
   },
+
+  // --- Colaboradores ---
+
+  crearColaboradores: async (colaboradores: ColaboradoresDTO) => {
+    const { data} = await api.post("/crm/colaboradores", colaboradores);
+    return data.body;
+  },
+
+  upadteColaborador : async (colaborador: ColaboradorDTO)=> {
+    const { data } = await api.put("/crm/colaboradores", colaborador);
+    return data.body;
+  }
 
 };
 

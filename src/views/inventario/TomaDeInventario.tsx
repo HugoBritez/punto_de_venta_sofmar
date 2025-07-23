@@ -427,10 +427,10 @@ interface TableBodyProps {
   setEditandoCantidadInicial: (value: { id: number; value: number } | null) => void;
   editingItem: { id: number; value: number } | null;
   setEditingItem: (value: { id: number; value: number } | null) => void;
-  handleEditarVencimiento: (articulo_id: number, lote_id: number) => void;
+  handleEditarVencimiento: (articulo_id: number, lote_id: number, vencimiento: string ) => void;
   handleEditarLote: (articulo_id: number, lote_id: number, nuevo_lote: string) => void;
   handleEditarCantidadInicial: (articulo_id: number, lote_id: number, cantidad: number) => void;
-  handleCambiarCantidadScaneada: (articulo_id: number, lote_id: number, cantidad: number, lote: string, codigo_barras: string, id_inventario: number) => void;
+  handleCambiarCantidadScaneada: (articulo_id: number, lote_id: number, cantidad: number, lote: string, codigo_barras: string, id_inventario: number, vencimiento?: string) => void;
   inventarioSeleccionado: Inventario | null;
 }
 
@@ -517,10 +517,10 @@ interface TableBodyRowProps {
   setEditandoCantidadInicial: (value: { id: number; value: number } | null) => void;
   editingItem: { id: number; value: number } | null;
   setEditingItem: (value: { id: number; value: number } | null) => void;
-  handleEditarVencimiento: (articulo_id: number, lote_id: number) => void;
+  handleEditarVencimiento: (articulo_id: number, lote_id: number, vencimiento: string) => void;
   handleEditarLote: (articulo_id: number, lote_id: number, nuevo_lote: string) => void;
   handleEditarCantidadInicial: (articulo_id: number, lote_id: number, cantidad: number) => void;
-  handleCambiarCantidadScaneada: (articulo_id: number, lote_id: number, cantidad: number, lote: string, codigo_barras: string, id_inventario: number) => void;
+  handleCambiarCantidadScaneada: (articulo_id: number, lote_id: number, cantidad: number, lote: string, codigo_barras: string, id_inventario: number, vencimiento?: string) => void;
   inventarioSeleccionado: Inventario | null;
 }
 
@@ -586,7 +586,8 @@ function TableBodyRow({
                 if (e.key === "Enter") {
                   handleEditarVencimiento(
                     item.articulo_id,
-                    item.lote_id
+                    item.lote_id,
+                    editandoVencimiento.value
                   );
                   setEditandoVencimiento(null);
                 } else if (e.key === "Escape") {
@@ -1634,6 +1635,7 @@ const TomaDeInventario = () => {
     lote: string,
     codigo_barras: string,
     id_inventario: number,
+    vencimiento?: string
   ) => {
     if (inventarioSeleccionado?.id === undefined) {
       toast({
@@ -1656,16 +1658,23 @@ const TomaDeInventario = () => {
     }
 
     try {
+      const payload: any = {
+        id_articulo,
+        id_lote,
+        cantidad,
+        lote,
+        codigo_barras,
+        id_inventario,
+      };
+
+      // Solo incluir vencimiento si se proporciona
+      if (vencimiento !== undefined) {
+        payload.vencimiento = vencimiento;
+      }
+
       const response = await axios.post(
         `${api_url}inventarios/items/escanear`,
-        {
-          id_articulo,
-          id_lote,
-          cantidad,
-          lote,
-          codigo_barras,
-          id_inventario,
-        }
+        payload
       );
 
       console.log(response);
@@ -1711,14 +1720,15 @@ const TomaDeInventario = () => {
       id_lote,
       item.cantidad_final || 0,
       nuevo_lote,
-                                    item.cod_barra,
-      inventarioSeleccionado?.id || 0,
+      item.cod_barra,
+      inventarioSeleccionado?.id || 0
     );
   };
 
   const actualizarVencimiento = async (
     id_articulo: number,
     id_lote: number,
+    vencimiento: string
   ) => {
     const item = itemsEnInventario.find(item => item.lote_id === id_lote);
     if (!item) {
@@ -1737,6 +1747,7 @@ const TomaDeInventario = () => {
       item.lote,
       item.cod_barra,
       inventarioSeleccionado?.id || 0,
+      vencimiento
     );
   };
 
@@ -1751,8 +1762,9 @@ const TomaDeInventario = () => {
   const handleEditarVencimiento = async (
     id_articulo: number,
     id_lote: number,
+    vencimiento: string
   ) => {
-    await actualizarVencimiento(id_articulo, id_lote);
+    await actualizarVencimiento(id_articulo, id_lote, vencimiento);
   };
 
   async function handleCambiarCantidadScaneada(
@@ -1761,7 +1773,7 @@ const TomaDeInventario = () => {
     cantidad: number,
     lote: string,
     codigo_barras: string,
-    id_inventario: number
+    id_inventario: number,
   ) {
     await escanearItem(
       id_articulo,

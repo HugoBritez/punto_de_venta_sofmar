@@ -23,3 +23,11 @@ export interface ClienteViewModel {
     cli_tipo_doc: number;
     cli_estado: number;
 }
+
+
+export interface CobroViewModel {
+    fecha: string;
+    monto: number;
+    vendedor: string;
+    cliente: string;
+}

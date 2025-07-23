@@ -448,8 +448,6 @@ const ReporteMovimientoProductos = () => {
         }
     };
 
-
-
     // Función para actualizar meta sin invalidar la query
     const actualizarMetaSinInvalidar = useCallback(async (data: any, isGeneral: boolean) => {
         try {
@@ -465,35 +463,36 @@ const ReporteMovimientoProductos = () => {
     }, []);
 
     // Genera dinámicamente las columnas de años según cantidadAnios
-    const getYearColumns = () => {
-        const cols = [];
-        for (let i = formParams.cantidadAnios - 1; i >= 0; i--) {
-            const year = formParams.AnioInicio - i;
-            cols.push(
-                {
-                    accessorKey: `cantidadAnio${i + 1}`,
-                    header: `Unidades ${year}`,
-                    size: 150,
-                    cell: ({ row }: any) => (
-                        <div className="text-center">
-                            {row.original[`cantidadAnio${i + 1}`]?.toLocaleString('es-PY')}
-                        </div>
-                    ),
-                },
-                {
-                    accessorKey: `importeAnio${i + 1}`,
-                    header: `Importe ${year}`,
-                    size: 180,
-                    cell: ({ row }: any) => (
-                        <div className="text-right">
-                            {row.original[`importeAnio${i + 1}`]?.toLocaleString('es-PY')}
-                        </div>
-                    ),
-                }
-            );
-        }
-        return cols;
-    };
+    // Genera dinámicamente las columnas de años según cantidadAnios
+const getYearColumns = () => {
+    const cols = [];
+    for (let i = 0; i < formParams.cantidadAnios; i++) {
+        const year = formParams.AnioInicio - formParams.cantidadAnios + 1 + i;
+        cols.push(
+            {
+                accessorKey: `cantidadAnio${i + 1}`,
+                header: `Unidades ${year}`,
+                size: 150,
+                cell: ({ row }: any) => (
+                    <div className="text-center">
+                        {row.original[`cantidadAnio${i + 1}`]?.toLocaleString('es-PY')}
+                    </div>
+                ),
+            },
+            {
+                accessorKey: `importeAnio${i + 1}`,
+                header: `Importe ${year}`,
+                size: 180,
+                cell: ({ row }: any) => (
+                    <div className="text-right">
+                        {row.original[`importeAnio${i + 1}`]?.toLocaleString('es-PY')}
+                    </div>
+                ),
+            }
+        );
+    }
+    return cols;
+};
 
     // Definición de columnas principal
     const columns: ColumnDef<DetalleMovimientosArticulos>[] = [
@@ -1004,7 +1003,7 @@ const ReporteMovimientoProductos = () => {
         <div className="flex flex-row-reverse gap-4 p-4">
             {Array.from({ length: cantidadAnios }, (_, i) => {
                 const index = i + 1;
-                const year = anioInicio - i;
+                const year = anioInicio - cantidadAnios + 1 + i; // Corregir el cálculo del año
                 return (
                     <div key={index} className="flex flex-col gap-2 bg-white rounded-md p-2">
                         <div className="flex flex-row gap-2 items-center justify-end">

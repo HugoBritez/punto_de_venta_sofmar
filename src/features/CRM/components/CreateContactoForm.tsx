@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { CrearContactoCRM,  ContactoCRMModel } from "../types/contactos.type";
+import { CrearContactoCRM,  ContactoCRMModel, ContactoCRM } from "../types/contactos.type";
 import { useCrearContacto, useActualizarContacto } from "../hooks/useCRM";
 import { X, Save, User, Building2, MapPin, FileText, Calendar } from "lucide-react";
 import { useGetCiudades } from "@/shared/hooks/querys/useCiudades";
@@ -12,6 +12,8 @@ import BuscadorClientesMobile from "@/ui/clientes/BuscardorClientesMobile";
 import { ClienteViewModel } from "@/shared/types/clientes";
 import { useAuth } from "@/services/AuthContext";
 import { useMediaQuery } from "@chakra-ui/react";
+import { AsociarProyectoAClienteConfirmModal } from "./AsociarProyectoAClienteConfirmModal";
+import { esAdmin } from "@/shared/utils/permisosRoles";
 
 interface ContactoFormProps {
     contacto?: ContactoCRMModel;
@@ -59,10 +61,18 @@ export const ContactoForm = ({ contacto, onClose, onSuccess }: ContactoFormProps
 
     const [errors, setErrors] = useState<ValidationErrors>({});
     const [isOpen, setIsOpen] = useState(false);
+    const [isOpenAsociarProyecto, setIsOpenAsociarProyecto] = useState(false);
+    const [contactoCreado, setContactoCreado] = useState<ContactoCRM | undefined>(undefined);
 
     const { data: ciudades = [], isLoading: isLoadingCiudades, isError: isErrorCiudades } = useGetCiudades();
     const { data: zonas = []} = useZonas();
     const { data: departamentos = []} = useGetDepartamento();
+
+    const onCloseAsociarProyecto = () => {
+        setIsOpenAsociarProyecto(false);
+        onSuccess?.();
+        onClose(); // Esto cierra el modal de creación de contacto
+    }
 
     // Función de validación
     const validateField = (field: keyof CrearContactoCRM, value: any): string | undefined => {
@@ -193,12 +203,17 @@ export const ContactoForm = ({ contacto, onClose, onSuccess }: ContactoFormProps
                     codigo: contacto.codigo,
                     ...formData
                 });
+                onSuccess?.();
+                onClose();
             } else {
-                await crearContacto.mutateAsync(formData);
+                // Para contactos nuevos
+                const response = await crearContacto.mutateAsync(formData);
+                console.log("response al crear el contacto", response);
+                if (response) {
+                    setContactoCreado(response);
+                    setIsOpenAsociarProyecto(true);
+                }
             }
-            
-            onSuccess?.();
-            onClose();
         } catch (error) {
             console.error("Error al guardar contacto:", error);
         }
@@ -521,6 +536,13 @@ export const ContactoForm = ({ contacto, onClose, onSuccess }: ContactoFormProps
                     </div>
                 </form>
             </div>
+            <AsociarProyectoAClienteConfirmModal
+                isOpen={isOpenAsociarProyecto}
+                onClose={onCloseAsociarProyecto}
+                operador={operador}
+                esAdmin={esAdmin(auth.auth?.rol)}
+                contactoCreado={contactoCreado}
+            />
             {isMobile ? (
                 <BuscadorClientesMobile 
                     isOpen={isOpen} 

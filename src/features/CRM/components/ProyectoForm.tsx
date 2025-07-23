@@ -4,6 +4,8 @@ import { X, Save, Loader2, Search } from 'lucide-react';
 import { useCrearOportunidad, useContactos } from '../hooks/useCRM';
 import { CrearOportunidadCRM } from '../types/oportunidades.type';
 import { ContactoCRM } from '../types/contactos.type';
+import { useUsuarios } from '@/shared/hooks/querys/useUsuarios';
+import { UsuarioViewModel } from '@/shared/types/operador';
 
 interface ProyectoFormProps {
   isOpen: boolean;
@@ -11,6 +13,7 @@ interface ProyectoFormProps {
   onSuccess?: () => void;
   operador: number;
   esAdmin: boolean;
+  contactoDefault?: ContactoCRM
 }
 
 export const ProyectoForm: React.FC<ProyectoFormProps> = ({
@@ -18,7 +21,8 @@ export const ProyectoForm: React.FC<ProyectoFormProps> = ({
   onClose,
   onSuccess,
   operador,
-  esAdmin
+  esAdmin,
+  contactoDefault
 }) => {
   const [formData, setFormData] = useState<Partial<CrearOportunidadCRM>>({
     titulo: '',
@@ -26,18 +30,26 @@ export const ProyectoForm: React.FC<ProyectoFormProps> = ({
     valorNegociacion: 0,
     fechaInicio: new Date(),
     fechaFin: undefined,
-    cliente: 0,
+    cliente: contactoDefault?.codigo || 0,
     operador: operador, // Usar el operador actual
     estado: 1, // En Planeación por defecto
-    general: 0
+    general: 0,
+    colaboradores: []
   });
 
   const [busquedaCliente, setBusquedaCliente] = useState('');
   const [, setContactoSeleccionado] = useState<ContactoCRM | null>(null);
   const [mostrarDropdownContactos, setMostrarDropdownContactos] = useState(false);
+  const [mostrarDropdownColaboradores, setMostrarDropdownColaboradores] = useState(false);
+  const [colaboradoresSeleccionados, setColaboradorSeleccionado] = useState<UsuarioViewModel[]>([]);
+
 
   const crearOportunidadMutation = useCrearOportunidad();
   const { data: contactos, isLoading: cargandoContactos } = useContactos(operador, esAdmin);
+
+  const [busquedaColaborador, setBusquedaColaborador] = useState('');
+
+  const { data: colaboradores, isLoading: cargandoColaboradores} = useUsuarios(busquedaColaborador);
 
   // Filtrar contactos basado en la búsqueda
   const contactosFiltrados = contactos?.filter(contacto => 
@@ -63,11 +75,36 @@ export const ProyectoForm: React.FC<ProyectoFormProps> = ({
     }
   };
 
+  
+
   const handleSeleccionarContacto = (contacto: ContactoCRM) => {
     setContactoSeleccionado(contacto);
     setBusquedaCliente(contacto.nombre || contacto.empresa || '');
     handleInputChange('cliente', contacto.codigo);
     setMostrarDropdownContactos(false);
+  };
+  
+  useEffect(() => {
+    if (contactoDefault && contactoDefault.codigo) {
+      handleSeleccionarContacto(contactoDefault);    
+    }
+  }, [contactoDefault]);
+
+  const handleSeleccionarColaborador = (colaborador: UsuarioViewModel) => {
+    // Verificar que no esté ya seleccionado
+    if (colaboradoresSeleccionados.some(c => c.op_codigo === colaborador.op_codigo)) {
+      return;
+    }
+    
+    setColaboradorSeleccionado([...colaboradoresSeleccionados, colaborador]);
+    setBusquedaColaborador(''); // Limpiar búsqueda
+    handleInputChange('colaboradores', [...(formData.colaboradores || []), colaborador.op_codigo]);
+    setMostrarDropdownColaboradores(false);
+  };
+
+  const handleEliminarColaborador = (codigoColaborador: number) => {
+    setColaboradorSeleccionado(colaboradoresSeleccionados.filter(c => c.op_codigo !== codigoColaborador));
+    handleInputChange('colaboradores', (formData.colaboradores || []).filter(c => c !== codigoColaborador));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -96,6 +133,8 @@ export const ProyectoForm: React.FC<ProyectoFormProps> = ({
       });
       setContactoSeleccionado(null);
       setBusquedaCliente('');
+      setColaboradorSeleccionado([]);
+      setBusquedaColaborador('');
     } catch (error) {
       console.error('Error al crear proyecto:', error);
     }
@@ -118,6 +157,8 @@ export const ProyectoForm: React.FC<ProyectoFormProps> = ({
       });
       setContactoSeleccionado(null);
       setBusquedaCliente('');
+      setColaboradorSeleccionado([]);
+      setBusquedaColaborador('');
     }
   };
 
@@ -127,17 +168,18 @@ export const ProyectoForm: React.FC<ProyectoFormProps> = ({
       const target = event.target as Element;
       if (!target.closest('.contacto-dropdown')) {
         setMostrarDropdownContactos(false);
+        setMostrarDropdownColaboradores(false);
       }
     };
 
-    if (mostrarDropdownContactos) {
+    if (mostrarDropdownContactos || mostrarDropdownColaboradores) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [mostrarDropdownContactos]);
+  }, [mostrarDropdownContactos, mostrarDropdownColaboradores]);
 
   return (
     <AnimatePresence>
@@ -342,6 +384,90 @@ export const ProyectoForm: React.FC<ProyectoFormProps> = ({
                   </select>
                 </div>
                 </div>
+                {/* Colaboradores */}
+                <div className="contacto-dropdown relative">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Colaboradores 
+                  </label>
+                  
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={busquedaColaborador}
+                      onChange={(e) => setBusquedaColaborador(e.target.value)}
+                      onFocus={() => setMostrarDropdownColaboradores(true)}
+                      className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Buscar colaborador por nombre..."
+                    />
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                      {cargandoColaboradores ? (
+                        <Loader2 className="w-4 h-4 text-gray-400 animate-spin" />
+                      ) : (
+                        <Search className="w-4 h-4 text-gray-400" />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Dropdown de colaboradores - arriba del input */}
+                  {mostrarDropdownColaboradores && (busquedaColaborador.trim() || colaboradores?.length || 0 > 0) && (
+                    <div className="absolute z-10 w-full bottom-full mb-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                      {cargandoColaboradores ? (
+                        <div className="p-4 text-center text-gray-500">
+                          <Loader2 className="w-4 h-4 animate-spin mx-auto mb-2" />
+                          Cargando colaboradores...
+                        </div>
+                      ) : colaboradores?.length || 0 > 0 ? (
+                        <div>
+                          {colaboradores
+                            ?.filter(colaborador => 
+                              !colaboradoresSeleccionados.some(c => c.op_codigo === colaborador.op_codigo)
+                            )
+                            .map((colaborador) => (
+                            <button
+                              key={colaborador.op_codigo}
+                              type="button"
+                              onClick={() => handleSeleccionarColaborador(colaborador)}
+                              className="w-full px-4 py-3 text-left hover:bg-gray-100 border-b border-gray-100 last:border-b-0 transition-colors"
+                            >
+                              <div className="font-medium text-gray-900">
+                                {colaborador.op_nombre || 'Sin nombre'}
+                              </div>
+                              <div className="text-sm text-gray-600">
+                                {colaborador.op_rol}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      ) : busquedaColaborador.trim() ? (
+                        <div className="p-4 text-center text-gray-500">
+                          No se encontraron colaboradores
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
+
+                  {/* Badges de colaboradores seleccionados */}
+                  {colaboradoresSeleccionados.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {colaboradoresSeleccionados.map((colaborador) => (
+                        <div
+                          key={colaborador.op_codigo}
+                          className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                        >
+                          <span>{colaborador.op_nombre}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleEliminarColaborador(colaborador.op_codigo)}
+                            className="text-blue-600 hover:text-blue-800 transition-colors"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                
 
                 {/* Botones */}
                 <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">

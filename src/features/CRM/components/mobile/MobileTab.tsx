@@ -7,7 +7,7 @@ import { MobileKanbanList } from "./MobileKanbanList"
 interface MobileTabProps {
     oportunidades?: OportunidadViewModel[]
     onOportunidadClick?: (oportunidad: OportunidadViewModel) => void
-    onOportunidadMove?: (oportunidadId: number, nuevoEstado: number) => void
+    onOportunidadMove?: (oportunidadId: number, nuevoEstado: number, autorizadoPor: number) => void
 }
 
 export const MobileTab = ({ 

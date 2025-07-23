@@ -12,10 +12,13 @@ import {
   EditIcon,
   ListIcon,
   BarChart3Icon,
-  ArrowLeft
+  ArrowLeft,
+  UsersIcon,
+  FileIcon
 } from "lucide-react";
 import { FormTareas } from "../FormTareas";
 import { EditarProyectoForm } from "../EditarProyectoForm";
+import { ArchivosTab } from "../ArchivosTab";
 import { useState } from "react";
 import { TareaCRM } from "../../types/tareas.type";
 import { useAuth } from "@/services/AuthContext";
@@ -57,7 +60,7 @@ export const DetalleProyectoMobile = ({
   const [isOpenFormTareas, setIsOpenFormTareas] = useState(false);
   const [isOpenEditarProyecto, setIsOpenEditarProyecto] = useState(false);
   const [tareaToEdit, setTareaToEdit] = useState<TareaCRM | undefined>(undefined);
-  const [activeTab, setActiveTab] = useState<'lista' | 'grafico'>('lista');
+  const [activeTab, setActiveTab] = useState<'lista' | 'grafico' | 'archivos'>('lista');
 
   const handleCrearTarea = () => {
     setTareaToEdit(undefined);
@@ -191,6 +194,44 @@ export const DetalleProyectoMobile = ({
               </div>
             </div>
 
+            {/* Colaboradores */}
+            <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+              <h3 className="text-base font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <UsersIcon className="h-5 w-5 text-gray-400" />
+                Colaboradores del Proyecto
+              </h3>
+              
+              {oportunidad.colaboradores && oportunidad.colaboradores.length > 0 ? (
+                <div className="space-y-3">
+                  {oportunidad.colaboradores.map((colaborador) => (
+                    <div 
+                      key={colaborador.codigo} 
+                      className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100"
+                    >
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <UserIcon className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900 text-sm">{colaborador.nombre}</p>
+                        <p className="text-xs text-gray-500">Colaborador #{colaborador.colaborador}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-green-100 text-green-800">
+                          Activo
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 text-gray-500">
+                  <UsersIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-sm font-medium text-gray-900 mb-1">No hay colaboradores asignados</p>
+                  <p className="text-xs text-gray-500">Los colaboradores aparecerán aquí cuando se asignen al proyecto</p>
+                </div>
+              )}
+            </div>
+
             {/* Fechas */}
             <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
               <h3 className="text-base font-semibold text-gray-900 mb-3">Fechas del Proyecto</h3>
@@ -202,15 +243,15 @@ export const DetalleProyectoMobile = ({
                     <p className="font-medium text-gray-900 text-sm">{formatDate(oportunidad.fechaInicio)}</p>
                   </div>
                 </div>
-                {oportunidad.fechaFin && (
-                  <div className="flex items-center gap-3">
-                    <CalendarIcon className="h-5 w-5 text-gray-400" />
-                    <div>
-                      <label className="text-xs text-gray-500">Fecha de Fin</label>
-                      <p className="font-medium text-gray-900 text-sm">{formatDate(oportunidad.fechaFin)}</p>
-                    </div>
+                <div className="flex items-center gap-3">
+                  <CalendarIcon className="h-5 w-5 text-gray-400" />
+                  <div>
+                    <label className="text-xs text-gray-500">Fecha de Finalización</label>
+                    <p className="font-medium text-gray-900 text-sm">
+                      {oportunidad.fechaFin ? formatDate(oportunidad.fechaFin) : 'Fecha no definida'}
+                    </p>
                   </div>
-                )}
+                </div>
               </div>
             </div>
 
@@ -251,6 +292,17 @@ export const DetalleProyectoMobile = ({
                   >
                     <ListIcon className="w-4 h-4" />
                     Lista
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('archivos')}
+                    className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors duration-200 ${
+                      activeTab === 'archivos'
+                        ? 'border-blue-500 text-blue-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    <FileIcon className="w-4 h-4" />
+                    Archivos
                   </button>
                   <button
                     onClick={() => setActiveTab('grafico')}
@@ -310,6 +362,10 @@ export const DetalleProyectoMobile = ({
                         </button>
                       </div>
                     )}
+                  </div>
+                ) : activeTab === 'archivos' ? (
+                  <div className="space-y-6">
+                    <ArchivosTab proyecto={oportunidad.titulo || ""} />
                   </div>
                 ) : (
                   <div className="space-y-6">

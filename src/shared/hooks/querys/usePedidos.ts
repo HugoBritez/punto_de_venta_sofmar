@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getPedidosDetalle, getPedidosDetalleProveedor, getPedidosProveedor } from "@/shared/api/pedidosRepository";
+import { getPedidosDetalle, getPedidosDetalleProveedor, getPedidosPorCliente, getPedidosProveedor } from "@/shared/api/pedidosRepository";
 
 export const usePedidosProveedor = (fecha_desde: string, fecha_hasta: string, proveedor: number, cliente?: number, nroPedido?: number, vendedor?: number, articulo?: number, moneda?: number, estado?: number) => {
     return useQuery({
@@ -22,5 +22,14 @@ export const usePedidosDetalleProveedor = (codigo: number, proveedor: number) =>
         queryKey: ['pedidos-detalle-proveedor', codigo, proveedor],
         queryFn: () => getPedidosDetalleProveedor(codigo, proveedor),
         enabled: !!codigo && !!proveedor,
+    });
+}
+
+
+export const usePedidosPorCliente = (clienteRuc: string) => {
+    return useQuery({
+        queryKey: ['pedidos-por-cliente', clienteRuc],
+        queryFn: () => getPedidosPorCliente(clienteRuc),
+        enabled: !!clienteRuc,
     });
 }

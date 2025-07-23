@@ -8,7 +8,7 @@ import { EstadoChangeModal } from "./EstadoChangeModal"
 interface MobileKanbanListProps {
     oportunidades: OportunidadViewModel[]
     onOportunidadClick: (oportunidad: OportunidadViewModel) => void
-    onOportunidadMove: (oportunidadId: number, nuevoEstado: number) => void
+    onOportunidadMove: (oportunidadId: number, nuevoEstado: number, autorizadoPor: number) => void
 }
 
 export const MobileKanbanList = ({ 
@@ -38,8 +38,8 @@ export const MobileKanbanList = ({
         setShowEstadoModal(true)
     }
 
-    const handleEstadoChange = (oportunidadId: number, nuevoEstado: number) => {
-        onOportunidadMove(oportunidadId, nuevoEstado)
+    const handleEstadoChange = (oportunidadId: number, nuevoEstado: number, autorizadoPor: number) => {
+        onOportunidadMove(oportunidadId, nuevoEstado, autorizadoPor)
     }
 
     return (

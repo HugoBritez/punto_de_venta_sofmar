@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import axios from "axios";
 import { api_url } from "../../utils";
 import { useToast } from "@chakra-ui/react";
+import { useQuery } from "@tanstack/react-query";
 
 import { AnimatePresence, motion } from "framer-motion";
 import Auditar from "@/services/AuditoriaHook";
@@ -11,7 +12,7 @@ interface FloatingCardProps {
   inventarios: InventariosDisponibles[];
   onSelect: (inventario: InventariosDisponibles) => void;
   onClose: () => void;
-  onBuscarItems: (inventarioId: string, busqueda: string | null) => void;
+  onBuscarItems: () => void;
 }
 
 const FloatingCard = ({
@@ -137,7 +138,6 @@ interface ArticuloInventarioFields {
 const InventarioScanner = () => {
   const [isGridView] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
-  const [articulos, setArticulos] = useState<ArticuloInventario[]>([]);
   const [articuloBusqueda, setArticuloBusqueda] = useState("");
   const [articuloSeleccionado, setArticuloSeleccionado] =
     useState<ArticuloInventario | null>(null);
@@ -169,6 +169,46 @@ const InventarioScanner = () => {
 
   const [inventarioSeleccionado, setInventarioSeleccionado] =
     useState<InventariosDisponibles | null>(null);
+
+  // Función para obtener artículos usando TanStack Query
+  const fetchArticulos = async (busqueda?: string) => {
+    if (!inventarioSeleccionado) {
+      throw new Error("Debe seleccionar un inventario");
+    }
+
+    const response = await axios.get(`${api_url}inventarios/escanear`, {
+      params: {
+        nro_inventario: inventarioSeleccionado.nro_inventario,
+        inventario_id: inventarioSeleccionado.id_inventario,
+        busqueda: busqueda,
+        deposito_id: inventarioSeleccionado.deposito_id,
+      },
+    });
+    
+    return response.data.body || [];
+  };
+
+  // Hook de TanStack Query para artículos
+  const {
+    data: articulos = [],
+    isLoading: cargandoArticulos,
+    error: errorArticulos,
+    refetch: refetchArticulos
+  } = useQuery({
+    queryKey: ['articulosInventario', inventarioSeleccionado?.id_inventario, articuloBusqueda],
+    queryFn: () => {
+      const busquedaFormateada = articuloBusqueda.startsWith("0") 
+        ? articuloBusqueda.slice(1) 
+        : articuloBusqueda;
+      return fetchArticulos(busquedaFormateada);
+    },
+    enabled: Boolean(inventarioSeleccionado),
+    staleTime: 30 * 1000, // 30 segundos de cache
+    gcTime: 5 * 60 * 1000, // 5 minutos en garbage collector
+    refetchOnWindowFocus: false,
+    retry: 2,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+  });
 
   const handleInputClick = (e: React.MouseEvent<HTMLInputElement>) => {
     e.preventDefault();
@@ -265,54 +305,20 @@ const InventarioScanner = () => {
     }
   }, [modalVisible]);
 
-  async function getArticulos(busqueda?: string) {
-    if (!inventarioSeleccionado) {
-      toast({
-        title: "Error",
-        description: "Debe seleccionar un inventario",
-        status: "error",
-      });
-      return;
-    }
-
-    try {
-      const response = await axios.get(`${api_url}inventarios/escanear`, {
-        params: {
-          nro_inventario: inventarioSeleccionado.nro_inventario,
-          inventario_id: inventarioSeleccionado.id_inventario,
-          busqueda: busqueda,
-          deposito_id: inventarioSeleccionado.deposito_id,
-        },
-      });
-      const data = response.data;
-      setArticulos(data.body || []);
-    } catch (error) {
-      console.error("Error al obtener articulos:", error);
-      toast({
-        title: "Error",
-        description: "Error al obtener articulos:" + error,
-        status: "error",
-      });
-    }
-  }
-
   const handleBuscarArticulos = (texto: string) => {
-    const textoformateado = texto.startsWith("0") ? texto.slice(1) : texto;
-    getArticulos(textoformateado);
-    if (
-      !textoformateado ||
-      textoformateado.trim() === "" ||
-      textoformateado.length < 1
-    ) {
-      setArticulos([]);
-    }
+    setArticuloBusqueda(texto);
   };
 
+  // Mostrar toast de error si hay problemas
   useEffect(() => {
-    if (inventarioSeleccionado) {
-      getArticulos();
+    if (errorArticulos) {
+      toast({
+        title: "Error",
+        description: "Error al obtener artículos",
+        status: "error",
+      });
     }
-  }, [inventarioSeleccionado]);
+  }, [errorArticulos, toast]);
 
   async function escanearArticulo(formData: ArticuloInventarioFields) {
     if(!inventarioSeleccionado) {
@@ -321,7 +327,9 @@ const InventarioScanner = () => {
         description: "Debe seleccionar un inventario",
         status: "error",
       });
+      return;
     }
+    
     if (Object.keys(formData).length === 0) {
       toast({
         title: "Error",
@@ -396,7 +404,8 @@ const InventarioScanner = () => {
           Number(sessionStorage.getItem("user_id") || 1),
           "Scanneo un item del inventario con la app"
         );
-        getArticulos();
+        // Refetch los artículos después de escanear
+        refetchArticulos();
       }
     } catch (error) {
       console.error("Error al escanear el articulo:", error);
@@ -434,7 +443,6 @@ const InventarioScanner = () => {
               className="flex-1 p-3 rounded-lg"
               value={articuloBusqueda}
               onChange={(e) => {
-                setArticuloBusqueda(e.target.value);
                 handleBuscarArticulos(e.target.value);
               }}
               onClick={handleInputClick}
@@ -454,7 +462,7 @@ const InventarioScanner = () => {
                       setIsFloatingCardVisible(false);
                     }}
                     onClose={() => setIsFloatingCardVisible(false)}
-                    onBuscarItems={getArticulos}
+                    onBuscarItems={refetchArticulos}
                   />
                 </div>
               )}
@@ -463,17 +471,21 @@ const InventarioScanner = () => {
         </div>
       </div>
 
-      {/* Lista de artículos con scroll - Ajustamos las clases */}
+      {/* Lista de artículos con scroll */}
       <div className="flex-1 overflow-y-auto">
         <div className="p-4">
-          {articulos.length > 0 ? (
+          {cargandoArticulos ? (
+            <div className="min-h-[200px] flex flex-col items-center justify-center text-gray-500">
+              <p className="text-lg font-medium">Cargando artículos...</p>
+            </div>
+          ) : articulos.length > 0 ? (
             <motion.div
               className={`grid ${
                 isGridView ? "grid-cols-2" : "grid-cols-1"
               } gap-4`}
               layout
             >
-              {articulos.map((item) => (
+              {articulos.map((item: ArticuloInventario) => (
                 <motion.div
                   key={item.lote_id}
                   layout

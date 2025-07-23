@@ -6,7 +6,7 @@ interface EstadoChangeModalProps {
     isOpen: boolean
     onClose: () => void
     oportunidad: OportunidadViewModel | null
-    onEstadoChange: (oportunidadId: number, nuevoEstado: number) => void
+    onEstadoChange: (oportunidadId: number, nuevoEstado: number, autorizadoPor: number) => void
 }
 
 export const EstadoChangeModal = ({
@@ -27,7 +27,7 @@ export const EstadoChangeModal = ({
     const estadoActual = getEstadoInfo(oportunidad.estado)
 
     const handleEstadoChange = (nuevoEstado: number) => {
-        onEstadoChange(oportunidad.codigo, nuevoEstado)
+        onEstadoChange(oportunidad.codigo, nuevoEstado, oportunidad.autorizadoPor || 0)
         onClose()
     }
 

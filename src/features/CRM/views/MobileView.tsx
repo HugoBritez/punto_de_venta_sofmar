@@ -46,7 +46,7 @@ export interface MobileViewProps {
     onCrearProyecto: () => void
     onProyectoFormClose: () => void
     onProyectoCreated: () => void
-    onOportunidadMove: (oportunidadId: number, nuevoEstado: number) => void
+    onOportunidadMove: (oportunidadId: number, nuevoEstado: number, autorizadoPor: number) => void
     onContactoClick: (contacto: ContactoCRM) => void
 }
 

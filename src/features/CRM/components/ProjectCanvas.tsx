@@ -121,7 +121,7 @@ const Columna: React.FC<ColumnaProps> = ({ columna, oportunidades, onOportunidad
 // Componente principal
 interface ProjectCanvasProps {
   oportunidades?: OportunidadViewModel[];
-  onOportunidadMove?: (oportunidadId: number, nuevoEstado: number) => Promise<void>;
+  onOportunidadMove?: (oportunidadId: number, nuevoEstado: number, autorizadoPor: number) => Promise<void>;
 }
 
 // Función personalizada de detección de colisiones para columnas
@@ -222,7 +222,7 @@ const ProjectCanvas: React.FC<ProjectCanvasProps> = ({
         
         try {
             console.log(`🔄 Moviendo oportunidad ${oportunidadId} a estado ${nuevoEstado}`);
-            await onOportunidadMove(oportunidadId, nuevoEstado);
+            await onOportunidadMove(oportunidadId, nuevoEstado, oportunidad.autorizadoPor || 0);
         } catch (error) {
             console.error('❌ Error al mover oportunidad:', error);
             // Revertir el movimiento pendiente en caso de error

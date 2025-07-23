@@ -77,22 +77,26 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
       
       
       {/* Información adicional */}
-      <div className="flex items-center justify-between text-xs text-gray-600 mb-3">
+      <div className="flex flex-col gap-2 items-start justify-between text-xs text-gray-600 mb-3">
       <div className="flex items-center gap-1.5">
           <div className="p-1 bg-blue-100 rounded-md">
             <User className="w-3 h-3 text-blue-700" />
           </div>
           <span className="font-semibold">Cliente: {oportunidad.clienteNombre}</span>
         </div>
-        
         <div className="flex items-center gap-1.5">
-          <div className="p-1 bg-orange-100 rounded-md">
-            <Calendar className="w-3 h-3 text-orange-700" />
+            <div className="p-1 bg-gray-100 rounded-md">
+              <Clock className="w-3 h-3 text-gray-600" />
+            </div>
+            <div className='flex flex-col gap-2'>
+
+            <span className="text-xs text-gray-600 font-semibold">
+              {oportunidad.autorizadoPor === null ? 'Sin autorizar' : `Autorizado por: ${oportunidad.autorizadoPorNombre} - ${oportunidad.autorizadoPorCargo}`}
+            </span>
+            </div>
           </div>
-          <span className="font-semibold">
-            {new Date(oportunidad.fechaInicio).toLocaleDateString()}
-          </span>
-        </div>
+        
+        
       </div>
       
       {/* Estado visual */}
@@ -111,13 +115,14 @@ const ProjectCard: React.FC<ProjectCardProps> = ({
             </span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="p-1 bg-gray-100 rounded-md">
-              <Clock className="w-3 h-3 text-gray-600" />
-            </div>
-            <span className="text-xs text-gray-600 font-semibold">
-              {oportunidad.general === 1 ? 'General' : `Operador: ${oportunidad.operadorNombre}`}
-            </span>
+          <div className="p-1 bg-orange-100 rounded-md">
+            <Calendar className="w-3 h-3 text-orange-700" />
           </div>
+          <span className="font-semibold text-xs">
+            {new Date(oportunidad.fechaInicio).toLocaleDateString()}
+          </span>
+        </div>
+          
         </div>
       </div>
     </motion.div>

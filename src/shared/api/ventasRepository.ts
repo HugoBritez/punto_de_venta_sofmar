@@ -50,5 +50,10 @@ export const VentasRepository = {
     async GetUltimaVentaId(): Promise<number> {
         const response = await axios.get(`${api_url}venta/idUltimaVenta`);
         return response.data.body[0].id;
+    },
+
+    async getUltimasVentasPorCliente (clienteRuc: string): Promise<VentaViewModel[]> {
+        const response = await api.get(`ventas/cliente/${clienteRuc}`);
+        return response.data.body;
     }
 }

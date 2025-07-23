@@ -27,3 +27,22 @@ export const useBuscarClientes = (busqueda: string) => {
         refetchOnWindowFocus: false
     }) 
 }
+
+
+export const useUltimoCobro = (clienteRuc: string) => {
+    return useQuery({
+        queryKey: ['ultimoCobro', clienteRuc],
+        queryFn: ()=> ClientesRepository.getUltimoCobro(clienteRuc),
+        enabled: true,
+        refetchOnWindowFocus: false
+    })
+}
+
+export const useGetDeuda = (clienteRuc: string) => {
+    return useQuery({
+        queryKey: ['deuda', clienteRuc],
+        queryFn: ()=> ClientesRepository.getDeuda(clienteRuc),
+        enabled: true,
+        refetchOnWindowFocus: false
+    })
+}

@@ -116,7 +116,8 @@ export const ModuloCRM = () => {
         try {
             await actualizarOportunidad.mutateAsync({
                 codigo: oportunidadId,
-                estado: nuevoEstado
+                estado: nuevoEstado,
+                autorizadoPor: operador
             });
         } catch (error) {
             console.error('Error al actualizar oportunidad:', error);

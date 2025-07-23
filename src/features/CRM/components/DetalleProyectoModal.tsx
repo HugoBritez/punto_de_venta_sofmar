@@ -12,13 +12,18 @@ import {
   PlusIcon,
   EditIcon,
   ListIcon,
-  BarChart3Icon
+  BarChart3Icon,
+  FileIcon,
+  UsersIcon,
+  HistoryIcon
 } from "lucide-react";
 import { FormTareas } from "./FormTareas";
 import { EditarProyectoForm } from "./EditarProyectoForm";
 import { useState } from "react";
 import { TareaCRM } from "../types/tareas.type";
 import { useAuth } from "@/services/AuthContext";
+import { ArchivosTab } from "./ArchivosTab";
+import { HistorialClienteTab } from "./HistorialClienteTab";
 
 export const DetalleProyectoModal = ({
   oportunidad, 
@@ -57,7 +62,7 @@ export const DetalleProyectoModal = ({
   const [isOpenFormTareas, setIsOpenFormTareas] = useState(false);
   const [isOpenEditarProyecto, setIsOpenEditarProyecto] = useState(false);
   const [tareaToEdit, setTareaToEdit] = useState<TareaCRM | undefined>(undefined);
-  const [activeTab, setActiveTab] = useState<'lista' | 'grafico'>('lista');
+  const [activeTab, setActiveTab] = useState<'lista' | 'grafico' | 'archivos' | 'historial'>('lista');
 
   const handleCrearTarea = () => {
     setTareaToEdit(undefined); // Asegurar que no hay tarea para editar
@@ -197,13 +202,58 @@ export const DetalleProyectoModal = ({
                 </div>
 
                 <div className="flex items-center gap-3">
-                      <DollarSignIcon className="h-5 w-5 text-gray-400" />
+                  <DollarSignIcon className="h-5 w-5 text-gray-400" />
                   <div>
                     <label className="text-sm text-gray-500">Valor de Negociación</label>
                     <p className="font-medium text-green-600">{formatCurrency(oportunidad.valorNegociacion)}</p>
                   </div>
                 </div>
+                <div className="flex items-center gap-3">
+                  <UserIcon className="h-5 w-5 text-gray-400" />
+                  <div>
+                    <label className="text-sm text-gray-500">Autorizado por</label>
+                    <p className="font-medium ">{oportunidad.autorizadoPor === null ? 'Sin autorizar' : `${oportunidad.autorizadoPorNombre} - ${oportunidad.autorizadoPorCargo}`}</p>
+                  </div>
+                </div>
               </div>
+            </div>
+
+            {/* Colaboradores */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <UsersIcon className="h-5 w-5 text-gray-400" />
+                Colaboradores del Proyecto
+              </h3>
+              
+              {oportunidad.colaboradores && oportunidad.colaboradores.length > 0 ? (
+                <div className="space-y-3">
+                  {oportunidad.colaboradores.map((colaborador) => (
+                    <div 
+                      key={colaborador.codigo} 
+                      className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100"
+                    >
+                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                        <UserIcon className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900">{colaborador.nombre}</p>
+                        <p className="text-sm text-gray-500">Colaborador #{colaborador.colaborador}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-green-100 text-green-800">
+                          Activo
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 text-gray-500">
+                  <UsersIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-sm font-medium text-gray-900 mb-1">No hay colaboradores asignados</p>
+                  <p className="text-xs text-gray-500">Los colaboradores aparecerán aquí cuando se asignen al proyecto</p>
+                </div>
+              )}
             </div>
 
             {/* Fechas */}
@@ -218,14 +268,13 @@ export const DetalleProyectoModal = ({
                     <p className="font-medium text-gray-900">{formatDate(oportunidad.fechaInicio)}</p>
                   </div>
                 </div>
-                  <div className="flex items-center gap-3">
-                    <CalendarIcon className="h-5 w-5 text-gray-400" />
-                    <div>
-                      <label className="text-sm text-gray-500">Fecha de Finalización</label>
-                      <p className="font-medium text-gray-900">{oportunidad.fechaFin ? formatDate(oportunidad.fechaFin) : 'Fecha no definida'}</p>
-                    </div>
+                <div className="flex items-center gap-3">
+                  <CalendarIcon className="h-5 w-5 text-gray-400" />
+                  <div>
+                    <label className="text-sm text-gray-500">Fecha de Finalización</label>
+                    <p className="font-medium text-gray-900">{oportunidad.fechaFin ? formatDate(oportunidad.fechaFin) : 'Fecha no definida'}</p>
                   </div>
-                
+                </div>
               </div>
             </div>
 
@@ -266,7 +315,29 @@ export const DetalleProyectoModal = ({
                   }`}
                 >
                   <ListIcon className="w-4 h-4" />
-                  Lista
+                  Tareas
+                </button>
+                <button
+                  onClick={() => setActiveTab('archivos')}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors duration-200 ${
+                    activeTab === 'archivos'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <FileIcon className="w-4 h-4" />
+                  Archivos
+                </button>
+                <button
+                  onClick={() => setActiveTab('historial')}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors duration-200 ${
+                    activeTab === 'historial'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <HistoryIcon className="w-4 h-4" />
+                  Historial del Cliente
                 </button>
                 <button
                   onClick={() => setActiveTab('grafico')}
@@ -279,6 +350,7 @@ export const DetalleProyectoModal = ({
                   <BarChart3Icon className="w-4 h-4" />
                   Resumen
                 </button>
+                
               </nav>
             </div>
 
@@ -327,7 +399,17 @@ export const DetalleProyectoModal = ({
                     </div>
                   )}
                 </div>
-              ) : (
+              ) : activeTab === 'archivos' ? 
+              (
+                <div className="space-y-6">
+                  <ArchivosTab proyecto={oportunidad.titulo || ""} />
+                </div>
+              ) : activeTab === 'historial' ? (
+                <div className="space-y-6">
+                  <HistorialClienteTab clienteRuc={oportunidad.clienteRuc} />
+                </div>
+              ) : 
+              (
                 <div className="space-y-6">
                   {!tareas || tareas.length === 0 ? (
                     <div className="text-center py-8 text-gray-500 flex flex-col items-center gap-2">

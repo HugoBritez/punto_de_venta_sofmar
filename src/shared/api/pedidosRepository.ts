@@ -1,5 +1,6 @@
 import api from "@/config/axios";
 import { PedidoDetalle } from "../types/pedidos";
+import { Pedido } from "@/views/pedidos/FormularioPedidos/types/shared.type";
 
 export const anularPedido = async (detalleFaltante: number) => {
     const response = await api.post(`pedidos/anular-faltante`, { detalleFaltante});
@@ -63,3 +64,10 @@ export const getPedidosDetalleProveedor = async (codigo: number, proveedor: numb
     });
     return response.data.body;
 }
+
+
+export const getPedidosPorCliente = async (clienteRuc: string): Promise<Pedido[]> => {
+    const response = await api.get(`pedidos/cliente/${clienteRuc}`);
+    return response.data.body;
+}
+
