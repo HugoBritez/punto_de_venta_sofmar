@@ -24,6 +24,7 @@ import { TareaCRM } from "../types/tareas.type";
 import { useAuth } from "@/services/AuthContext";
 import { ArchivosTab } from "./ArchivosTab";
 import { HistorialClienteTab } from "./HistorialClienteTab";
+import { PresupuestosTab } from "./PresupuestosTab";
 
 export const DetalleProyectoModal = ({
   oportunidad, 
@@ -62,7 +63,7 @@ export const DetalleProyectoModal = ({
   const [isOpenFormTareas, setIsOpenFormTareas] = useState(false);
   const [isOpenEditarProyecto, setIsOpenEditarProyecto] = useState(false);
   const [tareaToEdit, setTareaToEdit] = useState<TareaCRM | undefined>(undefined);
-  const [activeTab, setActiveTab] = useState<'lista' | 'grafico' | 'archivos' | 'historial'>('lista');
+  const [activeTab, setActiveTab] = useState<'lista' | 'grafico' | 'archivos' | 'historial' | 'presupuestos'>('lista');
 
   const handleCrearTarea = () => {
     setTareaToEdit(undefined); // Asegurar que no hay tarea para editar
@@ -147,7 +148,7 @@ export const DetalleProyectoModal = ({
         isOpen={isOpen}
         onClose={onClose}
         title={`${oportunidad.titulo || 'Sin título'}`}
-        maxWidth="max-w-7xl"
+        maxWidth="max-w-[1650px]"
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-6">
           {/* Información del Proyecto */}
@@ -340,6 +341,17 @@ export const DetalleProyectoModal = ({
                   Historial del Cliente
                 </button>
                 <button
+                  onClick={() => setActiveTab('presupuestos')}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors duration-200 ${
+                    activeTab === 'presupuestos'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <FileTextIcon className="w-4 h-4" />
+                  Presupuestos
+                </button>
+                <button
                   onClick={() => setActiveTab('grafico')}
                   className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors duration-200 ${
                     activeTab === 'grafico'
@@ -407,6 +419,10 @@ export const DetalleProyectoModal = ({
               ) : activeTab === 'historial' ? (
                 <div className="space-y-6">
                   <HistorialClienteTab clienteRuc={oportunidad.clienteRuc} />
+                </div>
+              ) : activeTab === 'presupuestos' ? (
+                <div className="space-y-6">
+                  <PresupuestosTab clienteRuc={oportunidad.clienteRuc} />
                 </div>
               ) : 
               (

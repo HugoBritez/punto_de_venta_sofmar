@@ -80,6 +80,7 @@ export const ModuloCRM = () => {
     );
 
     const { data: agendamientos} = useAgendamientos();
+    
 
     const actualizarOportunidad = useActualizarOportunidad();
     const queryClient = useQueryClient();

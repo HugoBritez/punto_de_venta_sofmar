@@ -34,6 +34,11 @@ export const PresupuestoRepository = {
     async RecuperarPresupuesto(codigo: number): Promise<RecuperarPresupuestoResponse> {
         const response = await api.get(`presupuestos/recuperar`, { params: { idPresupuesto: codigo } });
         return response.data;
+    },
+
+    async GetPresupuestosPorCliente(clienteRuc: string): Promise<PresupuestoViewModel[]> {
+        const response = await api.get(`presupuestos/presupuestos/cliente/${clienteRuc}`);
+        return response.data.body;
     }
 
 }

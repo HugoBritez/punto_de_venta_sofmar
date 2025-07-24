@@ -116,7 +116,7 @@ export const crmApi = {
     return data.body;
   },
 
-  cambiarNombre: async (codigo: string, descripcion: string): Promise<EstadoCRM> => {
+  cambiarNombre: async (codigo: number, descripcion: string): Promise<EstadoCRM> => {
     const { data } = await api.put(`/crm/estados/${codigo}`, {
       descripcion: descripcion
     });

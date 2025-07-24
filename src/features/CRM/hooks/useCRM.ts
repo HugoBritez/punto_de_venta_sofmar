@@ -183,10 +183,10 @@ export const useCambiarNombre = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ codigo, descripcion }: { codigo: string; descripcion: string }) =>
+    mutationFn: ({ codigo, descripcion }: { codigo: number; descripcion: string }) =>
       crmApi.cambiarNombre(codigo, descripcion),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["estadosCRM"] });
+      queryClient.invalidateQueries({ queryKey: ["estadosCRM", "estados-tablero"] });
     },
   });
 };

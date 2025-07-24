@@ -61,6 +61,6 @@ export interface ActualizarOportunidadCRM {
 
 
 export interface EstadoCRM {
-  id: string;
-  descripcions: string;
+  id: number;
+  descripcion: string;
 }

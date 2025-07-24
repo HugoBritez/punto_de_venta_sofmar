@@ -18,6 +18,8 @@ import { OportunidadViewModel } from '../types/oportunidades.type';
 import { COLUMNAS_TABLERO } from '../const/boardColumns';
 import ProjectCard, { DraggableProjectCard } from './ProjectCard';
 import { DetalleProyectoModal } from './DetalleProyectoModal';
+import { Check, Dot,  X } from 'lucide-react';
+import { useCambiarNombre } from '../hooks/useCRM';
 
 // Componente para una columna
 interface ColumnaProps {
@@ -28,6 +30,23 @@ interface ColumnaProps {
 }
 
 const Columna: React.FC<ColumnaProps> = ({ columna, oportunidades, onOportunidadSeleccionada }) => {
+
+  const [isEditingColumn, setItsEditingColumn] = useState(false); 
+  const [nuevoNombre, setNuevoNombre] = useState(columna.titulo);
+
+  const { mutate: cambiarNombreColumna} = useCambiarNombre();
+
+  const handleEditarNombreColumna = (columnaId: number, nuevoNombre: string) => {
+    cambiarNombreColumna({
+      codigo: columnaId,
+      descripcion: nuevoNombre
+    });
+    setItsEditingColumn(false);
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
+  }
+
   const { setNodeRef, isOver } = useDroppable({
     id: columna.id,
   });
@@ -80,10 +99,29 @@ const Columna: React.FC<ColumnaProps> = ({ columna, oportunidades, onOportunidad
           className="w-3 h-3 rounded-full"
           style={{ backgroundColor: columna.color }}
         />
-        <h3 className="font-semibold">{columna.titulo}</h3>
-        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-          {oportunidades.length}
-        </span>
+        {
+          isEditingColumn ? (
+            <div className='flex flex-row gap-2 items-center'>
+              <input type="text" name="nuevoNombre" id="nuevoNombre" value={nuevoNombre} onChange={(e) => setNuevoNombre(e.target.value)} className='border border-gray-200 rounded-md p-1 text-gray-500' />
+              <Check onClick={() => handleEditarNombreColumna(columna.estado, nuevoNombre)}/>
+              <X onClick={() => setItsEditingColumn(false)}/>
+            </div>
+          ) : (
+            <h3 className="font-semibold">{columna.titulo}</h3>
+          )
+        }
+        {
+          isEditingColumn ? (
+            <div></div>
+          ) : (
+            <div className='flex flex-row gap-2 items-center'>
+              <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                {oportunidades.length}
+              </span>
+              <Dot className="w-4 h-4" onClick={() => setItsEditingColumn(true)} />
+            </div>
+          )
+        }
       </div>
       
       <SortableContext
@@ -172,14 +210,12 @@ const ProjectCanvas: React.FC<ProjectCanvasProps> = ({
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
-    console.log('🏁 Drag End:', event);
     setIsDragging(false);
     const { active, over } = event;
     
     setOportunidadActiva(null);
 
     if (!over) {
-        console.log('❌ No hay destino válido');
         return;
     }
 
@@ -189,7 +225,6 @@ const ProjectCanvas: React.FC<ProjectCanvasProps> = ({
     // Verificar que el destino sea una columna válida
     const columnaValida = COLUMNAS_TABLERO.find(col => col.id === columnaDestino);
     if (!columnaValida) {
-        console.log('❌ Destino no es una columna válida:', columnaDestino);
         return;
     }
 
@@ -198,13 +233,11 @@ const ProjectCanvas: React.FC<ProjectCanvasProps> = ({
     const oportunidad = oportunidades.find(op => op.codigo.toString() === cardId);
     
     if (!oportunidad) {
-        console.log('❌ Oportunidad no encontrada');
         return;
     }
     
     // Verificar que no se esté moviendo a la misma columna
     if (oportunidad.estado === nuevoEstado) {
-        console.log('🔄 Ya está en la misma columna');
         return;
     }
     
@@ -224,7 +257,6 @@ const ProjectCanvas: React.FC<ProjectCanvasProps> = ({
             console.log(`🔄 Moviendo oportunidad ${oportunidadId} a estado ${nuevoEstado}`);
             await onOportunidadMove(oportunidadId, nuevoEstado, oportunidad.autorizadoPor || 0);
         } catch (error) {
-            console.error('❌ Error al mover oportunidad:', error);
             // Revertir el movimiento pendiente en caso de error
             setPendingMoves(prev => {
                 const newMap = new Map(prev);
@@ -277,7 +309,6 @@ const ProjectCanvas: React.FC<ProjectCanvasProps> = ({
   const [isDetalleProyectoModalOpen, setIsDetalleProyectoModalOpen] = useState(false);
 
   const handleOportunidadSeleccionada = (oportunidad: OportunidadViewModel) => {
-    console.log('🔍 Oportunidad seleccionada:', oportunidad);
     setOportunidadSeleccionada(oportunidad);
     setIsDetalleProyectoModalOpen(true);
   }
