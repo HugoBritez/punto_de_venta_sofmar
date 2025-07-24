@@ -10,6 +10,7 @@ export interface OportunidadCRM {
   estado: number;
   general: number;
   autorizadoPor?: number | null;
+  archivado?: number;
 }
 
 export interface OportunidadViewModel extends OportunidadCRM {
@@ -57,6 +58,7 @@ export interface ActualizarOportunidadCRM {
   general?: number;
   autorizadoPor?: number | null;
   colaboradores?: number[];
+  archivado?: number;
 }
 
 

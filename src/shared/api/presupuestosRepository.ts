@@ -27,8 +27,8 @@ export const PresupuestoRepository = {
     },
 
     async GetDetallePresupuesto(presupuestoId: number): Promise<DetallePresupuestoViewModel[]> {
-        const response = await api.get(`presupuestos/presupuestos/detalles`, { params: { presupuestoId } });
-        return response.data;
+        const response = await api.get(`presupuestos/detalles`, { params: { presupuestoId } });
+        return response.data.body;
     },
 
     async RecuperarPresupuesto(codigo: number): Promise<RecuperarPresupuestoResponse> {
@@ -37,7 +37,7 @@ export const PresupuestoRepository = {
     },
 
     async GetPresupuestosPorCliente(clienteRuc: string): Promise<PresupuestoViewModel[]> {
-        const response = await api.get(`presupuestos/presupuestos/cliente/${clienteRuc}`);
+        const response = await api.get(`presupuestos/cliente/${clienteRuc}`);
         return response.data.body;
     }
 

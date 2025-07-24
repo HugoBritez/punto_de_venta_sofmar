@@ -36,7 +36,8 @@ export const EditarProyectoForm: React.FC<EditarProyectoFormProps> = ({
     estado: oportunidad.estado,
     general: oportunidad.general,
     autorizadoPor: oportunidad.autorizadoPor,
-    colaboradores: oportunidad.colaboradores?.map(c => c.colaborador) || []
+    colaboradores: oportunidad.colaboradores?.map(c => c.colaborador) || [],
+    archivado: oportunidad.archivado
   });
 
   const [busquedaCliente, setBusquedaCliente] = useState(oportunidad.clienteNombre || '');
@@ -332,7 +333,7 @@ export const EditarProyectoForm: React.FC<EditarProyectoFormProps> = ({
                 </div>
 
                 {/* Estado */}
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Estado
@@ -362,8 +363,21 @@ export const EditarProyectoForm: React.FC<EditarProyectoFormProps> = ({
                     <option value={0}>No</option>
                   </select>
                 </div>
+                <div className='flex items-center justify-center'>
+                  <div className="flex items-center mt-2">
+                    <input
+                      type="checkbox"
+                      id="archivar-proyecto"
+                      checked={!!formData.archivado}
+                      onChange={(e) => handleInputChange('archivado', e.target.checked ? 1 : 0)}
+                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <label htmlFor="archivar-proyecto" className="ml-2 block text-md text-gray-700 font-medium">
+                      Archivar este proyecto
+                    </label>
+                  </div>
                 </div>
-
+                </div>
                 {/* Colaboradores */}
                 <div className="contacto-dropdown relative">
                   <label className="block text-sm font-medium text-gray-700 mb-2">

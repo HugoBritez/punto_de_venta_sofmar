@@ -25,6 +25,7 @@ import { useAuth } from "@/services/AuthContext";
 import { ArchivosTab } from "./ArchivosTab";
 import { HistorialClienteTab } from "./HistorialClienteTab";
 import { PresupuestosTab } from "./PresupuestosTab";
+import { useNavigate } from "react-router-dom";
 
 export const DetalleProyectoModal = ({
   oportunidad, 
@@ -42,7 +43,7 @@ export const DetalleProyectoModal = ({
   const auth = useAuth();
   const operador = Number(auth.auth?.userId);
   const esAdmin = auth.auth?.rol === 7;
-
+  const navigate = useNavigate();
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-PY', {
       style: 'currency',
@@ -94,6 +95,10 @@ export const DetalleProyectoModal = ({
 
   const handleProyectoEditado = () => {
     onSuccess?.(); // Notificar al componente padre que se actualizó el proyecto
+  };
+
+  const handleCrearPresupuesto = () => {
+    navigate(`/presupuestos-nuevo`);
   };
 
   // Función helper para obtener el texto del tipo de tarea
@@ -297,10 +302,18 @@ export const DetalleProyectoModal = ({
               <h2 className="text-lg font-semibold text-gray-900">Tareas del Proyecto</h2>
               <button 
                 className="px-3 py-1 rounded-md flex flex-row gap-2 items-center text-gray-700 border border-gray-300 bg-gray-100 hover:bg-blue-200 transition-colors duration-150 hover:text-blue-800 hover:border-blue-500" 
-                onClick={handleCrearTarea}
+                onClick={() => {
+                  if (activeTab === 'lista') {
+                    handleCrearTarea();
+                  } else {
+                    handleCrearPresupuesto();
+                  }
+                }}
               >
                 <PlusIcon className="w-4 h-4" /> 
-                Crear Tarea
+                {
+                  activeTab === 'lista' ? 'Crear Tarea' : 'Crear presupuesto'
+                }
               </button>
             </div>
 

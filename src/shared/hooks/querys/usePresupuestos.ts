@@ -8,3 +8,11 @@ export const useGetPresupuestosPorCliente = (clienteRuc: string) => {
         enabled: !!clienteRuc,
     });
 }
+
+export const useGetDetallePresupuesto = (presupuestoId?: number) => {
+    return useQuery({
+        queryKey: ["detallePresupuesto", presupuestoId],
+        queryFn: () => PresupuestoRepository.GetDetallePresupuesto(presupuestoId!),
+        enabled: !!presupuestoId,
+    });
+}

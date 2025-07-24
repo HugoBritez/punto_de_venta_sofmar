@@ -19,9 +19,11 @@ import {
 import { FormTareas } from "../FormTareas";
 import { EditarProyectoForm } from "../EditarProyectoForm";
 import { ArchivosTab } from "../ArchivosTab";
+import { PresupuestosTab } from "../PresupuestosTab";
 import { useState } from "react";
 import { TareaCRM } from "../../types/tareas.type";
 import { useAuth } from "@/services/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 export const DetalleProyectoMobile = ({
   oportunidad, 
@@ -60,7 +62,9 @@ export const DetalleProyectoMobile = ({
   const [isOpenFormTareas, setIsOpenFormTareas] = useState(false);
   const [isOpenEditarProyecto, setIsOpenEditarProyecto] = useState(false);
   const [tareaToEdit, setTareaToEdit] = useState<TareaCRM | undefined>(undefined);
-  const [activeTab, setActiveTab] = useState<'lista' | 'grafico' | 'archivos'>('lista');
+  const [activeTab, setActiveTab] = useState<'lista' | 'grafico' | 'archivos' | 'presupuestos'>('lista');
+
+  const navigate = useNavigate();
 
   const handleCrearTarea = () => {
     setTareaToEdit(undefined);
@@ -91,6 +95,10 @@ export const DetalleProyectoMobile = ({
 
   const handleProyectoEditado = () => {
     onSuccess?.();
+  };
+
+  const handleCrearPresupuesto = () => {
+    navigate(`/presupuestos-nuevo`);
   };
 
   const getTipoTareaText = (tipoTarea: number): string => {
@@ -272,50 +280,71 @@ export const DetalleProyectoMobile = ({
                 <h2 className="text-base font-semibold text-gray-900">Tareas del Proyecto</h2>
                 <button 
                   className="px-3 py-1 rounded-md flex flex-row gap-2 items-center text-gray-700 border border-gray-300 bg-gray-100 hover:bg-blue-200 transition-colors duration-150 hover:text-blue-800 hover:border-blue-500 text-sm" 
-                  onClick={handleCrearTarea}
+                  onClick={() => {
+                    if (activeTab === 'lista') {
+                      handleCrearTarea();
+                    } else {
+                      handleCrearPresupuesto();
+                    }
+                  }}
                 >
                   <PlusIcon className="w-4 h-4" /> 
-                  Crear Tarea
+                  {
+                    activeTab === 'lista' ? 'Crear Tarea' : 'Crear presupuesto'
+                  }
                 </button>
               </div>
 
               {/* Tabs */}
               <div className="border-b border-gray-200 mb-4">
-                <nav className="-mb-px flex space-x-8">
-                  <button
-                    onClick={() => setActiveTab('lista')}
-                    className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors duration-200 ${
-                      activeTab === 'lista'
-                        ? 'border-blue-500 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    }`}
-                  >
-                    <ListIcon className="w-4 h-4" />
-                    Lista
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('archivos')}
-                    className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors duration-200 ${
-                      activeTab === 'archivos'
-                        ? 'border-blue-500 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    }`}
-                  >
-                    <FileIcon className="w-4 h-4" />
-                    Archivos
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('grafico')}
-                    className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors duration-200 ${
-                      activeTab === 'grafico'
-                        ? 'border-blue-500 text-blue-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    }`}
-                  >
-                    <BarChart3Icon className="w-4 h-4" />
-                    Resumen
-                  </button>
-                </nav>
+                <div className="overflow-x-auto scrollbar-hide">
+                  <nav className="-mb-px flex space-x-6 min-w-max">
+                    <button
+                      onClick={() => setActiveTab('lista')}
+                      className={`py-2 px-3 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors duration-200 whitespace-nowrap ${
+                        activeTab === 'lista'
+                          ? 'border-blue-500 text-blue-600'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      }`}
+                    >
+                      <ListIcon className="w-4 h-4" />
+                      Lista
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('archivos')}
+                      className={`py-2 px-3 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors duration-200 whitespace-nowrap ${
+                        activeTab === 'archivos'
+                          ? 'border-blue-500 text-blue-600'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      }`}
+                    >
+                      <FileIcon className="w-4 h-4" />
+                      Archivos
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('presupuestos')}
+                      className={`py-2 px-3 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors duration-200 whitespace-nowrap ${
+                        activeTab === 'presupuestos'
+                          ? 'border-blue-500 text-blue-600'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      }`}
+                    >
+                      <FileTextIcon className="w-4 h-4" />
+                      Presupuestos
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('grafico')}
+                      className={`py-2 px-3 border-b-2 font-medium text-sm flex items-center gap-2 transition-colors duration-200 whitespace-nowrap ${
+                        activeTab === 'grafico'
+                          ? 'border-blue-500 text-blue-600'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                      }`}
+                    >
+                      <BarChart3Icon className="w-4 h-4" />
+                      Resumen
+                    </button>
+                  </nav>
+                </div>
               </div>
 
               {/* Contenido de las pestañas */}
@@ -366,6 +395,10 @@ export const DetalleProyectoMobile = ({
                 ) : activeTab === 'archivos' ? (
                   <div className="space-y-6">
                     <ArchivosTab proyecto={oportunidad.titulo || ""} />
+                  </div>
+                ) : activeTab === 'presupuestos' ? (
+                  <div className="space-y-6">
+                    <PresupuestosTab clienteRuc={oportunidad.clienteRuc} />
                   </div>
                 ) : (
                   <div className="space-y-6">
@@ -603,3 +636,25 @@ export const DetalleProyectoMobile = ({
     </>
   );
 };
+
+// Estilos CSS para ocultar la barra de scroll
+const scrollbarHideStyles = `
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+`;
+
+// Agregar estilos al head del documento
+if (typeof document !== 'undefined') {
+  const styleId = 'scrollbar-hide-styles';
+  if (!document.getElementById(styleId)) {
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = scrollbarHideStyles;
+    document.head.appendChild(style);
+  }
+}

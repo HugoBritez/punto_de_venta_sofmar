@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from "react"
 import { ContactoCRM } from "../types/contactos.type"
 import { ContactoCard } from "../components/ContactoCard"
 import { motion, AnimatePresence } from "framer-motion"
-import { X, Plus, Search, Filter, Calendar, Users, Kanban } from "lucide-react"
+import { X, Plus, Search, Filter, Calendar, Users, Kanban, Loader2 } from "lucide-react"
 import ProjectCanvas from "../components/ProjectCanvas"
 import { ProyectoForm } from "../components/ProyectoForm"
 import { useActualizarOportunidad, useAgendamientos, useOportunidades } from "../hooks/useCRM"
@@ -12,6 +12,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { CalendarView } from "../components/CalendarView"
 import { MainDashboard } from "../components/MainDashboard"
 import { MobileView } from "./MobileView"
+import { useUsuarios } from "@/shared/hooks/querys/useUsuarios"
 
 // Definir los tipos de tabs disponibles
 type TabType = "kanban" | "tabla" | "resumen"
@@ -46,7 +47,7 @@ export const ModuloCRM = () => {
     const [isFiltrosOpen, setIsFiltrosOpen] = useState(false)
     const [activeTab, setActiveTab] = useState<TabType>("kanban")
     const [isMobile, setIsMobile] = useState(false)
-    
+
     // Fechas por defecto: último mes
     const getFechaPorDefecto = () => {
         const hoy = new Date();
@@ -62,7 +63,13 @@ export const ModuloCRM = () => {
     const [fechaDesde, setFechaDesde] = useState<string>(fechasPorDefecto.desde)
     const [fechaHasta, setFechaHasta] = useState<string>(fechasPorDefecto.hasta)
     const [filtroProyectos, setFiltroProyectos] = useState<"todos" | "generales" | "mios">("todos")
+
     const cardRef = useRef<HTMLDivElement>(null)
+
+    const [mostrarOperadores, setMostrarOperadores] = useState(false)
+    const [busquedaOperador, setBusquedaOperador] = useState("")
+    const [operadorSeleccionado, setOperadorSeleccionado] = useState<{op_codigo: number, op_nombre: string} | null>(null)
+    const { data: operadores, isLoading: isLoadingOperadores } = useUsuarios(busquedaOperador)
 
     const auth = useAuth();
     const operador = Number(auth.auth?.userId);
@@ -73,14 +80,14 @@ export const ModuloCRM = () => {
     const fechaHastaDate = fechaHasta ? new Date(fechaHasta + 'T23:59:59') : undefined;
 
     const { data: oportunidades, isLoading: isLoadingOportunidades } = useOportunidades(
-        esAdmin, 
-        operador, 
-        fechaDesdeDate, 
+        esAdmin,
+        operador,
+        fechaDesdeDate,
         fechaHastaDate
     );
 
-    const { data: agendamientos} = useAgendamientos();
-    
+    const { data: agendamientos } = useAgendamientos();
+
 
     const actualizarOportunidad = useActualizarOportunidad();
     const queryClient = useQueryClient();
@@ -144,6 +151,11 @@ export const ModuloCRM = () => {
             if (oportunidad.operador !== operador) return false;
         }
 
+        // Filtro por operador seleccionado
+        if (operadorSeleccionado && oportunidad.operador !== operadorSeleccionado.op_codigo) {
+            return false;
+        }
+
         return true;
     }) || [];
 
@@ -160,12 +172,14 @@ export const ModuloCRM = () => {
         setFechaDesde(fechasDefecto.desde)
         setFechaHasta(fechasDefecto.hasta)
         setFiltroProyectos("todos")
+        setOperadorSeleccionado(null)
+        setBusquedaOperador("")
     }
 
     const tieneFiltrosActivos = () => {
         const fechasDefecto = getFechaPorDefecto();
         const esRangoPorDefecto = fechaDesde === fechasDefecto.desde && fechaHasta === fechasDefecto.hasta;
-        return !esRangoPorDefecto || filtroProyectos !== "todos"
+        return !esRangoPorDefecto || filtroProyectos !== "todos" || operadorSeleccionado !== null
     }
 
     const handleFechaDesdeChange = (fecha: string) => {
@@ -217,7 +231,7 @@ export const ModuloCRM = () => {
         switch (activeTab) {
             case "kanban":
                 return (
-                    <ProjectCanvas 
+                    <ProjectCanvas
                         oportunidades={oportunidadesFiltradas}
                         onOportunidadMove={handleOportunidadMove}
                     />
@@ -286,7 +300,7 @@ export const ModuloCRM = () => {
                     <h1 className="text-2xl font-bold text-gray-900">CRM</h1>
                     <p className="text-md font-medium text-gray-600">Gestión de Relaciones con Clientes y Oportunidades de Venta</p>
                 </div>
-                
+
                 {/* Campo de búsqueda y filtros */}
                 <div className="flex items-center gap-3">
                     {/* Campo de búsqueda */}
@@ -302,8 +316,8 @@ export const ModuloCRM = () => {
                                 onBlur={() => setIsSearchFocused(false)}
                                 className={`
                                     w-full pl-10 pr-10 py-2.5 rounded-lg border transition-all duration-200
-                                    ${isSearchFocused 
-                                        ? 'border-blue-500 bg-white shadow-lg ring-2 ring-blue-500/20' 
+                                    ${isSearchFocused
+                                        ? 'border-blue-500 bg-white shadow-lg ring-2 ring-blue-500/20'
                                         : 'border-gray-300 bg-gray-50 hover:bg-white hover:border-gray-400'
                                     }
                                     focus:outline-none focus:ring-2 focus:ring-blue-500/20
@@ -399,41 +413,6 @@ export const ModuloCRM = () => {
                                                     />
                                                 </div>
                                                 {/* Botones de rangos rápidos */}
-                                                <div className="flex gap-1 mt-2">
-                                                    <button
-                                                        onClick={() => {
-                                                            const fechas = getFechaPorDefecto();
-                                                            setFechaDesde(fechas.desde);
-                                                            setFechaHasta(fechas.hasta);
-                                                        }}
-                                                        className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
-                                                    >
-                                                        Último mes
-                                                    </button>
-                                                    <button
-                                                        onClick={() => {
-                                                            const hoy = new Date();
-                                                            const haceUnaSemana = new Date();
-                                                            haceUnaSemana.setDate(hoy.getDate() - 7);
-                                                            setFechaDesde(haceUnaSemana.toISOString().split('T')[0]);
-                                                            setFechaHasta(hoy.toISOString().split('T')[0]);
-                                                        }}
-                                                        className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
-                                                    >
-                                                        Última semana
-                                                    </button>
-                                                    <button
-                                                        onClick={() => {
-                                                            const hoy = new Date();
-                                                            const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-                                                            setFechaDesde(inicioMes.toISOString().split('T')[0]);
-                                                            setFechaHasta(hoy.toISOString().split('T')[0]);
-                                                        }}
-                                                        className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition-colors"
-                                                    >
-                                                        Este mes
-                                                    </button>
-                                                </div>
                                             </div>
                                         </div>
 
@@ -479,6 +458,89 @@ export const ModuloCRM = () => {
                                                 </label>
                                             </div>
                                         </div>
+                                        {/* Filtro de operadores */}
+                                        <div className="mb-4">
+                                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
+                                                <Users className="w-4 h-4" />
+                                                Filtrar por operador:
+                                            </label>
+                                            <div className="space-y-2">
+                                                <input
+                                                    type="text"
+                                                    name="filtroOperador"
+                                                    placeholder={operadorSeleccionado ? operadorSeleccionado.op_nombre : "Buscar operador..."}
+                                                    value={busquedaOperador}
+                                                    onChange={(e) => {
+                                                        setBusquedaOperador(e.target.value)
+                                                        setMostrarOperadores(true)
+                                                    }}
+                                                    onFocus={() => {
+                                                        setMostrarOperadores(true)
+                                                    }}
+                                                    onBlur={() => {
+                                                        // Delay para permitir el clic en el dropdown
+                                                        setTimeout(() => setMostrarOperadores(false), 200)
+                                                    }}
+                                                    className="border border-gray-300 rounded-md p-2 w-full"
+                                                />
+                                                {operadorSeleccionado && (
+                                                    <div className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded-md">
+                                                        <span className="text-sm text-blue-700">
+                                                            Operador seleccionado: {operadorSeleccionado.op_nombre}
+                                                        </span>
+                                                        <button
+                                                            onClick={() => {
+                                                                setOperadorSeleccionado(null)
+                                                                setBusquedaOperador("")
+                                                            }}
+                                                            className="text-blue-500 hover:text-blue-700"
+                                                        >
+                                                            <X className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            {/* Dropdown de colaboradores */}
+                                            {mostrarOperadores && (busquedaOperador.trim() || operadores?.length || 0 > 0) && (
+                                                <div className="absolute z-10 w-full top-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                                                    {isLoadingOperadores ? (
+                                                        <div className="p-4 text-center text-gray-500">
+                                                            <Loader2 className="w-4 h-4 animate-spin mx-auto mb-2" />
+                                                            Cargando colaboradores...
+                                                        </div>
+                                                    ) : operadores?.length || 0 > 0 ? (
+                                                        <div>
+                                                            {operadores?.map((operador) => (
+                                                                    <button
+                                                                        key={operador.op_codigo}
+                                                                        type="button"
+                                                                        onClick={() => {
+                                                                            setOperadorSeleccionado({
+                                                                                op_codigo: operador.op_codigo,
+                                                                                op_nombre: operador.op_nombre || 'Sin nombre'
+                                                                            })
+                                                                            setBusquedaOperador("")
+                                                                            setMostrarOperadores(false)
+                                                                        }}
+                                                                        className="w-full px-4 py-3 text-left hover:bg-gray-100 border-b border-gray-100 last:border-b-0 transition-colors"
+                                                                    >
+                                                                        <div className="font-medium text-gray-900">
+                                                                            {operador.op_nombre || 'Sin nombre'}
+                                                                        </div>
+                                                                        <div className="text-sm text-gray-600">
+                                                                            {operador.op_rol}
+                                                                        </div>
+                                                                    </button>
+                                                                ))}
+                                                        </div>
+                                                    ) : busquedaOperador.trim() ? (
+                                                        <div className="p-4 text-center text-gray-500">
+                                                            No se encontraron colaboradores
+                                                        </div>
+                                                    ) : null}
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 </motion.div>
                             )}
@@ -502,15 +564,15 @@ export const ModuloCRM = () => {
                         {TABS.map((tab) => {
                             const Icon = tab.icon
                             const isActive = activeTab === tab.id
-                            
+
                             return (
                                 <button
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
                                     className={`
                                         flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm transition-colors duration-200 relative
-                                        ${isActive 
-                                            ? 'border-blue-500 text-blue-600' 
+                                        ${isActive
+                                            ? 'border-blue-500 text-blue-600'
                                             : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                         }
                                     `}
@@ -538,10 +600,10 @@ export const ModuloCRM = () => {
                 <div className="flex flex-col gap-2 p-2 bg-blue-100 shadow-sm w-full rounded-md">
                     {renderMainContent()}
                 </div>
-                
+
                 {/* CalendarView siempre visible */}
                 <CalendarView oportunidades={oportunidadesFiltradas} agendamientos={agendamientos || []} />
-                
+
                 <div className="relative">
                     <CRMNav onContactoClick={handleContactoClick} />
 
@@ -558,7 +620,7 @@ export const ModuloCRM = () => {
                                     className="fixed inset-0 bg-black bg-opacity-50 z-40"
                                 />
                                 {/* Card flotante */}
-                                <motion.div 
+                                <motion.div
                                     ref={cardRef}
                                     initial={{ opacity: 0, x: -20 }}
                                     animate={{ opacity: 1, x: 0 }}
