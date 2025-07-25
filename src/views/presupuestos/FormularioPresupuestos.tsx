@@ -92,7 +92,12 @@ interface PresupuestoRecuperado {
   }>;
 }
 
-const FormularioPresupuestos = () => {
+interface FormularioPresupuestosProps {
+  cliente?: Cliente,
+  operador?: number
+}
+
+const FormularioPresupuestos = ({cliente, operador}: FormularioPresupuestosProps) => {
   const { sucursales, fetchSucursales } = useSucursalesStore();
   const { depositos, fetchDepositos } = useDepositosStore();
   const { monedas, fetchMonedas } = useMonedasStore();
@@ -209,6 +214,8 @@ const FormularioPresupuestos = () => {
 
   // Agregar este estado junto a los otros estados (cerca de la línea 159)
   const [precioArticulo, setPrecioArticulo] = useState<number>(0);
+
+  
 
   const {
     onOpen: onOpenDetallesVentasCliente,
@@ -1020,6 +1027,15 @@ const FormularioPresupuestos = () => {
       busquedaItemPorIdInputRef.current?.focus();
     }
   };
+
+  useEffect(()=> {
+    if(cliente){
+      setClienteSeleccionado(cliente);
+    }
+    if(operador){
+      handleBuscarVendedorPorId(operador);
+    }
+  })
 
   return (
     <Box

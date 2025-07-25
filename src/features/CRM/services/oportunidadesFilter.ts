@@ -8,7 +8,7 @@ export const oportunidadesFilter = (oportunidades: OportunidadViewModel[], esAdm
         if(oportunidad.general === 1){
             return true;
         }
-        if(oportunidad.general ===0 && oportunidad.operador === operador){
+        if(oportunidad.general ===0 && oportunidad.operador === operador && oportunidad.colaboradores.some(colaborador => colaborador.codigo === operador)){
             return true;
         }
 

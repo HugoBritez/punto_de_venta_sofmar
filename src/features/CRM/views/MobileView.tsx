@@ -11,7 +11,8 @@ import {
   Search,
   Filter,
   X,
-  Plus
+  Plus,
+  Loader2
 } from "lucide-react"
 import { MobileTab } from "../components/mobile/MobileTab"
 import { ContactosMobile } from "../components/mobile/ContactosMobile"
@@ -34,6 +35,12 @@ export interface MobileViewProps {
     isProyectoFormOpen: boolean
     operador: number
     esAdmin: boolean
+    // Nuevas props para el filtro de operadores
+    mostrarOperadores: boolean
+    busquedaOperador: string
+    operadorSeleccionado: {op_codigo: number, op_nombre: string} | null
+    operadores: any[] | undefined
+    isLoadingOperadores: boolean
     onSearchChange: (value: string) => void
     onClearSearch: () => void
     onSearchFocus: () => void
@@ -48,6 +55,12 @@ export interface MobileViewProps {
     onProyectoCreated: () => void
     onOportunidadMove: (oportunidadId: number, nuevoEstado: number, autorizadoPor: number) => void
     onContactoClick: (contacto: ContactoCRM) => void
+    // Nuevos handlers para el filtro de operadores
+    onBusquedaOperadorChange: (value: string) => void
+    onOperadorFocus: () => void
+    onOperadorBlur: () => void
+    onOperadorSelect: (operador: {op_codigo: number, op_nombre: string}) => void
+    onOperadorClear: () => void
 }
 
 export const MobileView = (props: MobileViewProps) => {
@@ -365,6 +378,79 @@ export const MobileView = (props: MobileViewProps) => {
                                     />
                                     <span className="text-sm">Solo míos</span>
                                 </label>
+                            </div>
+                        </div>
+
+                        {/* Filtro de operadores */}
+                        <div>
+                            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-3">
+                                <Users className="w-4 h-4" />
+                                Filtrar por operador
+                            </label>
+                            <div className="space-y-2">
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        placeholder={props.operadorSeleccionado ? props.operadorSeleccionado.op_nombre : "Buscar operador..."}
+                                        value={props.busquedaOperador}
+                                        onChange={(e) => props.onBusquedaOperadorChange(e.target.value)}
+                                        onFocus={props.onOperadorFocus}
+                                        onBlur={props.onOperadorBlur}
+                                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    />
+                                    {props.operadorSeleccionado && (
+                                        <div className="flex items-center gap-2 p-2 mt-2 bg-blue-50 border border-blue-200 rounded-md">
+                                            <span className="text-sm text-blue-700 flex-1">
+                                                Operador: {props.operadorSeleccionado.op_nombre}
+                                            </span>
+                                            <button
+                                                onClick={props.onOperadorClear}
+                                                className="text-blue-500 hover:text-blue-700"
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                                
+                                {/* Dropdown de operadores */}
+                                {props.mostrarOperadores && (props.busquedaOperador.trim() || props.operadores?.length || 0 > 0) && (
+                                    <div className="relative">
+                                        <div className="absolute z-10 w-full top-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto">
+                                            {props.isLoadingOperadores ? (
+                                                <div className="p-4 text-center text-gray-500">
+                                                    <Loader2 className="w-4 h-4 animate-spin mx-auto mb-2" />
+                                                    <span className="text-sm">Cargando operadores...</span>
+                                                </div>
+                                            ) : props.operadores?.length || 0 > 0 ? (
+                                                <div>
+                                                    {props.operadores?.map((operador) => (
+                                                        <button
+                                                            key={operador.op_codigo}
+                                                            type="button"
+                                                            onClick={() => props.onOperadorSelect({
+                                                                op_codigo: operador.op_codigo,
+                                                                op_nombre: operador.op_nombre || 'Sin nombre'
+                                                            })}
+                                                            className="w-full px-4 py-3 text-left hover:bg-gray-100 border-b border-gray-100 last:border-b-0 transition-colors"
+                                                        >
+                                                            <div className="font-medium text-gray-900">
+                                                                {operador.op_nombre || 'Sin nombre'}
+                                                            </div>
+                                                            <div className="text-sm text-gray-600">
+                                                                {operador.op_rol}
+                                                            </div>
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            ) : props.busquedaOperador.trim() ? (
+                                                <div className="p-4 text-center text-gray-500">
+                                                    <span className="text-sm">No se encontraron operadores</span>
+                                                </div>
+                                            ) : null}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

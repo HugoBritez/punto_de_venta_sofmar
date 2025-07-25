@@ -337,6 +337,7 @@ export const TareasDiaModal = ({
                                                             {getEstadoAgendamientoText(agendamiento.estado)}
                                                         </span>
                                                     </div>
+                                                   
 
                                                     {agendamiento.descripcion && (
                                                         <p className="text-sm text-gray-600 line-clamp-2">

@@ -1,5 +1,6 @@
 import type { ClienteViewModel, CobroViewModel } from "../types/clientes";
 import api from "../../config/axios";
+import { Cliente } from "@/types/shared_interfaces";
 
 
 
@@ -24,6 +25,11 @@ export const ClientesRepository = {
         );
 
         return response.data.body[0];
+    },
+
+    async getClientePorRuc(ruc: string): Promise<Cliente> {
+        const response = await api.get(`clientes/${ruc}`);
+        return response.data.body;
     },
 
     async getClientePorDefecto(): Promise<ClienteViewModel> {

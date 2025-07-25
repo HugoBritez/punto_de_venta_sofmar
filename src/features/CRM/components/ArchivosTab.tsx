@@ -133,22 +133,47 @@ const PreviewModal = ({
     const isImage = file?.contentType?.startsWith('image/');
     const imageUrl = fileBlob ? URL.createObjectURL(fileBlob) : null;
 
+    // Función para descargar archivo
+    const handleDownload = () => {
+        if (fileBlob) {
+            const url = URL.createObjectURL(fileBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = file.fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+    };
+
     if (!isOpen || !file) return null;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
-                {/* Header del modal */}
-                <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                    <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-gray-900 truncate">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+            <div className="bg-white rounded-xl w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden shadow-2xl">
+                {/* Header del modal - Mobile friendly */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 sm:p-6 border-b border-gray-200">
+                    <div className="flex-1 min-w-0 mb-3 sm:mb-0">
+                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate">
                             {file.fileName}
                         </h3>
-                        <p className="text-sm text-gray-500 mt-1">
+                        <p className="text-xs sm:text-sm text-gray-500 mt-1">
                             {formatFileSize(file.size)} • {formatDate(file.lastModified)}
                         </p>
                     </div>
                     <div className="flex items-center gap-2">
+                        {/* Botón de descarga - siempre visible */}
+                        <button
+                            onClick={handleDownload}
+                            disabled={isLoading}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
+                            title="Descargar archivo"
+                        >
+                            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                        </button>
                         <button
                             onClick={() => onDelete(file.path)}
                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
@@ -166,10 +191,10 @@ const PreviewModal = ({
                     </div>
                 </div>
 
-                {/* Contenido del modal */}
-                <div className="p-6 overflow-auto max-h-[calc(90vh-120px)]">
+                {/* Contenido del modal - Mobile friendly */}
+                <div className="p-4 sm:p-6 overflow-auto max-h-[calc(95vh-120px)] sm:max-h-[calc(90vh-120px)]">
                     {isLoading ? (
-                        <div className="flex items-center justify-center h-64">
+                        <div className="flex items-center justify-center h-48 sm:h-64">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
                         </div>
                     ) : isImage && imageUrl ? (
@@ -177,26 +202,27 @@ const PreviewModal = ({
                             <img 
                                 src={imageUrl} 
                                 alt={file.fileName}
-                                className="max-w-full max-h-[60vh] object-contain rounded-lg shadow-sm"
+                                className="max-w-full max-h-[50vh] sm:max-h-[60vh] object-contain rounded-lg shadow-sm"
                                 loading='lazy'
                             />
                         </div>
                     ) : (
-                        <div className="text-center py-12">
-                            <div className="text-6xl mb-4">📄</div>
-                            <p className="text-lg font-medium text-gray-700 mb-2">
+                        <div className="text-center py-8 sm:py-12">
+                            <div className="text-4xl sm:text-6xl mb-4">📄</div>
+                            <p className="text-base sm:text-lg font-medium text-gray-700 mb-2">
                                 Vista previa no disponible
                             </p>
-                            <p className="text-gray-500">
+                            <p className="text-sm sm:text-base text-gray-500 mb-4">
                                 Este tipo de archivo no puede ser previsualizado
                             </p>
                             <button
-                                onClick={() => {
-                                    // Implementar descarga
-                                    console.log('Descargar archivo:', file.path);
-                                }}
-                                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                onClick={handleDownload}
+                                disabled={isLoading}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2 mx-auto"
                             >
+                                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
                                 Descargar archivo
                             </button>
                         </div>

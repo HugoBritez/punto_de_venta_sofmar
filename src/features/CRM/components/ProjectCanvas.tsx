@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   DndContext,
   DragEndEvent,
@@ -15,11 +15,12 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { OportunidadViewModel } from '../types/oportunidades.type';
-import { COLUMNAS_TABLERO } from '../const/boardColumns';
+import { actualizarTitulosColumnas, COLUMNAS_TABLERO } from '../const/boardColumns';
 import ProjectCard, { DraggableProjectCard } from './ProjectCard';
 import { DetalleProyectoModal } from './DetalleProyectoModal';
 import { Check, Dot,  X } from 'lucide-react';
 import { useCambiarNombre } from '../hooks/useCRM';
+import { useToast } from '@chakra-ui/react';
 
 // Componente para una columna
 interface ColumnaProps {
@@ -30,7 +31,6 @@ interface ColumnaProps {
 }
 
 const Columna: React.FC<ColumnaProps> = ({ columna, oportunidades, onOportunidadSeleccionada }) => {
-
   const [isEditingColumn, setItsEditingColumn] = useState(false); 
   const [nuevoNombre, setNuevoNombre] = useState(columna.titulo);
 
@@ -158,6 +158,7 @@ const Columna: React.FC<ColumnaProps> = ({ columna, oportunidades, onOportunidad
 
 // Componente principal
 interface ProjectCanvasProps {
+  operador: number;
   oportunidades?: OportunidadViewModel[];
   onOportunidadMove?: (oportunidadId: number, nuevoEstado: number, autorizadoPor: number) => Promise<void>;
 }
@@ -182,13 +183,19 @@ const detectCollision = (args: any) => {
 
 const ProjectCanvas: React.FC<ProjectCanvasProps> = ({ 
   oportunidades = [],
-  onOportunidadMove 
+  operador,
+  onOportunidadMove
 }) => {
   const [oportunidadActiva, setOportunidadActiva] = useState<OportunidadViewModel | null>(null);
   const [oportunidadSeleccionada, setOportunidadSeleccionada] = useState<OportunidadViewModel | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [loadingCards, setLoadingCards] = useState<Set<string>>(new Set());
   const [pendingMoves, setPendingMoves] = useState<Map<string, { oportunidad: OportunidadViewModel, nuevoEstado: number }>>(new Map());
+
+  const toast = useToast();
+  useEffect(() => {
+    actualizarTitulosColumnas();
+  }, []);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -227,7 +234,6 @@ const ProjectCanvas: React.FC<ProjectCanvasProps> = ({
     if (!columnaValida) {
         return;
     }
-
     const nuevoEstado = columnaValida.estado;
     const cardId = active.id as string;
     const oportunidad = oportunidades.find(op => op.codigo.toString() === cardId);
@@ -238,6 +244,16 @@ const ProjectCanvas: React.FC<ProjectCanvasProps> = ({
     
     // Verificar que no se esté moviendo a la misma columna
     if (oportunidad.estado === nuevoEstado) {
+        return;
+    }
+
+    if(oportunidad.estado === 3 && oportunidad.autorizadoPor !== operador){
+        toast({
+            title: 'No tienes permisos para actualizar esta oportunidad',
+            status: 'error',
+            duration: 3000,
+            isClosable: true,
+        });
         return;
     }
     
@@ -334,7 +350,6 @@ const ProjectCanvas: React.FC<ProjectCanvasProps> = ({
             />
           ))}
         </div>
-
         <DragOverlay>
           {oportunidadActiva ? (
             <ProjectCard 

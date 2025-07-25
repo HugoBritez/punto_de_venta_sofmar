@@ -16,3 +16,4 @@ export const useGetDetallePresupuesto = (presupuestoId?: number) => {
         enabled: !!presupuestoId,
     });
 }
+

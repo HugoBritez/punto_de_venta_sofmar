@@ -377,6 +377,7 @@ export const EditarProyectoForm: React.FC<EditarProyectoFormProps> = ({
                     </label>
                   </div>
                 </div>
+                
                 </div>
                 {/* Colaboradores */}
                 <div className="contacto-dropdown relative">

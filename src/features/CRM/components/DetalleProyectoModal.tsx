@@ -25,7 +25,11 @@ import { useAuth } from "@/services/AuthContext";
 import { ArchivosTab } from "./ArchivosTab";
 import { HistorialClienteTab } from "./HistorialClienteTab";
 import { PresupuestosTab } from "./PresupuestosTab";
-import { useNavigate } from "react-router-dom";
+import FormularioPresupuestos from "@/views/presupuestos/FormularioPresupuestos";
+
+import { ClientesRepository } from "@/shared/api/clientesRepository";
+import { Cliente } from "@/types/shared_interfaces";
+import { useToast } from "@chakra-ui/react";
 
 export const DetalleProyectoModal = ({
   oportunidad, 
@@ -43,7 +47,6 @@ export const DetalleProyectoModal = ({
   const auth = useAuth();
   const operador = Number(auth.auth?.userId);
   const esAdmin = auth.auth?.rol === 7;
-  const navigate = useNavigate();
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-PY', {
       style: 'currency',
@@ -65,6 +68,33 @@ export const DetalleProyectoModal = ({
   const [isOpenEditarProyecto, setIsOpenEditarProyecto] = useState(false);
   const [tareaToEdit, setTareaToEdit] = useState<TareaCRM | undefined>(undefined);
   const [activeTab, setActiveTab] = useState<'lista' | 'grafico' | 'archivos' | 'historial' | 'presupuestos'>('lista');
+  const [isOpenPresupuestoForm, setIsOpenPresupuestoForm] = useState(false);
+  const [cliente, setCliente] = useState<Cliente | undefined>(undefined);
+  const toast = useToast();
+
+  const handleCrearPresupuesto = async () => {
+    try {
+      const cliente = await ClientesRepository.getClientePorRuc(oportunidad.clienteRuc);
+      setCliente(cliente);
+      setIsOpenPresupuestoForm(true);
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Error al obtener el cliente",
+        description: "El contacto no está registrado en la base de datos como cliente",
+        status: "info",
+        duration: 3000,
+        isClosable: true,
+        position: "top-right"
+      });
+      setCliente(undefined);
+      setIsOpenPresupuestoForm(true);
+    }
+  };
+
+  const handleClosePresupuestoForm = () => {
+    setIsOpenPresupuestoForm(false);
+  };
 
   const handleCrearTarea = () => {
     setTareaToEdit(undefined); // Asegurar que no hay tarea para editar
@@ -95,10 +125,6 @@ export const DetalleProyectoModal = ({
 
   const handleProyectoEditado = () => {
     onSuccess?.(); // Notificar al componente padre que se actualizó el proyecto
-  };
-
-  const handleCrearPresupuesto = () => {
-    navigate(`/presupuestos-nuevo`);
   };
 
   // Función helper para obtener el texto del tipo de tarea
@@ -192,7 +218,7 @@ export const DetalleProyectoModal = ({
                   <div>
                     <label className="text-sm text-gray-500">Operador</label>
                     <p className="font-medium text-gray-900">
-                      {oportunidad.general === 1 ? 'General' : oportunidad.operadorNombre}
+                      {oportunidad.general === 1 ? 'General' : `${oportunidad.operadorNombre} - ${oportunidad.operadorCargo || ''}`}
                     </p>
                   </div>
                 </div>
@@ -673,6 +699,10 @@ export const DetalleProyectoModal = ({
           esAdmin={esAdmin}
         />
       )}
+
+      <Modal isOpen={isOpenPresupuestoForm} onClose={handleClosePresupuestoForm} maxWidth="max-w-[calc(100vw-300px)]">
+        <FormularioPresupuestos cliente={cliente} operador={operador}/>
+      </Modal>
     </>
   );
 };

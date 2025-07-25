@@ -17,6 +17,7 @@ export interface OportunidadViewModel extends OportunidadCRM {
   clienteRuc: string;
   clienteNombre : string;
   operadorNombre: string;
+  operadorCargo: string;
   estadoDescripcion: string;
   colaboradores: ColaboradorViewModel[];
   autorizadoPorNombre?: string;

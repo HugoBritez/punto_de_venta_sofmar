@@ -13,6 +13,7 @@ import { CalendarView } from "../components/CalendarView"
 import { MainDashboard } from "../components/MainDashboard"
 import { MobileView } from "./MobileView"
 import { useUsuarios } from "@/shared/hooks/querys/useUsuarios"
+import { ChatMainView } from "@/features/Chat/views/MainView"
 
 // Definir los tipos de tabs disponibles
 type TabType = "kanban" | "tabla" | "resumen"
@@ -106,7 +107,7 @@ export const ModuloCRM = () => {
 
     const handleContactoClick = (contacto: ContactoCRM) => {
         setSelectedContacto(contacto)
-    }
+    }   
 
     const handleCloseCard = () => {
         setSelectedContacto(null)
@@ -234,6 +235,7 @@ export const ModuloCRM = () => {
                     <ProjectCanvas
                         oportunidades={oportunidadesFiltradas}
                         onOportunidadMove={handleOportunidadMove}
+                        operador={operador}
                     />
                 )
             case "tabla":
@@ -273,6 +275,12 @@ export const ModuloCRM = () => {
                 isProyectoFormOpen={isProyectoFormOpen}
                 operador={operador}
                 esAdmin={esAdmin}
+                // Props para el filtro de operadores
+                mostrarOperadores={mostrarOperadores}
+                busquedaOperador={busquedaOperador}
+                operadorSeleccionado={operadorSeleccionado}
+                operadores={operadores}
+                isLoadingOperadores={isLoadingOperadores}
                 onSearchChange={handleSearchChange}
                 onClearSearch={handleClearSearch}
                 onSearchFocus={() => setIsSearchFocused(true)}
@@ -286,7 +294,26 @@ export const ModuloCRM = () => {
                 onProyectoFormClose={() => setIsProyectoFormOpen(false)}
                 onProyectoCreated={handleProyectoCreated}
                 onOportunidadMove={handleOportunidadMove}
-                onContactoClick={handleContactoClick} // Agregar esta prop faltante
+                onContactoClick={handleContactoClick}
+                // Handlers para el filtro de operadores
+                onBusquedaOperadorChange={(value) => {
+                    setBusquedaOperador(value)
+                    setMostrarOperadores(true)
+                }}
+                onOperadorFocus={() => setMostrarOperadores(true)}
+                onOperadorBlur={() => {
+                    // Delay para permitir el clic en el dropdown
+                    setTimeout(() => setMostrarOperadores(false), 200)
+                }}
+                onOperadorSelect={(operador) => {
+                    setOperadorSeleccionado(operador)
+                    setBusquedaOperador("")
+                    setMostrarOperadores(false)
+                }}
+                onOperadorClear={() => {
+                    setOperadorSeleccionado(null)
+                    setBusquedaOperador("")
+                }}
             />
         )
     }
@@ -652,6 +679,8 @@ export const ModuloCRM = () => {
                 operador={operador}
                 esAdmin={esAdmin}
             />
+
+            <ChatMainView/>
         </div>
     )
 }

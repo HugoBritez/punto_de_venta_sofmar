@@ -179,7 +179,7 @@ export const DetalleProyectoMobile = ({
                   <div>
                     <label className="text-xs text-gray-500">Operador</label>
                     <p className="font-medium text-gray-900 text-sm">
-                      {oportunidad.general === 1 ? 'General' : oportunidad.operadorNombre}
+                      {oportunidad.general === 1 ? 'General' : oportunidad.operadorNombre} {oportunidad.operadorCargo ? `- ${oportunidad.operadorCargo}` : ''}
                     </p>
                   </div>
                 </div>
