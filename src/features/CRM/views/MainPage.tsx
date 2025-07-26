@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from "react"
 import { ContactoCRM } from "../types/contactos.type"
 import { ContactoCard } from "../components/ContactoCard"
 import { motion, AnimatePresence } from "framer-motion"
-import { X, Plus, Search, Filter, Calendar, Users, Kanban, Loader2 } from "lucide-react"
+import { X, Plus, Search, Filter, Calendar, Users, Kanban, Loader2, Trash } from "lucide-react"
 import ProjectCanvas from "../components/ProjectCanvas"
 import { ProyectoForm } from "../components/ProyectoForm"
 import { useActualizarOportunidad, useAgendamientos, useOportunidades } from "../hooks/useCRM"
@@ -14,6 +14,7 @@ import { MainDashboard } from "../components/MainDashboard"
 import { MobileView } from "./MobileView"
 import { useUsuarios } from "@/shared/hooks/querys/useUsuarios"
 import { ChatMainView } from "@/features/Chat/views/MainView"
+import { ArchivadosModal } from "../components/ArchivadosModal"
 
 // Definir los tipos de tabs disponibles
 type TabType = "kanban" | "tabla" | "resumen"
@@ -86,6 +87,9 @@ export const ModuloCRM = () => {
         fechaDesdeDate,
         fechaHastaDate
     );
+
+
+    const [isOpenArchivadas, setIsOpenArchivadas] = useState<boolean>(false);
 
     const { data: agendamientos } = useAgendamientos();
 
@@ -363,6 +367,7 @@ export const ModuloCRM = () => {
 
                     {/* Botón de filtros */}
                     <div className="relative">
+                        <div className="flex flex-row gap-2">
                         <button
                             onClick={() => setIsFiltrosOpen(!isFiltrosOpen)}
                             className={`
@@ -379,6 +384,15 @@ export const ModuloCRM = () => {
                                 <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
                             )}
                         </button>
+                        <button
+                          onClick={()=> setIsOpenArchivadas(true)}
+                          className="flex w-[10rem] items-center gap-2 px-3 py-2.5 rounded-lg border transition-all duration-200 border-red-500 bg-red-50 text-red-500"
+                        >
+                            <Trash className="w-4 h-4"/>
+                            <span className="text-sm font-medium">Ver Archivados</span>
+                        </button>
+                        </div>
+                        
 
                         {/* Panel de filtros */}
                         <AnimatePresence>
@@ -670,7 +684,6 @@ export const ModuloCRM = () => {
                     </AnimatePresence>
                 </div>
             </div>
-
             {/* Modal de Creación de Proyecto */}
             <ProyectoForm
                 isOpen={isProyectoFormOpen}
@@ -679,8 +692,15 @@ export const ModuloCRM = () => {
                 operador={operador}
                 esAdmin={esAdmin}
             />
-
             <ChatMainView/>
+            <ArchivadosModal
+              isOpen= {isOpenArchivadas}
+              onClose = {()=>setIsOpenArchivadas(false)}
+              fechaDesde={fechaDesdeDate}
+              fechaHasta={fechaHastaDate}
+              esAdmin={esAdmin}
+              operador={operador}
+              ></ArchivadosModal>
         </div>
     )
 }

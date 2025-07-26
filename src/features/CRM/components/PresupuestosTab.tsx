@@ -158,14 +158,14 @@ const DetallePresupuestoModal = ({ presupuestoId, isOpen, onClose }: { presupues
                                         </td>
                                         <td className="px-3 py-2 text-sm text-gray-900 border-b text-right">
                                             <div>
-                                                <div className="font-medium">{detalle.precio}</div>
+                                                <div className="font-medium">{detalle.precio.toLocaleString('es-PY', { style: 'currency', currency: 'PYG' })}</div>
                                             </div>
                                         </td>
                                         <td className="px-3 py-2 text-sm text-gray-900 border-b text-right">
-                                            {detalle.descuento}
+                                            {detalle.descuento.toLocaleString('es-PY', { style: 'currency', currency: 'PYG' })}
                                         </td>
                                         <td className="px-3 py-2 text-sm font-medium text-gray-900 border-b text-right">
-                                            {detalle.precio * detalle.cantidad - detalle.descuento}
+                                            {(detalle.precio * detalle.cantidad - detalle.descuento).toLocaleString('es-PY', { style: 'currency', currency: 'PYG' })}
                                         </td>
                                     </tr>
                                 ))}
@@ -221,6 +221,13 @@ export const PresupuestosTab = ({clienteRuc}: {clienteRuc: string}) => {
                 }
             },
             {
+                accessorKey: 'moneda',
+                header: 'Moneda',
+                cell: ({ row }) => {
+                    return <div className="text-sm font-medium text-gray-900 text-right">{row.original.moneda || '-'}</div>
+                }
+            },
+            {
                 accessorKey: 'vendedor',
                 header: 'Vendedor',
                 cell: ({ row }) => {
@@ -232,6 +239,35 @@ export const PresupuestosTab = ({clienteRuc}: {clienteRuc: string}) => {
                 header: 'Estado',
                 cell: ({ row }) => {
                     return <div className="text-sm text-gray-900">{row.original.estado_desc || 'Sin estado'}</div>
+                }
+            },
+            {
+                accessorKey: 'condicion',
+                header: 'Condición',
+                cell: ({ row }) => {
+                    return <div className="text-sm text-gray-900">{row.original.condicion || 'Sin condición'}</div>
+                }
+            },
+            {
+                accessorKey: 'observaciones',
+                header: 'Observaciones',
+                cell: ({ row }) => {
+                    return <div className="text-sm text-gray-900">{row.original.obs || 'Sin observaciones'}</div>
+                }
+            },
+            {
+                accessorKey: 'pre_condicion',
+                header: 'Condición de pago',
+                size: 180,
+                cell: ({ row }) => {
+                    return <div className="text-sm text-gray-900">{row.original.pre_condicion || 'Sin condición de pago'}</div>
+                }
+            },
+            {
+                accessorKey: 'pre_plazo',
+                header: 'Plazo',
+                cell: ({ row }) => {
+                    return <div className="text-sm text-gray-900">{row.original.pre_plazo || 'Sin plazo'}</div>
                 }
             }
         ], [])

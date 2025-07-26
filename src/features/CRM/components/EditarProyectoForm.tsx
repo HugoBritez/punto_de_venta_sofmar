@@ -71,6 +71,11 @@ export const EditarProyectoForm: React.FC<EditarProyectoFormProps> = ({
     }
   }, [oportunidad.colaboradores]);
 
+
+  useEffect(()=> {
+    console.log(oportunidad)
+  }, [])
+
   // Filtrar contactos basado en la búsqueda
   const contactosFiltrados = contactos?.filter(contacto => 
     contacto.nombre?.toLowerCase().includes(busquedaCliente.toLowerCase()) ||
@@ -368,7 +373,7 @@ export const EditarProyectoForm: React.FC<EditarProyectoFormProps> = ({
                     <input
                       type="checkbox"
                       id="archivar-proyecto"
-                      checked={!!formData.archivado}
+                      checked={formData.archivado === 1}
                       onChange={(e) => handleInputChange('archivado', e.target.checked ? 1 : 0)}
                       className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                     />

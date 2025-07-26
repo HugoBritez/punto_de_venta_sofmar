@@ -54,6 +54,15 @@ export const useOportunidades = (esAdmin: boolean, operador: number, fechaDesde?
   });
 };
 
+
+export const useOportunidadesArchivadas = (esAdmin: boolean, operador: number, fechaDesde?: Date, fechaHasta?: Date) => {
+  return useQuery({
+    queryKey: ["oportunidadesArchivadas", fechaDesde?.toISOString(), fechaHasta?.toISOString()],
+    queryFn: ()=>crmApi.getOportunidadesArchivadas(fechaDesde, fechaHasta),
+    select: (data) => oportunidadesFilter(data, esAdmin, operador)
+  })
+}
+
 export const useOportunidadById = (id: number) => {
   return useQuery({
     queryKey: ["oportunidad", id],
@@ -96,6 +105,7 @@ export const useActualizarOportunidad = () => {
     mutationFn: crmApi.actualizarOportunidad,
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["oportunidades"] });
+      queryClient.invalidateQueries({ queryKey: ["oportunidadesArchivadas"] });
       queryClient.invalidateQueries({ queryKey: ["oportunidad", data.codigo] });
     },
   });

@@ -15,7 +15,8 @@ import {
   BarChart3Icon,
   FileIcon,
   UsersIcon,
-  HistoryIcon
+  HistoryIcon,
+  ArchiveIcon
 } from "lucide-react";
 import { FormTareas } from "./FormTareas";
 import { EditarProyectoForm } from "./EditarProyectoForm";
@@ -181,7 +182,26 @@ export const DetalleProyectoModal = ({
         title={`${oportunidad.titulo || 'Sin título'}`}
         maxWidth="max-w-[1650px]"
       >
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 p-2">
+          {/* Banner de proyecto archivado */}
+          {oportunidad.archivado === 1 && (
+            <div className="lg:col-span-2 mb-2">
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                <div className="flex items-center gap-3">
+                  <ArchiveIcon className="h-5 w-5 text-orange-500 flex-shrink-0" />
+                  <div>
+                    <h3 className="text-sm font-medium text-orange-800">
+                      Proyecto Archivado
+                    </h3>
+                    <p className="text-sm text-orange-700 mt-1">
+                      Este proyecto ha sido marcado como archivado. Puede ser editado pero se mantiene en estado de archivo.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Información del Proyecto */}
           <div className="space-y-6">
             <div className="bg-white rounded-lg border border-gray-200 p-6">
@@ -195,7 +215,6 @@ export const DetalleProyectoModal = ({
                   Editar Proyecto
                 </button>
               </div>
-              
               <div className="space-y-4">
                 <div className="flex items-center gap-3">
                   <TagIcon className="h-5 w-5 text-gray-400" />
@@ -218,7 +237,7 @@ export const DetalleProyectoModal = ({
                   <div>
                     <label className="text-sm text-gray-500">Operador</label>
                     <p className="font-medium text-gray-900">
-                      {oportunidad.general === 1 ? 'General' : `${oportunidad.operadorNombre} - ${oportunidad.operadorCargo || ''}`}
+                      {oportunidad.general === 1 ? `General - ${oportunidad.operadorNombre}` : `${oportunidad.operadorNombre} - ${oportunidad.operadorCargo || ''}`}
                     </p>
                   </div>
                 </div>
@@ -232,6 +251,20 @@ export const DetalleProyectoModal = ({
                     </span>
                   </div>
                 </div>
+
+                {/* Flag de proyecto archivado */}
+                {oportunidad.archivado === 1 && (
+                  <div className="flex items-center gap-3">
+                    <ArchiveIcon className="h-5 w-5 text-orange-500" />
+                    <div className="flex flex-row gap-2 items-center"> 
+                      <label className="text-sm text-gray-500">Estado del Proyecto</label>
+                      <span className="inline-flex items-center px-2 py-1 rounded-md text-sm font-medium bg-orange-100 text-orange-800">
+                        <ArchiveIcon className="w-3 h-3 mr-1" />
+                        Archivado
+                      </span>
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex items-center gap-3">
                   <DollarSignIcon className="h-5 w-5 text-gray-400" />

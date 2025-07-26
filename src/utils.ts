@@ -22,6 +22,6 @@ export const api_url_secondary = 'https://localhost:4024/api/'
 export const version = '1.2.4'
 
 
-export const fechaRelease = '25/07/2025'
+export const fechaRelease = '26/07/2025'
 export const db = 'local'
 export const userName = sessionStorage.getItem('userName')

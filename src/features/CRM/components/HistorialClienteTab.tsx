@@ -54,7 +54,7 @@ export const HistorialClienteTab = ({ clienteRuc }: { clienteRuc: string }) => {
             {/* Resumen */}
             <div className="grid grid-cols-2 gap-4">
                 <div className="bg-gray-50 p-4 rounded">
-                    <div className="text-sm text-gray-600">Último Cobro</div>
+                    <div className="text-sm text-gray-600">Fecha de último pago</div>
                     {isLoadingUltimoCobro ? (
                         <div className="h-6 bg-gray-200 rounded animate-pulse mt-1"></div>
                     ) : ultimoCobro ? (

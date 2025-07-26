@@ -14,7 +14,8 @@ import {
   BarChart3Icon,
   ArrowLeft,
   UsersIcon,
-  FileIcon
+  FileIcon,
+  ArchiveIcon
 } from "lucide-react";
 import { FormTareas } from "../FormTareas";
 import { EditarProyectoForm } from "../EditarProyectoForm";
@@ -157,6 +158,23 @@ export const DetalleProyectoMobile = ({
 
           {/* Contenido principal */}
           <div className="p-4 space-y-6 max-w-2xl mx-auto">
+            {/* Banner de proyecto archivado */}
+            {oportunidad.archivado === 1 && (
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                <div className="flex items-center gap-3">
+                  <ArchiveIcon className="h-5 w-5 text-orange-500 flex-shrink-0" />
+                  <div>
+                    <h3 className="text-sm font-medium text-orange-800">
+                      Proyecto Archivado
+                    </h3>
+                    <p className="text-sm text-orange-700 mt-1">
+                      Este proyecto ha sido marcado como archivado. Puede ser editado pero se mantiene en estado de archivo.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Información del Proyecto */}
             <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
               <div className="space-y-4">
@@ -192,6 +210,20 @@ export const DetalleProyectoMobile = ({
                     </span>
                   </div>
                 </div>
+
+                {/* Flag de proyecto archivado */}
+                {oportunidad.archivado === 1 && (
+                  <div className="flex items-center gap-3">
+                    <ArchiveIcon className="h-5 w-5 text-orange-500" />
+                    <div className="flex flex-row gap-2 items-center"> 
+                      <label className="text-xs text-gray-500">Estado del Proyecto</label>
+                      <span className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-orange-100 text-orange-800">
+                        <ArchiveIcon className="w-3 h-3 mr-1" />
+                        Archivado
+                      </span>
+                    </div>
+                  </div>
+                )}
                 <div className="flex items-center gap-3">
                   <DollarSignIcon className="h-5 w-5 text-gray-400" />
                   <div>

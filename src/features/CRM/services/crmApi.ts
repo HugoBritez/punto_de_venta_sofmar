@@ -75,6 +75,26 @@ export const crmApi = {
     return data.body;
   },
 
+  getOportunidadesArchivadas: async (fechaDesde?: Date, fechaHasta?: Date): Promise<OportunidadViewModel[]> => {
+
+    const params: any = {};
+
+    if (fechaDesde) {
+      const fechaDesdeISO = new Date(fechaDesde);
+      fechaDesdeISO.setHours(0, 0, 0, 0);
+      params.fechaDesde = fechaDesdeISO.toISOString();
+    }
+
+    if (fechaHasta) {
+      const fechaHastaISO = new Date(fechaHasta);
+      fechaHastaISO.setHours(23, 59, 59, 999);
+      params.fechaHasta = fechaHastaISO.toISOString();
+    }
+
+    const { data} = await api.get("crm/oportunidades/archivadas", {params})
+    return data.body;
+  },
+
   // --- Tareas ---
   getTareas: async (): Promise<TareaCRM[]> => {
     const { data } = await api.get("/crm/tareas");

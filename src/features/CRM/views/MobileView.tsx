@@ -12,13 +12,15 @@ import {
   Filter,
   X,
   Plus,
-  Loader2
+  Loader2,
+  Trash
 } from "lucide-react"
 import { MobileTab } from "../components/mobile/MobileTab"
 import { ContactosMobile } from "../components/mobile/ContactosMobile"
 import { CalendarViewMobile } from "../components/mobile/CalendaViewMobile"
 import { DetalleProyectoMobile } from "../components/mobile/DetalleProyectoMobile"
 import { ProyectoForm } from "../components/ProyectoForm"
+import { ArchivadosModal } from "../components/ArchivadosModal"
 
 export interface MobileViewProps {
     oportunidades: OportunidadViewModel[]
@@ -70,6 +72,9 @@ export const MobileView = (props: MobileViewProps) => {
     // Estado para el modal de detalles del proyecto
     const [selectedOportunidad, setSelectedOportunidad] = useState<OportunidadViewModel | null>(null)
     const [isDetalleModalOpen, setIsDetalleModalOpen] = useState(false)
+    
+    // Estado para el modal de archivados
+    const [isOpenArchivadas, setIsOpenArchivadas] = useState<boolean>(false)
 
     // Acciones del menú de navegación
     const navigationActions: ActionItem[] = [
@@ -243,6 +248,17 @@ export const MobileView = (props: MobileViewProps) => {
                     >
                         <Plus className="w-4 h-4" />
                         <span className="text-sm font-medium">Nuevo</span>
+                    </button>
+                </div>
+
+                {/* Botón de ver archivados */}
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => setIsOpenArchivadas(true)}
+                        className="flex w-full items-center justify-center gap-2 px-4 py-2.5 rounded-lg border transition-all duration-200 border-red-500 bg-red-50 text-red-500 hover:bg-red-100"
+                    >
+                        <Trash className="w-4 h-4"/>
+                        <span className="text-sm font-medium">Ver Proyectos Archivados</span>
                     </button>
                 </div>
 
@@ -498,6 +514,16 @@ export const MobileView = (props: MobileViewProps) => {
                 onSuccess={props.onProyectoCreated}
                 operador={props.operador}
                 esAdmin={props.esAdmin}
+            />
+
+            {/* Modal de Proyectos Archivados */}
+            <ArchivadosModal
+                isOpen={isOpenArchivadas}
+                onClose={() => setIsOpenArchivadas(false)}
+                fechaDesde={props.fechaDesde ? new Date(props.fechaDesde + 'T00:00:00') : undefined}
+                fechaHasta={props.fechaHasta ? new Date(props.fechaHasta + 'T23:59:59') : undefined}
+                esAdmin={props.esAdmin}
+                operador={props.operador}
             />
         </div>
     )
