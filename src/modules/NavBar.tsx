@@ -40,6 +40,7 @@ import {
   Boxes,
   Menu,
   User,
+  Columns3,
 } from "lucide-react";
 import { useAuth } from "@/services/AuthContext";
 import { db, fechaRelease, version } from "@/utils";
@@ -149,6 +150,15 @@ const Sidebar = () => {
       path: "/dashboard",
       enabled: true,
     },
+    {
+      grupo: 17,
+      orden: 1,
+      id: 590,
+      name: "CRM",
+      icon: User,
+      path: "/crm",
+      enabled: true,
+    },
     // {
     //   name: "Módulo Financiero",
     //   icon: Receipt,
@@ -177,7 +187,7 @@ const Sidebar = () => {
     // },
      {
        name: "Módulo Mantenimiento",
-       icon: User,
+       icon: Columns3,
        path: "/personas",
        enabled: true,
        subItems: [
@@ -189,16 +199,7 @@ const Sidebar = () => {
            icon: User,
            path: "/personas",
            enabled: true,
-         },
-         {
-          grupo: 999,
-          orden: 999,
-          id: 115,
-          name: "CRM",
-          icon: User,
-          path: "/crm",
-          enabled: true,
-        },
+         }
        ],
      },
     {

@@ -1,9 +1,24 @@
-import { Mail, X, Search } from "lucide-react";
+import { Mail, X } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import ChatList from "./ChatLists";
+import { ChatView } from "./ChatView";
+import { Chat } from "../types/whatsapp.types";
 
 export const ChatMainView = () => {
     const [isOpen, setIsOpen] = useState(false);
+    const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
+    const [currentView, setCurrentView] = useState<'list' | 'chat'>('list');
+
+    const handleChatSelect = (chat: Chat) => {
+        setSelectedChat(chat);
+        setCurrentView('chat');
+    };
+
+    const handleBackToList = () => {
+        setCurrentView('list');
+        setSelectedChat(null);
+    };
 
     return (
         <>
@@ -74,35 +89,21 @@ export const ChatMainView = () => {
                             </motion.button>
                         </motion.div>
 
-                        {/* Barra de búsqueda */}
-                        <motion.div 
-                            className="px-6 py-4"
-                            initial={{ y: -10, opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
-                            transition={{ delay: 0.2, duration: 0.3 }}
-                        >
-                            <div className="relative">
-                                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                                <input 
-                                    type="text" 
-                                    className="w-full h-12 pl-10 pr-4 bg-gray-50 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200" 
-                                    placeholder="Buscar entre los mensajes..." 
-                                />
-                            </div>
-                        </motion.div>
-
                         {/* Contenido del chat */}
                         <motion.div 
-                            className="flex-1 px-6 py-4 overflow-y-auto"
+                            className="flex-1 px-0 py-0 overflow-y-auto h-full"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ delay: 0.3, duration: 0.3 }}
                         >
-                            <div className="text-center text-gray-500 py-8">
-                                <Mail className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                                <p className="text-sm">No hay mensajes aún</p>
-                                <p className="text-xs text-gray-400 mt-1">Esta funcionalidad esta en desarrollo</p>
-                            </div>
+                            {currentView === 'list' ? (
+                                <ChatList onChatSelect={handleChatSelect} />
+                            ) : (
+                                <ChatView 
+                                    chat={selectedChat} 
+                                    onBack={handleBackToList} 
+                                />
+                            )}
                         </motion.div>
                     </motion.div>
                 )}
