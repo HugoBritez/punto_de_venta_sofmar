@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { X, Plus, Search, Filter, Calendar, Users, Kanban, Loader2, Trash } from "lucide-react"
 import ProjectCanvas from "../components/ProjectCanvas"
 import { ProyectoForm } from "../components/ProyectoForm"
-import { useActualizarOportunidad, useAgendamientos, useOportunidades } from "../hooks/useCRM"
+import { useActualizarOportunidad, useAgendamientos, useContactos, useOportunidades } from "../hooks/useCRM"
 import { useAuth } from "@/services/AuthContext"
 import { useQueryClient } from "@tanstack/react-query"
 import { CalendarView } from "../components/CalendarView"
@@ -87,6 +87,8 @@ export const ModuloCRM = () => {
         fechaDesdeDate,
         fechaHastaDate
     );
+
+    const { data: contactos } = useContactos(operador, esAdmin);
 
 
     const [isOpenArchivadas, setIsOpenArchivadas] = useState<boolean>(false);
@@ -692,7 +694,7 @@ export const ModuloCRM = () => {
                 operador={operador}
                 esAdmin={esAdmin}
             />
-            <ChatMainView/>
+            <ChatMainView contactos={contactos || []}/>
             <ArchivadosModal
               isOpen= {isOpenArchivadas}
               onClose = {()=>setIsOpenArchivadas(false)}

@@ -151,7 +151,6 @@ export const RecordatorioForm = ({ recordatorio, fechaSeleccionada, onClose, onS
         
         // Validar solo los campos editables
         newErrors.titulo = validateField('titulo', formData.titulo);
-        newErrors.descripcion = validateField('descripcion', formData.descripcion);
         newErrors.fecha = validateField('fecha', formData.fecha);
         newErrors.fechaLimite = validateField('fechaLimite', formData.fechaLimite);
         newErrors.hora = validateField('hora', formData.hora);
@@ -256,10 +255,9 @@ export const RecordatorioForm = ({ recordatorio, fechaSeleccionada, onClose, onS
                                     <p className="text-red-500 text-sm mt-1">{errors.titulo}</p>
                                 )}
                             </div>
-                            
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Descripción *
+                                    Descripción (opcional)
                                 </label>
                                 <textarea
                                     value={formData.descripcion}

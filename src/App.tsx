@@ -61,6 +61,7 @@ import GestionDireccionesV2 from "./views/direcciones/GestionDireccionesV2";
 import { ProveedorLogin } from "./features/Login/view/ProveedorLogin";
 import { ConsultaVentasProveedores } from "./features/public/ConsultaVentasProveedor/ReporteVentasProveedores";
 import { ModuloCRM } from "./features/CRM/views/MainPage";
+import { SocketProvider } from "./shared/Context/WhatsappSocketContext";
   // import InventarioPannel from "./features/Inventario/views/InventarioPannel";
 
 const ProtectedLayout: React.FC = () => {
@@ -96,6 +97,7 @@ const ProtectedLayout: React.FC = () => {
 
 function App() {
   return (
+    <SocketProvider>
     <ChakraProvider>
       <AuthProvider>
         <SwitchProvider>
@@ -202,6 +204,7 @@ function App() {
         </SwitchProvider>
       </AuthProvider>
     </ChakraProvider>
+    </SocketProvider>
   );
 }
 

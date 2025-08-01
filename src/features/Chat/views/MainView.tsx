@@ -1,14 +1,24 @@
 import { Mail, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import ChatList from "./ChatLists";
 import { ChatView } from "./ChatView";
 import { Chat } from "../types/whatsapp.types";
+import { useChat } from "@/shared/hooks/useChat";
+import { ContactoCRMModel } from "@/features/CRM/types/contactos.type";
 
-export const ChatMainView = () => {
+export const ChatMainView = ({ contactos }: { contactos: ContactoCRMModel[] }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [selectedChat, setSelectedChat] = useState<Chat | null>(null);
     const [currentView, setCurrentView] = useState<'list' | 'chat'>('list');
+
+    const { getChatList, connected, chats } = useChat();
+
+    useEffect(() => {
+        if (connected) {
+            getChatList({ limit: 20 });
+        }
+    }, [connected, getChatList]);
 
     const handleChatSelect = (chat: Chat) => {
         setSelectedChat(chat);
@@ -37,10 +47,16 @@ export const ChatMainView = () => {
                     >
                         <Mail className="w-5 h-5 text-white" />
                         <p className="text-white text-sm font-semibold">Mensajes</p>
+                        {
+                            chats.filter(chat => chat.unreadCount > 0).length > 0 && (
+                                <div className="w-6 h-6 bg-red-500 rounded-full relative right-0 top-0 flex items-center justify-center ease-in-out duration-300 ">
+                                    <p className="text-white text-xs font-semibold">{chats.filter(chat => chat.unreadCount > 0).length}</p>
+                                </div>
+                            )
+                        }
                     </motion.div>
                 )}
             </AnimatePresence>
-
             {/* Backdrop con blur y oscurecimiento */}
             <AnimatePresence>
                 {isOpen && (
@@ -97,11 +113,12 @@ export const ChatMainView = () => {
                             transition={{ delay: 0.3, duration: 0.3 }}
                         >
                             {currentView === 'list' ? (
-                                <ChatList onChatSelect={handleChatSelect} />
+                                <ChatList onChatSelect={handleChatSelect} contactos={contactos} />
                             ) : (
                                 <ChatView 
                                     chat={selectedChat} 
                                     onBack={handleBackToList} 
+                                    contactos={contactos}
                                 />
                             )}
                         </motion.div>

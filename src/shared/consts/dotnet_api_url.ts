@@ -1,1 +1,1 @@
-export const dotnet_api_url = "https://localhost:4024/api/"
+export const dotnet_api_url = "https://node.sofmar.com.py:5024/api/"

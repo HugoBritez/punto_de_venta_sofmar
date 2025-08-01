@@ -17,7 +17,7 @@ export interface Chat {
     timestamp: Date;
     from: string;
     to?: string;
-    type: string;
+  type: string;
     content: any;
     status: string;
   }

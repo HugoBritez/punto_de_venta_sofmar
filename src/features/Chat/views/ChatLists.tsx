@@ -1,19 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { useSocket } from '../services/useSocket';
 import { Chat } from '../types/whatsapp.types';
+import { useChat } from '@/shared/hooks/useChat';
+import { ContactoCRMModel } from '@/features/CRM/types/contactos.type';
+import { getContactName } from '../utils/getContactName';
 
 interface ChatListProps {
   onChatSelect: (chat: Chat) => void;
+  contactos: ContactoCRMModel[];
 }
 
-const ChatList: React.FC<ChatListProps> = ({ onChatSelect }) => {
+const ChatList: React.FC<ChatListProps> = ({ onChatSelect, contactos }) => {
   const {
     connected,
     chats,
     getChatList,
     subscribeToChat,
     markChatAsRead
-  } = useSocket();
+  } = useChat();
 
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
 
@@ -83,7 +86,7 @@ const ChatList: React.FC<ChatListProps> = ({ onChatSelect }) => {
                 {/* Avatar */}
                 <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center">
                   <span className="text-gray-600 font-semibold text-lg">
-                    {chat.metadata.contactName.slice(-2)}
+                    {getContactName(contactos, chat.metadata.phoneNumberId).slice(-2)}
                   </span>
                 </div>
 
@@ -91,7 +94,7 @@ const ChatList: React.FC<ChatListProps> = ({ onChatSelect }) => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-semibold text-gray-900 truncate">
-                      {chat.metadata.contactName}
+                      {getContactName(contactos, chat.metadata.phoneNumberId)}
                     </h3>
                     <span className="text-xs text-gray-500">
                       {formatTime(chat.lastMessage)}
