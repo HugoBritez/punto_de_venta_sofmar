@@ -125,7 +125,7 @@ const generarPDF = async (data: PreparacionPedido[]) => {
 
     const docDefinition = {
       pageSize: "A4",
-      pageMargins: [20, 20, 20, 20],
+      pageMargins: [15, 15, 15, 15],
       content: [
         {
           columns: [
@@ -147,84 +147,85 @@ const generarPDF = async (data: PreparacionPedido[]) => {
         {
           text: "SEPARACION DE ARTICULOS PARA PEDIDO",
           alignment: "center",
-          fontSize: 12,
+          fontSize: 10,
           bold: true,
-          margin: [0, 10],
+          margin: [0, 5],
         },
         {
           columns: [
             {
               text: `Cliente: ${pedidoData.cliente}`,
               width: "*",
-              fontSize: 10,
+              fontSize: 7,
             },
             {
               text: `Pedido Nro.: ${pedidoData.id_pedido}`,
               width: "*",
-              fontSize: 10,
+              fontSize: 7,
             },
-            { text: `Fecha: ${pedidoData.fecha}`, width: "*", fontSize: 10 },
+            { text: `Fecha: ${pedidoData.fecha}`, width: "*", fontSize: 7 },
             {
               text: `Deposito: ${pedidoData.deposito}`,
               width: "*",
-              fontSize: 10,
+              fontSize: 7,
             },
             {
               text: `Sucursal: ${pedidoData.sucursal}`,
               width: "*",
-              fontSize: 10,
+              fontSize: 7,
             },
           ],
-          margin: [0, 10],
+          margin: [0, 5],
         },
         {
           text: `Observacion: ${obs}`,
           alignment: "right",
-          fontSize: 8,
-          margin: [0, 5],
+          fontSize: 7,
+          margin: [0, 2],
         },
         {
           text: `Operador: ${operador}`,
           alignment: "right",
-          fontSize: 8,
-          margin: [0, 5],
+          fontSize: 7,
+          margin: [0, 2],
         },
         {
           table: {
             headerRows: 1,
             widths: [
-              "auto",
-              "auto",
-              "*",
-              "auto",
-              "auto",
-              "auto",
-              "auto",
-              "auto",
+              "12%",
+              "15%", 
+              "25%",
+              "12%",
+              "10%",
+              "8%",
+              "10%",
+              "8%",
             ],
             body: [
               [
-                { text: "Codigo Interno", fillColor: "#ecedee", fontSize: 8 },
-                { text: "Codigo Barras", fillColor: "#ecedee", fontSize: 8 },
-                { text: "Descripcion", fillColor: "#ecedee", fontSize: 8 },
-                { text: "Vencimiento", fillColor: "#ecedee", fontSize: 8 },
-                { text: "Lote", fillColor: "#ecedee", fontSize: 8 },
-                { text: "Cantidad", fillColor: "#ecedee", fontSize: 8 },
-                { text: "Ubi./Sub Ubi.", fillColor: "#ecedee", fontSize: 8 },
-                { text: "Stock", fillColor: "#ecedee", fontSize: 8 },
+                { text: "Codigo Interno", fillColor: "#ecedee", fontSize: 10, bold: true },
+                { text: "Codigo Barras", fillColor: "#ecedee", fontSize: 10, bold: true },
+                { text: "Descripcion", fillColor: "#ecedee", fontSize: 10, bold: true },
+                { text: "Vencimiento", fillColor: "#ecedee", fontSize: 10, bold: true },
+                { text: "Lote", fillColor: "#ecedee", fontSize: 10, bold: true },
+                { text: "Cantidad", fillColor: "#ecedee", fontSize: 10, bold: true },
+                { text: "Ubi./Sub Ubi.", fillColor: "#ecedee", fontSize: 10, bold: true },
+                { text: "Stock", fillColor: "#ecedee", fontSize: 10, bold: true },
               ],
               ...pedidoData.articulos.map((articulo) => [
-                { text: articulo.cod_interno, fontSize: 6 },
-                { text: articulo.cod_barras, fontSize: 6 },
-                { text: articulo.descripcion, fontSize: 6 },
-                { text: articulo.vencimiento, fontSize: 6 },
-                { text: articulo.lote, fontSize: 6 },
-                { text: articulo.cantidad, fontSize: 6 },
-                { text: `${articulo.ubicacion}/${articulo.sububicacion}`, fontSize: 6 },
-                { text: articulo.stock, fontSize: 6 },
+                { text: articulo.cod_interno, fontSize: 9 },
+                { text: articulo.cod_barras, fontSize: 9 },
+                { text: articulo.descripcion, fontSize: 9 },
+                { text: articulo.vencimiento, fontSize: 9 },
+                { text: articulo.lote, fontSize: 9 },
+                { text: articulo.cantidad, fontSize: 9 },
+                { text: `${articulo.ubicacion}/${articulo.sububicacion}`, fontSize: 9 },
+                { text: articulo.stock, fontSize: 9 },
               ]),
             ],
           },
+          margin: [0, 10],
         },
       ],
       styles: {
@@ -234,11 +235,11 @@ const generarPDF = async (data: PreparacionPedido[]) => {
           color: "black",
         },
         tableBody: {
-          fontSize: 6,
+          fontSize: 7,
         },
       },
       defaultStyle: {
-        fontSize: 6,
+        fontSize: 7,
       },
     };
 
@@ -260,6 +261,5 @@ const generarPDF = async (data: PreparacionPedido[]) => {
     null
   );
 };
-
 
 export default DocumentoPreparacion;

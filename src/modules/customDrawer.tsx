@@ -7,7 +7,6 @@ interface NavItem {
   name: string;
   icon: React.ElementType;
   path: string;
-  enabled: boolean;
   subItems?: NavItem[];
 }
 
@@ -103,9 +102,7 @@ const CustomDrawer: React.FC<CustomDrawerProps> = ({
                         location.pathname === subItem.path
                           ? "text-blue-500"
                           : "text-black"
-                      } hover:bg-blue-100 rounded-lg ${
-                        subItem.enabled ? "" : "opacity-50 pointer-events-none"
-                      }`}
+                      } hover:bg-blue-100 rounded-lg`}
                     >
                       <subItem.icon className="w-4 h-4 mr-2" />
                       <span>{subItem.name}</span>
@@ -122,9 +119,7 @@ const CustomDrawer: React.FC<CustomDrawerProps> = ({
           onClick={onClose}
           className={`flex items-center px-4 py-2 ${
             location.pathname === item.path ? "text-blue-500" : "text-black"
-          } hover:bg-blue-100 rounded-lg ${
-            item.enabled ? "" : "opacity-50 pointer-events-none"
-          }`}
+          } hover:bg-blue-100 rounded-lg`}
         >
           <item.icon className="w-5 h-5 mr-2" />
           <span>{item.name}</span>

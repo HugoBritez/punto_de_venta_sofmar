@@ -5,6 +5,7 @@ import { useChat } from "@/shared/hooks/useChat";
 import { useSendMessage } from "../Hooks/useSendMessage";
 import { ContactoCRMModel } from "@/features/CRM/types/contactos.type";
 import { getContactName } from "../utils/getContactName";
+import { formatFileUrl } from "../utils/formatFileUrl";
 
 interface ChatViewProps {
     chat: Chat | null;
@@ -77,7 +78,7 @@ export const ChatView: React.FC<ChatViewProps> = ({ chat, onBack, contactos }) =
             return (
                 <div className="space-y-2">
                     <img
-                        src={message.content.media.downloadUrl}
+                        src={formatFileUrl(message.content.media.downloadUrl)}
                         alt="Media"
                         className="max-w-full h-auto rounded-lg"
                         onError={(e) => {

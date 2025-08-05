@@ -67,8 +67,8 @@ const FormularioPedidosMobile = () => {
     p_descuento: 0,
     p_obs: "",
     p_estado: 1,
-    p_vendedor: 0,
-    p_area: 1,
+    p_vendedor: operador ? Number(operador) : 0,
+    p_area: 5,
     p_tipo_estado: 1,
     p_credito: 0,
     p_imprimir: 0,
@@ -311,6 +311,7 @@ const FormularioPedidosMobile = () => {
         ...prev,
         p_operador: Number(operador)
       }));
+      setVendedorGuardado(Number(operador));
     }
   }, [operador]);
 
@@ -423,7 +424,7 @@ const FormularioPedidosMobile = () => {
       p_obs: "",
       p_estado: 1,
       p_vendedor: vendedorSeleccionado?.op_codigo || 0,
-      p_area: 1,
+      p_area: 5,
       p_tipo_estado: 1,
       p_credito: 0,
       p_imprimir: 0,

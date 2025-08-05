@@ -79,10 +79,9 @@ const EmptyState = () => (
     </div>
 );
 
-const ActionMenu = ({ persona, onEdit, onDelete }: {
+const ActionMenu = ({ persona, onEdit }: {
     persona: PersonaViewModel,
     onEdit: (persona: PersonaViewModel) => void,
-    onDelete: (persona: PersonaViewModel) => void
 }) => {
     const [isOpen, setIsOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -133,18 +132,6 @@ const ActionMenu = ({ persona, onEdit, onDelete }: {
                             </svg>
                             Editar
                         </button>
-                        <button
-                            onClick={() => {
-                                onDelete(persona);
-                                setIsOpen(false);
-                            }}
-                            className="flex items-center w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors duration-150"
-                        >
-                            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                            Eliminar
-                        </button>
                     </div>
                 </div>
             )}
@@ -156,7 +143,6 @@ const PersonasTable = ({
     personas,
     isLoading,
     onEdit,
-    onDelete,
     focusedRowIndex,
     setFocusedRowIndex
 }: {
@@ -222,11 +208,10 @@ const PersonasTable = ({
                 <ActionMenu
                     persona={row.original}
                     onEdit={onEdit}
-                    onDelete={onDelete}
                 />
             ),
         }
-    ], [onEdit, onDelete]);
+    ], [onEdit]);
 
     const table = useReactTable({
         data: personas,
@@ -402,8 +387,14 @@ const PersonasList = () => {
 
     const toast = useToast();
 
-    const permisoCrear = puedeCrear(2, 4)
-    const permisoEditar = puedeEditar(2, 4);
+    const permisoCrear = puedeCrear(16, 1)
+    const permisoEditar = puedeEditar(16, 1);
+
+
+    useEffect(() => {
+        console.log("permisoCrear", permisoCrear);
+        console.log("permisoEditar", permisoEditar);
+    }, [permisoCrear, permisoEditar]);
 
     // Aseguramos que los parámetros sean del tipo correcto antes de llamar al hook
     const rucValido = typeof selectedId === 'number' ? selectedId : 0;

@@ -62,6 +62,7 @@ import { ProveedorLogin } from "./features/Login/view/ProveedorLogin";
 import { ConsultaVentasProveedores } from "./features/public/ConsultaVentasProveedor/ReporteVentasProveedores";
 import { ModuloCRM } from "./features/CRM/views/MainPage";
 import { SocketProvider } from "./shared/Context/WhatsappSocketContext";
+import { ConsultaMovimientoCuentasBancarias } from "./features/Bancos/views/ConsultaMovimientoCuentasBancarias";
   // import InventarioPannel from "./features/Inventario/views/InventarioPannel";
 
 const ProtectedLayout: React.FC = () => {
@@ -194,6 +195,7 @@ function App() {
                 <Route path="/verificador-ingresos" element={<VerificadorControl />} />
                 <Route path="/consulta-pedidos-faltantes" element={<ConsultaPedidosFaltantes />} />
                 <Route path="/gestion-direcciones" element={<GestionDireccionesV2 />} />
+                <Route path="/bancos" element={<ConsultaMovimientoCuentasBancarias />} />
               </Route>
               <Route path="/" element={<Navigate to="/home" replace />} />
               <Route path="/404" element={<NoExiste />} />

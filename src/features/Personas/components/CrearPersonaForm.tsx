@@ -153,11 +153,11 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
             descripcion: "",
             condicion: 0,
             tipo: 0,
-            grupo: 0,
+            grupo: 1,
             plazo: 0,
             zona: 0,
             llamada: new Date().toISOString(),
-            proxLlamada: new Date().toISOString(),
+            proxLlamada: new Date().toISOString(),  
             respuesta: "",
             fecNac: new Date().toISOString(),
             exentas: 0,
@@ -427,7 +427,7 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
                     descripcion: personaAEditar.cliente?.descripcion || "",
                     condicion: personaAEditar.cliente?.condicion || 0,
                     tipo: personaAEditar.cliente?.tipo || 0,
-                    grupo: personaAEditar.cliente?.grupo || 0,
+                    grupo: personaAEditar.cliente?.grupo || 1,
                     plazo: personaAEditar.cliente?.plazo || 0,
                     zona: personaAEditar.cliente?.zona || 0,
                     llamada: personaAEditar.cliente?.llamada || new Date().toISOString(),
@@ -904,7 +904,7 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
                     descripcion: "",
                     condicion: 0,
                     tipo: 0,
-                    grupo: 0,
+                    grupo: 1,
                     plazo: 0,
                     zona: 0,
                     llamada: new Date().toISOString(),
@@ -1035,8 +1035,8 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
                                 />
                             </div>
                             <div>
-                                <label htmlFor="razon" className="block text-sm font-medium text-gray-700 mb-1">
-                                    Razón Social *
+                                <label htmlFor="razon" className="block text-xs font-medium text-gray-700 mb-1">
+                                    Nombre de fantasia (Razón Social) *
                                 </label>
                                 <input
                                     type="text"
@@ -1054,7 +1054,7 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
                         </div>
                         <div>
                             <label htmlFor="descripcion" className="block text-sm font-medium text-gray-700 mb-1">
-                                Nombre de fantasia *
+                                Razón Social Fiscal *
                             </label>
                             <input
                                 type="text"
@@ -1099,7 +1099,7 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
                             </div>
                             <div>
                                 <label htmlFor="ruc" className="block text-sm font-medium text-gray-700 mb-1">
-                                    RUC
+                                    RUC *
                                 </label>
                                 <input
                                     type="text"
@@ -1117,7 +1117,7 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
                             </div>
                             <div>
                                 <label htmlFor="ci" className="block text-sm font-medium text-gray-700 mb-1">
-                                    CI
+                                    CI *
                                 </label>
                                 <input
                                     type="text"
@@ -1142,15 +1142,8 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
                                 }} className="disabled:opacity-50 disabled:cursor-not-allowed" onKeyDown={handleEnterDown} />
                                 <label htmlFor="repetirRuc" className="text-md font-bold">Repetir RUC</label>
                             </div>
-                            <div>
-                                <label htmlFor="limitecredito" className="block text-sm font-medium text-gray-700 mb-1">Limite de credito</label>
-                                <input type="number" id="limitecredito" name="limitecredito" value={personaDTO.cliente.limiteCredito} disabled={!isClienteSelected} onKeyDown={handleEnterDown}
-                                    onChange={(e) => {
-                                        updateCliente("limiteCredito", Number.parseInt(e.target.value))
-                                    }} className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
-                            </div>
                             <label htmlFor="direccion" className="block text-sm font-medium text-gray-700 mb-1 ">
-                                Dirección
+                                Dirección *
                             </label>
                             <input
                                 type="text"
@@ -1170,7 +1163,7 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
                         </div>
                         <div className="flex flex-col flex-1">
                             <label htmlFor="direccion" className="block text-sm font-medium text-gray-700 mb-1 ">
-                                Email
+                                Email *
                             </label>
                             <input
                                 type="text"
@@ -1192,7 +1185,7 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
 
                             <div className="flex flex-col flex-1">
                                 <label htmlFor="barrio" className="block text-sm font-medium text-gray-700 mb-1">
-                                    Barrio
+                                    Barrio *
                                 </label>
                                 <input
                                     type="text"
@@ -1211,7 +1204,7 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
                             </div>
                             <div className="flex flex-col flex-1">
                                 <label htmlFor="telefono" className="block text-sm font-medium text-gray-700 mb-1">
-                                    Telefono
+                                    Telefono *
                                 </label>
                                 <input
                                     type="text"
@@ -1266,7 +1259,7 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
                     <div className="flex flex-col gap-2 w-full">
                         <div>
                             <label htmlFor="departamento" className="block text-sm font-medium text-gray-700 mb-1">
-                                Departamento
+                                Departamento *
                             </label>
                             <select
                                 id="departamento"
@@ -1303,7 +1296,7 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
                                     { field: "id", label: "Codigo" },
                                     { field: "descripcion", label: "Ciudad" }
                                 ]}
-                                label="Ciudad"
+                                label="Ciudad *"
                                 isLoading={isLoadingCiudades}
                                 isError={isErrorCiudades}
                                 errorMessage="Error al cargar las ciudades"
@@ -1325,7 +1318,7 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
                                     { field: "codigo", label: "Codigo" },
                                     { field: "descripcion", label: "Zona" }
                                 ]}
-                                label="Zona"
+                                label="Zona *"
                                 isLoading={isLoadingCiudades}
                                 isError={isErrorCiudades}
                                 errorMessage="Error al cargar las zonas"
@@ -1335,7 +1328,7 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
                         <div className="flex flex-row gap-2 w-full">
                             <div className="flex flex-col flex-1">
                                 <label htmlFor="clienteMoneda" className="block text-sm font-medium text-gray-700 mb-1">
-                                    Moneda
+                                    Moneda *
                                 </label>
                                 <select
                                     id="clienteMoneda"
@@ -1361,7 +1354,7 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
                             </div>
                             <div className="flex flex-col flex-1">
                                 <label htmlFor="plazo" className="block text-sm font-medium text-gray-700 mb-1">
-                                    Plazo
+                                    Plazo *
                                 </label>
                                 <select
                                     id="tipoPlazo"
@@ -1411,7 +1404,7 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
                     <div className="flex flex-col gap w-full">
                         <div className="flex flex-col flex-1 relative">
                             <label htmlFor="agente" className="block text-sm font-medium text-gray-700 mb-1">
-                                Agente de ventas
+                                Agente de ventas *
                             </label>
                             <input
                                 type="text"
@@ -1437,7 +1430,7 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
 
                         <div className="flex flex-col flex-1 relative">
                             <label htmlFor="vendedor" className="block text-sm font-medium text-gray-700 mb-1">
-                                Vendedor asignado al cliente
+                                Vendedor asignado al cliente *
                             </label>
                             <input
                                 type="text"
@@ -1462,7 +1455,7 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
 
                         <div className="flex flex-col flex-1 relative">
                             <label htmlFor="cobrador" className="block text-sm font-medium text-gray-700 mb-1">
-                                Cobrador asignado al cliente
+                                Cobrador asignado al cliente *
                             </label>
                             <input
                                 type="text"
@@ -1486,7 +1479,7 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
                         </div>
                         <div>
                             <label htmlFor="condicion" className="block text-sm font-medium text-gray-700 mb-1">
-                                Condición de venta
+                                Condición de venta *
                             </label>
                             <div className="flex flex-row gap-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 p-2">
                                 <input
@@ -1542,7 +1535,7 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
                                 <label htmlFor="credito" className="text-md font-bold">Credito</label>
                             </div>
                             <div>
-                                <label htmlFor="limitecredito" className="block text-sm font-medium text-gray-700 mb-1">Limite de credito</label>
+                                <label htmlFor="limitecredito" className="block text-sm font-medium text-gray-700 mb-1">Limite de credito *</label>
                                 <input type="number" id="limitecredito" name="limitecredito" value={personaDTO.cliente.limiteCredito} disabled={!isClienteSelected} onKeyDown={handleEnterDown}
                                     onChange={(e) => {
                                         updateCliente("limiteCredito", Number.parseInt(e.target.value))
@@ -1620,7 +1613,7 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
                             <input onKeyDown={handleEnterDown} type="text" name="gerMail" id="gerMail" disabled={!isClienteSelected} value={personaDTO.cliente.gerMail} onChange={(e) => updateCliente('gerMail', e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" />
                         </div>
                         <div className="flex flex-row gap-2 items-center">
-                            <label htmlFor="sexo" className="font-bold text-sm">Sexo</label>
+                            <label htmlFor="sexo" className="font-bold text-sm">Sexo </label>
                             <select onKeyDown={handleEnterDown} name="sexo" id="sexo" className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" disabled={!isClienteSelected} value={personaDTO.cliente.sexo} onChange={(e) => updateCliente("sexo", Number.parseInt(e.target.value))}>
                                 <option value="M" selected={personaDTO.cliente.sexo === 1} onChange={() => updateCliente("sexo", 0)}>Masculino</option>
                                 <option value="F" selected={personaDTO.cliente.sexo === 2} onChange={() => updateCliente("sexo", 1)}>Femenino</option>
@@ -1655,7 +1648,7 @@ const CrearPersonaForm = ({ personaAEditar }: CrearPersonaFormProps) => {
                             <label htmlFor="bloquearVendedor">Bloquear Vendedor en Balcon</label>
                         </div>
                         <div className="flex flex-col gap-2 p-2 justify-center w-full items-center">
-                            <p className="text-md font-bold">Lista de precios para cliente</p>
+                            <p className="text-md font-bold">Lista de precios para cliente *</p>
                             <Autocomplete<ListaPrecio>
                                 label=""
                                 data={ListaDePrecios || []}

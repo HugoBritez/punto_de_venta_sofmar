@@ -45,10 +45,10 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
     if (!socket) {
       console.log('🔌 Creando nueva conexión WebSocket...');
       
-      
       // Verificar que tenemos token antes de conectar
       const token = sessionStorage.getItem('token');
       const userId = sessionStorage.getItem('user_id');
+
       
       if (!token) {
         console.error('❌ No hay token disponible para autenticación WebSocket');
@@ -61,6 +61,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
         auth: {
           token: token,
           clientId: `sofmar_crm_${userId}_${Math.random().toString(36).substring(2, 15)}`,
+          
         },
         forceNew: true, // Forzar nueva conexión para evitar problemas de auth
       });

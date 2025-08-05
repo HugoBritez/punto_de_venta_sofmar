@@ -107,7 +107,7 @@ export const ChatMainView = ({ contactos }: { contactos: ContactoCRMModel[] }) =
 
                         {/* Contenido del chat */}
                         <motion.div 
-                            className="flex-1 px-0 py-0 overflow-y-auto h-full"
+                            className="flex-1 px-0 py-0 overflow-y-auto h-full hidden"
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ delay: 0.3, duration: 0.3 }}

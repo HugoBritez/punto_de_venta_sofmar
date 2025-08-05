@@ -41,6 +41,7 @@ import {
   Menu,
   User,
   Columns3,
+  Banknote,
 } from "lucide-react";
 import { useAuth } from "@/services/AuthContext";
 import { db, fechaRelease, version } from "@/utils";
@@ -79,6 +80,7 @@ const Sidebar = () => {
         return [
           {
             grupo: 0,
+            esActivo: 1,
             orden: 1,
             acceso: 1,
             menu_id: 0,
@@ -96,6 +98,7 @@ const Sidebar = () => {
           {
             acceso: 1,
             menu_id: 0,
+            esActivo: 1,
             menu_descripcion: "Inicio",
             menu_grupo: 0,
             menu_orden: 1,
@@ -111,6 +114,7 @@ const Sidebar = () => {
         {
           acceso: 1,
           menu_id: 0,
+          esActivo: 1,
           menu_descripcion: "Inicio",
           menu_grupo: 0,
           menu_orden: 1,
@@ -150,14 +154,23 @@ const Sidebar = () => {
       path: "/dashboard",
       enabled: true,
     },
-    {
-      grupo: 17,
-      orden: 1,
+     {
+       grupo: 17,
+       orden: 1,
+       id: 590,
+       name: "CRM",
+       icon: User,
+       path: "/crm",
+       enabled: false,
+     },
+     {
+      grupo: 999,
+      orden: 999,
       id: 590,
-      name: "CRM",
-      icon: User,
-      path: "/crm",
-      enabled: true,
+      name: "Bancos",
+      icon: Banknote,
+      path: "/bancos",
+      enabled: false,
     },
     // {
     //   name: "Módulo Financiero",
@@ -550,14 +563,27 @@ const Sidebar = () => {
       );
     };
 
-    const menuConPermisos = NAV_ITEMS.map((item) => ({
-      ...item,
-      enabled: !item.subItems ? tienePermiso(item.grupo, item.orden) : true,
-      subItems: item.subItems?.map((subItem) => ({
-        ...subItem,
-        enabled: tienePermiso(subItem.grupo, subItem.orden),
-      })),
-    }));
+    const menuConPermisos: NavItem[] = NAV_ITEMS.map((item) => {
+      // Para elementos principales sin subItems
+      if (!item.subItems) {
+        const tieneAcceso = tienePermiso(item.grupo, item.orden);
+        return tieneAcceso ? item : null;
+      }
+
+      // Para elementos con subItems
+      const subItemsFiltrados = item.subItems
+        .map((subItem) => {
+          const tieneAcceso = tienePermiso(subItem.grupo, subItem.orden);
+          return tieneAcceso ? subItem : null;
+        })
+        .filter((subItem): subItem is NavItem => subItem !== null);
+
+      // Solo mostrar el elemento principal si tiene al menos un subItem visible
+      return subItemsFiltrados.length > 0 ? {
+        ...item,
+        subItems: subItemsFiltrados,
+      } : null;
+    }).filter((item): item is NavItem => item !== null);
 
     setMenuItems(menuConPermisos);
   }, []);
@@ -634,8 +660,8 @@ const Sidebar = () => {
               mt={4}
               borderRadius={"8px"}
               transition="all 0.3s"
-              className={item.enabled ? "hover:bg-blue-100" : ""}
-              opacity={item.enabled ? 1 : 0.5}
+              className="hover:bg-blue-100"
+              opacity={1}
               onClick={(e) => handleItemClick(e, item.name)}
               cursor="pointer"
               border="2px solid"
@@ -683,8 +709,8 @@ const Sidebar = () => {
                         mx={2}
                         borderRadius={"8px"}
                         transition="all 0.3s"
-                        className={subItem.enabled ? "hover:bg-blue-100" : ""}
-                        opacity={subItem.enabled ? 1 : 0.5}
+                        className="hover:bg-blue-100"
+                        opacity={1}
                         onClick={(e) => handleItemClick(e, subItem.name)}
                         cursor="pointer"
                         border="1px solid"
@@ -745,7 +771,7 @@ const Sidebar = () => {
                                   onClose();
                                 }}
                                 style={{
-                                  pointerEvents: nestedItem.enabled ? "auto" : "none",
+                                  pointerEvents: "auto",
                                 }}
                               >
                                 <Flex
@@ -755,8 +781,8 @@ const Sidebar = () => {
                                   py={2}
                                   borderRadius={"8px"}
                                   transition="all 0.3s"
-                                  className={nestedItem.enabled ? "hover:bg-blue-100" : ""}
-                                  opacity={nestedItem.enabled ? 1 : 0.5}
+                                  className="hover:bg-blue-100"
+                                  opacity={1}
                                   minW="120px"
                                   maxW="200px"
                                   border="1px solid"
@@ -771,11 +797,11 @@ const Sidebar = () => {
                                   <Icon
                                     as={nestedItem.icon}
                                     boxSize={4}
-                                    color={
-                                      location.pathname === nestedItem.path && nestedItem.enabled
-                                        ? "blue.500"
-                                        : "black"
-                                    }
+                                                                      color={
+                                    location.pathname === nestedItem.path
+                                      ? "blue.500"
+                                      : "black"
+                                  }
                                     mr={2}
                                   />
                                   <Text 
@@ -805,7 +831,7 @@ const Sidebar = () => {
                       style={{
                         width: "100%",
                         height: "100%",
-                        pointerEvents: subItem.enabled ? "auto" : "none",
+                        pointerEvents: "auto",
                       }}
                     >
                       <Flex
@@ -815,8 +841,8 @@ const Sidebar = () => {
                         mx={2}
                         borderRadius={"8px"}
                         transition="all 0.3s"
-                        className={subItem.enabled ? "hover:bg-blue-100" : ""}
-                        opacity={subItem.enabled ? 1 : 0.5}
+                        className="hover:bg-blue-100"
+                        opacity={1}
                         border="1px solid"
                         borderColor="transparent"
                         _hover={{
@@ -839,7 +865,7 @@ const Sidebar = () => {
                           as={subItem.icon}
                           boxSize={4}
                           color={
-                            location.pathname === subItem.path && subItem.enabled
+                            location.pathname === subItem.path
                               ? "blue.500"
                               : "black"
                           }
@@ -872,11 +898,11 @@ const Sidebar = () => {
             h="100%"
           >
             <Link
-              to={item.enabled ? item.path : "#"}
+              to={item.path}
               style={{
                 width: "100%",
                 height: "100%",
-                pointerEvents: item.enabled ? "auto" : "none",
+                pointerEvents: "auto",
               }}
             >
               <Flex
@@ -890,17 +916,17 @@ const Sidebar = () => {
                 my={4}
                 borderRadius={"8px"}
                 transition="all 0.3s"
-                className={item.enabled ? "hover:bg-blue-100" : ""}
-                opacity={item.enabled ? 1 : 0.5}
-                border="2px solid"
-                borderColor={location.pathname === item.path && item.enabled ? "blue.500" : "transparent"}
-                bg={location.pathname === item.path && item.enabled ? "blue.50" : "transparent"}
+                              className="hover:bg-blue-100"
+              opacity={1}
+              border="2px solid"
+              borderColor={location.pathname === item.path ? "blue.500" : "transparent"}
+              bg={location.pathname === item.path ? "blue.50" : "transparent"}
               >
                 <Icon
                   as={item.icon}
                   boxSize={6}
                   color={
-                    location.pathname === item.path && item.enabled
+                    location.pathname === item.path
                       ? "blue.500"
                       : "black"
                   }

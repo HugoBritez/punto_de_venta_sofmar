@@ -5,7 +5,7 @@ export const puedeCrear = (grupo: number, orden: number): boolean => {
     const permiso = auth?.permisos_menu.find(
       p => p.menu_grupo === grupo && p.menu_orden === orden
     );
-    return Boolean(permiso?.crear) || auth?.userName === "admin" || auth?.userName === "Sofmar";
+    return Boolean(permiso?.crear === 1) || auth?.userName === "admin" || auth?.userName === "Sofmar";
   };
   
   export const puedeEditar = (grupo: number, orden: number): boolean => {
@@ -13,6 +13,6 @@ export const puedeCrear = (grupo: number, orden: number): boolean => {
     const permiso = auth?.permisos_menu.find(
       p => p.menu_grupo === grupo && p.menu_orden === orden
     );
-    return Boolean(permiso?.editar) || auth?.userName === "admin" || auth?.userName === "Sofmar";
+    return Boolean(permiso?.editar === 1) || auth?.userName === "admin" || auth?.userName === "Sofmar";
   };
   

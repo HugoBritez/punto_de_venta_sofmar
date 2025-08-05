@@ -902,6 +902,7 @@ const FormularioPresupuestos = ({cliente, operador}: FormularioPresupuestosProps
       setValidezOferta(response.data.body.pre_validez || "8 Dias");
       setTipoFlete(response.data.body.pre_flete || "");
       setCondicionPago(response.data.body.pre_condicion || "8 Dias");
+      
 
       // Seleccionamos la sucursal y depósito correspondientes
       setSucursalSeleccionada(
@@ -2018,7 +2019,7 @@ const FormularioPresupuestos = ({cliente, operador}: FormularioPresupuestosProps
               Total 5%:
             </label>
             <input
-              type="number"
+              type="text"
               name="total_cinco"
               id="total_cinco"
               className={
@@ -2047,7 +2048,7 @@ const FormularioPresupuestos = ({cliente, operador}: FormularioPresupuestosProps
               Total 10%:
             </label>
             <input
-              type="number"
+              type="text"
               name="total_diez"
               id="total_diez"
               className={
@@ -2067,7 +2068,7 @@ const FormularioPresupuestos = ({cliente, operador}: FormularioPresupuestosProps
               Total Factura:
             </label>
             <input
-              type="number"
+              type="text"
               name="total_factura"
               id="total_factura"
               className={
@@ -2085,7 +2086,7 @@ const FormularioPresupuestos = ({cliente, operador}: FormularioPresupuestosProps
               Total Descuentos por Items:
             </label>
             <input
-              type="number"
+              type="text"
               name="total_descuentos"
               id="total_descuentos"
               className={
@@ -2113,7 +2114,7 @@ const FormularioPresupuestos = ({cliente, operador}: FormularioPresupuestosProps
               Descuento por Factura:
             </label>
             <input
-              type="number"
+              type="text"
               name="descuento_factura"
               id="descuento_factura"
               className={
@@ -2131,7 +2132,7 @@ const FormularioPresupuestos = ({cliente, operador}: FormularioPresupuestosProps
               Total a Pagar
             </label>
             <input
-              type="number"
+              type="text"
               name="total_a_pagar"
               id="total_a_pagar"
               className={
